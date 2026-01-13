@@ -1,11 +1,11 @@
 {
   "domain": "unifi_network_map",
   "name": "UniFi Network Map",
-  "version": "0.0.1",
-  "documentation": "https://github.com/your-org/unifi-network-map-ha",
-  "requirements": ["unifi-network-maps"],
-  "dependencies": [],
   "codeowners": ["@your-handle"],
   "config_flow": true,
-  "iot_class": "local_polling"
+  "dependencies": [],
+  "documentation": "https://github.com/your-org/unifi-network-map-ha",
+  "iot_class": "local_polling",
+  "requirements": ["unifi-network-maps"],
+  "version": "0.0.1"
 }
