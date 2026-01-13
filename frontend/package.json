@@ -1,0 +1,9 @@
+{
+  "name": "unifi-network-map-card",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo 'stub build'"
+  }
+}

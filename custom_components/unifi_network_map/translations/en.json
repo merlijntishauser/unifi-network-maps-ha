@@ -1,0 +1,18 @@
+{
+  "title": "UniFi Network Map",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to UniFi",
+        "description": "Enter your UniFi controller details.",
+        "data": {
+          "url": "Controller URL",
+          "username": "Username",
+          "password": "Password",
+          "site": "Site",
+          "verify_ssl": "Verify SSL"
+        }
+      }
+    }
+  }
+}
