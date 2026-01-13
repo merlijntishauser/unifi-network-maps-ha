@@ -174,3 +174,8 @@ ozw_log.txt
 # Development files
 custom_components
 
+### Python template
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/

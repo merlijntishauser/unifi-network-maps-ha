@@ -6,6 +6,7 @@ from unifi_network_maps.adapters.config import Config
 from unifi_network_maps.adapters import unifi as unifi_adapter
 from unifi_network_maps.model.mock import MockOptions, generate_mock_payload
 
+from custom_components.unifi_network_map import renderer as renderer_module
 from custom_components.unifi_network_map.renderer import RenderSettings, UniFiNetworkMapRenderer
 
 
@@ -47,12 +48,12 @@ def test_renderer_contract(monkeypatch) -> None:
 
 def _patch_unifi_fetchers(monkeypatch, payload: dict[str, list[dict[str, Any]]]) -> None:
     monkeypatch.setattr(
-        unifi_adapter,
+        renderer_module,
         "fetch_devices",
         lambda *_args, **_kwargs: payload["devices"],
     )
     monkeypatch.setattr(
-        unifi_adapter,
+        renderer_module,
         "fetch_clients",
         lambda *_args, **_kwargs: payload["clients"],
     )
