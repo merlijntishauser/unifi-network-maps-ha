@@ -18,9 +18,13 @@ hacs.json                               # HACS metadata
 
 ## Next steps
 - Wire Config Flow to UniFi auth + validation.
-- Implement DataUpdateCoordinator + API wrapper.
+- Implement UniFi API client (auth, sites, devices, clients).
 - Render SVG + JSON via core `unifi-network-maps` library.
+- Expose SVG/JSON via HA endpoints or cached assets.
 - Add card build tooling (vite/rollup) and release pipeline.
+
+## Dependencies
+- `unifi-network-maps` (https://pypi.org/project/unifi-network-maps/)
 
 ## Development notes
 - Keep the integration code self-contained for HACS.

@@ -13,6 +13,9 @@
           "verify_ssl": "Verify SSL"
         }
       }
+    },
+    "error": {
+      "invalid_url": "Enter a valid controller URL including http or https."
     }
   }
 }

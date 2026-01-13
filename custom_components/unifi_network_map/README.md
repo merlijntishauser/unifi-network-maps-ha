@@ -3,6 +3,9 @@
 This is a minimal HA integration skeleton for future extraction.
 
 ## TODO
-- Replace placeholder coordinator update with real UniFi queries.
-- Use the core `unifi-network-maps` library to render SVG/JSON.
-- Provide diagnostics and error handling.
+- Implement UniFi authentication and session handling.
+- Fetch devices, clients, and LLDP/neighbor data from UniFi.
+- Render SVG + JSON via the `unifi-network-maps` library.
+- Expose cached assets or endpoints for the Lovelace card.
+- Add diagnostics and a basic health check endpoint.
+- Wire `UniFiNetworkMapRenderer` to the `unifi-network-maps` package.
