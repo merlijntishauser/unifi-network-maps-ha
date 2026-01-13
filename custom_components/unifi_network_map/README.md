@@ -3,9 +3,10 @@
 This is a minimal HA integration skeleton for future extraction.
 
 ## TODO
-- Implement UniFi authentication and session handling.
-- Fetch devices, clients, and LLDP/neighbor data from UniFi.
-- Render SVG + JSON via the `unifi-network-maps` library.
+- Add options flow for client/port inclusion and SVG settings.
 - Expose cached assets or endpoints for the Lovelace card.
 - Add diagnostics and a basic health check endpoint.
-- Wire `UniFiNetworkMapRenderer` to the `unifi-network-maps` package.
+- Decide on storage strategy for SVG/JSON caching.
+
+## Notes
+- Rendering uses `unifi_network_maps` adapters for device/client fetch + SVG output.
