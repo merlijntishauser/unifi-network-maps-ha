@@ -178,3 +178,6 @@ __pycache__/
 .venv/
 .pytest_cache/
 .coverage
+
+# HA configuration for smoke/exploratory testing
+/configuration.yaml
