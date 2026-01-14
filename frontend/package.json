@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "echo 'stub build'",
-    "test": "jest",
+    "test": "jest --coverage",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\""
   },

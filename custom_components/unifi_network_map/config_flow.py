@@ -7,6 +7,7 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_PASSWORD, CONF_URL, CONF_USERNAME
 from yarl import URL
 
+from .api import validate_unifi_credentials
 from .const import (
     CONF_SITE,
     CONF_VERIFY_SSL,
@@ -14,7 +15,7 @@ from .const import (
     DEFAULT_VERIFY_SSL,
     DOMAIN,
 )
-from .errors import InvalidUrl
+from .errors import CannotConnect, InvalidAuth, InvalidUrl
 
 
 class UniFiNetworkMapConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -25,8 +26,13 @@ class UniFiNetworkMapConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             try:
                 data = _prepare_entry_data(user_input)
+                await self._async_validate_auth(data)
             except InvalidUrl:
                 errors["base"] = "invalid_url"
+            except InvalidAuth:
+                errors["base"] = "invalid_auth"
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
             else:
                 return self.async_create_entry(title=data[CONF_URL], data=data)
 
@@ -34,6 +40,16 @@ class UniFiNetworkMapConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=_build_schema(),
             errors=errors,
+        )
+
+    async def _async_validate_auth(self, data: dict[str, Any]) -> None:
+        await self.hass.async_add_executor_job(
+            validate_unifi_credentials,
+            data[CONF_URL],
+            data[CONF_USERNAME],
+            data[CONF_PASSWORD],
+            data[CONF_SITE],
+            data[CONF_VERIFY_SSL],
         )
 
 

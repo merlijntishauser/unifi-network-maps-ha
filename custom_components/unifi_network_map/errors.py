@@ -7,3 +7,11 @@ class UniFiNetworkMapError(Exception):
 
 class InvalidUrl(UniFiNetworkMapError):
     """Raised when the controller URL is invalid."""
+
+
+class InvalidAuth(UniFiNetworkMapError):
+    """Raised when authentication fails."""
+
+
+class CannotConnect(UniFiNetworkMapError):
+    """Raised when the controller cannot be reached."""

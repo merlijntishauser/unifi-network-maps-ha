@@ -32,7 +32,7 @@ install-dev: install
 	$(PIP) install -r requirements-dev.txt
 
 test: install-dev
-	$(VENV_DIR)/bin/pytest -v
+	$(VENV_DIR)/bin/pytest -v --cov=custom_components --cov-report=term-missing
 
 frontend-install:
 	cd frontend && npm install

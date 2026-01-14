@@ -24,7 +24,23 @@ def _install_homeassistant_stubs() -> None:
         pass
 
     class HomeAssistant:  # minimal stub for imports
-        pass
+        async def async_add_executor_job(self, func, *args: object):
+            return func(*args)
+
+    class ConfigFlow:  # minimal stub for imports
+        def __init_subclass__(cls, **_kwargs: object) -> None:
+            return None
+
+        def async_show_form(self, *, step_id: str, data_schema, errors: dict[str, str]):
+            return {
+                "type": "form",
+                "step_id": step_id,
+                "data_schema": data_schema,
+                "errors": errors,
+            }
+
+        def async_create_entry(self, *, title: str, data: dict[str, object]):
+            return {"type": "create_entry", "title": title, "data": data}
 
     class DataUpdateCoordinator:  # minimal stub for imports
         def __init__(self, *args: object, **kwargs: object) -> None:
@@ -38,6 +54,7 @@ def _install_homeassistant_stubs() -> None:
         pass
 
     config_entries.ConfigEntry = ConfigEntry
+    config_entries.ConfigFlow = ConfigFlow
     core.HomeAssistant = HomeAssistant
     const.CONF_PASSWORD = "password"
     const.CONF_URL = "url"
