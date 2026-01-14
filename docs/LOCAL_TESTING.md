@@ -31,6 +31,9 @@ docker run --rm -it \
 3. Open http://localhost:8123, finish onboarding, and add the integration:
    Settings -> Devices & Services -> Add Integration -> "UniFi Network Map".
 
+Note: If you already use Home Assistant in the same browser, open this in a
+private/incognito window to avoid service worker collisions.
+
 Expected results:
 - If your UniFi controller is reachable and credentials are valid, the config
   entry is created.
