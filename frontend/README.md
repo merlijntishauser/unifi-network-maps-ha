@@ -1,8 +1,24 @@
-# Lovelace Card Stub
+# Lovelace Card
 
 This is a placeholder TypeScript card for the UniFi Network Map integration.
 
+## Build
+```bash
+npm install
+npm run build
+```
+
+Output: `dist/unifi-network-map.js`
+
+## Home Assistant resource
+Copy `dist/unifi-network-map.js` into your HA `/config/www/` folder and add it
+as a Lovelace resource:
+
+```yaml
+resources:
+  - url: /local/unifi-network-map.js
+    type: module
+```
+
 ## Next steps
-- Wire SVG/JSON loading.
 - Add pan/zoom + click drilldown.
-- Build tooling (vite/rollup) when splitting into a separate repo.

@@ -67,7 +67,7 @@ tap_action:
 
 ## Lovelace snippet (custom card with auth)
 This uses the custom card, which fetches the SVG with the HA auth token.
-The card still needs to be bundled and added as a Lovelace resource.
+Build the card (`frontend/README.md`) and add it as a Lovelace resource.
 
 ```yaml
 type: custom:unifi-network-map
