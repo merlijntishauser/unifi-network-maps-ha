@@ -30,3 +30,6 @@ hacs.json                               # HACS metadata
 - Keep the integration code self-contained for HACS.
 - Use HA storage for credentials and options.
 - Avoid writing secrets into any JSON exports.
+
+## Local testing
+See `docs/LOCAL_TESTING.md` for a Docker-based smoke test flow.
