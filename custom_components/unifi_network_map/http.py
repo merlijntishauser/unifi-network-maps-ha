@@ -34,8 +34,7 @@ class UniFiNetworkMapSvgView(HomeAssistantView):
     url = "/api/unifi_network_map/{entry_id}/svg"
     name = "api:unifi_network_map:svg"
 
-    async def get(self, request: web.Request) -> web.Response:
-        entry_id = request.match_info["entry_id"]
+    async def get(self, request: web.Request, entry_id: str) -> web.Response:
         data = _get_data(_get_coordinator(request.app["hass"], entry_id))
         if data is None:
             raise web.HTTPNotFound()
@@ -46,8 +45,7 @@ class UniFiNetworkMapPayloadView(HomeAssistantView):
     url = "/api/unifi_network_map/{entry_id}/payload"
     name = "api:unifi_network_map:payload"
 
-    async def get(self, request: web.Request) -> web.Response:
-        entry_id = request.match_info["entry_id"]
+    async def get(self, request: web.Request, entry_id: str) -> web.Response:
         data = _get_data(_get_coordinator(request.app["hass"], entry_id))
         if data is None:
             raise web.HTTPNotFound()
