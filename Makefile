@@ -1,4 +1,4 @@
-.PHONY: help venv install install-dev test frontend-install frontend-build frontend-test pre-commit-install pre-commit-run clean
+.PHONY: help venv install install-dev test frontend-install frontend-build frontend-test pre-commit-install pre-commit-run ci clean
 
 VENV_DIR := .venv
 PYTHON_BIN := $(shell command -v python3.13 >/dev/null 2>&1 && echo python3.13 || echo python3)
@@ -16,6 +16,7 @@ help:
 	@echo "  frontend-test   Run frontend tests (requires Node.js)"
 	@echo "  pre-commit-install Install git hooks (requires pre-commit)"
 	@echo "  pre-commit-run  Run all pre-commit hooks"
+	@echo "  ci              Run full local CI (pre-commit hooks)"
 	@echo "  clean           Remove .venv"
 
 venv:
@@ -45,6 +46,8 @@ pre-commit-install: install-dev
 
 pre-commit-run: install-dev
 	$(VENV_DIR)/bin/pre-commit run --all-files
+
+ci: pre-commit-run
 
 clean:
 	rm -rf $(VENV_DIR)
