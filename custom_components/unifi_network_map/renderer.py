@@ -6,6 +6,7 @@ from typing import Any
 from unifi_network_maps.adapters.config import Config
 from unifi_network_maps.adapters.unifi import fetch_clients, fetch_devices
 from unifi_network_maps.model.topology import (
+    Device,
     Edge,
     TopologyResult,
     build_device_index,
@@ -53,7 +54,7 @@ def _render_map(config: Config, settings: RenderSettings) -> UniFiNetworkMapData
     return UniFiNetworkMapData(svg=svg, payload=payload)
 
 
-def _load_devices(config: Config, settings: RenderSettings):
+def _load_devices(config: Config, settings: RenderSettings) -> list[Device]:
     raw_devices = list(
         fetch_devices(
             config,
@@ -65,7 +66,9 @@ def _load_devices(config: Config, settings: RenderSettings):
     return normalize_devices(raw_devices)
 
 
-def _build_topology(devices, settings: RenderSettings) -> tuple[TopologyResult, list[str]]:
+def _build_topology(
+    devices: list[Device], settings: RenderSettings
+) -> tuple[TopologyResult, list[str]]:
     groups = group_devices_by_type(devices)
     gateways = groups.get("gateway", [])
     topology = build_topology(
@@ -81,8 +84,8 @@ def _apply_clients(
     config: Config,
     settings: RenderSettings,
     topology: TopologyResult,
-    devices,
-):
+    devices: list[Device],
+) -> tuple[list[Edge], list[object] | None]:
     edges = _select_edges(topology)
     clients = _load_clients(config, settings)
     if not clients:
@@ -101,7 +104,7 @@ def _select_edges(topology: TopologyResult) -> list[Edge]:
     return topology.tree_edges or topology.raw_edges
 
 
-def _load_clients(config: Config, settings: RenderSettings):
+def _load_clients(config: Config, settings: RenderSettings) -> list[object] | None:
     if not settings.include_clients:
         return None
     return list(fetch_clients(config, site=config.site, use_cache=settings.use_cache))

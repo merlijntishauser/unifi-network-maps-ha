@@ -1,0 +1,17 @@
+{
+  "include": ["custom_components", "tests"],
+  "exclude": [".venv", "frontend", "brand_assets"],
+  "typeCheckingMode": "strict",
+  "reportMissingImports": false,
+  "reportMissingTypeStubs": false,
+  "reportUnknownParameterType": false,
+  "reportUnknownArgumentType": false,
+  "reportUnknownVariableType": false,
+  "reportUnknownMemberType": false,
+  "reportCallIssue": false,
+  "reportGeneralTypeIssues": false,
+  "reportUntypedBaseClass": false,
+  "reportAttributeAccessIssue": false,
+  "reportMissingParameterType": false,
+  "pythonVersion": "3.13"
+}

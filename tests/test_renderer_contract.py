@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from pytest import MonkeyPatch
+
 from unifi_network_maps.adapters.config import Config
-from unifi_network_maps.adapters import unifi as unifi_adapter
 from unifi_network_maps.model.mock import MockOptions, generate_mock_payload
 
 from custom_components.unifi_network_map import renderer as renderer_module
@@ -37,7 +38,7 @@ def _build_config() -> Config:
     )
 
 
-def test_renderer_contract(monkeypatch) -> None:
+def test_renderer_contract(monkeypatch: MonkeyPatch) -> None:
     payload = _mock_payload()
     _patch_unifi_fetchers(monkeypatch, payload)
     result = UniFiNetworkMapRenderer().render(_build_config(), _build_settings())
@@ -46,14 +47,22 @@ def test_renderer_contract(monkeypatch) -> None:
     assert result.payload["node_types"]
 
 
-def _patch_unifi_fetchers(monkeypatch, payload: dict[str, list[dict[str, Any]]]) -> None:
+def _patch_unifi_fetchers(
+    monkeypatch: MonkeyPatch, payload: dict[str, list[dict[str, Any]]]
+) -> None:
+    def _fetch_devices(*_args: object, **_kwargs: object) -> list[dict[str, Any]]:
+        return payload["devices"]
+
+    def _fetch_clients(*_args: object, **_kwargs: object) -> list[dict[str, Any]]:
+        return payload["clients"]
+
     monkeypatch.setattr(
         renderer_module,
         "fetch_devices",
-        lambda *_args, **_kwargs: payload["devices"],
+        _fetch_devices,
     )
     monkeypatch.setattr(
         renderer_module,
         "fetch_clients",
-        lambda *_args, **_kwargs: payload["clients"],
+        _fetch_clients,
     )

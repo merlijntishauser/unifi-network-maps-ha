@@ -12,8 +12,23 @@ repos:
         entry: bash -c 'make test'
         language: system
         pass_filenames: false
+      - id: pyright
+        name: pyright
+        entry: bash -c '.venv/bin/pyright'
+        language: system
+        pass_filenames: false
       - id: frontend-test
         name: frontend test
         entry: bash -c 'make frontend-test'
+        language: system
+        pass_filenames: false
+      - id: frontend-typecheck
+        name: frontend typecheck
+        entry: bash -c 'make frontend-typecheck'
+        language: system
+        pass_filenames: false
+      - id: frontend-lint
+        name: frontend lint
+        entry: bash -c 'make frontend-lint'
         language: system
         pass_filenames: false
