@@ -15,6 +15,32 @@ jobs:
       - uses: actions/checkout@v4
       - uses: home-assistant/actions/hassfest@master
 
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: make install-dev
+      - name: Run pytest
+        run: make test
+
+  frontend-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        run: make frontend-install
+      - name: Run frontend tests
+        run: make frontend-test
+
   # TODO(brand): Re-enable after brands PR is merged and repo topics are set.
   # TODO: Track in https://github.com/merlijntishauser/unifi-network-maps-ha/issues/1
   # hacs:
