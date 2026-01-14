@@ -92,3 +92,12 @@ Use the service `unifi_network_map.refresh` to trigger a refresh. You can pass
 If you keep the Docker container running, you can restart Home Assistant and it
 will pick up changes from the mounted `custom_components` directory. No rebuild
 is needed.
+
+For the Lovelace bundle, you can copy the built file into the running container:
+
+```bash
+docker cp frontend/dist/unifi-network-map.js <container_name>:/config/www/unifi-network-map.js
+```
+
+Then add or reload the `/local/unifi-network-map.js` resource and hard refresh
+the browser.
