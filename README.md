@@ -33,3 +33,6 @@ hacs.json                               # HACS metadata
 
 ## Local testing
 See `docs/LOCAL_TESTING.md` for a Docker-based smoke test flow.
+
+## Roadmap
+See `docs/ROADMAP.md` for a prioritized TODO list.

@@ -53,6 +53,8 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
 
 ## Lovelace snippet (raw SVG)
 Replace `<entry_id>` with the value from `sensor.unifi_network_map` attributes.
+This only works if the endpoint is public; the default `/api` endpoints require
+auth and will be blocked by the browser.
 
 ```yaml
 type: picture
@@ -78,9 +80,8 @@ data_url: /api/unifi_network_map/<entry_id>/payload
   the container.
 
 ## Current limitations
-- The integration only validates credentials and renders a map when the
-  coordinator runs. There is no UI entity yet.
-- Lovelace card and renderer endpoints are still TODO.
+- The custom card is not bundled yet; it must be built and added as a Lovelace resource.
+- The integration currently exposes only API endpoints and a sensor with URLs.
 
 ## Reloading changes
 If you keep the Docker container running, you can restart Home Assistant and it
