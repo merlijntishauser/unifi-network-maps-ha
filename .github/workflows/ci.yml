@@ -26,6 +26,8 @@ jobs:
         run: make install-dev
       - name: Run pytest
         run: make test
+      - name: Run pyright
+        run: .venv/bin/pyright
 
   frontend-test:
     runs-on: ubuntu-latest
@@ -40,6 +42,10 @@ jobs:
         run: make frontend-install
       - name: Run frontend tests
         run: make frontend-test
+      - name: Run frontend typecheck
+        run: make frontend-typecheck
+      - name: Run frontend lint
+        run: make frontend-lint
 
   # TODO(brand): Re-enable after brands PR is merged and repo topics are set.
   # TODO: Track in https://github.com/merlijntishauser/unifi-network-maps-ha/issues/1
