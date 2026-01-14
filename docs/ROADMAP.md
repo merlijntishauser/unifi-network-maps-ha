@@ -3,7 +3,7 @@
 ## P0 - MVP loop
 - Expose a stable map payload schema (versioned) for the card. (done: `schema_version`)
 - Add a service to force refresh the map (`unifi_network_map.refresh`). (done)
-- Add basic error entity/state for connectivity/auth failures.
+- Add basic error entity/state for connectivity/auth failures. (done)
 - Bundle and publish the custom card build output (resource instructions).
 
 ## P1 - Usable UX

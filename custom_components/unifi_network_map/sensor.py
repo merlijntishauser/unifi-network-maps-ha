@@ -30,13 +30,30 @@ class UniFiNetworkMapSensor(CoordinatorEntity[UniFiNetworkMapData], SensorEntity
 
     @property
     def native_value(self) -> str:
-        return "ready" if self.coordinator.data else "unavailable"
+        return _derive_state(self.coordinator)
 
     @property
     def extra_state_attributes(self) -> dict[str, str]:
+        error = _format_error(self.coordinator)
         return {
             "entry_id": self._entry_id,
             "svg_url": f"/api/unifi_network_map/{self._entry_id}/svg",
             "payload_url": f"/api/unifi_network_map/{self._entry_id}/payload",
             "payload_schema_version": PAYLOAD_SCHEMA_VERSION,
+            "last_error": error or "",
         }
+
+
+def _derive_state(coordinator: UniFiNetworkMapCoordinator) -> str:
+    if coordinator.data:
+        return "ready"
+    if coordinator.last_exception:
+        return "error"
+    return "unavailable"
+
+
+def _format_error(coordinator: UniFiNetworkMapCoordinator) -> str | None:
+    error = coordinator.last_exception
+    if not error:
+        return None
+    return str(error)

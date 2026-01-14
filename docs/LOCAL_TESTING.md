@@ -47,6 +47,7 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
   "http://localhost:8123/api/unifi_network_map/<entry_id>/svg"
 ```
 - A `sensor.unifi_network_map` entity exposes the same endpoint paths as attributes.
+- The sensor reports `ready`, `error`, or `unavailable`, and includes `last_error`.
 - If the controller is not reachable, you should see the `cannot_connect` error.
 - If credentials are invalid, you should see the `invalid_auth` error.
 - If the URL is malformed, you should see the `invalid_url` error.
