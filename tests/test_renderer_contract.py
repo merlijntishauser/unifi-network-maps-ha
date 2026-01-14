@@ -43,6 +43,7 @@ def test_renderer_contract(monkeypatch: MonkeyPatch) -> None:
     _patch_unifi_fetchers(monkeypatch, payload)
     result = UniFiNetworkMapRenderer().render(_build_config(), _build_settings())
     assert result.svg.startswith("<svg")
+    assert result.payload["schema_version"] == "1.0"
     assert result.payload["edges"]
     assert result.payload["node_types"]
 

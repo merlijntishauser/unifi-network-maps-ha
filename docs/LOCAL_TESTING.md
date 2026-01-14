@@ -79,6 +79,10 @@ data_url: /api/unifi_network_map/<entry_id>/payload
 - If it is on your LAN, ensure the controller URL you enter is reachable from
   the container.
 
+## Force refresh
+Use the service `unifi_network_map.refresh` to trigger a refresh. You can pass
+`entry_id` to target a single entry, or omit it to refresh all entries.
+
 ## Current limitations
 - The custom card is not bundled yet; it must be built and added as a Lovelace resource.
 - The integration currently exposes only API endpoints and a sensor with URLs.

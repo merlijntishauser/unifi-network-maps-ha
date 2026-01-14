@@ -18,6 +18,7 @@ from unifi_network_maps.model.topology import (
 )
 from unifi_network_maps.render.svg import SvgOptions, render_svg, render_svg_isometric
 
+from .const import PAYLOAD_SCHEMA_VERSION
 from .data import UniFiNetworkMapData
 from .errors import UniFiNetworkMapError
 
@@ -127,6 +128,7 @@ def _build_payload(
     gateways: list[str],
 ) -> dict[str, Any]:
     return {
+        "schema_version": PAYLOAD_SCHEMA_VERSION,
         "edges": [_edge_to_dict(edge) for edge in edges],
         "node_types": node_types,
         "gateways": gateways,

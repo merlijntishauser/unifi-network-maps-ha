@@ -5,6 +5,10 @@ import logging
 
 DOMAIN = "unifi_network_map"
 PLATFORMS = ["sensor"]
+PAYLOAD_SCHEMA_VERSION = "1.0"
+
+SERVICE_REFRESH = "refresh"
+ATTR_ENTRY_ID = "entry_id"
 DEFAULT_SCAN_INTERVAL_SECONDS = 60
 DEFAULT_SCAN_INTERVAL = timedelta(seconds=DEFAULT_SCAN_INTERVAL_SECONDS)
 DEFAULT_SITE = "default"

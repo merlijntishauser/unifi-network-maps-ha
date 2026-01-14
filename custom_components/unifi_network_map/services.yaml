@@ -1,0 +1,9 @@
+refresh:
+  name: Refresh map
+  description: Force a map refresh for a specific config entry or all entries.
+  fields:
+    entry_id:
+      name: Entry ID
+      description: The config entry ID to refresh. If omitted, all entries refresh.
+      selector:
+        text:

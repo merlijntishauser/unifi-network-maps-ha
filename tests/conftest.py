@@ -19,6 +19,7 @@ def _install_homeassistant_stubs() -> None:
     const = cast(Any, ModuleType("homeassistant.const"))
     helpers = cast(Any, ModuleType("homeassistant.helpers"))
     update_coordinator = cast(Any, ModuleType("homeassistant.helpers.update_coordinator"))
+    exceptions = cast(Any, ModuleType("homeassistant.exceptions"))
 
     class ConfigEntry:  # minimal stub for imports
         pass
@@ -61,6 +62,7 @@ def _install_homeassistant_stubs() -> None:
     const.CONF_USERNAME = "username"
     update_coordinator.DataUpdateCoordinator = DataUpdateCoordinator
     update_coordinator.UpdateFailed = UpdateFailed
+    exceptions.HomeAssistantError = Exception
 
     sys.modules.setdefault("homeassistant", homeassistant)
     sys.modules.setdefault("homeassistant.config_entries", config_entries)
@@ -68,6 +70,7 @@ def _install_homeassistant_stubs() -> None:
     sys.modules.setdefault("homeassistant.const", const)
     sys.modules.setdefault("homeassistant.helpers", helpers)
     sys.modules.setdefault("homeassistant.helpers.update_coordinator", update_coordinator)
+    sys.modules.setdefault("homeassistant.exceptions", exceptions)
 
 
 _install_homeassistant_stubs()

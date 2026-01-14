@@ -5,7 +5,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import DOMAIN, PAYLOAD_SCHEMA_VERSION
 from .coordinator import UniFiNetworkMapCoordinator
 from .data import UniFiNetworkMapData
 
@@ -38,4 +38,5 @@ class UniFiNetworkMapSensor(CoordinatorEntity[UniFiNetworkMapData], SensorEntity
             "entry_id": self._entry_id,
             "svg_url": f"/api/unifi_network_map/{self._entry_id}/svg",
             "payload_url": f"/api/unifi_network_map/{self._entry_id}/payload",
+            "payload_schema_version": PAYLOAD_SCHEMA_VERSION,
         }
