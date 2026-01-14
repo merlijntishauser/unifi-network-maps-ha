@@ -4,6 +4,7 @@ from datetime import timedelta
 import logging
 
 DOMAIN = "unifi_network_map"
+PLATFORMS = ["sensor"]
 DEFAULT_SCAN_INTERVAL_SECONDS = 60
 DEFAULT_SCAN_INTERVAL = timedelta(seconds=DEFAULT_SCAN_INTERVAL_SECONDS)
 DEFAULT_SITE = "default"
