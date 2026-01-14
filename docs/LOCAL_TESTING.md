@@ -96,8 +96,19 @@ is needed.
 For the Lovelace bundle, you can copy the built file into the running container:
 
 ```bash
+docker exec -it <container_name> mkdir -p /config/www
 docker cp frontend/dist/unifi-network-map.js <container_name>:/config/www/unifi-network-map.js
 ```
 
 Then add or reload the `/local/unifi-network-map.js` resource and hard refresh
 the browser.
+
+If you do not see the Resources menu, enable Advanced Mode in your user profile.
+You can also add the resource to `configuration.yaml`:
+
+```yaml
+lovelace:
+  resources:
+    - url: /local/unifi-network-map.js
+      type: module
+```
