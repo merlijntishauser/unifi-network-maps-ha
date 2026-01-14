@@ -1,6 +1,7 @@
 .PHONY: help venv install install-dev test frontend-install frontend-build frontend-test pre-commit-install pre-commit-run clean
 
 VENV_DIR := .venv
+PYTHON_BIN := $(shell command -v python3.13 >/dev/null 2>&1 && echo python3.13 || echo python3)
 PYTHON := $(VENV_DIR)/bin/python
 PIP := $(VENV_DIR)/bin/pip
 
@@ -18,7 +19,7 @@ help:
 	@echo "  clean           Remove .venv"
 
 venv:
-	python3 -m venv $(VENV_DIR)
+	$(PYTHON_BIN) -m venv $(VENV_DIR)
 
 install: venv
 	$(PIP) install --upgrade pip
