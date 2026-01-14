@@ -51,6 +51,27 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
 - If credentials are invalid, you should see the `invalid_auth` error.
 - If the URL is malformed, you should see the `invalid_url` error.
 
+## Lovelace snippet (raw SVG)
+Replace `<entry_id>` with the value from `sensor.unifi_network_map` attributes.
+
+```yaml
+type: picture
+image: /api/unifi_network_map/<entry_id>/svg
+tap_action:
+  action: url
+  url_path: /api/unifi_network_map/<entry_id>/svg
+```
+
+## Lovelace snippet (custom card with auth)
+This uses the custom card, which fetches the SVG with the HA auth token.
+The card still needs to be bundled and added as a Lovelace resource.
+
+```yaml
+type: custom:unifi-network-map
+svg_url: /api/unifi_network_map/<entry_id>/svg
+data_url: /api/unifi_network_map/<entry_id>/payload
+```
+
 ## Controller connectivity notes
 - If your UniFi controller is on the same host, consider `--network=host`.
 - If it is on your LAN, ensure the controller URL you enter is reachable from
@@ -60,3 +81,8 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
 - The integration only validates credentials and renders a map when the
   coordinator runs. There is no UI entity yet.
 - Lovelace card and renderer endpoints are still TODO.
+
+## Reloading changes
+If you keep the Docker container running, you can restart Home Assistant and it
+will pick up changes from the mounted `custom_components` directory. No rebuild
+is needed.
