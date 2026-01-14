@@ -1,0 +1,19 @@
+repos:
+  - repo: local
+    hooks:
+      - id: hassfest
+        name: hassfest (docker)
+        entry: >-
+          bash -c 'docker run --rm -v "$PWD":/github/workspace ghcr.io/home-assistant/hassfest:latest'
+        language: system
+        pass_filenames: false
+      - id: pytest
+        name: pytest
+        entry: bash -c 'make test'
+        language: system
+        pass_filenames: false
+      - id: frontend-test
+        name: frontend test
+        entry: bash -c 'make frontend-test'
+        language: system
+        pass_filenames: false
