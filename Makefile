@@ -1,4 +1,4 @@
-.PHONY: help venv install install-dev test frontend-install frontend-build frontend-test clean
+.PHONY: help venv install install-dev test frontend-install frontend-build frontend-test pre-commit-install pre-commit-run clean
 
 VENV_DIR := .venv
 PYTHON := $(VENV_DIR)/bin/python
@@ -13,6 +13,8 @@ help:
 	@echo "  frontend-install Install frontend deps (requires Node.js)"
 	@echo "  frontend-build  Run frontend build (requires Node.js)"
 	@echo "  frontend-test   Run frontend tests (requires Node.js)"
+	@echo "  pre-commit-install Install git hooks (requires pre-commit)"
+	@echo "  pre-commit-run  Run all pre-commit hooks"
 	@echo "  clean           Remove .venv"
 
 venv:
@@ -36,6 +38,12 @@ frontend-build:
 
 frontend-test:
 	cd frontend && npm run test
+
+pre-commit-install: install-dev
+	$(VENV_DIR)/bin/pre-commit install
+
+pre-commit-run: install-dev
+	$(VENV_DIR)/bin/pre-commit run --all-files
 
 clean:
 	rm -rf $(VENV_DIR)
