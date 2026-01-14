@@ -34,12 +34,35 @@ describe("unifi-network-map card", () => {
     (globalThis as { fetch?: typeof fetch }).fetch = fetchMock;
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     element.hass = { auth: { data: { access_token: "token" } } };
-    element.setConfig({ svg_url: "/map.svg", data_url: "/map.json" });
+    element.setConfig({ svg_url: "/map.svg" });
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(fetchMock).toHaveBeenCalledWith("/map.svg", {
       headers: { Authorization: "Bearer token" },
     });
-    expect(element.innerHTML).toContain("<svg>");
+    expect(element.innerHTML).toContain("<svg");
+  });
+
+  it("loads payload when data_url is provided", async () => {
+    const fetchMock = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: () => Promise.resolve("<svg></svg>"),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ edges: [], node_types: {} }),
+      });
+    (globalThis as { fetch?: typeof fetch }).fetch = fetchMock;
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    element.hass = { auth: { data: { access_token: "token" } } };
+    element.setConfig({ svg_url: "/map.svg", data_url: "/map.json" });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(fetchMock).toHaveBeenCalledWith("/map.json", {
+      headers: { Authorization: "Bearer token" },
+    });
   });
 
   it("reports missing auth token", () => {

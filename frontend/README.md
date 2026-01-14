@@ -20,5 +20,6 @@ resources:
     type: module
 ```
 
-## Next steps
-- Add pan/zoom + click drilldown.
+## Features
+- Pan/zoom on the SVG map.
+- Hover tooltip and click-to-open details panel.
