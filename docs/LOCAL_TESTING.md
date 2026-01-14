@@ -39,6 +39,13 @@ Expected results:
   entry is created.
 - Check the HA logs for the entry-specific endpoints:
   `/api/unifi_network_map/<entry_id>/svg` and `/api/unifi_network_map/<entry_id>/payload`.
+- These endpoints require auth. Use a long-lived token in the `Authorization`
+  header, for example:
+
+```bash
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  "http://localhost:8123/api/unifi_network_map/<entry_id>/svg"
+```
 - If the controller is not reachable, you should see the `cannot_connect` error.
 - If credentials are invalid, you should see the `invalid_auth` error.
 - If the URL is malformed, you should see the `invalid_url` error.
