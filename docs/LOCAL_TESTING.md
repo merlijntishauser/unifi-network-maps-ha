@@ -37,6 +37,8 @@ private/incognito window to avoid service worker collisions.
 Expected results:
 - If your UniFi controller is reachable and credentials are valid, the config
   entry is created.
+- Check the HA logs for the entry-specific endpoints:
+  `/api/unifi_network_map/<entry_id>/svg` and `/api/unifi_network_map/<entry_id>/payload`.
 - If the controller is not reachable, you should see the `cannot_connect` error.
 - If credentials are invalid, you should see the `invalid_auth` error.
 - If the URL is malformed, you should see the `invalid_url` error.
