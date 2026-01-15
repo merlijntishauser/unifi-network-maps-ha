@@ -7,7 +7,8 @@
     "build": "esbuild src/unifi-network-map.ts --bundle --format=esm --target=es2020 --outfile=dist/unifi-network-map.js",
     "test": "jest --coverage",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint \"src/**/*.ts\""
+    "lint": "eslint \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\""
   },
   "devDependencies": {
     "@types/jest": "29.5.14",
@@ -18,6 +19,7 @@
     "@typescript-eslint/parser": "7.18.0",
     "esbuild": "0.23.1",
     "ts-jest": "29.2.5",
-    "typescript": "5.5.4"
+    "typescript": "5.5.4",
+    "prettier": "3.3.3"
   }
 }

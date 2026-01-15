@@ -63,7 +63,6 @@ def _select_coordinators(
     coordinators = [
         value
         for key, value in entries
-        if isinstance(value, UniFiNetworkMapCoordinator)
-        and (entry_id is None or key == entry_id)
+        if isinstance(value, UniFiNetworkMapCoordinator) and (entry_id is None or key == entry_id)
     ]
     return coordinators

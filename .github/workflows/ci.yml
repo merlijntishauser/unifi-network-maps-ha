@@ -39,6 +39,20 @@ jobs:
       - name: Run pyright
         run: .venv/bin/pyright
 
+  ruff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        run: make install-dev
+      - name: Ruff format check
+        run: .venv/bin/ruff format --check custom_components tests
+      - name: Ruff check
+        run: .venv/bin/ruff check custom_components tests
+
   frontend-test:
     runs-on: ubuntu-latest
     steps:
@@ -80,6 +94,20 @@ jobs:
         run: make frontend-install
       - name: Run frontend lint
         run: make frontend-lint
+
+  frontend-format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        run: make frontend-install
+      - name: Run frontend format check
+        run: make frontend-format
 
   # TODO(brand): Re-enable after brands PR is merged and repo topics are set.
   # TODO: Track in https://github.com/merlijntishauser/unifi-network-maps-ha/issues/1
