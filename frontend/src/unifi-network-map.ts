@@ -48,6 +48,7 @@ class UnifiNetworkMapCard extends HTMLElement {
   private _panStart: { x: number; y: number } | null = null;
   private _panMoved = false;
   private _selectedNode?: string;
+  private _hoveredNode?: string;
 
   private _render() {
     if (!this._config) {
@@ -175,13 +176,13 @@ class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _renderPanelContent() {
+    if (this._selectedNode) {
+      return this._renderNodeDetails(this._selectedNode);
+    }
     if (!this._payload) {
       return `<div>Waiting for device data...</div>`;
     }
-    if (!this._selectedNode) {
-      return this._renderOverview();
-    }
-    return this._renderNodeDetails(this._selectedNode);
+    return this._renderOverview();
   }
 
   private _renderOverview() {
@@ -196,8 +197,16 @@ class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _renderNodeDetails(name: string) {
-    const nodeType = this._payload?.node_types?.[name] ?? "unknown";
-    const edges = this._payload?.edges ?? [];
+    if (!this._payload) {
+      return `
+        <div class="unifi-network-map__panel-title">${name}</div>
+        <div class="unifi-network-map__panel-hint">
+          Provide <code>data_url</code> to show node details.
+        </div>
+      `;
+    }
+    const nodeType = this._payload.node_types?.[name] ?? "unknown";
+    const edges = this._payload.edges ?? [];
     const neighbors = edges
       .filter((edge) => edge.left === name || edge.right === name)
       .map((edge) => (edge.left === name ? edge.right : edge.left));
@@ -231,7 +240,7 @@ class UnifiNetworkMapCard extends HTMLElement {
       .unifi-network-map__panel-title { font-weight: 600; margin-bottom: 8px; }
       .unifi-network-map__panel-subtitle { margin-top: 12px; font-weight: 600; }
       .unifi-network-map__panel-hint { margin-top: 8px; color: #9ca3af; font-size: 12px; }
-      .unifi-network-map__tooltip { position: absolute; z-index: 2; background: rgba(0,0,0,0.8); color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; pointer-events: none; }
+      .unifi-network-map__tooltip { position: fixed; z-index: 2; background: rgba(0,0,0,0.8); color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; pointer-events: none; }
       @media (max-width: 800px) {
         .unifi-network-map__layout { grid-template-columns: 1fr; }
       }
@@ -254,7 +263,10 @@ class UnifiNetworkMapCard extends HTMLElement {
     viewport.onpointerdown = (event) => this._onPointerDown(event);
     viewport.onpointermove = (event) => this._onPointerMove(event, svg, tooltip);
     viewport.onpointerup = () => this._onPointerUp();
-    viewport.onpointerleave = () => this._hideTooltip(tooltip);
+    viewport.onpointerleave = () => {
+      this._hoveredNode = undefined;
+      this._hideTooltip(tooltip);
+    };
     viewport.onclick = (event) => this._onClick(event, tooltip);
   }
 
@@ -310,14 +322,18 @@ class UnifiNetworkMapCard extends HTMLElement {
       this._applyTransform(svg);
       return;
     }
-    const label = this._inferNodeName(this._resolveEventTarget(event));
+    const label = this._resolveNodeName(event);
     if (!label) {
+      this._hoveredNode = undefined;
       this._hideTooltip(tooltip);
       return;
     }
+    this._hoveredNode = label;
     tooltip.hidden = false;
     tooltip.textContent = label;
-    tooltip.style.transform = `translate(${event.offsetX + 12}px, ${event.offsetY + 12}px)`;
+    tooltip.style.transform = "none";
+    tooltip.style.left = `${event.clientX + 12}px`;
+    tooltip.style.top = `${event.clientY + 12}px`;
   }
 
   private _onPointerUp() {
@@ -332,7 +348,7 @@ class UnifiNetworkMapCard extends HTMLElement {
     if (this._panMoved) {
       return;
     }
-    const label = this._inferNodeName(this._resolveEventTarget(event));
+    const label = this._resolveNodeName(event) ?? this._hoveredNode;
     if (!label) {
       return;
     }
@@ -352,12 +368,28 @@ class UnifiNetworkMapCard extends HTMLElement {
     svg.style.cursor = this._isPanning ? "grabbing" : "grab";
   }
 
-  private _resolveEventTarget(event: MouseEvent | PointerEvent): Element | null {
-    const target = event.target as Element | null;
-    if (target && target !== event.currentTarget) {
-      return target;
+  private _resolveNodeName(event: MouseEvent | PointerEvent): string | null {
+    const path = event.composedPath();
+    for (const item of path) {
+      if (item instanceof Element) {
+        const nodeId = item.getAttribute("data-node-id");
+        if (nodeId) {
+          return nodeId.trim();
+        }
+        const aria = item.getAttribute("aria-label");
+        if (aria) {
+          return aria.trim();
+        }
+        if (item.tagName.toLowerCase() === "text" && item.textContent) {
+          return item.textContent.trim();
+        }
+        if (item.tagName.toLowerCase() === "title" && item.textContent) {
+          return item.textContent.trim();
+        }
+      }
     }
-    return document.elementFromPoint(event.clientX, event.clientY);
+    const fallback = document.elementFromPoint(event.clientX, event.clientY);
+    return this._inferNodeName(fallback);
   }
 
   private _isControlTarget(target: Element | null): boolean {
@@ -365,14 +397,16 @@ class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _applyZoom(delta: number, svg: SVGElement) {
-    const nextScale = Math.min(2.5, Math.max(0.5, this._panState.scale + delta));
+    const nextScale = Math.min(4, Math.max(0.5, this._panState.scale + delta));
     this._panState.scale = Number(nextScale.toFixed(2));
     this._applyTransform(svg);
   }
 
   private _resetPan(svg: SVGElement) {
     this._panState = { x: 0, y: 0, scale: 1 };
+    this._selectedNode = undefined;
     this._applyTransform(svg);
+    this._render();
   }
 
   private _inferNodeName(target: Element | null): string | null {
@@ -410,4 +444,4 @@ class UnifiNetworkMapCard extends HTMLElement {
 
 customElements.define("unifi-network-map", UnifiNetworkMapCard);
 
-console.info("unifi-network-map card loaded");
+console.info("unifi-network-map card loaded v0.0.1+verify-2026-01-15-2");
