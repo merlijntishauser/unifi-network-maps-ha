@@ -289,6 +289,9 @@ class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _onPointerDown(event: PointerEvent) {
+    if (this._isControlTarget(event.target as Element | null)) {
+      return;
+    }
     this._isPanning = true;
     this._panMoved = false;
     this._panStart = { x: event.clientX - this._panState.x, y: event.clientY - this._panState.y };
@@ -307,7 +310,7 @@ class UnifiNetworkMapCard extends HTMLElement {
       this._applyTransform(svg);
       return;
     }
-    const label = this._inferNodeName(event.target as Element | null);
+    const label = this._inferNodeName(this._resolveEventTarget(event));
     if (!label) {
       this._hideTooltip(tooltip);
       return;
@@ -323,10 +326,13 @@ class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _onClick(event: MouseEvent, tooltip: HTMLElement) {
+    if (this._isControlTarget(event.target as Element | null)) {
+      return;
+    }
     if (this._panMoved) {
       return;
     }
-    const label = this._inferNodeName(event.target as Element | null);
+    const label = this._inferNodeName(this._resolveEventTarget(event));
     if (!label) {
       return;
     }
@@ -346,6 +352,18 @@ class UnifiNetworkMapCard extends HTMLElement {
     svg.style.cursor = this._isPanning ? "grabbing" : "grab";
   }
 
+  private _resolveEventTarget(event: MouseEvent | PointerEvent): Element | null {
+    const target = event.target as Element | null;
+    if (target && target !== event.currentTarget) {
+      return target;
+    }
+    return document.elementFromPoint(event.clientX, event.clientY);
+  }
+
+  private _isControlTarget(target: Element | null): boolean {
+    return Boolean(target?.closest(".unifi-network-map__controls"));
+  }
+
   private _applyZoom(delta: number, svg: SVGElement) {
     const nextScale = Math.min(2.5, Math.max(0.5, this._panState.scale + delta));
     this._panState.scale = Number(nextScale.toFixed(2));
@@ -360,6 +378,10 @@ class UnifiNetworkMapCard extends HTMLElement {
   private _inferNodeName(target: Element | null): string | null {
     if (!target) {
       return null;
+    }
+    const node = target.closest("[data-node-id]") as Element | null;
+    if (node?.getAttribute("data-node-id")) {
+      return node.getAttribute("data-node-id")?.trim() ?? null;
     }
     const labelled = target.closest("[aria-label]") as Element | null;
     if (labelled?.getAttribute("aria-label")) {

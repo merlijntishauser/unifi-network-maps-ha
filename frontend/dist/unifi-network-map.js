@@ -235,6 +235,9 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._applyZoom(delta, svg);
   }
   _onPointerDown(event) {
+    if (this._isControlTarget(event.target)) {
+      return;
+    }
     this._isPanning = true;
     this._panMoved = false;
     this._panStart = { x: event.clientX - this._panState.x, y: event.clientY - this._panState.y };
@@ -252,7 +255,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       this._applyTransform(svg);
       return;
     }
-    const label = this._inferNodeName(event.target);
+    const label = this._inferNodeName(this._resolveEventTarget(event));
     if (!label) {
       this._hideTooltip(tooltip);
       return;
@@ -266,10 +269,13 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._panStart = null;
   }
   _onClick(event, tooltip) {
+    if (this._isControlTarget(event.target)) {
+      return;
+    }
     if (this._panMoved) {
       return;
     }
-    const label = this._inferNodeName(event.target);
+    const label = this._inferNodeName(this._resolveEventTarget(event));
     if (!label) {
       return;
     }
@@ -286,6 +292,16 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     svg.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
     svg.style.cursor = this._isPanning ? "grabbing" : "grab";
   }
+  _resolveEventTarget(event) {
+    const target = event.target;
+    if (target && target !== event.currentTarget) {
+      return target;
+    }
+    return document.elementFromPoint(event.clientX, event.clientY);
+  }
+  _isControlTarget(target) {
+    return Boolean(target?.closest(".unifi-network-map__controls"));
+  }
   _applyZoom(delta, svg) {
     const nextScale = Math.min(2.5, Math.max(0.5, this._panState.scale + delta));
     this._panState.scale = Number(nextScale.toFixed(2));
@@ -298,6 +314,10 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   _inferNodeName(target) {
     if (!target) {
       return null;
+    }
+    const node = target.closest("[data-node-id]");
+    if (node?.getAttribute("data-node-id")) {
+      return node.getAttribute("data-node-id")?.trim() ?? null;
     }
     const labelled = target.closest("[aria-label]");
     if (labelled?.getAttribute("aria-label")) {

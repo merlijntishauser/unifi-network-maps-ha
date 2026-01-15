@@ -9,7 +9,7 @@
 
 ## P1 - Usable UX
 - Add Lovelace card UI (zoom/pan, tooltip, device details panel). (done)
-- Add map options flow (include ports/clients, isometric, only UniFi).
+- Add map options flow (include ports/clients, isometric, only UniFi). (done)
 - Cache rendered SVG/payload to avoid re-render on each request.
 - Fix UI controls visibility and node click selection in the card.
 
