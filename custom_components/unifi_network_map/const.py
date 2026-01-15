@@ -19,6 +19,7 @@ DEFAULT_CLIENT_SCOPE = "wired"
 DEFAULT_ONLY_UNIFI = False
 DEFAULT_SVG_ISOMETRIC = False
 DEFAULT_USE_CACHE = False
+CLIENT_SCOPE_OPTIONS = ["wired", "wireless", "all"]
 
 CONF_SITE = "site"
 CONF_VERIFY_SSL = "verify_ssl"

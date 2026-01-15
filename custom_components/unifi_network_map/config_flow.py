@@ -9,9 +9,20 @@ from yarl import URL
 
 from .api import validate_unifi_credentials
 from .const import (
+    CLIENT_SCOPE_OPTIONS,
+    CONF_CLIENT_SCOPE,
+    CONF_INCLUDE_CLIENTS,
+    CONF_INCLUDE_PORTS,
+    CONF_ONLY_UNIFI,
     CONF_SITE,
+    CONF_SVG_ISOMETRIC,
     CONF_VERIFY_SSL,
+    DEFAULT_CLIENT_SCOPE,
+    DEFAULT_INCLUDE_CLIENTS,
+    DEFAULT_INCLUDE_PORTS,
+    DEFAULT_ONLY_UNIFI,
     DEFAULT_SITE,
+    DEFAULT_SVG_ISOMETRIC,
     DEFAULT_VERIFY_SSL,
     DOMAIN,
 )
@@ -52,6 +63,26 @@ class UniFiNetworkMapConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data[CONF_VERIFY_SSL],
         )
 
+    @staticmethod
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> config_entries.OptionsFlow:
+        return UniFiNetworkMapOptionsFlow(config_entry)
+
+
+class UniFiNetworkMapOptionsFlow(config_entries.OptionsFlow):
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        self._entry = config_entry
+
+    async def async_step_init(self, user_input: dict[str, Any] | None = None):
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=_build_options_schema(self._entry.options),
+        )
+
 
 def _build_schema() -> vol.Schema:
     return vol.Schema(
@@ -61,6 +92,33 @@ def _build_schema() -> vol.Schema:
             vol.Required(CONF_PASSWORD): str,
             vol.Required(CONF_SITE, default=DEFAULT_SITE): str,
             vol.Optional(CONF_VERIFY_SSL, default=DEFAULT_VERIFY_SSL): bool,
+        }
+    )
+
+
+def _build_options_schema(options: dict[str, Any]) -> vol.Schema:
+    return vol.Schema(
+        {
+            vol.Optional(
+                CONF_INCLUDE_PORTS,
+                default=options.get(CONF_INCLUDE_PORTS, DEFAULT_INCLUDE_PORTS),
+            ): bool,
+            vol.Optional(
+                CONF_INCLUDE_CLIENTS,
+                default=options.get(CONF_INCLUDE_CLIENTS, DEFAULT_INCLUDE_CLIENTS),
+            ): bool,
+            vol.Optional(
+                CONF_CLIENT_SCOPE,
+                default=options.get(CONF_CLIENT_SCOPE, DEFAULT_CLIENT_SCOPE),
+            ): vol.In(CLIENT_SCOPE_OPTIONS),
+            vol.Optional(
+                CONF_ONLY_UNIFI,
+                default=options.get(CONF_ONLY_UNIFI, DEFAULT_ONLY_UNIFI),
+            ): bool,
+            vol.Optional(
+                CONF_SVG_ISOMETRIC,
+                default=options.get(CONF_SVG_ISOMETRIC, DEFAULT_SVG_ISOMETRIC),
+            ): bool,
         }
     )
 

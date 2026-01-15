@@ -43,6 +43,13 @@ def _install_homeassistant_stubs() -> None:
         def async_create_entry(self, *, title: str, data: dict[str, object]):
             return {"type": "create_entry", "title": title, "data": data}
 
+    class OptionsFlow:  # minimal stub for imports
+        def async_show_form(self, *, step_id: str, data_schema):
+            return {"type": "form", "step_id": step_id, "data_schema": data_schema}
+
+        def async_create_entry(self, *, title: str, data: dict[str, object]):
+            return {"type": "create_entry", "title": title, "data": data}
+
     class DataUpdateCoordinator:  # minimal stub for imports
         def __init__(self, *args: object, **kwargs: object) -> None:
             self.hass = args[0] if args else None
@@ -56,6 +63,7 @@ def _install_homeassistant_stubs() -> None:
 
     config_entries.ConfigEntry = ConfigEntry
     config_entries.ConfigFlow = ConfigFlow
+    config_entries.OptionsFlow = OptionsFlow
     core.HomeAssistant = HomeAssistant
     const.CONF_PASSWORD = "password"
     const.CONF_URL = "url"

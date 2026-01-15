@@ -12,6 +12,17 @@
           "site": "Site",
           "verify_ssl": "Verify SSL"
         }
+      },
+      "init": {
+        "title": "Map Options",
+        "description": "Tune how the map is rendered.",
+        "data": {
+          "include_ports": "Include switch ports",
+          "include_clients": "Include clients",
+          "client_scope": "Client scope",
+          "only_unifi": "Only show UniFi devices",
+          "svg_isometric": "Isometric layout"
+        }
       }
     },
     "error": {
