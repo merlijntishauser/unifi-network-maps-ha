@@ -39,3 +39,4 @@ pre-commit run --all-files
 - We prefer rebasing over merge commits.
 - PRs are for unknown contributors; regular contributors can push directly.
 - Commit style: small and focused. Many small commits are preferred; no squashing.
+- Prefer opening PRs against `unifi-network-maps` instead of adding custom plumbing here.

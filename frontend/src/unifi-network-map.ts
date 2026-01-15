@@ -46,6 +46,7 @@ class UnifiNetworkMapCard extends HTMLElement {
   private _panState = { x: 0, y: 0, scale: 1 };
   private _isPanning = false;
   private _panStart: { x: number; y: number } | null = null;
+  private _panMoved = false;
   private _selectedNode?: string;
 
   private _render() {
@@ -158,6 +159,11 @@ class UnifiNetworkMapCard extends HTMLElement {
     return `
       <div class="unifi-network-map__layout">
         <div class="unifi-network-map__viewport">
+          <div class="unifi-network-map__controls">
+            <button type="button" data-action="zoom-in" title="Zoom in">+</button>
+            <button type="button" data-action="zoom-out" title="Zoom out">-</button>
+            <button type="button" data-action="reset" title="Reset view">Reset</button>
+          </div>
           ${this._svgContent}
           <div class="unifi-network-map__tooltip" hidden></div>
         </div>
@@ -217,6 +223,10 @@ class UnifiNetworkMapCard extends HTMLElement {
       .unifi-network-map__layout { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 1fr); gap: 12px; }
       .unifi-network-map__viewport { position: relative; overflow: hidden; min-height: 300px; background: #0b1016; border-radius: 8px; touch-action: none; }
       .unifi-network-map__viewport svg { width: 100%; height: auto; display: block; }
+      .unifi-network-map__controls { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; z-index: 3; }
+      .unifi-network-map__controls button { background: rgba(15, 23, 42, 0.9); color: #e5e7eb; border: 1px solid #1f2937; border-radius: 6px; padding: 4px 8px; font-size: 12px; cursor: pointer; }
+      .unifi-network-map__controls button:hover { background: rgba(30, 41, 59, 0.95); }
+      .unifi-network-map__viewport svg text, .unifi-network-map__viewport svg g { cursor: pointer; }
       .unifi-network-map__panel { padding: 12px; background: #111827; color: #e5e7eb; border-radius: 8px; font-size: 14px; }
       .unifi-network-map__panel-title { font-weight: 600; margin-bottom: 8px; }
       .unifi-network-map__panel-subtitle { margin-top: 12px; font-weight: 600; }
@@ -238,6 +248,7 @@ class UnifiNetworkMapCard extends HTMLElement {
     }
     this._ensureStyles();
     this._applyTransform(svg);
+    this._wireControls(svg);
 
     viewport.onwheel = (event) => this._onWheel(event, svg);
     viewport.onpointerdown = (event) => this._onPointerDown(event);
@@ -247,24 +258,52 @@ class UnifiNetworkMapCard extends HTMLElement {
     viewport.onclick = (event) => this._onClick(event, tooltip);
   }
 
+  private _wireControls(svg: SVGElement) {
+    const zoomIn = this.querySelector('[data-action="zoom-in"]') as HTMLButtonElement | null;
+    const zoomOut = this.querySelector('[data-action="zoom-out"]') as HTMLButtonElement | null;
+    const reset = this.querySelector('[data-action="reset"]') as HTMLButtonElement | null;
+    if (zoomIn) {
+      zoomIn.onclick = (event) => {
+        event.preventDefault();
+        this._applyZoom(0.1, svg);
+      };
+    }
+    if (zoomOut) {
+      zoomOut.onclick = (event) => {
+        event.preventDefault();
+        this._applyZoom(-0.1, svg);
+      };
+    }
+    if (reset) {
+      reset.onclick = (event) => {
+        event.preventDefault();
+        this._resetPan(svg);
+      };
+    }
+  }
+
   private _onWheel(event: WheelEvent, svg: SVGElement) {
     event.preventDefault();
     const delta = event.deltaY > 0 ? -0.1 : 0.1;
-    const nextScale = Math.min(2.5, Math.max(0.5, this._panState.scale + delta));
-    this._panState.scale = Number(nextScale.toFixed(2));
-    this._applyTransform(svg);
+    this._applyZoom(delta, svg);
   }
 
   private _onPointerDown(event: PointerEvent) {
     this._isPanning = true;
+    this._panMoved = false;
     this._panStart = { x: event.clientX - this._panState.x, y: event.clientY - this._panState.y };
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
   }
 
   private _onPointerMove(event: PointerEvent, svg: SVGElement, tooltip: HTMLElement) {
     if (this._isPanning && this._panStart) {
-      this._panState.x = event.clientX - this._panStart.x;
-      this._panState.y = event.clientY - this._panStart.y;
+      const nextX = event.clientX - this._panStart.x;
+      const nextY = event.clientY - this._panStart.y;
+      if (Math.abs(nextX - this._panState.x) > 2 || Math.abs(nextY - this._panState.y) > 2) {
+        this._panMoved = true;
+      }
+      this._panState.x = nextX;
+      this._panState.y = nextY;
       this._applyTransform(svg);
       return;
     }
@@ -284,6 +323,9 @@ class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _onClick(event: MouseEvent, tooltip: HTMLElement) {
+    if (this._panMoved) {
+      return;
+    }
     const label = this._inferNodeName(event.target as Element | null);
     if (!label) {
       return;
@@ -304,21 +346,41 @@ class UnifiNetworkMapCard extends HTMLElement {
     svg.style.cursor = this._isPanning ? "grabbing" : "grab";
   }
 
+  private _applyZoom(delta: number, svg: SVGElement) {
+    const nextScale = Math.min(2.5, Math.max(0.5, this._panState.scale + delta));
+    this._panState.scale = Number(nextScale.toFixed(2));
+    this._applyTransform(svg);
+  }
+
+  private _resetPan(svg: SVGElement) {
+    this._panState = { x: 0, y: 0, scale: 1 };
+    this._applyTransform(svg);
+  }
+
   private _inferNodeName(target: Element | null): string | null {
     if (!target) {
       return null;
+    }
+    const labelled = target.closest("[aria-label]") as Element | null;
+    if (labelled?.getAttribute("aria-label")) {
+      return labelled.getAttribute("aria-label")?.trim() ?? null;
     }
     const textNode = target.closest("text");
     if (textNode?.textContent) {
       return textNode.textContent.trim();
     }
-    const ariaLabel = target.getAttribute("aria-label");
-    if (ariaLabel) {
-      return ariaLabel.trim();
+    const group = target.closest("g");
+    const title = group?.querySelector("title");
+    if (title?.textContent) {
+      return title.textContent.trim();
     }
-    const id = target.getAttribute("id");
-    if (id) {
-      return id.trim();
+    const groupText = group?.querySelector("text");
+    if (groupText?.textContent) {
+      return groupText.textContent.trim();
+    }
+    const idHolder = target.closest("[id]") as Element | null;
+    if (idHolder?.getAttribute("id")) {
+      return idHolder.getAttribute("id")?.trim() ?? null;
     }
     return null;
   }

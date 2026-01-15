@@ -33,6 +33,7 @@ Goals:
 - Keep this repo self-contained for extraction.
 - Avoid tight coupling to the core CLI; call library functions instead.
 - Keep frontend assets in `frontend/` and backend in `custom_components/`.
+- Prefer upstreaming changes to `unifi-network-maps` over adding custom plumbing here.
 
 ## Code quality
 - Typed functions where possible.
