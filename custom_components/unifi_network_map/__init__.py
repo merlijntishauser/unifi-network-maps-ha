@@ -6,6 +6,7 @@ import importlib
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from typing import Mapping
 from homeassistant.const import EVENT_HOMEASSISTANT_START
 
 import asyncio
@@ -257,14 +258,60 @@ async def _fetch_lovelace_items(hass: HomeAssistant, resources) -> list[dict[str
 
 
 async def _create_lovelace_resource(hass: HomeAssistant, resources, resource_url: str) -> None:
-    try:
-        await resources.async_create_item(
-            hass,
-            {"url": resource_url, "type": "module"},
-        )
+    payload: Mapping[str, object] = {"url": resource_url, "type": "module"}
+    result = await _create_lovelace_resource_with_module(hass, resources, payload)
+    if result:
         LOGGER.info("Registered Lovelace resource %s", resource_url)
+        return
+
+    try:
+        info = resources.async_get_info(hass)
+    except Exception as err:  # pragma: no cover - defensive
+        LOGGER.debug("Unable to read Lovelace resources for create: %s", err)
+        return
+
+    created = await _create_lovelace_resource_with_collection(info, payload)
+    if created:
+        LOGGER.info("Registered Lovelace resource %s", resource_url)
+
+
+async def _create_lovelace_resource_with_module(
+    hass: HomeAssistant, resources, payload: Mapping[str, object]
+) -> bool:
+    if not hasattr(resources, "async_create_item"):
+        return False
+    try:
+        result = resources.async_create_item(hass, payload)
+        if hasattr(result, "__await__"):
+            await result
+        return True
+    except TypeError:
+        try:
+            result = resources.async_create_item(payload)
+            if hasattr(result, "__await__"):
+                await result
+            return True
+        except Exception as err:  # pragma: no cover - defensive
+            LOGGER.debug("Unable to register Lovelace resource: %s", err)
+            return False
     except Exception as err:  # pragma: no cover - defensive
         LOGGER.debug("Unable to register Lovelace resource: %s", err)
+        return False
+
+
+async def _create_lovelace_resource_with_collection(
+    info: object, payload: Mapping[str, object]
+) -> bool:
+    if not hasattr(info, "async_create_item"):
+        return False
+    try:
+        result = info.async_create_item(payload)
+        if hasattr(result, "__await__"):
+            await result
+        return True
+    except Exception as err:  # pragma: no cover - defensive
+        LOGGER.debug("Unable to register Lovelace resource from collection: %s", err)
+        return False
 
 
 async def _maybe_await_list(result: object) -> list[dict[str, object]] | None:
