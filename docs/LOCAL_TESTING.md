@@ -67,7 +67,7 @@ tap_action:
 
 ## Lovelace snippet (custom card with auth)
 This uses the custom card, which fetches the SVG with the HA auth token.
-Build the card (`frontend/README.md`) and add it as a Lovelace resource.
+The integration registers the Lovelace resource on setup.
 
 ```yaml
 type: custom:unifi-network-map
@@ -85,7 +85,6 @@ Use the service `unifi_network_map.refresh` to trigger a refresh. You can pass
 `entry_id` to target a single entry, or omit it to refresh all entries.
 
 ## Current limitations
-- The custom card is not bundled yet; it must be built and added as a Lovelace resource.
 - The integration currently exposes only API endpoints and a sensor with URLs.
 
 ## Reloading changes
@@ -93,7 +92,9 @@ If you keep the Docker container running, you can restart Home Assistant and it
 will pick up changes from the mounted `custom_components` directory. No rebuild
 is needed.
 
-For the Lovelace bundle, you can copy the built file into the running container:
+The integration serves the bundle at `/unifi-network-map/unifi-network-map.js`
+and registers the Lovelace resource on setup. If you need to override it, you can
+copy the built file into the running container and use `/local/`:
 
 ```bash
 docker exec -it <container_name> mkdir -p /config/www
@@ -109,6 +110,6 @@ You can also add the resource to `configuration.yaml`:
 ```yaml
 lovelace:
   resources:
-    - url: /local/unifi-network-map.js
+    - url: /unifi-network-map/unifi-network-map.js
       type: module
 ```

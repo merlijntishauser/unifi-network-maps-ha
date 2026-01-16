@@ -19,6 +19,6 @@
 - Add contract tests for renderer payload schema changes. (done)
 
 ## P3 - Release & polish
-- Add CI packaging/build release for the card.
+- Add CI packaging/build release for the card. (done)
 - Add documentation with screenshots and example dashboards.
 - Re-enable HACS checks when brands PR is merged.

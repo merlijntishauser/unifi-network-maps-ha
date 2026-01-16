@@ -40,6 +40,8 @@ frontend-install:
 
 frontend-build:
 	cd frontend && npm run build
+	@mkdir -p custom_components/unifi_network_map/frontend
+	@cp frontend/dist/unifi-network-map.js custom_components/unifi_network_map/frontend/unifi-network-map.js
 
 frontend-test:
 	cd frontend && npm run test

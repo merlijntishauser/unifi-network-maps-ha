@@ -11,12 +11,12 @@ npm run build
 Output: `dist/unifi-network-map.js`
 
 ## Home Assistant resource
-Copy `dist/unifi-network-map.js` into your HA `/config/www/` folder and add it
-as a Lovelace resource:
+The integration registers the Lovelace resource on setup. If it does not show
+up automatically, add the resource entry manually:
 
 ```yaml
 resources:
-  - url: /local/unifi-network-map.js
+  - url: /unifi-network-map/unifi-network-map.js
     type: module
 ```
 
