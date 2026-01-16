@@ -92,7 +92,7 @@ def _register_static_asset(hass: HomeAssistant, js_path: Path) -> None:
         )
         return
     if hasattr(hass.http, "async_register_static_paths"):
-        hass.http.async_register_static_paths(
+        result = hass.http.async_register_static_paths(
             [
                 {
                     "path": _frontend_bundle_url(),
@@ -101,6 +101,8 @@ def _register_static_asset(hass: HomeAssistant, js_path: Path) -> None:
                 }
             ]
         )
+        if hasattr(result, "__await__"):
+            hass.async_create_task(result)
         return
     LOGGER.warning("Unable to register frontend bundle; HTTP static path API missing")
 
