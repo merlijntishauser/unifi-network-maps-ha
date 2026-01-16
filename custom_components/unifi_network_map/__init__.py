@@ -74,6 +74,7 @@ def _register_frontend_assets(hass: HomeAssistant) -> None:
         LOGGER.warning("Frontend bundle missing at %s", js_path)
         return
     _register_static_asset(hass, js_path)
+    LOGGER.info("Attempting Lovelace resource registration for %s", _frontend_bundle_url())
     _schedule_lovelace_resource_registration(hass)
     data["frontend_registered"] = True
 
@@ -174,14 +175,17 @@ async def _ensure_lovelace_resource(hass: HomeAssistant) -> None:
         return
     resources = _load_lovelace_resources()
     if resources is None:
+        LOGGER.debug("Lovelace resources module not available yet")
         _schedule_lovelace_resource_retry(hass)
         return
     items = await _fetch_lovelace_items(hass, resources)
     if items is None:
+        LOGGER.debug("Lovelace resources list not ready yet")
         _schedule_lovelace_resource_retry(hass)
         return
     resource_url = _frontend_bundle_url()
     if any(item.get("url") == resource_url for item in items):
+        LOGGER.info("Lovelace resource already registered: %s", resource_url)
         _mark_lovelace_resource_registered(hass)
         return
     await _create_lovelace_resource(hass, resources, resource_url)
