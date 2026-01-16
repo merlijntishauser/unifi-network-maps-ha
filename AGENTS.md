@@ -19,6 +19,7 @@ Goals:
 - DataUpdateCoordinator polls UniFi API
 - Core renderer/library produces SVG + JSON
 - Custom card fetches HA endpoints or cached assets
+- Official UniFi integration domain is `unifi` (built-in), not `unifi_network`.
 
 ## Technology choices
 - Python (Home Assistant integration)
