@@ -67,7 +67,7 @@ def _register_frontend_assets(hass: HomeAssistant) -> None:
     if not js_path.exists():
         LOGGER.warning("Frontend bundle missing at %s", js_path)
         return
-    hass.http.register_static_path(_frontend_bundle_url(), str(js_path), cache_headers=True)
+    _register_static_asset(hass, js_path)
     hass.async_create_task(_ensure_lovelace_resource(hass))
     data["frontend_registered"] = True
 
@@ -78,6 +78,28 @@ def _frontend_bundle_path() -> Path:
 
 def _frontend_bundle_url() -> str:
     return "/unifi-network-map/unifi-network-map.js"
+
+
+def _register_static_asset(hass: HomeAssistant, js_path: Path) -> None:
+    if hasattr(hass.http, "register_static_path"):
+        hass.http.register_static_path(
+            _frontend_bundle_url(),
+            str(js_path),
+            cache_headers=True,
+        )
+        return
+    if hasattr(hass.http, "async_register_static_paths"):
+        hass.http.async_register_static_paths(
+            [
+                {
+                    "path": _frontend_bundle_url(),
+                    "file_path": str(js_path),
+                    "cache_headers": True,
+                }
+            ]
+        )
+        return
+    LOGGER.warning("Unable to register frontend bundle; HTTP static path API missing")
 
 
 async def _ensure_lovelace_resource(hass: HomeAssistant) -> None:
