@@ -1,9 +1,9 @@
 {
   "domain": "unifi_network_map",
   "name": "UniFi Network Map",
+  "after_dependencies": ["lovelace"],
   "codeowners": ["@merlijntishauser"],
   "config_flow": true,
-  "after_dependencies": ["lovelace"],
   "dependencies": [],
   "documentation": "https://github.com/merlijntishauser/unifi-network-maps-ha",
   "iot_class": "local_polling",
