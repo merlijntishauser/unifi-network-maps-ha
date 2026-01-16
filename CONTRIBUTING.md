@@ -2,6 +2,14 @@
 
 Thanks for helping improve UniFi Network Map for Home Assistant.
 
+## Project layout
+```
+custom_components/unifi_network_map/   # HA integration
+frontend/                               # Lovelace custom card (TS)
+.github/workflows/                      # CI (hassfest + hacs)
+hacs.json                               # HACS metadata
+```
+
 ## Development setup
 - Python: use `make install-dev` to create `.venv` and install dependencies.
 - Python 3.13 is required (unifi-network-maps 1.4.5 requires >=3.13).
@@ -33,6 +41,13 @@ pre-commit run --all-files
 ## Testing
 - Python: `make test`
 - Frontend: `make frontend-test`
+
+## Architecture notes
+- The integration renders SVG + JSON via `unifi-network-maps`.
+- Endpoints are served at `/api/unifi_network_map/<entry_id>/svg` and `/payload`.
+- The card resource is auto-registered and served from
+  `/unifi-network-map/unifi-network-map.js`.
+- Keep the integration self-contained for HACS and avoid logging secrets.
 
 ## Workflow guidelines
 - Preferred branch: `TBD` until we settle on a release flow.

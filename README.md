@@ -1,38 +1,58 @@
-# UniFi Network Map (Home Assistant Integration)
+# UniFi Network Map (Home Assistant)
 
-Skeleton repo for a Home Assistant integration + Lovelace custom card.
-This is a starting point for a standalone repo.
+See your UniFi network as a live SVG map in Home Assistant, with optional
+client visibility and drill-down details.
 
-## What it is
-- HA integration (Python) that will query UniFi for LLDP + client data.
-- Custom card (TypeScript) that renders SVG + drilldown panels.
-- Config Flow for credentials (no `.env` in HA).
+## Requirements
+- Home Assistant 2024.12+
+- UniFi Network controller (UniFi OS or self-hosted)
+- A local UniFi account (read access to devices/clients)
 
-## Repository layout
+## Install (HACS)
+1) Add this repository to HACS as a custom integration.
+2) Install "UniFi Network Map".
+3) Restart Home Assistant.
+
+## Set up the integration
+1) Go to **Settings → Devices & services → Add integration**.
+2) Search for **UniFi Network Map**.
+3) Enter your controller URL, username, password, and site.
+
+Options (after setup) let you:
+- include ports
+- include clients (wired/wireless/all)
+- show only UniFi devices
+- switch to isometric layout
+- override SVG size
+- cache rendered output
+
+## Add the Lovelace card
+The integration registers the card resource automatically. If it does not show
+up, add it manually:
+
+```yaml
+resources:
+  - url: /unifi-network-map/unifi-network-map.js
+    type: module
 ```
-custom_components/unifi_network_map/   # HA integration
-frontend/                               # Lovelace custom card (TS)
-.github/workflows/                      # CI (hassfest + hacs)
-hacs.json                               # HACS metadata
+
+Then add the card to a dashboard (replace `<entry_id>`):
+
+```yaml
+type: custom:unifi-network-map
+svg_url: /api/unifi_network_map/<entry_id>/svg
+data_url: /api/unifi_network_map/<entry_id>/payload
 ```
 
-## Next steps
-- Wire Config Flow to UniFi auth + validation.
-- Implement UniFi API client (auth, sites, devices, clients).
-- Render SVG + JSON via core `unifi-network-maps` library.
-- Expose SVG/JSON via HA endpoints or cached assets.
-- Add card build tooling (vite/rollup) and release pipeline.
+Find `<entry_id>` in **Developer Tools → States**:
+1) Select `sensor.unifi_network_map`.
+2) Copy the `entry_id` attribute.
 
-## Dependencies
-- `unifi-network-maps` (https://pypi.org/project/unifi-network-maps/)
+## Troubleshooting
+- If the card says missing auth, log in to HA in the same browser session.
+- If the map is empty, ensure LLDP is enabled on UniFi devices.
+- If you see SSL warnings, enable certificate verification or use a trusted cert.
 
-## Development notes
-- Keep the integration code self-contained for HACS.
-- Use HA storage for credentials and options.
-- Avoid writing secrets into any JSON exports.
-
-## Local testing
-See `docs/LOCAL_TESTING.md` for a Docker-based smoke test flow.
-
-## Roadmap
-See `docs/ROADMAP.md` for a prioritized TODO list.
+## Documentation
+- Local testing: `docs/LOCAL_TESTING.md`
+- Roadmap: `docs/ROADMAP.md`
