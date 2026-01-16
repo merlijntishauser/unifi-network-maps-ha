@@ -1,5 +1,8 @@
 # UniFi Network Map (Home Assistant)
 
+[![CI](https://github.com/merlijntishauser/unifi-network-maps-ha/actions/workflows/ci.yml/badge.svg)](https://github.com/merlijntishauser/unifi-network-maps-ha/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/merlijntishauser/unifi-network-maps-ha/actions/workflows/codeql.yml/badge.svg)](https://github.com/merlijntishauser/unifi-network-maps-ha/actions/workflows/codeql.yml)
+
 See your UniFi network as a live SVG map in Home Assistant, with optional
 client visibility and drill-down details.
 
