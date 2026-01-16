@@ -93,7 +93,7 @@ async def _ensure_lovelace_resource(hass: HomeAssistant) -> None:
     await _create_lovelace_resource(hass, resources, resource_url)
 
 
-def _load_lovelace_resources():
+def _load_lovelace_resources() -> object | None:
     try:
         from homeassistant.components.lovelace import resources
     except Exception:  # pragma: no cover - optional in tests
@@ -101,7 +101,7 @@ def _load_lovelace_resources():
     return resources
 
 
-async def _fetch_lovelace_items(hass: HomeAssistant, resources) -> list[dict] | None:
+async def _fetch_lovelace_items(hass: HomeAssistant, resources) -> list[dict[str, object]] | None:
     try:
         info = resources.async_get_info(hass)
     except Exception as err:  # pragma: no cover - defensive
@@ -109,13 +109,11 @@ async def _fetch_lovelace_items(hass: HomeAssistant, resources) -> list[dict] | 
         return None
     if hasattr(info, "async_get_info"):
         result = info.async_get_info()
-        return await _maybe_await(result)
-    return info
+        return await _maybe_await_list(result)
+    return _as_resource_list(info)
 
 
-async def _create_lovelace_resource(
-    hass: HomeAssistant, resources, resource_url: str
-) -> None:
+async def _create_lovelace_resource(hass: HomeAssistant, resources, resource_url: str) -> None:
     try:
         await resources.async_create_item(
             hass,
@@ -126,10 +124,16 @@ async def _create_lovelace_resource(
         LOGGER.debug("Unable to register Lovelace resource: %s", err)
 
 
-async def _maybe_await(result):
+async def _maybe_await_list(result: object) -> list[dict[str, object]] | None:
     if hasattr(result, "__await__"):
-        return await result
-    return result
+        return _as_resource_list(await result)
+    return _as_resource_list(result)
+
+
+def _as_resource_list(value: object) -> list[dict[str, object]] | None:
+    if isinstance(value, list) and all(isinstance(item, dict) for item in value):
+        return value
+    return None
 
 
 def _select_coordinators(
