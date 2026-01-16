@@ -17,6 +17,7 @@ class _FakeHass:
     def __init__(self) -> None:
         self.data: dict[str, object] = {}
         self.http = _FakeHttp()
+        self.is_running = True
 
     def async_create_task(self, _coro) -> None:
         if hasattr(_coro, "close"):

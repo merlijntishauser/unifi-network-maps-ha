@@ -76,6 +76,7 @@ def _install_homeassistant_stubs() -> None:
     const.CONF_PASSWORD = "password"
     const.CONF_URL = "url"
     const.CONF_USERNAME = "username"
+    const.EVENT_HOMEASSISTANT_START = "homeassistant_start"
     update_coordinator.DataUpdateCoordinator = DataUpdateCoordinator
     update_coordinator.UpdateFailed = UpdateFailed
     exceptions.HomeAssistantError = Exception

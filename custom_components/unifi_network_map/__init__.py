@@ -4,6 +4,9 @@ from pathlib import Path
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.const import EVENT_HOMEASSISTANT_START
+
+import asyncio
 
 import voluptuous as vol
 from homeassistant.exceptions import HomeAssistantError
@@ -68,7 +71,7 @@ def _register_frontend_assets(hass: HomeAssistant) -> None:
         LOGGER.warning("Frontend bundle missing at %s", js_path)
         return
     _register_static_asset(hass, js_path)
-    hass.async_create_task(_ensure_lovelace_resource(hass))
+    _schedule_lovelace_resource_registration(hass)
     data["frontend_registered"] = True
 
 
@@ -103,16 +106,61 @@ def _register_static_asset(hass: HomeAssistant, js_path: Path) -> None:
 
 
 async def _ensure_lovelace_resource(hass: HomeAssistant) -> None:
+    if _lovelace_resource_registered(hass):
+        return
     resources = _load_lovelace_resources()
     if resources is None:
         return
     items = await _fetch_lovelace_items(hass, resources)
     if items is None:
+        _schedule_lovelace_resource_retry(hass)
         return
     resource_url = _frontend_bundle_url()
     if any(item.get("url") == resource_url for item in items):
+        _mark_lovelace_resource_registered(hass)
         return
     await _create_lovelace_resource(hass, resources, resource_url)
+    _mark_lovelace_resource_registered(hass)
+
+
+def _schedule_lovelace_resource_registration(hass: HomeAssistant) -> None:
+    if getattr(hass, "is_running", True):
+        hass.async_create_task(_ensure_lovelace_resource(hass))
+        return
+
+    bus = getattr(hass, "bus", None)
+    if bus is None or not hasattr(bus, "async_listen_once"):
+        hass.async_create_task(_ensure_lovelace_resource(hass))
+        return
+
+    async def _on_start(_event) -> None:
+        await _ensure_lovelace_resource(hass)
+
+    bus.async_listen_once(EVENT_HOMEASSISTANT_START, _on_start)
+
+
+async def _retry_lovelace_resource(hass: HomeAssistant, delay_seconds: int) -> None:
+    await asyncio.sleep(delay_seconds)
+    await _ensure_lovelace_resource(hass)
+
+
+def _schedule_lovelace_resource_retry(hass: HomeAssistant) -> None:
+    data = hass.data.setdefault(DOMAIN, {})
+    attempts = data.get("lovelace_resource_attempts", 0)
+    if attempts >= 3:
+        return
+    data["lovelace_resource_attempts"] = attempts + 1
+    hass.async_create_task(_retry_lovelace_resource(hass, 10))
+
+
+def _lovelace_resource_registered(hass: HomeAssistant) -> bool:
+    data = hass.data.setdefault(DOMAIN, {})
+    return bool(data.get("lovelace_resource_registered"))
+
+
+def _mark_lovelace_resource_registered(hass: HomeAssistant) -> None:
+    data = hass.data.setdefault(DOMAIN, {})
+    data["lovelace_resource_registered"] = True
 
 
 def _load_lovelace_resources() -> object | None:

@@ -16,6 +16,7 @@
 
 ## P2 - Quality & ops
 - Add diagnostics endpoint (anonymized) for support. (done)
+- Add clients list to diagnostics endpoint (anonymized).
 - Add integration config options validation (client scope, sizes). (done)
 - Add contract tests for renderer payload schema changes. (done)
 
