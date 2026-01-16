@@ -59,9 +59,7 @@ class UniFiNetworkMapPayloadView(HomeAssistantView):
         return web.json_response(payload)
 
 
-def _resolve_client_entity_map(
-    hass: HomeAssistant, client_macs: dict[str, str]
-) -> dict[str, str]:
+def _resolve_client_entity_map(hass: HomeAssistant, client_macs: dict[str, str]) -> dict[str, str]:
     if not client_macs or not hass.config_entries.async_entries("unifi"):
         return {}
     mac_to_entity = _build_mac_entity_index(hass)
