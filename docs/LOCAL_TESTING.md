@@ -93,8 +93,9 @@ will pick up changes from the mounted `custom_components` directory. No rebuild
 is needed.
 
 The integration serves the bundle at `/unifi-network-map/unifi-network-map.js`
-and registers the Lovelace resource on setup. If you need to override it, you can
-copy the built file into the running container and use `/local/`:
+and registers the Lovelace resource on setup. If you need to override it during
+local testing, you can copy the built file into the running container and use
+`/local/`:
 
 ```bash
 docker exec -it <container_name> mkdir -p /config/www
@@ -102,10 +103,11 @@ docker cp frontend/dist/unifi-network-map.js <container_name>:/config/www/unifi-
 ```
 
 Then add or reload the `/local/unifi-network-map.js` resource and hard refresh
-the browser.
+the browser. Remove the `/local/` resource after testing so the auto-registered
+resource is used again.
 
 If you do not see the Resources menu, enable Advanced Mode in your user profile.
-You can also add the resource to `configuration.yaml`:
+You can also add the resource to `configuration.yaml` (normally not required):
 
 ```yaml
 lovelace:
