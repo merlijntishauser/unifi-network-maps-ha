@@ -125,12 +125,10 @@ jobs:
       - name: Ensure bundle is up to date
         run: git diff --exit-code frontend/dist custom_components/unifi_network_map/frontend
 
-  # TODO(brand): Re-enable after brands PR is merged and repo topics are set.
-  # TODO: Track in https://github.com/merlijntishauser/unifi-network-maps-ha/issues/1
-  # hacs:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v6
-  #     - uses: hacs/action@main
-  #       with:
-  #         category: integration
+  hacs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: hacs/action@main
+        with:
+          category: integration

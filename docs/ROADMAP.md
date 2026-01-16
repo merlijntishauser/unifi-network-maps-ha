@@ -23,3 +23,89 @@
 - Add CI packaging/build release for the card. (done)
 - Add documentation with screenshots and example dashboards.
 - Re-enable HACS checks when brands PR is merged.
+
+## P4 - Code quality & refactoring (XP alignment)
+
+### Backend (Python)
+- Split long functions (>15 lines) violating XP principles:
+  - `__init__.py:15-30` `async_setup_entry` (16 lines) - extract setup steps
+  - `__init__.py:40-59` `_register_refresh_service` (20 lines) - split service logic
+  - `api.py:57-80` `validate_unifi_credentials` (24 lines) - extract validation steps
+  - `config_flow.py:39-58` `async_step_user` (20 lines) - extract validation logic
+  - `config_flow.py:103-135` `_build_options_schema` (33 lines) - abstract repetitive pattern
+  - `http.py:90-107` `_mac_from_entity_entry` (18 lines) - split extraction strategies
+  - `renderer.py:82-99` `_apply_clients` (18 lines) - extract client edge building
+- Improve type hints: replace generic `object` types with proper types (ServiceCall, ModuleType, Client TypedDict/Protocol)
+- Fix broad exception handling: `api.py:79`, `renderer.py:42` - catch specific errors and fail fast
+- Extract duplicate registration flag patterns in `__init__.py:42-43,64-65`
+- Simplify complex logic: Lovelace resource handling, MAC extraction, options schema building
+- Improve naming: `_svg_size_validator` → `_create_svg_size_validator`, `call` → type-hinted `call: ServiceCall`
+
+### Frontend (TypeScript)
+- Split long functions (>15 lines) violating XP principles:
+  - `unifi-network-map.ts:55-89` `_render()` (35 lines) - extract view builders
+  - `unifi-network-map.ts:91-126` `_loadSvg()` (36 lines) - extract fetch logic
+  - `unifi-network-map.ts:128-159` `_loadPayload()` (32 lines) - extract fetch logic
+  - `unifi-network-map.ts:201-236` `_renderNodeDetails()` (36 lines) - split into sections
+  - `unifi-network-map.ts:238-265` `_ensureStyles()` (28 lines) - extract CSS constant
+  - `unifi-network-map.ts:267-288` `_wireInteractions()` (22 lines) - split handlers
+  - `unifi-network-map.ts:311-333` `_wireControls()` (23 lines) - individual handlers
+  - `unifi-network-map.ts:351-375` `_onPointerMove()` (25 lines) - split pan/tooltip
+  - `unifi-network-map.ts:409-431` `_resolveNodeName()` (23 lines) - extract strategies
+  - `unifi-network-map.ts:450-480` `_inferNodeName()` (31 lines) - split fallback strategies
+- Extract named interfaces: `CardConfig`, `PanState` instead of inline types
+- Extract magic numbers to constants: `MIN_PAN_MOVEMENT_THRESHOLD`, `ZOOM_INCREMENT`, `MAX_ZOOM_SCALE`, `TOOLTIP_OFFSET_PX`
+- Create `_getAuthToken()` helper to eliminate duplicate auth checks
+- Extract generic `_fetchWithAuth<T>()` to eliminate duplicate fetch patterns
+- Improve naming: `_panMoved` → `_hasPanMovedBeyondThreshold`, `_wireInteractions()` → `_attachEventListeners()`
+- Add explicit return types to all private methods
+
+## P5 - Killer features
+
+### UX Enhancements
+- Add keyboard navigation (arrow keys, Escape, Tab for accessibility)
+- Add visual feedback for selected nodes (highlight in SVG)
+- Add double-click to zoom-to-fit on viewport
+- Add pinch-to-zoom for mobile/touch devices
+- Add tooltip boundary detection (prevent off-screen tooltips)
+- Add loading state indicator for payload fetches
+- Add retry mechanism on fetch failures
+- Add search/filter capability in detail panel
+- Add "reset view" separate from "clear selection"
+
+### Real-time Device Status
+- Show online/offline status as color-coded halos on nodes
+- Display bandwidth usage, connection quality, signal strength overlays
+- Integrate with HA device tracker entities for live status
+- Add animated data flow visualization along edges
+
+### Interactive Network Exploration
+- Add edge hover/click for link speed, POE status, wireless band details
+- Add node grouping and collapsible groups (e.g., collapse all clients)
+- Add filter by device type (gateways, switches, APs, clients)
+- Add network path visualization (highlight path to gateway, show latency)
+- Add context menu (right-click) with quick actions
+- Show hop count and identify bottlenecks in path
+
+### Enhanced Detail Panel
+- Add tabs: Overview, Stats, History, Actions
+- Add copy-to-clipboard for MAC/IP addresses
+- Show all associated HA entities (not just device tracker)
+- Add mini-graphs of bandwidth/signal over time
+- Add POE/wireless connection quality display
+- Add quick actions: restart device, block/unblock client, deep link to UniFi controller
+
+### Advanced Features
+- Add historical data visualization (bandwidth graphs, uptime tracking)
+- Add smart notifications overlay (HA badges, alert icons for issues)
+- Add custom node icons/avatars from HA entity pictures
+- Add export current view as PNG
+- Add multi-site support with dropdown switcher
+- Add WebSocket connection for live updates (replace polling)
+- Add card configuration UI editor (refresh interval, zoom level, colors, tooltip data)
+- Add accessibility improvements (ARIA labels, keyboard shortcuts overlay, high contrast theme)
+
+### Performance Optimizations
+- Add virtual scrolling for large neighbor lists
+- Add lazy loading for node details
+- Add SVG viewport culling for huge networks
