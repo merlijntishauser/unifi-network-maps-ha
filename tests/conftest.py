@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from dataclasses import dataclass
 from types import ModuleType
 from typing import Any, cast
 
@@ -69,6 +70,12 @@ def _install_homeassistant_stubs() -> None:
         url = ""
         name = ""
 
+    @dataclass
+    class StaticPathConfig:  # minimal stub for imports
+        url_path: str
+        file_path: str
+        cache_headers: bool
+
     config_entries.ConfigEntry = ConfigEntry
     config_entries.ConfigFlow = ConfigFlow
     config_entries.OptionsFlow = OptionsFlow
@@ -82,6 +89,7 @@ def _install_homeassistant_stubs() -> None:
     exceptions.HomeAssistantError = Exception
     device_registry.CONNECTION_NETWORK_MAC = "mac"
     components_http.HomeAssistantView = HomeAssistantView
+    components_http.StaticPathConfig = StaticPathConfig
 
     sys.modules.setdefault("homeassistant", homeassistant)
     sys.modules.setdefault("homeassistant.components", components)

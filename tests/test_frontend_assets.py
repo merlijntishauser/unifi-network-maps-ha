@@ -9,8 +9,18 @@ class _FakeHttp:
     def __init__(self) -> None:
         self.registered: list[dict[str, object]] = []
 
-    def async_register_static_paths(self, paths: list[dict[str, object]]) -> None:
-        self.registered.extend(paths)
+    def async_register_static_paths(self, paths) -> None:
+        for path in paths:
+            if hasattr(path, "url_path"):
+                self.registered.append(
+                    {
+                        "path": path.url_path,
+                        "file_path": path.file_path,
+                        "cache_headers": path.cache_headers,
+                    }
+                )
+            else:
+                self.registered.append(path)
 
 
 class _FakeHass:
