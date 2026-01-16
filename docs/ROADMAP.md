@@ -14,7 +14,7 @@
 - Fix UI controls visibility and node click selection in the card. (done)
 
 ## P2 - Quality & ops
-- Add diagnostics endpoint (anonymized) for support.
+- Add diagnostics endpoint (anonymized) for support. (done)
 - Add integration config options validation (client scope, sizes).
 - Add contract tests for renderer payload schema changes.
 
