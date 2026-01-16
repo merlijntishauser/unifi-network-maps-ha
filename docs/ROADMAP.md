@@ -5,7 +5,7 @@
 - Add a service to force refresh the map (`unifi_network_map.refresh`). (done)
 - Add basic error entity/state for connectivity/auth failures. (done)
 - Bundle and publish the custom card build output (resource instructions). (done)
-- "connect" clients to the entities of the "official" unifi integration
+- "connect" clients to the entities of the "official" unifi integration. (done)
 
 ## P1 - Usable UX
 - Add Lovelace card UI (zoom/pan, tooltip, device details panel). (done)

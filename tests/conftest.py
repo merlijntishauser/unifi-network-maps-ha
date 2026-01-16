@@ -17,7 +17,11 @@ def _install_homeassistant_stubs() -> None:
     config_entries = cast(Any, ModuleType("homeassistant.config_entries"))
     core = cast(Any, ModuleType("homeassistant.core"))
     const = cast(Any, ModuleType("homeassistant.const"))
+    components = cast(Any, ModuleType("homeassistant.components"))
+    components_http = cast(Any, ModuleType("homeassistant.components.http"))
     helpers = cast(Any, ModuleType("homeassistant.helpers"))
+    device_registry = cast(Any, ModuleType("homeassistant.helpers.device_registry"))
+    entity_registry = cast(Any, ModuleType("homeassistant.helpers.entity_registry"))
     update_coordinator = cast(Any, ModuleType("homeassistant.helpers.update_coordinator"))
     exceptions = cast(Any, ModuleType("homeassistant.exceptions"))
 
@@ -61,6 +65,10 @@ def _install_homeassistant_stubs() -> None:
     class UpdateFailed(Exception):
         pass
 
+    class HomeAssistantView:  # minimal stub for imports
+        url = ""
+        name = ""
+
     config_entries.ConfigEntry = ConfigEntry
     config_entries.ConfigFlow = ConfigFlow
     config_entries.OptionsFlow = OptionsFlow
@@ -71,14 +79,29 @@ def _install_homeassistant_stubs() -> None:
     update_coordinator.DataUpdateCoordinator = DataUpdateCoordinator
     update_coordinator.UpdateFailed = UpdateFailed
     exceptions.HomeAssistantError = Exception
+    device_registry.CONNECTION_NETWORK_MAC = "mac"
+    components_http.HomeAssistantView = HomeAssistantView
 
     sys.modules.setdefault("homeassistant", homeassistant)
+    sys.modules.setdefault("homeassistant.components", components)
+    sys.modules.setdefault("homeassistant.components.http", components_http)
     sys.modules.setdefault("homeassistant.config_entries", config_entries)
     sys.modules.setdefault("homeassistant.core", core)
     sys.modules.setdefault("homeassistant.const", const)
     sys.modules.setdefault("homeassistant.helpers", helpers)
+    sys.modules.setdefault("homeassistant.helpers.device_registry", device_registry)
+    sys.modules.setdefault("homeassistant.helpers.entity_registry", entity_registry)
     sys.modules.setdefault("homeassistant.helpers.update_coordinator", update_coordinator)
     sys.modules.setdefault("homeassistant.exceptions", exceptions)
 
 
+def _install_aiohttp_stubs() -> None:
+    aiohttp = cast(Any, ModuleType("aiohttp"))
+    web = cast(Any, ModuleType("aiohttp.web"))
+    aiohttp.web = web
+    sys.modules.setdefault("aiohttp", aiohttp)
+    sys.modules.setdefault("aiohttp.web", web)
+
+
 _install_homeassistant_stubs()
+_install_aiohttp_stubs()
