@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 from dataclasses import dataclass
+import importlib.util
 from types import ModuleType
 from typing import Any, cast
 
@@ -112,5 +113,50 @@ def _install_aiohttp_stubs() -> None:
     sys.modules.setdefault("aiohttp.web", web)
 
 
+def _install_voluptuous() -> None:
+    """Install voluptuous in sys.modules if not already available."""
+    if importlib.util.find_spec("voluptuous") is not None:
+        return
+    # If voluptuous is not installed, create a minimal stub
+    vol = cast(Any, ModuleType("voluptuous"))
+
+    def _schema(value: object) -> object:
+        return value
+
+    def _identity(value: object, *args: object, **kwargs: object) -> object:
+        return value
+
+    def _in(*_args: object) -> object | None:
+        return None
+
+    vol.Schema = _schema
+    vol.Optional = _identity
+    vol.Required = _identity
+    vol.In = _in
+    sys.modules.setdefault("voluptuous", vol)
+
+
+def _install_yarl() -> None:
+    """Install yarl in sys.modules if not already available."""
+    if importlib.util.find_spec("yarl") is not None:
+        return
+    # If yarl is not installed, create a minimal stub
+    yarl_module = cast(Any, ModuleType("yarl"))
+
+    class _FakeURL:
+        def __init__(self, url: str) -> None:
+            from urllib.parse import urlparse
+
+            parsed = urlparse(url)
+            self.scheme: str = parsed.scheme
+            self.host: str | None = parsed.hostname
+            self.path: str = parsed.path
+
+    yarl_module.URL = _FakeURL
+    sys.modules.setdefault("yarl", yarl_module)
+
+
 _install_homeassistant_stubs()
 _install_aiohttp_stubs()
+_install_voluptuous()
+_install_yarl()

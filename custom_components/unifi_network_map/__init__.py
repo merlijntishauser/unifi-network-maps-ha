@@ -193,19 +193,14 @@ async def _ensure_lovelace_resource(hass: HomeAssistant) -> None:
 
 
 def _schedule_lovelace_resource_registration(hass: HomeAssistant) -> None:
-    if getattr(hass, "is_running", True):
-        hass.async_create_task(_ensure_lovelace_resource(hass))
-        return
-
-    bus = getattr(hass, "bus", None)
-    if bus is None or not hasattr(bus, "async_listen_once"):
+    if hass.is_running:
         hass.async_create_task(_ensure_lovelace_resource(hass))
         return
 
     async def _on_start(_event) -> None:
         await _ensure_lovelace_resource(hass)
 
-    bus.async_listen_once(EVENT_HOMEASSISTANT_START, _on_start)
+    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, _on_start)
 
 
 async def _retry_lovelace_resource(hass: HomeAssistant, delay_seconds: int) -> None:
@@ -246,6 +241,23 @@ def _load_lovelace_resources() -> object | None:
 
 
 async def _fetch_lovelace_items(hass: HomeAssistant, resources) -> list[dict[str, object]] | None:
+    # Try accessing the resource collection from hass.data["lovelace"].resources
+    try:
+        lovelace_data = hass.data.get("lovelace")
+        if lovelace_data and hasattr(lovelace_data, "resources"):
+            resource_collection = lovelace_data.resources
+            if resource_collection and hasattr(resource_collection, "async_items"):
+                items_result = resource_collection.async_items()
+                # async_items() might return a list or a coroutine
+                if hasattr(items_result, "__await__"):
+                    items = await items_result
+                else:
+                    items = items_result
+                return list(items) if items else []
+    except Exception as err:
+        LOGGER.debug("Unable to access lovelace data: %s", err)
+
+    # Fallback to old API
     try:
         info = resources.async_get_info(hass)
     except Exception as err:  # pragma: no cover - defensive
@@ -262,7 +274,25 @@ async def _fetch_lovelace_items(hass: HomeAssistant, resources) -> list[dict[str
 
 
 async def _create_lovelace_resource(hass: HomeAssistant, resources, resource_url: str) -> None:
-    payload: Mapping[str, object] = {"url": resource_url, "type": "module"}
+    payload: Mapping[str, object] = {
+        "url": resource_url,
+        "res_type": "module",
+        "type": "module",
+    }
+
+    # Try accessing the resource collection directly
+    try:
+        lovelace_data = hass.data.get("lovelace")
+        if lovelace_data and hasattr(lovelace_data, "resources"):
+            resource_collection = lovelace_data.resources
+            if resource_collection and hasattr(resource_collection, "async_create_item"):
+                await resource_collection.async_create_item(payload)
+                LOGGER.info("Registered Lovelace resource %s", resource_url)
+                return
+    except Exception as err:
+        LOGGER.debug("Unable to create via collection: %s", err)
+
+    # Fallback to old API
     result = await _create_lovelace_resource_with_module(hass, resources, payload)
     if result:
         LOGGER.info("Registered Lovelace resource %s", resource_url)
