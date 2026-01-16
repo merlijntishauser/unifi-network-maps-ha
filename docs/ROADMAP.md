@@ -15,8 +15,8 @@
 
 ## P2 - Quality & ops
 - Add diagnostics endpoint (anonymized) for support. (done)
-- Add integration config options validation (client scope, sizes).
-- Add contract tests for renderer payload schema changes.
+- Add integration config options validation (client scope, sizes). (done)
+- Add contract tests for renderer payload schema changes. (done)
 
 ## P3 - Release & polish
 - Add CI packaging/build release for the card.
