@@ -16,6 +16,7 @@ from .const import (
     CONF_ONLY_UNIFI,
     CONF_SITE,
     CONF_SVG_ISOMETRIC,
+    CONF_USE_CACHE,
     CONF_VERIFY_SSL,
     DEFAULT_CLIENT_SCOPE,
     DEFAULT_INCLUDE_CLIENTS,
@@ -23,6 +24,7 @@ from .const import (
     DEFAULT_ONLY_UNIFI,
     DEFAULT_SITE,
     DEFAULT_SVG_ISOMETRIC,
+    DEFAULT_USE_CACHE,
     DEFAULT_VERIFY_SSL,
     DOMAIN,
 )
@@ -118,6 +120,10 @@ def _build_options_schema(options: dict[str, Any]) -> vol.Schema:
             vol.Optional(
                 CONF_SVG_ISOMETRIC,
                 default=options.get(CONF_SVG_ISOMETRIC, DEFAULT_SVG_ISOMETRIC),
+            ): bool,
+            vol.Optional(
+                CONF_USE_CACHE,
+                default=options.get(CONF_USE_CACHE, DEFAULT_USE_CACHE),
             ): bool,
         }
     )

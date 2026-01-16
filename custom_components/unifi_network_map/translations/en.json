@@ -21,7 +21,8 @@
           "include_clients": "Include clients",
           "client_scope": "Client scope",
           "only_unifi": "Only show UniFi devices",
-          "svg_isometric": "Isometric layout"
+          "svg_isometric": "Isometric layout",
+          "use_cache": "Cache rendered map"
         }
       }
     },
