@@ -53,17 +53,16 @@ class UniFiNetworkMapPayloadView(HomeAssistantView):
         if data is None:
             raise web.HTTPNotFound()
         payload = dict(data.payload)
-        payload["client_entities"] = _resolve_client_entity_map(
-            hass,
-            payload.get("client_macs", {}),
-        )
+        client_entities = _resolve_client_entity_map(hass, payload.get("client_macs", {}))
+        if client_entities:
+            payload["client_entities"] = client_entities
         return web.json_response(payload)
 
 
 def _resolve_client_entity_map(
     hass: HomeAssistant, client_macs: dict[str, str]
 ) -> dict[str, str]:
-    if not client_macs:
+    if not client_macs or not hass.config_entries.async_entries("unifi"):
         return {}
     mac_to_entity = _build_mac_entity_index(hass)
     return {
