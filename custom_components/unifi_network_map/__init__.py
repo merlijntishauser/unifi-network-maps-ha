@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import inspect
+import importlib
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -172,6 +173,7 @@ async def _ensure_lovelace_resource(hass: HomeAssistant) -> None:
         return
     resources = _load_lovelace_resources()
     if resources is None:
+        _schedule_lovelace_resource_retry(hass)
         return
     items = await _fetch_lovelace_items(hass, resources)
     if items is None:
@@ -209,7 +211,7 @@ async def _retry_lovelace_resource(hass: HomeAssistant, delay_seconds: int) -> N
 def _schedule_lovelace_resource_retry(hass: HomeAssistant) -> None:
     data = hass.data.setdefault(DOMAIN, {})
     attempts = data.get("lovelace_resource_attempts", 0)
-    if attempts >= 3:
+    if attempts >= 6:
         return
     data["lovelace_resource_attempts"] = attempts + 1
     hass.async_create_task(_retry_lovelace_resource(hass, 10))
@@ -227,10 +229,15 @@ def _mark_lovelace_resource_registered(hass: HomeAssistant) -> None:
 
 def _load_lovelace_resources() -> object | None:
     try:
-        from homeassistant.components.lovelace import resources
+        from homeassistant.components.lovelace import resources  # type: ignore[no-redef]
+
+        return resources
+    except Exception:  # pragma: no cover - optional in tests
+        pass
+    try:
+        return importlib.import_module("homeassistant.components.lovelace.resources")
     except Exception:  # pragma: no cover - optional in tests
         return None
-    return resources
 
 
 async def _fetch_lovelace_items(hass: HomeAssistant, resources) -> list[dict[str, object]] | None:
@@ -240,7 +247,11 @@ async def _fetch_lovelace_items(hass: HomeAssistant, resources) -> list[dict[str
         LOGGER.debug("Unable to read Lovelace resources: %s", err)
         return None
     if hasattr(info, "async_get_info"):
-        result = info.async_get_info()
+        try:
+            result = info.async_get_info()
+        except Exception as err:  # pragma: no cover - defensive
+            LOGGER.debug("Unable to read Lovelace resources info: %s", err)
+            return None
         return await _maybe_await_list(result)
     return _as_resource_list(info)
 
