@@ -18,8 +18,8 @@ jobs:
   pytest:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/setup-python@v6
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
       - name: Install dependencies
@@ -30,8 +30,8 @@ jobs:
   pyright:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/setup-python@v6
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
       - name: Install dependencies
@@ -42,8 +42,8 @@ jobs:
   ruff:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/setup-python@v6
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
       - name: Install dependencies
