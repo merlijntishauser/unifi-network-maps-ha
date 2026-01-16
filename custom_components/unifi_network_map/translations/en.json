@@ -22,6 +22,8 @@
           "client_scope": "Client scope",
           "only_unifi": "Only show UniFi devices",
           "svg_isometric": "Isometric layout",
+          "svg_width": "SVG width override (px)",
+          "svg_height": "SVG height override (px)",
           "use_cache": "Cache rendered map"
         }
       }

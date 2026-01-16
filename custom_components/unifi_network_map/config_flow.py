@@ -15,7 +15,9 @@ from .const import (
     CONF_INCLUDE_PORTS,
     CONF_ONLY_UNIFI,
     CONF_SITE,
+    CONF_SVG_HEIGHT,
     CONF_SVG_ISOMETRIC,
+    CONF_SVG_WIDTH,
     CONF_USE_CACHE,
     CONF_VERIFY_SSL,
     DEFAULT_CLIENT_SCOPE,
@@ -99,6 +101,8 @@ def _build_schema() -> vol.Schema:
 
 
 def _build_options_schema(options: dict[str, Any]) -> vol.Schema:
+    width_default = options.get(CONF_SVG_WIDTH)
+    height_default = options.get(CONF_SVG_HEIGHT)
     return vol.Schema(
         {
             vol.Optional(
@@ -121,12 +125,18 @@ def _build_options_schema(options: dict[str, Any]) -> vol.Schema:
                 CONF_SVG_ISOMETRIC,
                 default=options.get(CONF_SVG_ISOMETRIC, DEFAULT_SVG_ISOMETRIC),
             ): bool,
+            vol.Optional(CONF_SVG_WIDTH, default=width_default): _svg_size_validator(),
+            vol.Optional(CONF_SVG_HEIGHT, default=height_default): _svg_size_validator(),
             vol.Optional(
                 CONF_USE_CACHE,
                 default=options.get(CONF_USE_CACHE, DEFAULT_USE_CACHE),
             ): bool,
         }
     )
+
+
+def _svg_size_validator() -> vol.Schema:
+    return vol.Any(None, vol.All(vol.Coerce(int), vol.Range(min=100, max=5000)))
 
 
 def _prepare_entry_data(user_input: dict[str, Any]) -> dict[str, Any]:
