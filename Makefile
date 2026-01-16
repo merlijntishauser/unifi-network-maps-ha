@@ -4,6 +4,7 @@ VENV_DIR := .venv
 PYTHON_BIN := $(shell command -v python3.13 >/dev/null 2>&1 && echo python3.13 || echo python3)
 PYTHON := $(VENV_DIR)/bin/python
 PIP := $(VENV_DIR)/bin/pip
+PIP_CACHE_DIR := $(CURDIR)/.venv/.pip-cache
 
 help:
 	@echo "Targets:"
@@ -27,10 +28,10 @@ venv:
 
 install: venv
 	$(PIP) install --upgrade pip
-	$(PIP) install -r requirements.txt
+	PIP_CACHE_DIR=$(PIP_CACHE_DIR) $(PIP) install -r requirements.txt
 
 install-dev: install
-	$(PIP) install -r requirements-dev.txt
+	PIP_CACHE_DIR=$(PIP_CACHE_DIR) $(PIP) install -r requirements-dev.txt
 
 test: install-dev
 	$(VENV_DIR)/bin/pytest -v --cov=custom_components --cov-report=term-missing
