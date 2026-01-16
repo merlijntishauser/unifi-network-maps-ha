@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import inspect
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -107,13 +108,9 @@ def _build_static_path_configs(js_path: Path) -> list[object]:
         StaticPathConfig = None
 
     if StaticPathConfig is not None:
-        return [
-            StaticPathConfig(
-                url_path=_frontend_bundle_url(),
-                file_path=str(js_path),
-                cache_headers=True,
-            )
-        ]
+        config = _make_static_path_config(StaticPathConfig, js_path)
+        if config is not None:
+            return [config]
     return [
         {
             "path": _frontend_bundle_url(),
@@ -121,6 +118,53 @@ def _build_static_path_configs(js_path: Path) -> list[object]:
             "cache_headers": True,
         }
     ]
+
+
+def _make_static_path_config(static_path_config, js_path: Path) -> object | None:
+    url_path = _frontend_bundle_url()
+    file_path = str(js_path)
+    try:
+        return static_path_config(
+            url_path=url_path,
+            file_path=file_path,
+            cache_headers=True,
+        )
+    except TypeError:
+        pass
+    try:
+        return static_path_config(
+            url_path=url_path,
+            path=file_path,
+            cache_headers=True,
+        )
+    except TypeError:
+        pass
+    try:
+        return static_path_config(url_path, file_path, True)
+    except TypeError:
+        pass
+    try:
+        return static_path_config(url_path, file_path)
+    except TypeError:
+        pass
+    try:
+        signature = inspect.signature(static_path_config)
+    except (TypeError, ValueError):
+        return None
+    kwargs: dict[str, object] = {}
+    for name in signature.parameters:
+        if name in {"url_path", "url"}:
+            kwargs[name] = url_path
+        elif name in {"file_path", "path", "filepath"}:
+            kwargs[name] = file_path
+        elif name in {"cache_headers", "cache", "cache_control"}:
+            kwargs[name] = True
+    if kwargs:
+        try:
+            return static_path_config(**kwargs)
+        except TypeError:
+            return None
+    return None
 
 
 async def _ensure_lovelace_resource(hass: HomeAssistant) -> None:

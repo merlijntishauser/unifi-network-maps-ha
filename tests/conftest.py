@@ -73,7 +73,7 @@ def _install_homeassistant_stubs() -> None:
     @dataclass
     class StaticPathConfig:  # minimal stub for imports
         url_path: str
-        file_path: str
+        path: str
         cache_headers: bool
 
     config_entries.ConfigEntry = ConfigEntry

@@ -15,7 +15,7 @@ class _FakeHttp:
                 self.registered.append(
                     {
                         "path": path.url_path,
-                        "file_path": path.file_path,
+                        "file_path": getattr(path, "file_path", path.path),
                         "cache_headers": path.cache_headers,
                     }
                 )
