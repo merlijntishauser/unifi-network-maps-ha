@@ -17,6 +17,8 @@ type MapPayload = {
   }>;
   node_types: Record<string, string>;
   gateways?: string[];
+  client_entities?: Record<string, string>;
+  client_macs?: Record<string, string>;
 };
 
 class UnifiNetworkMapCard extends HTMLElement {
@@ -214,11 +216,22 @@ class UnifiNetworkMapCard extends HTMLElement {
     const list = uniqueNeighbors.length
       ? `<ul>${uniqueNeighbors.map((item) => `<li>${item}</li>`).join("")}</ul>`
       : "<div>No linked nodes</div>";
+    const entityId = this._payload.client_entities?.[name];
+    const entitySection = entityId
+      ? `
+        <div class="unifi-network-map__panel-subtitle">Home Assistant</div>
+        <div class="unifi-network-map__entity">${entityId}</div>
+        <button type="button" class="unifi-network-map__entity-button" data-entity-id="${entityId}">
+          Open entity
+        </button>
+      `
+      : "";
     return `
       <div class="unifi-network-map__panel-title">${name}</div>
       <div>Type: ${nodeType}</div>
       <div class="unifi-network-map__panel-subtitle">Neighbors</div>
       ${list}
+      ${entitySection}
     `;
   }
 
@@ -240,6 +253,9 @@ class UnifiNetworkMapCard extends HTMLElement {
       .unifi-network-map__panel-title { font-weight: 600; margin-bottom: 8px; }
       .unifi-network-map__panel-subtitle { margin-top: 12px; font-weight: 600; }
       .unifi-network-map__panel-hint { margin-top: 8px; color: #9ca3af; font-size: 12px; }
+      .unifi-network-map__entity { font-size: 12px; color: #cbd5f5; }
+      .unifi-network-map__entity-button { margin-top: 6px; padding: 6px 8px; border-radius: 6px; border: 1px solid #1f2937; background: #0f172a; color: #e5e7eb; cursor: pointer; font-size: 12px; }
+      .unifi-network-map__entity-button:hover { background: #1f2937; }
       .unifi-network-map__tooltip { position: fixed; z-index: 2; background: rgba(0,0,0,0.8); color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; pointer-events: none; }
       @media (max-width: 800px) {
         .unifi-network-map__layout { grid-template-columns: 1fr; }
@@ -258,6 +274,7 @@ class UnifiNetworkMapCard extends HTMLElement {
     this._ensureStyles();
     this._applyTransform(svg);
     this._wireControls(svg);
+    this._wireEntityActions();
 
     viewport.onwheel = (event) => this._onWheel(event, svg);
     viewport.onpointerdown = (event) => this._onPointerDown(event);
@@ -268,6 +285,27 @@ class UnifiNetworkMapCard extends HTMLElement {
       this._hideTooltip(tooltip);
     };
     viewport.onclick = (event) => this._onClick(event, tooltip);
+  }
+
+  private _wireEntityActions() {
+    const buttons = this.querySelectorAll("[data-entity-id]");
+    buttons.forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        const target = event.currentTarget as HTMLElement;
+        const entityId = target.getAttribute("data-entity-id");
+        if (!entityId) {
+          return;
+        }
+        this.dispatchEvent(
+          new CustomEvent("hass-more-info", {
+            bubbles: true,
+            composed: true,
+            detail: { entityId },
+          }),
+        );
+      });
+    });
   }
 
   private _wireControls(svg: SVGElement) {

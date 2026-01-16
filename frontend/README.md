@@ -23,3 +23,4 @@ resources:
 ## Features
 - Pan/zoom on the SVG map.
 - Hover tooltip and click-to-open details panel.
+- Client nodes link to Home Assistant entities when available.

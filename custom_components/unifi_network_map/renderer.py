@@ -49,7 +49,7 @@ def _render_map(config: Config, settings: RenderSettings) -> UniFiNetworkMapData
     edges, clients = _apply_clients(config, settings, topology, devices)
     node_types = build_node_type_map(devices, clients, client_mode=settings.client_scope)
     svg = _render_svg(edges, node_types, settings)
-    payload = _build_payload(edges, node_types, gateways)
+    payload = _build_payload(edges, node_types, gateways, clients)
     return UniFiNetworkMapData(svg=svg, payload=payload)
 
 
@@ -124,12 +124,14 @@ def _build_payload(
     edges: list[Edge],
     node_types: dict[str, str],
     gateways: list[str],
+    clients: list[object] | None,
 ) -> dict[str, Any]:
     return {
         "schema_version": PAYLOAD_SCHEMA_VERSION,
         "edges": [_edge_to_dict(edge) for edge in edges],
         "node_types": node_types,
         "gateways": gateways,
+        "client_macs": _build_client_mac_index(clients),
     }
 
 
@@ -141,3 +143,37 @@ def _edge_to_dict(edge: Edge) -> dict[str, Any]:
         "poe": edge.poe,
         "wireless": edge.wireless,
     }
+
+
+def _build_client_mac_index(clients: list[object] | None) -> dict[str, str]:
+    if not clients:
+        return {}
+    client_macs: dict[str, str] = {}
+    for client in clients:
+        name = _client_display_name(client)
+        mac = _client_mac(client)
+        if not name or not mac:
+            continue
+        client_macs[name] = mac.lower()
+    return client_macs
+
+
+def _client_display_name(client: object) -> str | None:
+    for key in ("name", "hostname", "mac"):
+        value = _client_field(client, key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return None
+
+
+def _client_mac(client: object) -> str | None:
+    value = _client_field(client, "mac")
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return None
+
+
+def _client_field(client: object, name: str) -> object | None:
+    if isinstance(client, dict):
+        return client.get(name)
+    return getattr(client, name, None)

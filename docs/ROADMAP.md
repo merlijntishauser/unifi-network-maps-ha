@@ -12,6 +12,7 @@
 - Add map options flow (include ports/clients, isometric, only UniFi). (done)
 - Cache rendered SVG/payload to avoid re-render on each request. (done)
 - Fix UI controls visibility and node click selection in the card. (done)
+- Link client nodes to official UniFi integration entities via MAC mapping. (done)
 
 ## P2 - Quality & ops
 - Add diagnostics endpoint (anonymized) for support. (done)
