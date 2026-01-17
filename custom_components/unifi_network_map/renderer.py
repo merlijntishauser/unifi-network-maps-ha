@@ -100,7 +100,7 @@ def _apply_clients(
 
 
 def _select_edges(topology: TopologyResult) -> list[Edge]:
-    return topology.tree_edges or topology.raw_edges
+    return topology.tree_edges or topology.raw_edges or []
 
 
 def _load_clients(config: Config, settings: RenderSettings) -> list[object] | None:
