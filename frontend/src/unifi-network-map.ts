@@ -166,6 +166,10 @@ class UnifiNetworkMapCard extends HTMLElement {
   private _activeTab: "overview" | "stats" | "actions" = "overview";
   private _statusPollInterval?: number;
 
+  private _getAuthToken(): string | undefined {
+    return this._hass?.auth?.data?.access_token;
+  }
+
   private _render() {
     if (!this._config) {
       this.innerHTML = `
@@ -185,7 +189,7 @@ class UnifiNetworkMapCard extends HTMLElement {
       return;
     }
 
-    const token = this._hass?.auth?.data?.access_token;
+    const token = this._getAuthToken();
     if (token && this._error === "Missing auth token") {
       this._error = undefined;
     }
@@ -219,7 +223,7 @@ class UnifiNetworkMapCard extends HTMLElement {
     if (this._loading || this._config.svg_url === this._lastSvgUrl) {
       return;
     }
-    const token = this._hass.auth?.data?.access_token;
+    const token = this._getAuthToken();
     if (!token) {
       this._error = "Missing auth token";
       this._render();
@@ -262,7 +266,7 @@ class UnifiNetworkMapCard extends HTMLElement {
     if (this._dataLoading || this._config.data_url === this._lastDataUrl) {
       return;
     }
-    const token = this._hass.auth?.data?.access_token;
+    const token = this._getAuthToken();
     if (!token) {
       return;
     }

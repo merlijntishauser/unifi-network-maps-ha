@@ -65,7 +65,6 @@
 ### Real-time Device Status
 - Show online/offline status as color-coded halos on nodes
 - Display bandwidth usage, connection quality, signal strength overlays
-- Integrate with HA device tracker entities for live status
 - Add animated data flow visualization along edges
 
 ### Interactive Network Exploration

@@ -90,6 +90,9 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._lastDataUrl = void 0;
     this._loadPayload();
   }
+  _getAuthToken() {
+    return this._hass?.auth?.data?.access_token;
+  }
   _render() {
     if (!this._config) {
       this.innerHTML = `
@@ -107,7 +110,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       `;
       return;
     }
-    const token = this._hass?.auth?.data?.access_token;
+    const token = this._getAuthToken();
     if (token && this._error === "Missing auth token") {
       this._error = void 0;
     }
@@ -133,7 +136,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     if (this._loading || this._config.svg_url === this._lastSvgUrl) {
       return;
     }
-    const token = this._hass.auth?.data?.access_token;
+    const token = this._getAuthToken();
     if (!token) {
       this._error = "Missing auth token";
       this._render();
@@ -173,7 +176,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     if (this._dataLoading || this._config.data_url === this._lastDataUrl) {
       return;
     }
-    const token = this._hass.auth?.data?.access_token;
+    const token = this._getAuthToken();
     if (!token) {
       return;
     }
