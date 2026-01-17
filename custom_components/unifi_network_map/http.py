@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from aiohttp import web
+import re
+
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.components.http import HomeAssistantView
@@ -75,7 +77,7 @@ def _build_mac_entity_index(hass: HomeAssistant) -> dict[str, str]:
     device_registry = dr.async_get(hass)
     mac_to_entity: dict[str, str] = {}
     for entry in _iter_unifi_entity_entries(hass, entity_registry):
-        mac = _mac_from_entity_entry(hass, entry, device_registry)
+        mac = mac_from_entity_entry(hass, entry, device_registry)
         if mac:
             mac_to_entity.setdefault(mac, entry.entity_id)
     return mac_to_entity
@@ -87,25 +89,84 @@ def _iter_unifi_entity_entries(hass: HomeAssistant, entity_registry: er.EntityRe
             yield entry
 
 
-def _mac_from_entity_entry(
+def mac_from_entity_entry(
     hass: HomeAssistant, entry: er.RegistryEntry, device_registry: dr.DeviceRegistry
 ) -> str | None:
-    if entry.unique_id and ":" in entry.unique_id:
-        return _normalize_mac(entry.unique_id)
-    if entry.device_id:
-        device = device_registry.async_get(entry.device_id)
-        if device:
-            for conn_type, value in device.connections:
-                if conn_type == dr.CONNECTION_NETWORK_MAC:
-                    return _normalize_mac(value)
+    return (
+        _mac_from_unique_id(entry)
+        or _mac_from_device(entry, device_registry)
+        or _mac_from_state(hass, entry)
+    )
+
+
+def _mac_from_unique_id(entry: er.RegistryEntry) -> str | None:
+    if not entry.unique_id:
+        return None
+    return _extract_mac(entry.unique_id)
+
+
+def _mac_from_device(entry: er.RegistryEntry, device_registry: dr.DeviceRegistry) -> str | None:
+    if not entry.device_id:
+        return None
+    device = device_registry.async_get(entry.device_id)
+    if not device:
+        return None
+    for _domain, identifier in device.identifiers:
+        identifier_mac = _extract_mac(identifier)
+        if identifier_mac:
+            return identifier_mac
+    for conn_type, value in device.connections:
+        if conn_type == dr.CONNECTION_NETWORK_MAC:
+            conn_mac = _extract_mac(value)
+            if conn_mac:
+                return conn_mac
+    return None
+
+
+def _mac_from_state(hass: HomeAssistant, entry: er.RegistryEntry) -> str | None:
     state = hass.states.get(entry.entity_id)
-    if state:
-        for key in ("mac_address", "mac"):
-            value = state.attributes.get(key)
-            if isinstance(value, str) and value.strip():
-                return _normalize_mac(value)
+    if not state:
+        return None
+    for key in ("mac_address", "mac"):
+        value = state.attributes.get(key)
+        if isinstance(value, str) and value.strip():
+            state_mac = _extract_mac(value)
+            if state_mac:
+                return state_mac
     return None
 
 
 def _normalize_mac(value: str) -> str:
+    formatted = _format_mac(value)
+    if formatted:
+        return formatted
     return value.strip().lower()
+
+
+def _extract_mac(value: str) -> str | None:
+    if not value:
+        return None
+    formatted = _format_mac(value)
+    if formatted:
+        return formatted
+    match = re.search(r"(?:[0-9A-Fa-f]{2}[-:]){5}[0-9A-Fa-f]{2}", value)
+    if match:
+        return _normalize_mac(match.group(0))
+    match = re.search(r"[0-9A-Fa-f]{12}", value)
+    if match:
+        packed = match.group(0)
+        return _normalize_mac(":".join(packed[i : i + 2] for i in range(0, 12, 2)))
+    return None
+
+
+def _format_mac(value: str) -> str | None:
+    formatter = getattr(dr, "format_mac", None)
+    if formatter is None:
+        return None
+    try:
+        formatted = formatter(value)
+    except (ValueError, AttributeError, TypeError):
+        return None
+    if isinstance(formatted, str) and formatted.strip():
+        return formatted.strip().lower()
+    return None
