@@ -78,6 +78,9 @@ class UniFiNetworkMapPayloadView(HomeAssistantView):
             payload["device_entities"] = device_entities
         if node_entities:
             payload["node_entities"] = node_entities
+        node_status = resolve_node_status_map(hass, node_entities)
+        if node_status:
+            payload["node_status"] = node_status
         return web.json_response(payload)
 
 
@@ -95,6 +98,34 @@ def resolve_node_entity_map(
     merged = dict(device_entities)
     merged.update(client_entities)
     return merged
+
+
+def resolve_node_status_map(
+    hass: HomeAssistant, node_entities: dict[str, str]
+) -> dict[str, dict[str, str | None]]:
+    """Resolve device_tracker states for linked entities."""
+    status_map: dict[str, dict[str, str | None]] = {}
+    for node_name, entity_id in node_entities.items():
+        if not entity_id.startswith("device_tracker."):
+            continue
+        state = hass.states.get(entity_id)
+        if state is None:
+            continue
+        status_map[node_name] = {
+            "entity_id": entity_id,
+            "state": _normalize_tracker_state(state.state),
+            "last_changed": state.last_changed.isoformat() if state.last_changed else None,
+        }
+    return status_map
+
+
+def _normalize_tracker_state(state: str) -> str:
+    """Normalize device_tracker state to online/offline/unknown."""
+    if state == "home":
+        return "online"
+    if state == "not_home":
+        return "offline"
+    return "unknown"
 
 
 def _resolve_entity_map(hass: HomeAssistant, macs: dict[str, str]) -> dict[str, str]:

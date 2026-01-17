@@ -54,6 +54,12 @@ type ConfigEntry = {
   domain: string;
 };
 
+type NodeStatus = {
+  entity_id: string;
+  state: "online" | "offline" | "unknown";
+  last_changed?: string | null;
+};
+
 const DOMAIN = "unifi_network_map";
 
 type MapPayload = {
@@ -70,6 +76,7 @@ type MapPayload = {
   client_entities?: Record<string, string>;
   device_entities?: Record<string, string>;
   node_entities?: Record<string, string>;
+  node_status?: Record<string, NodeStatus>;
   client_macs?: Record<string, string>;
   device_macs?: Record<string, string>;
 };
@@ -113,6 +120,30 @@ class UnifiNetworkMapCard extends HTMLElement {
 
   connectedCallback() {
     this._render();
+    this._startStatusPolling();
+  }
+
+  disconnectedCallback() {
+    this._stopStatusPolling();
+  }
+
+  private _startStatusPolling() {
+    this._stopStatusPolling();
+    this._statusPollInterval = window.setInterval(() => {
+      this._refreshPayload();
+    }, 30000);
+  }
+
+  private _stopStatusPolling() {
+    if (this._statusPollInterval !== undefined) {
+      window.clearInterval(this._statusPollInterval);
+      this._statusPollInterval = undefined;
+    }
+  }
+
+  private _refreshPayload() {
+    this._lastDataUrl = undefined;
+    this._loadPayload();
   }
 
   private _config?: CardConfig;
@@ -133,6 +164,7 @@ class UnifiNetworkMapCard extends HTMLElement {
   private _svgAbortController?: AbortController;
   private _payloadAbortController?: AbortController;
   private _activeTab: "overview" | "stats" | "actions" = "overview";
+  private _statusPollInterval?: number;
 
   private _render() {
     if (!this._config) {
@@ -274,6 +306,7 @@ class UnifiNetworkMapCard extends HTMLElement {
             <button type="button" data-action="reset" title="Reset view">Reset</button>
           </div>
           ${safeSvg}
+          <div class="unifi-network-map__status-layer"></div>
           <div class="unifi-network-map__tooltip" hidden></div>
         </div>
         <div class="unifi-network-map__panel">
@@ -302,11 +335,17 @@ class UnifiNetworkMapCard extends HTMLElement {
     const nodes = Object.keys(this._payload.node_types ?? {});
     const edges = this._payload.edges ?? [];
     const nodeTypes = this._payload.node_types ?? {};
+    const nodeStatus = this._payload.node_status ?? {};
     const gateways = nodes.filter((n) => nodeTypes[n] === "gateway").length;
     const switches = nodes.filter((n) => nodeTypes[n] === "switch").length;
     const aps = nodes.filter((n) => nodeTypes[n] === "ap").length;
     const clients = nodes.filter((n) => nodeTypes[n] === "client").length;
     const other = nodes.length - gateways - switches - aps - clients;
+
+    const statusValues = Object.values(nodeStatus);
+    const onlineCount = statusValues.filter((s) => s.state === "online").length;
+    const offlineCount = statusValues.filter((s) => s.state === "offline").length;
+    const hasStatus = statusValues.length > 0;
 
     return `
       <div class="panel-header">
@@ -322,6 +361,19 @@ class UnifiNetworkMapCard extends HTMLElement {
           <div class="stat-card__label">Connections</div>
         </div>
       </div>
+      ${
+        hasStatus
+          ? `
+      <div class="panel-section">
+        <div class="panel-section__title">Live Status</div>
+        <div class="device-list">
+          <div class="device-row"><span class="status-dot status-dot--online"></span><span class="device-row__label">Online</span><span class="device-row__count">${onlineCount}</span></div>
+          <div class="device-row"><span class="status-dot status-dot--offline"></span><span class="device-row__label">Offline</span><span class="device-row__count">${offlineCount}</span></div>
+        </div>
+      </div>
+      `
+          : ""
+      }
       <div class="panel-section">
         <div class="panel-section__title">Device Breakdown</div>
         <div class="device-list">
@@ -355,12 +407,17 @@ class UnifiNetworkMapCard extends HTMLElement {
 
     const nodeType = this._payload.node_types?.[name] ?? "unknown";
     const typeIcon = this._getNodeTypeIcon(nodeType);
+    const status = this._payload.node_status?.[name];
+    const statusBadge = status ? this._getStatusBadgeHtml(status.state) : "";
 
     return `
       <div class="panel-header">
         <button type="button" class="panel-header__back" data-action="back">←</button>
         <div class="panel-header__info">
-          <div class="panel-header__title">${safeName}</div>
+          <div class="panel-header__title-row">
+            <span class="panel-header__title">${safeName}</span>
+            ${statusBadge}
+          </div>
           <div class="panel-header__badge">${typeIcon} ${escapeHtml(nodeType)}</div>
         </div>
       </div>
@@ -387,6 +444,33 @@ class UnifiNetworkMapCard extends HTMLElement {
         return "💻";
       default:
         return "📦";
+    }
+  }
+
+  private _getStatusBadgeHtml(state: "online" | "offline" | "unknown"): string {
+    const labels: Record<string, string> = {
+      online: "Online",
+      offline: "Offline",
+      unknown: "Unknown",
+    };
+    return `<span class="status-badge status-badge--${state}">${labels[state]}</span>`;
+  }
+
+  private _formatLastChanged(isoString: string | null | undefined): string {
+    if (!isoString) return "Unknown";
+    try {
+      const date = new Date(isoString);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMin = Math.floor(diffMs / 60000);
+      if (diffMin < 1) return "Just now";
+      if (diffMin < 60) return `${diffMin}m ago`;
+      const diffHours = Math.floor(diffMin / 60);
+      if (diffHours < 24) return `${diffHours}h ago`;
+      const diffDays = Math.floor(diffHours / 24);
+      return `${diffDays}d ago`;
+    } catch {
+      return "Unknown";
     }
   }
 
@@ -448,8 +532,28 @@ class UnifiNetworkMapCard extends HTMLElement {
     const poeCount = nodeEdges.filter((e) => e.poe).length;
 
     const mac = this._payload?.client_macs?.[name] ?? this._payload?.device_macs?.[name] ?? null;
+    const status = this._payload?.node_status?.[name];
 
     return `
+      ${
+        status
+          ? `
+      <div class="panel-section">
+        <div class="panel-section__title">Live Status</div>
+        <div class="stats-list">
+          <div class="stats-row">
+            <span class="stats-row__label">Status</span>
+            <span class="stats-row__value">${this._getStatusBadgeHtml(status.state)}</span>
+          </div>
+          <div class="stats-row">
+            <span class="stats-row__label">Last Changed</span>
+            <span class="stats-row__value">${this._formatLastChanged(status.last_changed)}</span>
+          </div>
+        </div>
+      </div>
+      `
+          : ""
+      }
       <div class="panel-section">
         <div class="panel-section__title">Connection Stats</div>
         <div class="stats-list">
@@ -596,6 +700,25 @@ class UnifiNetworkMapCard extends HTMLElement {
       .badge--poe { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
       .badge--port { background: rgba(255,255,255,0.1); color: #94a3b8; }
 
+      /* Status Indicators */
+      .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+      .status-dot--online { background: #22c55e; box-shadow: 0 0 6px rgba(34, 197, 94, 0.5); animation: status-pulse 2s ease-in-out infinite; }
+      .status-dot--offline { background: #ef4444; }
+      .status-dot--unknown { background: #6b7280; }
+      @keyframes status-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+      /* Status Badges */
+      .status-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+      .status-badge--online { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+      .status-badge--offline { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+      .status-badge--unknown { background: rgba(107, 114, 128, 0.2); color: #9ca3af; }
+
+      /* Status Layer */
+      .unifi-network-map__status-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+
+      /* Panel Header Title Row */
+      .panel-header__title-row { display: flex; align-items: center; gap: 8px; }
+
       /* Stats List */
       .stats-list { display: flex; flex-direction: column; gap: 2px; }
       .stats-row { display: flex; justify-content: space-between; padding: 8px 10px; background: rgba(255,255,255,0.03); border-radius: 6px; }
@@ -656,6 +779,9 @@ class UnifiNetworkMapCard extends HTMLElement {
       ha-card[data-theme="light"] .panel-empty__text { color: #64748b; }
       ha-card[data-theme="light"] .panel-hint { background: rgba(59, 130, 246, 0.08); color: #475569; }
       ha-card[data-theme="light"] .unifi-network-map__tooltip { background: rgba(15, 23, 42, 0.9); }
+      ha-card[data-theme="light"] .status-badge--online { background: rgba(34, 197, 94, 0.15); color: #16a34a; }
+      ha-card[data-theme="light"] .status-badge--offline { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
+      ha-card[data-theme="light"] .status-badge--unknown { background: rgba(107, 114, 128, 0.15); color: #6b7280; }
 
       @media (max-width: 800px) {
         .unifi-network-map__layout { grid-template-columns: 1fr; }
