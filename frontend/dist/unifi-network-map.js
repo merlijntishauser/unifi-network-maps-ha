@@ -881,6 +881,7 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
   }
   _updateConfig(update) {
     this._config = {
+      ...this._config,
       type: "custom:unifi-network-map",
       entry_id: update.entry_id,
       theme: update.theme
