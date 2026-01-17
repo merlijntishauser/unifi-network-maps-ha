@@ -217,7 +217,9 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     const style = document.createElement("style");
     style.dataset.unifiNetworkMap = "true";
     style.textContent = `
-      .unifi-network-map__layout { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 1fr); gap: 12px; }
+      unifi-network-map { display: block; height: 100%; }
+      unifi-network-map ha-card { display: flex; flex-direction: column; height: 100%; box-sizing: border-box; }
+      .unifi-network-map__layout { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 1fr); gap: 12px; flex: 1; padding: 12px; }
       .unifi-network-map__viewport { position: relative; overflow: hidden; min-height: 300px; background: #0b1016; border-radius: 8px; touch-action: none; }
       .unifi-network-map__viewport svg { width: 100%; height: auto; display: block; }
       .unifi-network-map__controls { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; z-index: 3; }
