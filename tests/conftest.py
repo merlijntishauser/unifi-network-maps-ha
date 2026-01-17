@@ -151,6 +151,8 @@ def _install_yarl() -> None:
             self.scheme: str = parsed.scheme
             self.host: str | None = parsed.hostname
             self.path: str = parsed.path
+            self.user: str | None = parsed.username
+            self.password: str | None = parsed.password
 
     yarl_module.URL = _FakeURL
     sys.modules.setdefault("yarl", yarl_module)

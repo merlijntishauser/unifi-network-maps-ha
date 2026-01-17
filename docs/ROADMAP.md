@@ -84,6 +84,8 @@
 - Add retry mechanism on fetch failures
 - Add search/filter capability in detail panel
 - Add "reset view" separate from "clear selection"
+- Add config option for light/dark mode
+- Add port for unifi controller
 
 ### Real-time Device Status
 - Show online/offline status as color-coded halos on nodes

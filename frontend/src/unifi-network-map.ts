@@ -41,6 +41,7 @@ type Hass = {
 };
 
 type CardConfig = {
+  type?: string;
   entry_id?: string;
   svg_url?: string;
   data_url?: string;
@@ -629,7 +630,10 @@ class UnifiNetworkMapEditor extends HTMLElement {
   private _onChange(e: Event) {
     const select = e.target as HTMLSelectElement;
     const entryId = select.value;
-    this._config = { entry_id: entryId };
+    this._config = {
+      type: "custom:unifi-network-map",
+      entry_id: entryId,
+    };
     this.dispatchEvent(
       new CustomEvent("config-changed", {
         detail: { config: this._config },

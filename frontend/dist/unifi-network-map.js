@@ -521,7 +521,10 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
   _onChange(e) {
     const select = e.target;
     const entryId = select.value;
-    this._config = { entry_id: entryId };
+    this._config = {
+      type: "custom:unifi-network-map",
+      entry_id: entryId
+    };
     this.dispatchEvent(
       new CustomEvent("config-changed", {
         detail: { config: this._config },
