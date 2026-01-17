@@ -1,4 +1,4 @@
-.PHONY: help venv install install-dev test format frontend-install frontend-build frontend-test frontend-typecheck frontend-lint frontend-format pre-commit-install pre-commit-run ci version-bump version clean
+.PHONY: help venv install install-dev test format frontend-install frontend-build frontend-test frontend-typecheck frontend-lint frontend-format pre-commit-install pre-commit-run ci version-bump version release clean
 
 VENV_DIR := .venv
 PYTHON_BIN := $(shell command -v python3.13 >/dev/null 2>&1 && echo python3.13 || echo python3)
@@ -24,6 +24,7 @@ help:
 	@echo "  pre-commit-run  Run all pre-commit hooks"
 	@echo "  ci              Run full local CI (pre-commit hooks)"
 	@echo "  version-bump    Bump integration and card versions, tag, and push"
+	@echo "  release         Create a GitHub release for the current VERSION"
 	@echo "  clean           Remove .venv"
 
 venv:
@@ -71,6 +72,16 @@ pre-commit-run: install-dev
 ci: pre-commit-run
 
 version: version-bump
+
+release: ci version-bump
+	@version=$$(cat $(VERSION_FILE)); \
+	if ! echo "$$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$$'; then \
+		echo "Invalid semver in $(VERSION_FILE): $$version"; exit 1; \
+	fi; \
+	if ! command -v gh >/dev/null 2>&1; then \
+		echo "GitHub CLI not found. Install gh first."; exit 1; \
+	fi; \
+	gh release create "v$$version" --title "v$$version" --notes-file CHANGELOG.md
 
 version-bump:
 	@current=$$(cat $(VERSION_FILE)); \
