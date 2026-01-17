@@ -71,20 +71,35 @@ def validate_unifi_credentials(
     verify_ssl: bool,
 ) -> None:
     _ensure_unifi_ssl_warning_filter(verify_ssl)
-    config = Config(
+    config = _build_config(base_url, username, password, site, verify_ssl)
+    auth_error = _load_unifi_auth_error()
+    _assert_unifi_connectivity(config, site, auth_error)
+
+
+def _build_config(
+    base_url: str, username: str, password: str, site: str, verify_ssl: bool
+) -> Config:
+    return Config(
         url=base_url,
         site=site,
         user=username,
         password=password,
         verify_ssl=verify_ssl,
     )
+
+
+def _load_unifi_auth_error():
     try:
         from unifi_controller_api import UnifiAuthenticationError
     except ImportError as exc:
         raise CannotConnect("Missing dependency: unifi-controller-api") from exc
+    return UnifiAuthenticationError
+
+
+def _assert_unifi_connectivity(config: Config, site: str, auth_error) -> None:
     try:
         fetch_devices(config, site=site, detailed=False, use_cache=False)
-    except UnifiAuthenticationError as exc:
+    except auth_error as exc:
         raise InvalidAuth("Authentication failed") from exc
     except Exception as exc:  # noqa: BLE001
         raise CannotConnect("Unable to connect") from exc

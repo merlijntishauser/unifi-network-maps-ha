@@ -39,17 +39,9 @@ class UniFiNetworkMapConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input: dict[str, Any] | None = None):
         errors: dict[str, str] = {}
         if user_input is not None:
-            try:
-                data = _prepare_entry_data(user_input)
-                await self._async_validate_auth(data)
-            except InvalidUrl:
-                errors["base"] = "invalid_url"
-            except UrlHasCredentials:
-                errors["base"] = "url_has_credentials"
-            except InvalidAuth:
-                errors["base"] = "invalid_auth"
-            except CannotConnect:
-                errors["base"] = "cannot_connect"
+            data, error = await self._validate_user_input(user_input)
+            if error:
+                errors["base"] = error
             else:
                 return self.async_create_entry(title=data[CONF_URL], data=data)
 
@@ -68,6 +60,22 @@ class UniFiNetworkMapConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data[CONF_SITE],
             data[CONF_VERIFY_SSL],
         )
+
+    async def _validate_user_input(
+        self, user_input: dict[str, Any]
+    ) -> tuple[dict[str, Any], str | None]:
+        try:
+            data = _prepare_entry_data(user_input)
+            await self._async_validate_auth(data)
+        except InvalidUrl:
+            return user_input, "invalid_url"
+        except UrlHasCredentials:
+            return user_input, "url_has_credentials"
+        except InvalidAuth:
+            return user_input, "invalid_auth"
+        except CannotConnect:
+            return user_input, "cannot_connect"
+        return data, None
 
     @staticmethod
     def async_get_options_flow(
@@ -103,38 +111,36 @@ def _build_schema() -> vol.Schema:
 
 
 def _build_options_schema(options: dict[str, Any]) -> vol.Schema:
+    return vol.Schema(_options_schema_fields(options))
+
+
+def _options_schema_fields(options: dict[str, Any]) -> dict[vol.Marker, object]:
     width_default = options.get(CONF_SVG_WIDTH)
     height_default = options.get(CONF_SVG_HEIGHT)
-    return vol.Schema(
-        {
-            vol.Optional(
-                CONF_INCLUDE_PORTS,
-                default=options.get(CONF_INCLUDE_PORTS, DEFAULT_INCLUDE_PORTS),
-            ): bool,
-            vol.Optional(
-                CONF_INCLUDE_CLIENTS,
-                default=options.get(CONF_INCLUDE_CLIENTS, DEFAULT_INCLUDE_CLIENTS),
-            ): bool,
-            vol.Optional(
-                CONF_CLIENT_SCOPE,
-                default=options.get(CONF_CLIENT_SCOPE, DEFAULT_CLIENT_SCOPE),
-            ): vol.In(CLIENT_SCOPE_OPTIONS),
-            vol.Optional(
-                CONF_ONLY_UNIFI,
-                default=options.get(CONF_ONLY_UNIFI, DEFAULT_ONLY_UNIFI),
-            ): bool,
-            vol.Optional(
-                CONF_SVG_ISOMETRIC,
-                default=options.get(CONF_SVG_ISOMETRIC, DEFAULT_SVG_ISOMETRIC),
-            ): bool,
-            vol.Optional(CONF_SVG_WIDTH, default=width_default): _svg_size_validator(),
-            vol.Optional(CONF_SVG_HEIGHT, default=height_default): _svg_size_validator(),
-            vol.Optional(
-                CONF_USE_CACHE,
-                default=options.get(CONF_USE_CACHE, DEFAULT_USE_CACHE),
-            ): bool,
-        }
-    )
+    return {
+        _bool_option(CONF_INCLUDE_PORTS, options, DEFAULT_INCLUDE_PORTS): bool,
+        _bool_option(CONF_INCLUDE_CLIENTS, options, DEFAULT_INCLUDE_CLIENTS): bool,
+        _choice_option(CONF_CLIENT_SCOPE, options, DEFAULT_CLIENT_SCOPE): vol.In(
+            CLIENT_SCOPE_OPTIONS
+        ),
+        _bool_option(CONF_ONLY_UNIFI, options, DEFAULT_ONLY_UNIFI): bool,
+        _bool_option(CONF_SVG_ISOMETRIC, options, DEFAULT_SVG_ISOMETRIC): bool,
+        _size_option(CONF_SVG_WIDTH, width_default): _svg_size_validator(),
+        _size_option(CONF_SVG_HEIGHT, height_default): _svg_size_validator(),
+        _bool_option(CONF_USE_CACHE, options, DEFAULT_USE_CACHE): bool,
+    }
+
+
+def _bool_option(key: str, options: dict[str, Any], default: object) -> vol.Optional:
+    return vol.Optional(key, default=options.get(key, default))
+
+
+def _choice_option(key: str, options: dict[str, Any], default: object) -> vol.Optional:
+    return vol.Optional(key, default=options.get(key, default))
+
+
+def _size_option(key: str, default: object) -> vol.Optional:
+    return vol.Optional(key, default=default)
 
 
 def _svg_size_validator() -> vol.Schema:

@@ -89,14 +89,22 @@ def _apply_clients(
     clients = _load_clients(config, settings)
     if not clients:
         return edges, None
+    client_edges = _build_client_edges(devices, clients, settings)
+    return edges + client_edges, clients
+
+
+def _build_client_edges(
+    devices: list[Device],
+    clients: list[object],
+    settings: RenderSettings,
+) -> list[Edge]:
     device_index = build_device_index(devices)
-    client_edges = build_client_edges(
+    return build_client_edges(
         clients,
         device_index,
         include_ports=settings.include_ports,
         client_mode=settings.client_scope,
     )
-    return edges + client_edges, clients
 
 
 def _select_edges(topology: TopologyResult) -> list[Edge]:

@@ -3,44 +3,27 @@
 ## P1 - Security (Critical)
 
 ### Frontend
-- ~~**XSS via innerHTML** (`unifi-network-map.ts:170, 217, 223, 230`) - SVG content and node names rendered via innerHTML without sanitization. Malicious SVG or node names could execute JavaScript.~~ ✓ Fixed: Added `escapeHtml()` and `sanitizeSvg()` helpers.
-- ~~**Unescaped error messages** (`unifi-network-map.ts:71`) - Error text interpolated directly into HTML.~~ ✓ Fixed: Applied `escapeHtml()` to error messages.
 
 ### Backend
-- ~~**URL embedded credentials not stripped** (`config_flow.py:152-155`) - URLs like `https://user:pass@host` accepted without warning.~~ ✓ Fixed: Added `UrlHasCredentials` validation error.
 
 ## P2 - Bugs (High Impact)
 
 ### Frontend
-- ~~**Event listener leaks** (`unifi-network-map.ts:279-309`) - Listeners added on each render without cleanup. Memory leak grows with each node selection.~~ ✓ Fixed: Replaced with event delegation via `_onPanelClick`.
-- ~~**Race condition in async loads** (`unifi-network-map.ts:91-126`) - Rapid config changes can cause old responses to overwrite new ones.~~ ✓ Fixed: Added AbortController to cancel in-flight requests.
 
 ### Backend
-- ~~**KeyError on coordinator access** (`sensor.py:18`) - Direct dict access without null check can crash sensor setup.~~ ✓ Fixed: Use defensive `.get()` access.
-- ~~**None return from _select_edges** (`renderer.py:102-103`) - Returns None if both edge lists are None, but signature promises list[Edge]. Causes TypeError downstream.~~ ✓ Fixed: Added empty list fallback.
-- ~~**MAC normalization inconsistent** (`renderer.py:157` vs `http.py:111`) - renderer uses `.lower()`, http uses `.strip().lower()`. Different formats (colons vs hyphens) won't match.~~ ✓ Fixed: Added `.strip()` to renderer MAC normalization.
 - **Race condition in Lovelace retry** (`__init__.py:213-217`) - Non-atomic counter increment can exceed 6-attempt limit.
 
 ## P2 - Quality & ops
-- Add clients list to diagnostics endpoint (anonymized).
+- **Add clients list to diagnostics endpoint** (anonymized).
 - **Silent Lovelace registration failure** (`__init__.py:276-310`) - If both registration paths fail, no error is logged.
 - **Diagnostics missing timestamp** (`diagnostics.py:19-32`) - No indication of data freshness.
 
 ## P3 - Release & polish
 - Add documentation with screenshots and example dashboards.
-- ~~Re-enable HACS checks when brands PR is merged.~~ (done)
 
 ## P4 - Code quality & refactoring (XP alignment)
 
 ### Backend (Python)
-- Split long functions (>15 lines) violating XP principles:
-  - `__init__.py:15-30` `async_setup_entry` (16 lines) - extract setup steps
-  - `__init__.py:40-59` `_register_refresh_service` (20 lines) - split service logic
-  - `api.py:57-80` `validate_unifi_credentials` (24 lines) - extract validation steps
-  - `config_flow.py:39-58` `async_step_user` (20 lines) - extract validation logic
-  - `config_flow.py:103-135` `_build_options_schema` (33 lines) - abstract repetitive pattern
-  - `http.py:90-107` `_mac_from_entity_entry` (18 lines) - split extraction strategies
-  - `renderer.py:82-99` `_apply_clients` (18 lines) - extract client edge building
 - Improve type hints: replace generic `object` types with proper types (ServiceCall, ModuleType, Client TypedDict/Protocol)
 - Fix broad exception handling: `api.py:79`, `renderer.py:42` - catch specific errors and fail fast
 - Extract duplicate registration flag patterns in `__init__.py:42-43,64-65`

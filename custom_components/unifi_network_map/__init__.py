@@ -22,17 +22,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     from .http import register_unifi_http_views
 
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
-    await coordinator.async_config_entry_first_refresh()
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
-    register_unifi_http_views(hass)
-    _register_frontend_assets(hass)
-    _register_refresh_service(hass)
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    LOGGER.info(
-        "UniFi Network Map endpoints: /api/unifi_network_map/%s/svg and /api/unifi_network_map/%s/payload",
-        entry.entry_id,
-        entry.entry_id,
-    )
+    await _initialize_coordinator(coordinator)
+    _store_coordinator(hass, entry.entry_id, coordinator)
+    _register_runtime_services(hass, register_unifi_http_views)
+    await _forward_entry_setups(hass, entry)
+    _log_api_endpoints(entry.entry_id)
     return True
 
 
@@ -44,10 +38,52 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 def _register_refresh_service(hass: HomeAssistant) -> None:
-    data = hass.data.setdefault(DOMAIN, {})
-    if data.get("refresh_service_registered"):
+    if _refresh_service_registered(hass):
         return
+    handler = _build_refresh_handler(hass)
+    _register_refresh_handler(hass, handler)
+    _mark_refresh_service_registered(hass)
 
+
+async def _initialize_coordinator(coordinator: UniFiNetworkMapCoordinator) -> None:
+    await coordinator.async_config_entry_first_refresh()
+
+
+def _store_coordinator(
+    hass: HomeAssistant, entry_id: str, coordinator: UniFiNetworkMapCoordinator
+) -> None:
+    hass.data.setdefault(DOMAIN, {})[entry_id] = coordinator
+
+
+def _register_runtime_services(hass: HomeAssistant, register_views) -> None:
+    register_views(hass)
+    _register_frontend_assets(hass)
+    _register_refresh_service(hass)
+
+
+async def _forward_entry_setups(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+
+def _log_api_endpoints(entry_id: str) -> None:
+    LOGGER.info(
+        "UniFi Network Map endpoints: /api/unifi_network_map/%s/svg and /api/unifi_network_map/%s/payload",
+        entry_id,
+        entry_id,
+    )
+
+
+def _refresh_service_registered(hass: HomeAssistant) -> bool:
+    data = hass.data.setdefault(DOMAIN, {})
+    return bool(data.get("refresh_service_registered"))
+
+
+def _mark_refresh_service_registered(hass: HomeAssistant) -> None:
+    data = hass.data.setdefault(DOMAIN, {})
+    data["refresh_service_registered"] = True
+
+
+def _build_refresh_handler(hass: HomeAssistant):
     async def _handle_refresh(call) -> None:
         entry_id = call.data.get(ATTR_ENTRY_ID)
         coordinators = _select_coordinators(hass, entry_id)
@@ -56,13 +92,16 @@ def _register_refresh_service(hass: HomeAssistant) -> None:
         for coordinator in coordinators:
             await coordinator.async_request_refresh()
 
+    return _handle_refresh
+
+
+def _register_refresh_handler(hass: HomeAssistant, handler) -> None:
     hass.services.async_register(
         DOMAIN,
         SERVICE_REFRESH,
-        _handle_refresh,
+        handler,
         schema=vol.Schema({vol.Optional(ATTR_ENTRY_ID): str}),
     )
-    data["refresh_service_registered"] = True
 
 
 def _register_frontend_assets(hass: HomeAssistant) -> None:

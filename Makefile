@@ -1,4 +1,4 @@
-.PHONY: help venv install install-dev test frontend-install frontend-build frontend-test frontend-typecheck frontend-lint frontend-format pre-commit-install pre-commit-run ci clean
+.PHONY: help venv install install-dev test format frontend-install frontend-build frontend-test frontend-typecheck frontend-lint frontend-format pre-commit-install pre-commit-run ci clean
 
 VENV_DIR := .venv
 PYTHON_BIN := $(shell command -v python3.13 >/dev/null 2>&1 && echo python3.13 || echo python3)
@@ -12,6 +12,7 @@ help:
 	@echo "  install         Install Python requirements into .venv"
 	@echo "  install-dev     Install Python dev requirements into .venv"
 	@echo "  test            Run Python tests"
+	@echo "  format          Run ruff format on the repo"
 	@echo "  frontend-install Install frontend deps (requires Node.js)"
 	@echo "  frontend-build  Run frontend build (requires Node.js)"
 	@echo "  frontend-test   Run frontend tests (requires Node.js)"
@@ -35,6 +36,9 @@ install-dev: install
 
 test: install-dev
 	$(VENV_DIR)/bin/pytest -v --cov=custom_components --cov-report=term-missing
+
+format: install-dev
+	$(VENV_DIR)/bin/ruff format .
 
 frontend-install:
 	cd frontend && npm install
