@@ -35,6 +35,9 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._panStart = null;
     this._panMoved = false;
   }
+  static getLayoutOptions() {
+    return { grid_columns: 4, grid_rows: 3, grid_min_columns: 2, grid_min_rows: 2 };
+  }
   setConfig(config) {
     this._config = config;
     this._render();

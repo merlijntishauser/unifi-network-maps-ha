@@ -55,6 +55,10 @@ type MapPayload = {
 };
 
 class UnifiNetworkMapCard extends HTMLElement {
+  static getLayoutOptions() {
+    return { grid_columns: 4, grid_rows: 3, grid_min_columns: 2, grid_min_rows: 2 };
+  }
+
   setConfig(config: { svg_url: string; data_url?: string }) {
     this._config = config;
     this._render();
