@@ -68,6 +68,9 @@
           "use_cache": "Re-use the last render between polls."
         }
       }
+    },
+    "error": {
+      "expected_int": "Enter a whole number of pixels or leave the field blank."
     }
   }
 }

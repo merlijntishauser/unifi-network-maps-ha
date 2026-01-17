@@ -906,6 +906,7 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
   constructor() {
     super(...arguments);
     this._entries = [];
+    this._boundOnChange = (event) => this._onChange(event);
   }
   set hass(hass) {
     this._hass = hass;
@@ -945,22 +946,27 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
           </p>
         </div>
       `;
+      this._form = void 0;
       return;
     }
-    this.innerHTML = `
-      <div style="padding: 16px;">
-        <ha-form></ha-form>
-      </div>
-    `;
-    const form = this.querySelector("ha-form");
-    if (!form) {
-      return;
+    if (!this._form) {
+      this.innerHTML = `
+        <div style="padding: 16px;">
+          <ha-form></ha-form>
+        </div>
+      `;
+      const form = this.querySelector("ha-form");
+      if (!form) {
+        return;
+      }
+      this._form = form;
+      this._form.addEventListener("value-changed", this._boundOnChange);
     }
     const entryOptions = this._entries.map((entry) => ({
       label: entry.title,
       value: entry.entry_id
     }));
-    form.schema = [
+    this._form.schema = [
       {
         name: "entry_id",
         required: true,
@@ -986,17 +992,19 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
         label: "Theme"
       }
     ];
-    form.data = {
+    this._form.data = {
       entry_id: this._config?.entry_id ?? "",
       theme: this._config?.theme ?? "dark"
     };
-    form.addEventListener("value-changed", (event) => this._onChange(event));
   }
   _onChange(e) {
     const detail = e.detail;
     const entryId = detail.value?.entry_id ?? this._config?.entry_id ?? "";
     const themeValue = detail.value?.theme ?? this._config?.theme ?? "dark";
     const theme = themeValue === "light" ? "light" : "dark";
+    if (this._config?.entry_id === entryId && this._config?.theme === theme) {
+      return;
+    }
     this._updateConfig({ entry_id: entryId, theme });
   }
   _updateConfigEntry(entryId) {

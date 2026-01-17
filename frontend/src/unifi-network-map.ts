@@ -1087,6 +1087,8 @@ class UnifiNetworkMapEditor extends HTMLElement {
   private _config?: CardConfig;
   private _hass?: Hass;
   private _entries: ConfigEntry[] = [];
+  private _form?: HTMLElement & { schema: unknown; data: Record<string, unknown> };
+  private _boundOnChange = (event: Event) => this._onChange(event);
 
   set hass(hass: Hass) {
     this._hass = hass;
@@ -1129,24 +1131,29 @@ class UnifiNetworkMapEditor extends HTMLElement {
           </p>
         </div>
       `;
+      this._form = undefined;
       return;
     }
-    this.innerHTML = `
-      <div style="padding: 16px;">
-        <ha-form></ha-form>
-      </div>
-    `;
-    const form = this.querySelector("ha-form") as
-      | (HTMLElement & { schema: unknown; data: Record<string, unknown> })
-      | null;
-    if (!form) {
-      return;
+    if (!this._form) {
+      this.innerHTML = `
+        <div style="padding: 16px;">
+          <ha-form></ha-form>
+        </div>
+      `;
+      const form = this.querySelector("ha-form") as
+        | (HTMLElement & { schema: unknown; data: Record<string, unknown> })
+        | null;
+      if (!form) {
+        return;
+      }
+      this._form = form;
+      this._form.addEventListener("value-changed", this._boundOnChange);
     }
     const entryOptions = this._entries.map((entry) => ({
       label: entry.title,
       value: entry.entry_id,
     }));
-    form.schema = [
+    this._form.schema = [
       {
         name: "entry_id",
         required: true,
@@ -1172,11 +1179,10 @@ class UnifiNetworkMapEditor extends HTMLElement {
         label: "Theme",
       },
     ];
-    form.data = {
+    this._form.data = {
       entry_id: this._config?.entry_id ?? "",
       theme: this._config?.theme ?? "dark",
     };
-    form.addEventListener("value-changed", (event) => this._onChange(event));
   }
 
   private _onChange(e: Event) {
@@ -1184,6 +1190,9 @@ class UnifiNetworkMapEditor extends HTMLElement {
     const entryId = detail.value?.entry_id ?? this._config?.entry_id ?? "";
     const themeValue = detail.value?.theme ?? this._config?.theme ?? "dark";
     const theme = themeValue === "light" ? "light" : "dark";
+    if (this._config?.entry_id === entryId && this._config?.theme === theme) {
+      return;
+    }
     this._updateConfig({ entry_id: entryId, theme });
   }
 

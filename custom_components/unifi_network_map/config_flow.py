@@ -90,7 +90,14 @@ class UniFiNetworkMapOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            data, errors = _normalize_options(user_input)
+            if errors:
+                return self.async_show_form(
+                    step_id="init",
+                    data_schema=_build_options_schema(self._entry.options),
+                    errors=errors,
+                )
+            return self.async_create_entry(title="", data=data)
 
         return self.async_show_form(
             step_id="init",
@@ -124,8 +131,6 @@ def _options_schema_fields(options: dict[str, Any]) -> dict[vol.Marker, object]:
         opt(CONF_CLIENT_SCOPE, DEFAULT_CLIENT_SCOPE): _client_scope_selector(),
         opt(CONF_ONLY_UNIFI, DEFAULT_ONLY_UNIFI): _boolean_selector(),
         opt(CONF_SVG_ISOMETRIC, DEFAULT_SVG_ISOMETRIC): _boolean_selector(),
-        opt(CONF_SVG_WIDTH, None): _size_selector(),
-        opt(CONF_SVG_HEIGHT, None): _size_selector(),
         opt(CONF_USE_CACHE, DEFAULT_USE_CACHE): _boolean_selector(),
     }
 
@@ -147,16 +152,30 @@ def _client_scope_selector() -> selector.SelectSelector:
     )
 
 
-def _size_selector() -> selector.NumberSelector:
-    return selector.NumberSelector(
-        selector.NumberSelectorConfig(
-            min=100,
-            max=5000,
-            step=10,
-            mode=selector.NumberSelectorMode.BOX,
-            unit_of_measurement="px",
-        )
-    )
+def _normalize_options(user_input: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]]:
+    cleaned = dict(user_input)
+    errors: dict[str, str] = {}
+    for key in (CONF_SVG_WIDTH, CONF_SVG_HEIGHT):
+        value = cleaned.get(key)
+        if value in ("", None):
+            cleaned.pop(key, None)
+            continue
+        if isinstance(value, (int, float)):
+            cleaned[key] = int(value)
+            continue
+        if isinstance(value, str):
+            stripped = value.strip()
+            if not stripped:
+                cleaned.pop(key, None)
+                continue
+            try:
+                cleaned[key] = int(float(stripped))
+                continue
+            except ValueError:
+                errors[key] = "expected_int"
+                continue
+        errors[key] = "expected_int"
+    return cleaned, errors
 
 
 def _prepare_entry_data(user_input: dict[str, Any]) -> dict[str, Any]:

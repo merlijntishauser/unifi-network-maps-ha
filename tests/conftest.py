@@ -124,6 +124,17 @@ def _install_homeassistant_stubs() -> None:
         def __init__(self, *_args: object, **_kwargs: object) -> None:
             pass
 
+    class TextSelectorConfig:  # minimal stub for imports
+        def __init__(self, **_kwargs: object) -> None:
+            pass
+
+    class TextSelectorType:  # minimal stub for imports
+        NUMBER = "number"
+
+    class TextSelector:  # minimal stub for imports
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
     config_entries.ConfigEntry = ConfigEntry
     config_entries.ConfigFlow = ConfigFlow
     config_entries.OptionsFlow = OptionsFlow
@@ -150,6 +161,9 @@ def _install_homeassistant_stubs() -> None:
     selector.NumberSelector = NumberSelector
     selector.NumberSelectorConfig = NumberSelectorConfig
     selector.NumberSelectorMode = NumberSelectorMode
+    selector.TextSelector = TextSelector
+    selector.TextSelectorConfig = TextSelectorConfig
+    selector.TextSelectorType = TextSelectorType
 
     sys.modules.setdefault("homeassistant", homeassistant)
     sys.modules.setdefault("homeassistant.components", components)
