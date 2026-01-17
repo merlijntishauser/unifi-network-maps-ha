@@ -125,8 +125,8 @@ def _options_schema_fields(options: dict[str, Any]) -> dict[vol.Marker, object]:
         ),
         _bool_option(CONF_ONLY_UNIFI, options, DEFAULT_ONLY_UNIFI): bool,
         _bool_option(CONF_SVG_ISOMETRIC, options, DEFAULT_SVG_ISOMETRIC): bool,
-        _size_option(CONF_SVG_WIDTH, width_default): _svg_size_validator(),
-        _size_option(CONF_SVG_HEIGHT, height_default): _svg_size_validator(),
+        _size_option(CONF_SVG_WIDTH, width_default): _create_svg_size_validator(),
+        _size_option(CONF_SVG_HEIGHT, height_default): _create_svg_size_validator(),
         _bool_option(CONF_USE_CACHE, options, DEFAULT_USE_CACHE): bool,
     }
 
@@ -143,7 +143,7 @@ def _size_option(key: str, default: object) -> vol.Optional:
     return vol.Optional(key, default=default)
 
 
-def _svg_size_validator() -> vol.Schema:
+def _create_svg_size_validator() -> vol.Schema:
     return vol.Any(None, vol.All(vol.Coerce(int), vol.Range(min=100, max=5000)))
 
 

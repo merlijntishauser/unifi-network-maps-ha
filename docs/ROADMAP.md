@@ -24,7 +24,6 @@
 ## P4 - Code quality & refactoring (XP alignment)
 
 ### Backend (Python)
-- Extract duplicate registration flag patterns in `__init__.py:42-43,64-65`
 - Simplify complex logic: Lovelace resource handling, MAC extraction, options schema building
 - Improve naming: `_svg_size_validator` → `_create_svg_size_validator`, `call` → type-hinted `call: ServiceCall`
 - **Validate entry.data keys exist** (`coordinator.py:52-60`) - Add defensive checks for required config keys.
