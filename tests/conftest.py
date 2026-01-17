@@ -17,6 +17,10 @@ def _format_mac(value: str) -> str:
     return ":".join(cleaned[i : i + 2] for i in range(0, 12, 2)).lower()
 
 
+def _async_get_stub(_hass: object) -> None:
+    return None
+
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -98,7 +102,9 @@ def _install_homeassistant_stubs() -> None:
     update_coordinator.UpdateFailed = UpdateFailed
     exceptions.HomeAssistantError = Exception
     device_registry.CONNECTION_NETWORK_MAC = "mac"
+    device_registry.async_get = _async_get_stub
     device_registry.format_mac = _format_mac
+    entity_registry.async_get = _async_get_stub
     components_http.HomeAssistantView = HomeAssistantView
     components_http.StaticPathConfig = StaticPathConfig
 

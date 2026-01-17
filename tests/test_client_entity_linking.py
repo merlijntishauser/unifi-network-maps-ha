@@ -28,6 +28,9 @@ class _FakeStates:
     def get(self, entity_id: str):
         return self._states.get(entity_id)
 
+    def async_all(self):
+        return list(self._states.values())
+
 
 @dataclass
 class _FakeEntry:
@@ -50,6 +53,12 @@ class _FakeDeviceRegistry:
         return self._devices.get(device_id)
 
 
+@dataclass
+class _FakeState:
+    entity_id: str
+    attributes: dict[str, object]
+
+
 def test_resolve_client_entities_happy_path(monkeypatch: MonkeyPatch) -> None:
     hass = _FakeHass({"unifi"})
     client_macs = {"iPad": "AA:BB:CC:DD:EE:FF"}
@@ -64,7 +73,7 @@ def test_resolve_client_entities_happy_path(monkeypatch: MonkeyPatch) -> None:
     assert result == {"iPad": "sensor.unifi_client_ipad"}
 
 
-def test_resolve_client_entities_unifi_missing(monkeypatch: MonkeyPatch) -> None:
+def test_resolve_client_entities_empty_payload(monkeypatch: MonkeyPatch) -> None:
     hass = _FakeHass(set())
     monkeypatch.setattr(
         http_module,
@@ -72,7 +81,7 @@ def test_resolve_client_entities_unifi_missing(monkeypatch: MonkeyPatch) -> None
         _fake_entity_index({"aa:bb:cc:dd:ee:ff": "sensor.unifi_client_ipad"}),
     )
 
-    result = http_module.resolve_client_entity_map(hass, {"iPad": "AA:BB:CC:DD:EE:FF"})
+    result = http_module.resolve_client_entity_map(hass, {})
 
     assert result == {}
 
@@ -108,7 +117,10 @@ def test_mac_from_device_identifier() -> None:
 
 
 def test_mac_from_state_attribute() -> None:
-    state = type("State", (), {"attributes": {"mac_address": "AA:BB:CC:DD:EE:FF"}})()
+    state = _FakeState(
+        entity_id="sensor.unifi_client_ipad",
+        attributes={"mac_address": "AA:BB:CC:DD:EE:FF"},
+    )
     hass = _FakeHass(set())
     hass.states = _FakeStates({"sensor.unifi_client_ipad": state})
     entry = _FakeEntry(entity_id="sensor.unifi_client_ipad")
@@ -117,6 +129,30 @@ def test_mac_from_state_attribute() -> None:
     result = http_module.mac_from_entity_entry(hass, entry, device_registry)
 
     assert result == "aa:bb:cc:dd:ee:ff"
+
+
+def test_resolve_client_entities_from_state(monkeypatch: MonkeyPatch) -> None:
+    state = _FakeState(
+        entity_id="device_tracker.appletv_4k",
+        attributes={"mac": "50:DE:06:76:60:00", "source_type": "router"},
+    )
+    hass = _FakeHass(set())
+    hass.states = _FakeStates({"device_tracker.appletv_4k": state})
+    monkeypatch.setattr(http_module, "_iter_unifi_entity_entries", _empty_iter)
+    monkeypatch.setattr(http_module.er, "async_get", _fake_async_get)
+    monkeypatch.setattr(http_module.dr, "async_get", _fake_async_get)
+
+    result = http_module.resolve_client_entity_map(hass, {"AppleTV 4K": "50:de:06:76:60:00"})
+
+    assert result == {"AppleTV 4K": "device_tracker.appletv_4k"}
+
+
+def _empty_iter(_hass: object, _registry: object):
+    return iter(())
+
+
+def _fake_async_get(_hass: object) -> object:
+    return object()
 
 
 def _fake_entity_index(mapping: dict[str, str]):

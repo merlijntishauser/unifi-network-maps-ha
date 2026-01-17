@@ -62,7 +62,7 @@ class UniFiNetworkMapPayloadView(HomeAssistantView):
 
 
 def resolve_client_entity_map(hass: HomeAssistant, client_macs: dict[str, str]) -> dict[str, str]:
-    if not client_macs or not hass.config_entries.async_entries("unifi"):
+    if not client_macs:
         return {}
     mac_to_entity = _build_mac_entity_index(hass)
     return {
@@ -76,10 +76,8 @@ def _build_mac_entity_index(hass: HomeAssistant) -> dict[str, str]:
     entity_registry = er.async_get(hass)
     device_registry = dr.async_get(hass)
     mac_to_entity: dict[str, str] = {}
-    for entry in _iter_unifi_entity_entries(hass, entity_registry):
-        mac = mac_from_entity_entry(hass, entry, device_registry)
-        if mac:
-            mac_to_entity.setdefault(mac, entry.entity_id)
+    _add_registry_macs(hass, entity_registry, device_registry, mac_to_entity)
+    _add_state_macs(hass, mac_to_entity)
     return mac_to_entity
 
 
@@ -110,6 +108,77 @@ def get_unifi_entity_mac_stats(hass: HomeAssistant) -> dict[str, int]:
         if mac_from_entity_entry(hass, entry, device_registry):
             with_mac += 1
     return {"unifi_entities_scanned": scanned, "unifi_entities_with_mac": with_mac}
+
+
+def get_unifi_entity_macs(hass: HomeAssistant) -> set[str]:
+    return set(_build_mac_entity_index(hass).keys())
+
+
+def get_state_entity_macs(hass: HomeAssistant) -> set[str]:
+    return set(_build_state_mac_index(hass).keys())
+
+
+def normalize_mac_value(value: str) -> str:
+    return _normalize_mac(value)
+
+
+def _add_registry_macs(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+    device_registry: dr.DeviceRegistry,
+    mac_to_entity: dict[str, str],
+) -> None:
+    for entry in _iter_unifi_entity_entries(hass, entity_registry):
+        mac = mac_from_entity_entry(hass, entry, device_registry)
+        if mac:
+            mac_to_entity.setdefault(mac, entry.entity_id)
+
+
+def _add_state_macs(hass: HomeAssistant, mac_to_entity: dict[str, str]) -> None:
+    for state in _iter_state_entries(hass):
+        if not _is_state_mac_candidate(state):
+            continue
+        mac = _mac_from_state_entry(state)
+        if mac:
+            mac_to_entity.setdefault(mac, state.entity_id)
+
+
+def _build_state_mac_index(hass: HomeAssistant) -> dict[str, str]:
+    mac_to_entity: dict[str, str] = {}
+    _add_state_macs(hass, mac_to_entity)
+    return mac_to_entity
+
+
+def _iter_state_entries(hass: HomeAssistant):
+    if hasattr(hass.states, "async_all"):
+        return hass.states.async_all()
+    if hasattr(hass.states, "all"):
+        return hass.states.all()
+    return []
+
+
+def _is_state_mac_candidate(state: object) -> bool:
+    entity_id = getattr(state, "entity_id", "")
+    domain = entity_id.split(".", 1)[0] if entity_id else ""
+    if domain == "device_tracker":
+        return True
+    attributes = getattr(state, "attributes", {})
+    if isinstance(attributes, dict) and attributes.get("source_type") == "router":
+        return True
+    return False
+
+
+def _mac_from_state_entry(state: object) -> str | None:
+    attributes = getattr(state, "attributes", {})
+    if not isinstance(attributes, dict):
+        return None
+    for key in ("mac_address", "mac"):
+        value = attributes.get(key)
+        if isinstance(value, str) and value.strip():
+            state_mac = _extract_mac(value)
+            if state_mac:
+                return state_mac
+    return None
 
 
 def mac_from_entity_entry(
