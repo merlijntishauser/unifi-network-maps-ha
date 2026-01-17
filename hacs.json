@@ -1,6 +1,5 @@
 {
   "name": "UniFi Network Map",
   "content_in_root": false,
-  "render_readme": true,
-  "domains": ["unifi_network_map"]
+  "render_readme": true
 }
