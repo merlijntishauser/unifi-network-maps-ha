@@ -24,7 +24,6 @@
 ## P4 - Code quality & refactoring (XP alignment)
 
 ### Backend (Python)
-- ~~Validate entry.data keys exist (`coordinator.py:52-60`) - Add defensive checks for required config keys.~~ ✓ Done
 
 ### Frontend (TypeScript)
 - Split long functions (>15 lines) violating XP principles:
@@ -61,8 +60,7 @@
 - Add retry mechanism on fetch failures
 - Add search/filter capability in detail panel
 - Add "reset view" separate from "clear selection"
-- Add config option for light/dark mode
-- Add port for unifi controller
+- Add port for unifi controller in configuration
 
 ### Real-time Device Status
 - Show online/offline status as color-coded halos on nodes
