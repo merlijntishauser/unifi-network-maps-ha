@@ -24,7 +24,7 @@
 ## P4 - Code quality & refactoring (XP alignment)
 
 ### Backend (Python)
-- Validate entry.data keys exist (`coordinator.py:52-60`) - Add defensive checks for required config keys.
+- ~~Validate entry.data keys exist (`coordinator.py:52-60`) - Add defensive checks for required config keys.~~ ✓ Done
 
 ### Frontend (TypeScript)
 - Split long functions (>15 lines) violating XP principles:
