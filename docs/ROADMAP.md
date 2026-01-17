@@ -74,6 +74,7 @@
 ## P5 - Killer features
 
 ### UX Enhancements
+- Add visual editor for card configuration
 - Add keyboard navigation (arrow keys, Escape, Tab for accessibility)
 - Add visual feedback for selected nodes (highlight in SVG)
 - Add double-click to zoom-to-fit on viewport
