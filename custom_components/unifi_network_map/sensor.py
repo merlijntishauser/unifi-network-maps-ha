@@ -15,7 +15,9 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities,
 ) -> None:
-    coordinator: UniFiNetworkMapCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if not isinstance(coordinator, UniFiNetworkMapCoordinator):
+        return
     async_add_entities([UniFiNetworkMapSensor(coordinator, entry.entry_id)])
 
 
