@@ -26,6 +26,11 @@ function sanitizeSvg(svg) {
   return svgElement.outerHTML;
 }
 var DOMAIN = "unifi_network_map";
+var MIN_PAN_MOVEMENT_THRESHOLD = 2;
+var ZOOM_INCREMENT = 0.1;
+var MIN_ZOOM_SCALE = 0.5;
+var MAX_ZOOM_SCALE = 4;
+var TOOLTIP_OFFSET_PX = 12;
 var UnifiNetworkMapCard = class extends HTMLElement {
   constructor() {
     super(...arguments);
@@ -742,13 +747,13 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     if (zoomIn) {
       zoomIn.onclick = (event) => {
         event.preventDefault();
-        this._applyZoom(0.1, svg);
+        this._applyZoom(ZOOM_INCREMENT, svg);
       };
     }
     if (zoomOut) {
       zoomOut.onclick = (event) => {
         event.preventDefault();
-        this._applyZoom(-0.1, svg);
+        this._applyZoom(-ZOOM_INCREMENT, svg);
       };
     }
     if (reset) {
@@ -760,7 +765,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   }
   _onWheel(event, svg) {
     event.preventDefault();
-    const delta = event.deltaY > 0 ? -0.1 : 0.1;
+    const delta = event.deltaY > 0 ? -ZOOM_INCREMENT : ZOOM_INCREMENT;
     this._applyZoom(delta, svg);
   }
   _onPointerDown(event) {
@@ -776,7 +781,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     if (this._isPanning && this._panStart) {
       const nextX = event.clientX - this._panStart.x;
       const nextY = event.clientY - this._panStart.y;
-      if (Math.abs(nextX - this._panState.x) > 2 || Math.abs(nextY - this._panState.y) > 2) {
+      if (Math.abs(nextX - this._panState.x) > MIN_PAN_MOVEMENT_THRESHOLD || Math.abs(nextY - this._panState.y) > MIN_PAN_MOVEMENT_THRESHOLD) {
         this._panMoved = true;
       }
       this._panState.x = nextX;
@@ -794,8 +799,8 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     tooltip.hidden = false;
     tooltip.textContent = label;
     tooltip.style.transform = "none";
-    tooltip.style.left = `${event.clientX + 12}px`;
-    tooltip.style.top = `${event.clientY + 12}px`;
+    tooltip.style.left = `${event.clientX + TOOLTIP_OFFSET_PX}px`;
+    tooltip.style.top = `${event.clientY + TOOLTIP_OFFSET_PX}px`;
   }
   _onPointerUp() {
     this._isPanning = false;
@@ -852,7 +857,10 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     return Boolean(target?.closest(".unifi-network-map__controls"));
   }
   _applyZoom(delta, svg) {
-    const nextScale = Math.min(4, Math.max(0.5, this._panState.scale + delta));
+    const nextScale = Math.min(
+      MAX_ZOOM_SCALE,
+      Math.max(MIN_ZOOM_SCALE, this._panState.scale + delta)
+    );
     this._panState.scale = Number(nextScale.toFixed(2));
     this._applyTransform(svg);
   }

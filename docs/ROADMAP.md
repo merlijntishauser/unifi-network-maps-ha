@@ -38,7 +38,6 @@
   - `unifi-network-map.ts:409-431` `_resolveNodeName()` (23 lines) - extract strategies
   - `unifi-network-map.ts:450-480` `_inferNodeName()` (31 lines) - split fallback strategies
 - Extract named interfaces: `CardConfig`, `PanState` instead of inline types
-- Extract magic numbers to constants: `MIN_PAN_MOVEMENT_THRESHOLD`, `ZOOM_INCREMENT`, `MAX_ZOOM_SCALE`, `TOOLTIP_OFFSET_PX`
 - Improve naming: `_panMoved` → `_hasPanMovedBeyondThreshold`, `_wireInteractions()` → `_attachEventListeners()`
 - Add explicit return types to all private methods
 - **Use textContent or DOMPurify** - Replace innerHTML with safer alternatives for user-controlled content.

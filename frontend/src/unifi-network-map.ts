@@ -62,6 +62,12 @@ type NodeStatus = {
 
 const DOMAIN = "unifi_network_map";
 
+const MIN_PAN_MOVEMENT_THRESHOLD = 2;
+const ZOOM_INCREMENT = 0.1;
+const MIN_ZOOM_SCALE = 0.5;
+const MAX_ZOOM_SCALE = 4;
+const TOOLTIP_OFFSET_PX = 12;
+
 type MapPayload = {
   schema_version?: string;
   edges: Array<{
@@ -906,13 +912,13 @@ class UnifiNetworkMapCard extends HTMLElement {
     if (zoomIn) {
       zoomIn.onclick = (event) => {
         event.preventDefault();
-        this._applyZoom(0.1, svg);
+        this._applyZoom(ZOOM_INCREMENT, svg);
       };
     }
     if (zoomOut) {
       zoomOut.onclick = (event) => {
         event.preventDefault();
-        this._applyZoom(-0.1, svg);
+        this._applyZoom(-ZOOM_INCREMENT, svg);
       };
     }
     if (reset) {
@@ -925,7 +931,7 @@ class UnifiNetworkMapCard extends HTMLElement {
 
   private _onWheel(event: WheelEvent, svg: SVGElement) {
     event.preventDefault();
-    const delta = event.deltaY > 0 ? -0.1 : 0.1;
+    const delta = event.deltaY > 0 ? -ZOOM_INCREMENT : ZOOM_INCREMENT;
     this._applyZoom(delta, svg);
   }
 
@@ -943,7 +949,10 @@ class UnifiNetworkMapCard extends HTMLElement {
     if (this._isPanning && this._panStart) {
       const nextX = event.clientX - this._panStart.x;
       const nextY = event.clientY - this._panStart.y;
-      if (Math.abs(nextX - this._panState.x) > 2 || Math.abs(nextY - this._panState.y) > 2) {
+      if (
+        Math.abs(nextX - this._panState.x) > MIN_PAN_MOVEMENT_THRESHOLD ||
+        Math.abs(nextY - this._panState.y) > MIN_PAN_MOVEMENT_THRESHOLD
+      ) {
         this._panMoved = true;
       }
       this._panState.x = nextX;
@@ -961,8 +970,8 @@ class UnifiNetworkMapCard extends HTMLElement {
     tooltip.hidden = false;
     tooltip.textContent = label;
     tooltip.style.transform = "none";
-    tooltip.style.left = `${event.clientX + 12}px`;
-    tooltip.style.top = `${event.clientY + 12}px`;
+    tooltip.style.left = `${event.clientX + TOOLTIP_OFFSET_PX}px`;
+    tooltip.style.top = `${event.clientY + TOOLTIP_OFFSET_PX}px`;
   }
 
   private _onPointerUp() {
@@ -1026,7 +1035,10 @@ class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _applyZoom(delta: number, svg: SVGElement) {
-    const nextScale = Math.min(4, Math.max(0.5, this._panState.scale + delta));
+    const nextScale = Math.min(
+      MAX_ZOOM_SCALE,
+      Math.max(MIN_ZOOM_SCALE, this._panState.scale + delta),
+    );
     this._panState.scale = Number(nextScale.toFixed(2));
     this._applyTransform(svg);
   }
