@@ -12,7 +12,7 @@ hacs.json                               # HACS metadata
 
 ## Development setup
 - Python: use `make install-dev` to create `.venv` and install dependencies.
-- Python 3.13 is required (unifi-network-maps 1.4.5 requires >=3.13).
+- Python 3.12+ is required (3.13 preferred).
 - Frontend: run `make frontend-install` to install Node dependencies.
 
 ## Pre-commit hooks

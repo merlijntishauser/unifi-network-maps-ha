@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/merlijntishauser/unifi-network-maps-ha#readme
+    about: Read the README and local testing guide.
