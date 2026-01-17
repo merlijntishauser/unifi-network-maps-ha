@@ -24,7 +24,7 @@
 ## P4 - Code quality & refactoring (XP alignment)
 
 ### Backend (Python)
-- Simplify complex logic: Lovelace resource handling, MAC extraction, options schema building
+- ~~Simplify complex logic: Lovelace resource handling, MAC extraction, options schema building~~ ✓ Done
 - Validate entry.data keys exist (`coordinator.py:52-60`) - Add defensive checks for required config keys.
 
 ### Frontend (TypeScript)
