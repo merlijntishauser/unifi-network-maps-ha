@@ -345,12 +345,15 @@ def _valid_edge_payload(edge: object) -> bool:
 
 
 def _edge_from_payload(edge: dict[str, object]) -> Edge:
+    label = edge.get("label")
+    poe_value = edge.get("poe")
+    wireless_value = edge.get("wireless")
     return Edge(
         left=str(edge.get("left", "")),
         right=str(edge.get("right", "")),
-        label=edge.get("label") if isinstance(edge.get("label"), str) else None,
-        poe=edge.get("poe") if isinstance(edge.get("poe"), bool) else None,
-        wireless=edge.get("wireless") if isinstance(edge.get("wireless"), bool) else None,
+        label=label if isinstance(label, str) else None,
+        poe=poe_value if isinstance(poe_value, bool) else False,
+        wireless=wireless_value if isinstance(wireless_value, bool) else False,
     )
 
 
