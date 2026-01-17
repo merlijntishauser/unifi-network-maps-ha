@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import logging
 from time import monotonic
 
 from unifi_network_maps.adapters.config import Config
@@ -10,6 +11,13 @@ from .data import UniFiNetworkMapData
 from .errors import CannotConnect, InvalidAuth
 from .renderer import RenderSettings, UniFiNetworkMapRenderer
 from .const import DEFAULT_RENDER_CACHE_SECONDS
+
+SSL_WARNING_MESSAGE = (
+    "SSL certificate verification is disabled. This is not recommended for production use."
+)
+
+_ssl_warning_filter_added = False
+_ssl_warning_filter: logging.Filter | None = None
 
 
 @dataclass(slots=True)
@@ -24,6 +32,7 @@ class UniFiNetworkMapClient:
     _cache_time: float | None = field(default=None, init=False)
 
     def fetch_map(self) -> UniFiNetworkMapData:
+        _ensure_unifi_ssl_warning_filter(self.verify_ssl)
         cached = self._get_cached_map()
         if cached is not None:
             return cached
@@ -61,6 +70,7 @@ def validate_unifi_credentials(
     site: str,
     verify_ssl: bool,
 ) -> None:
+    _ensure_unifi_ssl_warning_filter(verify_ssl)
     config = Config(
         url=base_url,
         site=site,
@@ -78,3 +88,27 @@ def validate_unifi_credentials(
         raise InvalidAuth("Authentication failed") from exc
     except Exception as exc:  # noqa: BLE001
         raise CannotConnect("Unable to connect") from exc
+
+
+class _OnceSSLWarningFilter(logging.Filter):
+    def __init__(self) -> None:
+        super().__init__()
+        self._seen = False
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if record.levelno == logging.WARNING and record.getMessage() == SSL_WARNING_MESSAGE:
+            if self._seen:
+                return False
+            self._seen = True
+        return True
+
+
+def _ensure_unifi_ssl_warning_filter(verify_ssl: bool) -> None:
+    global _ssl_warning_filter_added, _ssl_warning_filter
+    if verify_ssl or _ssl_warning_filter_added:
+        return
+    logger = logging.getLogger("unifi_controller_api.api_client")
+    if _ssl_warning_filter is None:
+        _ssl_warning_filter = _OnceSSLWarningFilter()
+    logger.addFilter(_ssl_warning_filter)
+    _ssl_warning_filter_added = True
