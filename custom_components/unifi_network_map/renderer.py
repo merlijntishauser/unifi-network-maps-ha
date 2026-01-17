@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Mapping, Protocol, TypedDict, cast
 
 from unifi_network_maps.adapters.config import Config
 from unifi_network_maps.adapters.unifi import fetch_clients, fetch_devices
@@ -33,6 +33,21 @@ class RenderSettings:
     svg_width: int | None
     svg_height: int | None
     use_cache: bool
+
+
+class ClientDict(TypedDict, total=False):
+    name: str
+    hostname: str
+    mac: str
+
+
+class ClientLike(Protocol):
+    name: str | None
+    hostname: str | None
+    mac: str | None
+
+
+ClientData = ClientLike | Mapping[str, Any]
 
 
 class UniFiNetworkMapRenderer:
@@ -84,7 +99,7 @@ def _apply_clients(
     settings: RenderSettings,
     topology: TopologyResult,
     devices: list[Device],
-) -> tuple[list[Edge], list[object] | None]:
+) -> tuple[list[Edge], list[ClientData] | None]:
     edges = _select_edges(topology)
     clients = _load_clients(config, settings)
     if not clients:
@@ -95,7 +110,7 @@ def _apply_clients(
 
 def _build_client_edges(
     devices: list[Device],
-    clients: list[object],
+    clients: list[ClientData],
     settings: RenderSettings,
 ) -> list[Edge]:
     device_index = build_device_index(devices)
@@ -111,10 +126,13 @@ def _select_edges(topology: TopologyResult) -> list[Edge]:
     return topology.tree_edges or topology.raw_edges or []
 
 
-def _load_clients(config: Config, settings: RenderSettings) -> list[object] | None:
+def _load_clients(config: Config, settings: RenderSettings) -> list[ClientData] | None:
     if not settings.include_clients:
         return None
-    return list(fetch_clients(config, site=config.site, use_cache=settings.use_cache))
+    return cast(
+        list[ClientData],
+        list(fetch_clients(config, site=config.site, use_cache=settings.use_cache)),
+    )
 
 
 def _render_svg(
@@ -132,7 +150,7 @@ def _build_payload(
     edges: list[Edge],
     node_types: dict[str, str],
     gateways: list[str],
-    clients: list[object] | None,
+    clients: list[ClientData] | None,
     devices: list[Device],
 ) -> dict[str, Any]:
     return {
@@ -155,7 +173,7 @@ def _edge_to_dict(edge: Edge) -> dict[str, Any]:
     }
 
 
-def _build_client_mac_index(clients: list[object] | None) -> dict[str, str]:
+def _build_client_mac_index(clients: list[ClientData] | None) -> dict[str, str]:
     if not clients:
         return {}
     client_macs: dict[str, str] = {}
@@ -176,7 +194,7 @@ def _build_device_mac_index(devices: list[Device]) -> dict[str, str]:
     return device_macs
 
 
-def _client_display_name(client: object) -> str | None:
+def _client_display_name(client: ClientData) -> str | None:
     for key in ("name", "hostname", "mac"):
         value = _client_field(client, key)
         if isinstance(value, str) and value.strip():
@@ -184,14 +202,14 @@ def _client_display_name(client: object) -> str | None:
     return None
 
 
-def _client_mac(client: object) -> str | None:
+def _client_mac(client: ClientData) -> str | None:
     value = _client_field(client, "mac")
     if isinstance(value, str) and value.strip():
         return value.strip()
     return None
 
 
-def _client_field(client: object, name: str) -> object | None:
-    if isinstance(client, dict):
+def _client_field(client: ClientData, name: str) -> object | None:
+    if isinstance(client, Mapping):
         return client.get(name)
     return getattr(client, name, None)

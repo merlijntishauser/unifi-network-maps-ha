@@ -47,6 +47,10 @@ def _install_homeassistant_stubs() -> None:
         async def async_add_executor_job(self, func, *args: object):
             return func(*args)
 
+    class ServiceCall:  # minimal stub for imports
+        def __init__(self, data: dict[str, object] | None = None) -> None:
+            self.data = data or {}
+
     class ConfigFlow:  # minimal stub for imports
         def __init_subclass__(cls, **_kwargs: object) -> None:
             return None
@@ -94,6 +98,7 @@ def _install_homeassistant_stubs() -> None:
     config_entries.ConfigFlow = ConfigFlow
     config_entries.OptionsFlow = OptionsFlow
     core.HomeAssistant = HomeAssistant
+    core.ServiceCall = ServiceCall
     const.CONF_PASSWORD = "password"
     const.CONF_URL = "url"
     const.CONF_USERNAME = "username"

@@ -3,10 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 import inspect
 import importlib
+from types import ModuleType
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from typing import Mapping
+from homeassistant.core import HomeAssistant, ServiceCall
+from typing import Any, Awaitable, Callable, Mapping, Protocol
 from homeassistant.const import EVENT_HOMEASSISTANT_START
 
 import asyncio
@@ -16,6 +17,17 @@ from homeassistant.exceptions import HomeAssistantError
 
 from .const import ATTR_ENTRY_ID, DOMAIN, LOGGER, PLATFORMS, SERVICE_REFRESH
 from .coordinator import UniFiNetworkMapCoordinator
+
+
+ResourceItem = Mapping[str, Any]
+
+
+class LovelaceResourcesModule(Protocol):
+    def async_get_info(self, hass: HomeAssistant) -> object: ...
+
+    def async_create_item(
+        self, hass: HomeAssistant, payload: Mapping[str, Any]
+    ) -> Awaitable[None] | None: ...
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -55,7 +67,9 @@ def _store_coordinator(
     hass.data.setdefault(DOMAIN, {})[entry_id] = coordinator
 
 
-def _register_runtime_services(hass: HomeAssistant, register_views) -> None:
+def _register_runtime_services(
+    hass: HomeAssistant, register_views: Callable[[HomeAssistant], None]
+) -> None:
     register_views(hass)
     _register_frontend_assets(hass)
     _register_refresh_service(hass)
@@ -83,8 +97,8 @@ def _mark_refresh_service_registered(hass: HomeAssistant) -> None:
     data["refresh_service_registered"] = True
 
 
-def _build_refresh_handler(hass: HomeAssistant):
-    async def _handle_refresh(call) -> None:
+def _build_refresh_handler(hass: HomeAssistant) -> Callable[[ServiceCall], Awaitable[None]]:
+    async def _handle_refresh(call: ServiceCall) -> None:
         entry_id = call.data.get(ATTR_ENTRY_ID)
         coordinators = _select_coordinators(hass, entry_id)
         if not coordinators:
@@ -95,7 +109,9 @@ def _build_refresh_handler(hass: HomeAssistant):
     return _handle_refresh
 
 
-def _register_refresh_handler(hass: HomeAssistant, handler) -> None:
+def _register_refresh_handler(
+    hass: HomeAssistant, handler: Callable[[ServiceCall], Awaitable[None]]
+) -> None:
     hass.services.async_register(
         DOMAIN,
         SERVICE_REFRESH,
@@ -287,7 +303,7 @@ def _mark_lovelace_resource_registered(hass: HomeAssistant) -> None:
     data["lovelace_resource_registered"] = True
 
 
-def _load_lovelace_resources() -> object | None:
+def _load_lovelace_resources() -> ModuleType | LovelaceResourcesModule | None:
     try:
         from homeassistant.components.lovelace import resources  # type: ignore[no-redef]
 
@@ -300,7 +316,9 @@ def _load_lovelace_resources() -> object | None:
         return None
 
 
-async def _fetch_lovelace_items(hass: HomeAssistant, resources) -> list[dict[str, object]] | None:
+async def _fetch_lovelace_items(
+    hass: HomeAssistant, resources: ModuleType | LovelaceResourcesModule
+) -> list[ResourceItem] | None:
     # Try accessing the resource collection from hass.data["lovelace"].resources
     try:
         lovelace_data = hass.data.get("lovelace")
@@ -347,8 +365,10 @@ async def _fetch_lovelace_items(hass: HomeAssistant, resources) -> list[dict[str
     return _as_resource_list(info)
 
 
-async def _create_lovelace_resource(hass: HomeAssistant, resources, resource_url: str) -> bool:
-    payload: Mapping[str, object] = {"url": resource_url, "res_type": "module"}
+async def _create_lovelace_resource(
+    hass: HomeAssistant, resources: ModuleType | LovelaceResourcesModule, resource_url: str
+) -> bool:
+    payload: Mapping[str, Any] = {"url": resource_url, "res_type": "module"}
 
     # Try accessing the resource collection directly
     try:
@@ -382,7 +402,9 @@ async def _create_lovelace_resource(hass: HomeAssistant, resources, resource_url
 
 
 async def _create_lovelace_resource_with_module(
-    hass: HomeAssistant, resources, payload: Mapping[str, object]
+    hass: HomeAssistant,
+    resources: ModuleType | LovelaceResourcesModule,
+    payload: Mapping[str, Any],
 ) -> bool:
     if not hasattr(resources, "async_create_item"):
         return False
@@ -406,7 +428,7 @@ async def _create_lovelace_resource_with_module(
 
 
 async def _create_lovelace_resource_with_collection(
-    info: object, payload: Mapping[str, object]
+    info: object, payload: Mapping[str, Any]
 ) -> bool:
     if not hasattr(info, "async_create_item"):
         return False
@@ -420,13 +442,13 @@ async def _create_lovelace_resource_with_collection(
         return False
 
 
-async def _maybe_await_list(result: object) -> list[dict[str, object]] | None:
+async def _maybe_await_list(result: object) -> list[ResourceItem] | None:
     if hasattr(result, "__await__"):
         return _as_resource_list(await result)
     return _as_resource_list(result)
 
 
-def _as_resource_list(value: object) -> list[dict[str, object]] | None:
+def _as_resource_list(value: object) -> list[ResourceItem] | None:
     if isinstance(value, list) and all(isinstance(item, dict) for item in value):
         return value
     return None

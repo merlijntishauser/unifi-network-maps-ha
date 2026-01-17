@@ -17,6 +17,8 @@ class _FakeHass:
     def async_create_task(self, coro: object) -> object:
         """Create a task from a coroutine."""
         self.tasks.append(coro)
+        if hasattr(coro, "close"):
+            coro.close()
         return coro
 
 
