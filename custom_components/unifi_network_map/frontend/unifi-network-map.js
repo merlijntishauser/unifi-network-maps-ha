@@ -25,6 +25,7 @@ function sanitizeSvg(svg) {
   });
   return svgElement.outerHTML;
 }
+var DOMAIN = "unifi_network_map";
 var UnifiNetworkMapCard = class extends HTMLElement {
   constructor() {
     super(...arguments);
@@ -38,9 +39,25 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   static getLayoutOptions() {
     return { grid_columns: 4, grid_rows: 3, grid_min_columns: 2, grid_min_rows: 2 };
   }
+  static getConfigElement() {
+    return document.createElement("unifi-network-map-editor");
+  }
+  static getStubConfig() {
+    return { entry_id: "" };
+  }
   setConfig(config) {
-    this._config = config;
+    this._config = this._normalizeConfig(config);
     this._render();
+  }
+  _normalizeConfig(config) {
+    if (config.entry_id) {
+      return {
+        entry_id: config.entry_id,
+        svg_url: `/api/${DOMAIN}/${config.entry_id}/svg`,
+        data_url: `/api/${DOMAIN}/${config.entry_id}/payload`
+      };
+    }
+    return config;
   }
   set hass(hass) {
     this._hass = hass;
@@ -54,6 +71,14 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       this.innerHTML = `
         <ha-card>
           <div style="padding:16px;">Missing configuration</div>
+        </ha-card>
+      `;
+      return;
+    }
+    if (!this._config.svg_url) {
+      this.innerHTML = `
+        <ha-card>
+          <div style="padding:16px;">Select a UniFi Network Map instance in the card settings.</div>
         </ha-card>
       `;
       return;
@@ -77,7 +102,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._wireInteractions();
   }
   async _loadSvg() {
-    if (!this._config || !this._hass) {
+    if (!this._config?.svg_url || !this._hass) {
       return;
     }
     if (this._loading || this._config.svg_url === this._lastSvgUrl) {
@@ -443,5 +468,75 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     return null;
   }
 };
+var UnifiNetworkMapEditor = class extends HTMLElement {
+  constructor() {
+    super(...arguments);
+    this._entries = [];
+  }
+  set hass(hass) {
+    this._hass = hass;
+    this._loadEntries();
+  }
+  setConfig(config) {
+    this._config = config;
+    this._render();
+  }
+  async _loadEntries() {
+    if (!this._hass?.callWS) {
+      return;
+    }
+    try {
+      const entries = await this._hass.callWS({
+        type: "config_entries/get",
+        domain: DOMAIN
+      });
+      this._entries = entries;
+      this._render();
+    } catch {
+      this._entries = [];
+      this._render();
+    }
+  }
+  _render() {
+    const options = this._entries.map(
+      (e) => `<option value="${escapeHtml(e.entry_id)}" ${this._config?.entry_id === e.entry_id ? "selected" : ""}>${escapeHtml(e.title)}</option>`
+    ).join("");
+    const noEntries = this._entries.length === 0;
+    this.innerHTML = `
+      <div style="padding: 16px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 500;">
+          UniFi Network Map Instance
+        </label>
+        ${noEntries ? `<p style="color: #999;">No UniFi Network Map integrations found. Please add one first.</p>` : `<select style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+                <option value="">Select an instance...</option>
+                ${options}
+              </select>`}
+      </div>
+    `;
+    const select = this.querySelector("select");
+    if (select) {
+      select.addEventListener("change", (e) => this._onChange(e));
+    }
+  }
+  _onChange(e) {
+    const select = e.target;
+    const entryId = select.value;
+    this._config = { entry_id: entryId };
+    this.dispatchEvent(
+      new CustomEvent("config-changed", {
+        detail: { config: this._config },
+        bubbles: true,
+        composed: true
+      })
+    );
+  }
+};
 customElements.define("unifi-network-map", UnifiNetworkMapCard);
-console.info("unifi-network-map card loaded v0.0.1+verify-2026-01-15-2");
+customElements.define("unifi-network-map-editor", UnifiNetworkMapEditor);
+window.customCards = window.customCards || [];
+window.customCards.push({
+  type: "unifi-network-map",
+  name: "UniFi Network Map",
+  description: "Displays your UniFi network topology as an interactive SVG map"
+});
+console.info("unifi-network-map card loaded v0.0.2");

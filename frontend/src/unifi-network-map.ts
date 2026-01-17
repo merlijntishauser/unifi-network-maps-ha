@@ -37,7 +37,22 @@ type Hass = {
       access_token?: string;
     };
   };
+  callWS?: <T>(msg: Record<string, unknown>) => Promise<T>;
 };
+
+type CardConfig = {
+  entry_id?: string;
+  svg_url?: string;
+  data_url?: string;
+};
+
+type ConfigEntry = {
+  entry_id: string;
+  title: string;
+  domain: string;
+};
+
+const DOMAIN = "unifi_network_map";
 
 type MapPayload = {
   schema_version?: string;
@@ -59,9 +74,28 @@ class UnifiNetworkMapCard extends HTMLElement {
     return { grid_columns: 4, grid_rows: 3, grid_min_columns: 2, grid_min_rows: 2 };
   }
 
-  setConfig(config: { svg_url: string; data_url?: string }) {
-    this._config = config;
+  static getConfigElement() {
+    return document.createElement("unifi-network-map-editor");
+  }
+
+  static getStubConfig() {
+    return { entry_id: "" };
+  }
+
+  setConfig(config: CardConfig) {
+    this._config = this._normalizeConfig(config);
     this._render();
+  }
+
+  private _normalizeConfig(config: CardConfig): CardConfig {
+    if (config.entry_id) {
+      return {
+        entry_id: config.entry_id,
+        svg_url: `/api/${DOMAIN}/${config.entry_id}/svg`,
+        data_url: `/api/${DOMAIN}/${config.entry_id}/payload`,
+      };
+    }
+    return config;
   }
 
   set hass(hass: Hass) {
@@ -73,7 +107,7 @@ class UnifiNetworkMapCard extends HTMLElement {
     this._render();
   }
 
-  private _config?: { svg_url: string; data_url?: string };
+  private _config?: CardConfig;
   private _hass?: Hass;
   private _lastSvgUrl?: string;
   private _lastDataUrl?: string;
@@ -94,6 +128,15 @@ class UnifiNetworkMapCard extends HTMLElement {
       this.innerHTML = `
         <ha-card>
           <div style="padding:16px;">Missing configuration</div>
+        </ha-card>
+      `;
+      return;
+    }
+
+    if (!this._config.svg_url) {
+      this.innerHTML = `
+        <ha-card>
+          <div style="padding:16px;">Select a UniFi Network Map instance in the card settings.</div>
         </ha-card>
       `;
       return;
@@ -126,7 +169,7 @@ class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private async _loadSvg() {
-    if (!this._config || !this._hass) {
+    if (!this._config?.svg_url || !this._hass) {
       return;
     }
     if (this._loading || this._config.svg_url === this._lastSvgUrl) {
@@ -522,6 +565,99 @@ class UnifiNetworkMapCard extends HTMLElement {
   }
 }
 
-customElements.define("unifi-network-map", UnifiNetworkMapCard);
+class UnifiNetworkMapEditor extends HTMLElement {
+  private _config?: CardConfig;
+  private _hass?: Hass;
+  private _entries: ConfigEntry[] = [];
 
-console.info("unifi-network-map card loaded v0.0.1+verify-2026-01-15-2");
+  set hass(hass: Hass) {
+    this._hass = hass;
+    this._loadEntries();
+  }
+
+  setConfig(config: CardConfig) {
+    this._config = config;
+    this._render();
+  }
+
+  private async _loadEntries() {
+    if (!this._hass?.callWS) {
+      return;
+    }
+    try {
+      const entries = await this._hass.callWS<ConfigEntry[]>({
+        type: "config_entries/get",
+        domain: DOMAIN,
+      });
+      this._entries = entries;
+      this._render();
+    } catch {
+      this._entries = [];
+      this._render();
+    }
+  }
+
+  private _render() {
+    const options = this._entries
+      .map(
+        (e) =>
+          `<option value="${escapeHtml(e.entry_id)}" ${this._config?.entry_id === e.entry_id ? "selected" : ""}>${escapeHtml(e.title)}</option>`,
+      )
+      .join("");
+    const noEntries = this._entries.length === 0;
+    this.innerHTML = `
+      <div style="padding: 16px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 500;">
+          UniFi Network Map Instance
+        </label>
+        ${
+          noEntries
+            ? `<p style="color: #999;">No UniFi Network Map integrations found. Please add one first.</p>`
+            : `<select style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+                <option value="">Select an instance...</option>
+                ${options}
+              </select>`
+        }
+      </div>
+    `;
+    const select = this.querySelector("select");
+    if (select) {
+      select.addEventListener("change", (e) => this._onChange(e));
+    }
+  }
+
+  private _onChange(e: Event) {
+    const select = e.target as HTMLSelectElement;
+    const entryId = select.value;
+    this._config = { entry_id: entryId };
+    this.dispatchEvent(
+      new CustomEvent("config-changed", {
+        detail: { config: this._config },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+}
+
+customElements.define("unifi-network-map", UnifiNetworkMapCard);
+customElements.define("unifi-network-map-editor", UnifiNetworkMapEditor);
+
+// Register card in Lovelace card picker
+(
+  window as unknown as { customCards?: Array<{ type: string; name: string; description: string }> }
+).customCards =
+  (
+    window as unknown as {
+      customCards?: Array<{ type: string; name: string; description: string }>;
+    }
+  ).customCards || [];
+(
+  window as unknown as { customCards: Array<{ type: string; name: string; description: string }> }
+).customCards.push({
+  type: "unifi-network-map",
+  name: "UniFi Network Map",
+  description: "Displays your UniFi network topology as an interactive SVG map",
+});
+
+console.info("unifi-network-map card loaded v0.0.2");
