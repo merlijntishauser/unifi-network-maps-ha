@@ -156,7 +156,7 @@ def _build_client_mac_index(clients: list[object] | None) -> dict[str, str]:
         mac = _client_mac(client)
         if not name or not mac:
             continue
-        client_macs[name] = mac.lower()
+        client_macs[name] = mac.strip().lower()
     return client_macs
 
 
@@ -164,7 +164,7 @@ def _build_device_mac_index(devices: list[Device]) -> dict[str, str]:
     device_macs: dict[str, str] = {}
     for device in devices:
         if device.name and device.mac:
-            device_macs[device.name] = device.mac.lower()
+            device_macs[device.name] = device.mac.strip().lower()
     return device_macs
 
 
