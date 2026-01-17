@@ -1,4 +1,30 @@
 // src/unifi-network-map.ts
+function escapeHtml(text) {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+function sanitizeSvg(svg) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(svg, "image/svg+xml");
+  const svgElement = doc.querySelector("svg");
+  if (!svgElement) {
+    return "";
+  }
+  const dangerousElements = svgElement.querySelectorAll("script, foreignObject");
+  dangerousElements.forEach((el) => el.remove());
+  const allElements = svgElement.querySelectorAll("*");
+  const eventAttrs = /^on[a-z]+$/i;
+  allElements.forEach((el) => {
+    Array.from(el.attributes).forEach((attr) => {
+      if (eventAttrs.test(attr.name)) {
+        el.removeAttribute(attr.name);
+      }
+      if (attr.value.toLowerCase().includes("javascript:")) {
+        el.removeAttribute(attr.name);
+      }
+    });
+  });
+  return svgElement.outerHTML;
+}
 var UnifiNetworkMapCard = class extends HTMLElement {
   constructor() {
     super(...arguments);
@@ -115,6 +141,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     }
   }
   _renderLayout() {
+    const safeSvg = this._svgContent ? sanitizeSvg(this._svgContent) : "";
     return `
       <div class="unifi-network-map__layout">
         <div class="unifi-network-map__viewport">
@@ -123,7 +150,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
             <button type="button" data-action="zoom-out" title="Zoom out">-</button>
             <button type="button" data-action="reset" title="Reset view">Reset</button>
           </div>
-          ${this._svgContent}
+          ${safeSvg}
           <div class="unifi-network-map__tooltip" hidden></div>
         </div>
         <div class="unifi-network-map__panel">
@@ -152,29 +179,31 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     `;
   }
   _renderNodeDetails(name) {
+    const safeName = escapeHtml(name);
     if (!this._payload) {
       return `
-        <div class="unifi-network-map__panel-title">${name}</div>
+        <div class="unifi-network-map__panel-title">${safeName}</div>
         <div class="unifi-network-map__panel-hint">
           Provide <code>data_url</code> to show node details.
         </div>
       `;
     }
-    const nodeType = this._payload.node_types?.[name] ?? "unknown";
+    const nodeType = escapeHtml(this._payload.node_types?.[name] ?? "unknown");
     const edges = this._payload.edges ?? [];
     const neighbors = edges.filter((edge) => edge.left === name || edge.right === name).map((edge) => edge.left === name ? edge.right : edge.left);
     const uniqueNeighbors = Array.from(new Set(neighbors));
-    const list = uniqueNeighbors.length ? `<ul>${uniqueNeighbors.map((item) => `<li>${item}</li>`).join("")}</ul>` : "<div>No linked nodes</div>";
+    const list = uniqueNeighbors.length ? `<ul>${uniqueNeighbors.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : "<div>No linked nodes</div>";
     const entityId = this._payload.client_entities?.[name];
+    const safeEntityId = entityId ? escapeHtml(entityId) : "";
     const entitySection = entityId ? `
         <div class="unifi-network-map__panel-subtitle">Home Assistant</div>
-        <div class="unifi-network-map__entity">${entityId}</div>
-        <button type="button" class="unifi-network-map__entity-button" data-entity-id="${entityId}">
+        <div class="unifi-network-map__entity">${safeEntityId}</div>
+        <button type="button" class="unifi-network-map__entity-button" data-entity-id="${safeEntityId}">
           Open entity
         </button>
       ` : "";
     return `
-      <div class="unifi-network-map__panel-title">${name}</div>
+      <div class="unifi-network-map__panel-title">${safeName}</div>
       <div>Type: ${nodeType}</div>
       <div class="unifi-network-map__panel-subtitle">Neighbors</div>
       ${list}
