@@ -13,6 +13,7 @@ from .coordinator import UniFiNetworkMapCoordinator
 from .data import UniFiNetworkMapData
 
 _VIEWS_REGISTERED = "views_registered"
+_MAC_ATTRIBUTE_KEYS = ("mac_address", "mac")
 
 
 def register_unifi_http_views(hass: HomeAssistant) -> None:
@@ -193,24 +194,27 @@ def _is_state_mac_candidate(state: object) -> bool:
 
 
 def _has_mac_attribute(attributes: dict[str, object]) -> bool:
-    for key in ("mac_address", "mac"):
-        value = attributes.get(key)
-        if isinstance(value, str) and value.strip():
-            return True
-    return False
+    return _get_mac_attribute_value(attributes) is not None
 
 
 def _mac_from_state_entry(state: object) -> str | None:
     attributes = getattr(state, "attributes", {})
     if not isinstance(attributes, dict):
         return None
-    for key in ("mac_address", "mac"):
+    return _extract_mac_from_attributes(attributes)
+
+
+def _get_mac_attribute_value(attributes: dict[str, object]) -> str | None:
+    for key in _MAC_ATTRIBUTE_KEYS:
         value = attributes.get(key)
         if isinstance(value, str) and value.strip():
-            state_mac = _extract_mac(value)
-            if state_mac:
-                return state_mac
+            return value
     return None
+
+
+def _extract_mac_from_attributes(attributes: dict[str, object]) -> str | None:
+    value = _get_mac_attribute_value(attributes)
+    return _extract_mac(value) if value else None
 
 
 def mac_from_entity_entry(
@@ -251,13 +255,7 @@ def _mac_from_state(hass: HomeAssistant, entry: er.RegistryEntry) -> str | None:
     state = hass.states.get(entry.entity_id)
     if not state:
         return None
-    for key in ("mac_address", "mac"):
-        value = state.attributes.get(key)
-        if isinstance(value, str) and value.strip():
-            state_mac = _extract_mac(value)
-            if state_mac:
-                return state_mac
-    return None
+    return _extract_mac_from_attributes(state.attributes)
 
 
 def _normalize_mac(value: str) -> str:

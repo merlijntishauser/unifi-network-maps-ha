@@ -186,51 +186,47 @@ def _build_static_path_configs(js_path: Path) -> list[object]:
     ]
 
 
-def _make_static_path_config(static_path_config, js_path: Path) -> object | None:
+def _make_static_path_config(
+    static_path_config: Callable[..., object], js_path: Path
+) -> object | None:
     url_path = _frontend_bundle_url()
     file_path = str(js_path)
-    try:
-        return static_path_config(
-            url_path=url_path,
-            file_path=file_path,
-            cache_headers=True,
-        )
-    except TypeError:
-        pass
-    try:
-        return static_path_config(
-            url_path=url_path,
-            path=file_path,
-            cache_headers=True,
-        )
-    except TypeError:
-        pass
-    try:
-        return static_path_config(url_path, file_path, True)
-    except TypeError:
-        pass
-    try:
-        return static_path_config(url_path, file_path)
-    except TypeError:
-        pass
+    strategies: list[Callable[[], object | None]] = [
+        lambda: static_path_config(url_path=url_path, file_path=file_path, cache_headers=True),
+        lambda: static_path_config(url_path=url_path, path=file_path, cache_headers=True),
+        lambda: static_path_config(url_path, file_path, True),
+        lambda: static_path_config(url_path, file_path),
+        lambda: _make_config_from_signature(static_path_config, url_path, file_path),
+    ]
+    for strategy in strategies:
+        try:
+            result = strategy()
+            if result is not None:
+                return result
+        except TypeError:
+            continue
+    return None
+
+
+def _make_config_from_signature(
+    static_path_config: Callable[..., object], url_path: str, file_path: str
+) -> object | None:
     try:
         signature = inspect.signature(static_path_config)
     except (TypeError, ValueError):
         return None
+    param_map = {
+        frozenset({"url_path", "url"}): url_path,
+        frozenset({"file_path", "path", "filepath"}): file_path,
+        frozenset({"cache_headers", "cache", "cache_control"}): True,
+    }
     kwargs: dict[str, object] = {}
     for name in signature.parameters:
-        if name in {"url_path", "url"}:
-            kwargs[name] = url_path
-        elif name in {"file_path", "path", "filepath"}:
-            kwargs[name] = file_path
-        elif name in {"cache_headers", "cache", "cache_control"}:
-            kwargs[name] = True
-    if kwargs:
-        try:
-            return static_path_config(**kwargs)
-        except TypeError:
-            return None
-    return None
+        for keys, value in param_map.items():
+            if name in keys:
+                kwargs[name] = value
+                break
+    return static_path_config(**kwargs) if kwargs else None
 
 
 async def _ensure_lovelace_resource(hass: HomeAssistant) -> None:

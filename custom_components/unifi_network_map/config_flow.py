@@ -115,32 +115,19 @@ def _build_options_schema(options: dict[str, Any]) -> vol.Schema:
 
 
 def _options_schema_fields(options: dict[str, Any]) -> dict[vol.Marker, object]:
-    width_default = options.get(CONF_SVG_WIDTH)
-    height_default = options.get(CONF_SVG_HEIGHT)
+    def opt(key: str, default: object) -> vol.Optional:
+        return vol.Optional(key, default=options.get(key, default))
+
     return {
-        _bool_option(CONF_INCLUDE_PORTS, options, DEFAULT_INCLUDE_PORTS): bool,
-        _bool_option(CONF_INCLUDE_CLIENTS, options, DEFAULT_INCLUDE_CLIENTS): bool,
-        _choice_option(CONF_CLIENT_SCOPE, options, DEFAULT_CLIENT_SCOPE): vol.In(
-            CLIENT_SCOPE_OPTIONS
-        ),
-        _bool_option(CONF_ONLY_UNIFI, options, DEFAULT_ONLY_UNIFI): bool,
-        _bool_option(CONF_SVG_ISOMETRIC, options, DEFAULT_SVG_ISOMETRIC): bool,
-        _size_option(CONF_SVG_WIDTH, width_default): _create_svg_size_validator(),
-        _size_option(CONF_SVG_HEIGHT, height_default): _create_svg_size_validator(),
-        _bool_option(CONF_USE_CACHE, options, DEFAULT_USE_CACHE): bool,
+        opt(CONF_INCLUDE_PORTS, DEFAULT_INCLUDE_PORTS): bool,
+        opt(CONF_INCLUDE_CLIENTS, DEFAULT_INCLUDE_CLIENTS): bool,
+        opt(CONF_CLIENT_SCOPE, DEFAULT_CLIENT_SCOPE): vol.In(CLIENT_SCOPE_OPTIONS),
+        opt(CONF_ONLY_UNIFI, DEFAULT_ONLY_UNIFI): bool,
+        opt(CONF_SVG_ISOMETRIC, DEFAULT_SVG_ISOMETRIC): bool,
+        opt(CONF_SVG_WIDTH, None): _create_svg_size_validator(),
+        opt(CONF_SVG_HEIGHT, None): _create_svg_size_validator(),
+        opt(CONF_USE_CACHE, DEFAULT_USE_CACHE): bool,
     }
-
-
-def _bool_option(key: str, options: dict[str, Any], default: object) -> vol.Optional:
-    return vol.Optional(key, default=options.get(key, default))
-
-
-def _choice_option(key: str, options: dict[str, Any], default: object) -> vol.Optional:
-    return vol.Optional(key, default=options.get(key, default))
-
-
-def _size_option(key: str, default: object) -> vol.Optional:
-    return vol.Optional(key, default=default)
 
 
 def _create_svg_size_validator() -> vol.Schema:

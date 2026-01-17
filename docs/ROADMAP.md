@@ -25,8 +25,7 @@
 
 ### Backend (Python)
 - Simplify complex logic: Lovelace resource handling, MAC extraction, options schema building
-- **Validate entry.data keys exist** (`coordinator.py:52-60`) - Add defensive checks for required config keys.
-- **Use inspect.iscoroutine()** (`__init__.py:243-256`) - Replace fragile `hasattr(x, "__await__")` check.
+- Validate entry.data keys exist (`coordinator.py:52-60`) - Add defensive checks for required config keys.
 
 ### Frontend (TypeScript)
 - Split long functions (>15 lines) violating XP principles:
