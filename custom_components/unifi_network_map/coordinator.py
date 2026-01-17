@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any, Mapping
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_URL, CONF_USERNAME
 from homeassistant.core import HomeAssistant
@@ -50,14 +52,25 @@ class UniFiNetworkMapCoordinator(DataUpdateCoordinator[UniFiNetworkMapData]):
 
 
 def _build_client(hass: HomeAssistant, entry: ConfigEntry) -> UniFiNetworkMapClient:
+    data = entry.data
+    _validate_required_keys(data)
     return UniFiNetworkMapClient(
-        base_url=entry.data[CONF_URL],
-        username=entry.data[CONF_USERNAME],
-        password=entry.data[CONF_PASSWORD],
-        site=entry.data[CONF_SITE],
-        verify_ssl=entry.data.get(CONF_VERIFY_SSL, True),
+        base_url=data[CONF_URL],
+        username=data[CONF_USERNAME],
+        password=data[CONF_PASSWORD],
+        site=data[CONF_SITE],
+        verify_ssl=data.get(CONF_VERIFY_SSL, True),
         settings=_build_settings(entry),
     )
+
+
+_REQUIRED_KEYS = (CONF_URL, CONF_USERNAME, CONF_PASSWORD, CONF_SITE)
+
+
+def _validate_required_keys(data: Mapping[str, Any]) -> None:
+    missing = [key for key in _REQUIRED_KEYS if key not in data]
+    if missing:
+        raise UniFiNetworkMapError(f"Missing required config keys: {', '.join(missing)}")
 
 
 def _build_settings(entry: ConfigEntry) -> RenderSettings:
