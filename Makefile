@@ -1,10 +1,11 @@
-.PHONY: help venv install install-dev test format frontend-install frontend-build frontend-test frontend-typecheck frontend-lint frontend-format pre-commit-install pre-commit-run ci clean
+.PHONY: help venv install install-dev test format frontend-install frontend-build frontend-test frontend-typecheck frontend-lint frontend-format pre-commit-install pre-commit-run ci version-bump version clean
 
 VENV_DIR := .venv
 PYTHON_BIN := $(shell command -v python3.13 >/dev/null 2>&1 && echo python3.13 || echo python3)
 PYTHON := $(VENV_DIR)/bin/python
 PIP := $(VENV_DIR)/bin/pip
 PIP_CACHE_DIR := $(CURDIR)/.venv/.pip-cache
+VERSION_FILE := VERSION
 
 help:
 	@echo "Targets:"
@@ -22,6 +23,7 @@ help:
 	@echo "  pre-commit-install Install git hooks (requires pre-commit)"
 	@echo "  pre-commit-run  Run all pre-commit hooks"
 	@echo "  ci              Run full local CI (pre-commit hooks)"
+	@echo "  version-bump    Bump integration and card versions, tag, and push"
 	@echo "  clean           Remove .venv"
 
 venv:
@@ -67,6 +69,34 @@ pre-commit-run: install-dev
 	$(VENV_DIR)/bin/pre-commit run --all-files
 
 ci: pre-commit-run
+
+version: version-bump
+
+version-bump:
+	@current=$$(cat $(VERSION_FILE)); \
+	default=$$(python3 -c 'import sys; v=sys.argv[1].strip().split("."); \
+		(len(v)==3 and all(p.isdigit() for p in v)) or sys.exit(1); \
+		major,minor,patch=map(int,v); patch+=1; \
+		print(f"{major}.{minor}.{patch}")' "$$current"); \
+	echo "Current version: $$current"; \
+	read -p "New version [$$default]: " next; \
+	if [ -z "$$next" ]; then next="$$default"; fi; \
+	if ! echo "$$next" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$$'; then \
+		echo "Invalid semver (expected x.y.z)"; exit 1; \
+	fi; \
+	if ! git diff --quiet || ! git diff --cached --quiet; then \
+		echo "Working tree not clean. Commit or stash changes first."; exit 1; \
+	fi; \
+	printf "%s\n" "$$next" > $(VERSION_FILE); \
+	python3 scripts/version_sync.py; \
+	if ! grep -q "\"version\": \"$$next\"" custom_components/unifi_network_map/manifest.json; then \
+		echo "manifest.json version did not update"; exit 1; \
+	fi; \
+	git add $(VERSION_FILE) custom_components/unifi_network_map/manifest.json frontend/package.json frontend/package-lock.json; \
+	git commit -m "Bump version to $$next"; \
+	git tag -a "v$$next" -m "v$$next"; \
+	git push origin HEAD; \
+	git push origin "v$$next"
 
 clean:
 	rm -rf $(VENV_DIR)
