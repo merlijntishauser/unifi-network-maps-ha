@@ -349,7 +349,7 @@ async def _fetch_lovelace_items(
             return None
         items_result = resource_collection.async_items()
         # async_items() might return a list or a coroutine
-        if hasattr(items_result, "__await__"):
+        if inspect.iscoroutine(items_result):
             items = await items_result
         else:
             items = items_result
@@ -418,13 +418,13 @@ async def _create_lovelace_resource_with_module(
         return False
     try:
         result = resources.async_create_item(hass, payload)
-        if hasattr(result, "__await__"):
+        if inspect.iscoroutine(result):
             await result
         return True
     except TypeError:
         try:
             result = resources.async_create_item(payload)
-            if hasattr(result, "__await__"):
+            if inspect.iscoroutine(result):
                 await result
             return True
         except Exception as err:  # pragma: no cover - defensive
@@ -442,7 +442,7 @@ async def _create_lovelace_resource_with_collection(
         return False
     try:
         result = info.async_create_item(payload)
-        if hasattr(result, "__await__"):
+        if inspect.iscoroutine(result):
             await result
         return True
     except Exception as err:  # pragma: no cover - defensive
@@ -451,7 +451,7 @@ async def _create_lovelace_resource_with_collection(
 
 
 async def _maybe_await_list(result: object) -> list[ResourceItem] | None:
-    if hasattr(result, "__await__"):
+    if inspect.iscoroutine(result):
         return _as_resource_list(await result)
     return _as_resource_list(result)
 
