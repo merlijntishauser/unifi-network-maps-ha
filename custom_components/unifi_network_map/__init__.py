@@ -89,12 +89,12 @@ def _log_api_endpoints(entry_id: str) -> None:
 
 def _refresh_service_registered(hass: HomeAssistant) -> bool:
     data = hass.data.setdefault(DOMAIN, {})
-    return bool(data.get("refresh_service_registered"))
+    return _flag_is_set(data, "refresh_service_registered")
 
 
 def _mark_refresh_service_registered(hass: HomeAssistant) -> None:
     data = hass.data.setdefault(DOMAIN, {})
-    data["refresh_service_registered"] = True
+    _set_flag(data, "refresh_service_registered")
 
 
 def _build_refresh_handler(hass: HomeAssistant) -> Callable[[ServiceCall], Awaitable[None]]:
@@ -122,7 +122,7 @@ def _register_refresh_handler(
 
 def _register_frontend_assets(hass: HomeAssistant) -> None:
     data = hass.data.setdefault(DOMAIN, {})
-    if data.get("frontend_registered"):
+    if _flag_is_set(data, "frontend_registered"):
         return
     js_path = _frontend_bundle_path()
     if not js_path.exists():
@@ -131,7 +131,15 @@ def _register_frontend_assets(hass: HomeAssistant) -> None:
     _register_static_asset(hass, js_path)
     LOGGER.info("Attempting Lovelace resource registration for %s", _frontend_bundle_url())
     _schedule_lovelace_resource_registration(hass)
-    data["frontend_registered"] = True
+    _set_flag(data, "frontend_registered")
+
+
+def _flag_is_set(data: dict[str, object], key: str) -> bool:
+    return bool(data.get(key))
+
+
+def _set_flag(data: dict[str, object], key: str) -> None:
+    data[key] = True
 
 
 def _frontend_bundle_path() -> Path:

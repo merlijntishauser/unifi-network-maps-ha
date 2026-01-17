@@ -24,7 +24,6 @@
 ## P4 - Code quality & refactoring (XP alignment)
 
 ### Backend (Python)
-- Fix broad exception handling: `api.py:79`, `renderer.py:42` - catch specific errors and fail fast
 - Extract duplicate registration flag patterns in `__init__.py:42-43,64-65`
 - Simplify complex logic: Lovelace resource handling, MAC extraction, options schema building
 - Improve naming: `_svg_size_validator` → `_create_svg_size_validator`, `call` → type-hinted `call: ServiceCall`
