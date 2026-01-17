@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
 from .data import UniFiNetworkMapData
-from .http import resolve_client_entity_map
+from .http import get_unifi_entity_mac_stats, resolve_client_entity_map
 
 _REDACT_KEYS = {CONF_PASSWORD, CONF_USERNAME}
 
@@ -44,6 +44,7 @@ def _summarize_map_data(
     edges = payload.get("edges") or []
     client_macs = payload.get("client_macs") or {}
     client_entities = resolve_client_entity_map(hass, client_macs)
+    entity_stats = get_unifi_entity_mac_stats(hass)
     return {
         "svg_length": len(data.svg),
         "payload_schema_version": payload.get("schema_version"),
@@ -51,4 +52,5 @@ def _summarize_map_data(
         "edge_count": len(edges),
         "client_macs_count": len(client_macs),
         "linked_clients_count": len(client_entities),
+        **entity_stats,
     }

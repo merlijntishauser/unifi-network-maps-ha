@@ -84,9 +84,32 @@ def _build_mac_entity_index(hass: HomeAssistant) -> dict[str, str]:
 
 
 def _iter_unifi_entity_entries(hass: HomeAssistant, entity_registry: er.EntityRegistry):
+    seen: set[str] = set()
     for config_entry in hass.config_entries.async_entries("unifi"):
         for entry in er.async_entries_for_config_entry(entity_registry, config_entry.entry_id):
+            if entry.entity_id in seen:
+                continue
+            seen.add(entry.entity_id)
             yield entry
+    for entry in getattr(entity_registry, "entities", {}).values():
+        if entry.entity_id in seen:
+            continue
+        platform = getattr(entry, "platform", None)
+        if platform == "unifi":
+            seen.add(entry.entity_id)
+            yield entry
+
+
+def get_unifi_entity_mac_stats(hass: HomeAssistant) -> dict[str, int]:
+    entity_registry = er.async_get(hass)
+    device_registry = dr.async_get(hass)
+    scanned = 0
+    with_mac = 0
+    for entry in _iter_unifi_entity_entries(hass, entity_registry):
+        scanned += 1
+        if mac_from_entity_entry(hass, entry, device_registry):
+            with_mac += 1
+    return {"unifi_entities_scanned": scanned, "unifi_entities_with_mac": with_mac}
 
 
 def mac_from_entity_entry(
