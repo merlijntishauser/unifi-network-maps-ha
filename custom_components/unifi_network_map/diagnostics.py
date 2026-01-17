@@ -50,9 +50,10 @@ def _summarize_map_data(
     node_types = payload.get("node_types") or {}
     edges = payload.get("edges") or []
     client_macs = payload.get("client_macs") or {}
+    device_macs = payload.get("device_macs") or {}
     client_entities = resolve_client_entity_map(hass, client_macs)
     entity_stats = get_unifi_entity_mac_stats(hass)
-    payload_mac_set = _normalize_client_macs(client_macs)
+    payload_mac_set = _normalize_mac_values(client_macs) | _normalize_mac_values(device_macs)
     entity_mac_set = get_unifi_entity_macs(hass)
     overlap = payload_mac_set & entity_mac_set
     state_mac_set = get_state_entity_macs(hass)
@@ -64,6 +65,7 @@ def _summarize_map_data(
         "edge_count": len(edges),
         "client_macs_count": len(client_macs),
         "linked_clients_count": len(client_entities),
+        "device_macs_count": len(device_macs),
         "client_mac_overlap_count": len(overlap),
         "payload_mac_hashes": _hash_mac_samples(payload_mac_set),
         "entity_mac_hashes": _hash_mac_samples(entity_mac_set),
@@ -74,9 +76,9 @@ def _summarize_map_data(
     }
 
 
-def _normalize_client_macs(client_macs: dict[str, Any]) -> set[str]:
+def _normalize_mac_values(mac_map: dict[str, Any]) -> set[str]:
     normalized: set[str] = set()
-    for mac in client_macs.values():
+    for mac in mac_map.values():
         if isinstance(mac, str) and mac.strip():
             normalized.add(normalize_mac_value(mac))
     return normalized

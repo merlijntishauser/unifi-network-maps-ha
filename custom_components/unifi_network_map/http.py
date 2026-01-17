@@ -56,18 +56,40 @@ class UniFiNetworkMapPayloadView(HomeAssistantView):
             raise web.HTTPNotFound()
         payload = dict(data.payload)
         client_entities = resolve_client_entity_map(hass, payload.get("client_macs", {}))
+        device_entities = resolve_device_entity_map(hass, payload.get("device_macs", {}))
+        node_entities = resolve_node_entity_map(client_entities, device_entities)
         if client_entities:
             payload["client_entities"] = client_entities
+        if device_entities:
+            payload["device_entities"] = device_entities
+        if node_entities:
+            payload["node_entities"] = node_entities
         return web.json_response(payload)
 
 
 def resolve_client_entity_map(hass: HomeAssistant, client_macs: dict[str, str]) -> dict[str, str]:
-    if not client_macs:
+    return _resolve_entity_map(hass, client_macs)
+
+
+def resolve_device_entity_map(hass: HomeAssistant, device_macs: dict[str, str]) -> dict[str, str]:
+    return _resolve_entity_map(hass, device_macs)
+
+
+def resolve_node_entity_map(
+    client_entities: dict[str, str], device_entities: dict[str, str]
+) -> dict[str, str]:
+    merged = dict(device_entities)
+    merged.update(client_entities)
+    return merged
+
+
+def _resolve_entity_map(hass: HomeAssistant, macs: dict[str, str]) -> dict[str, str]:
+    if not macs:
         return {}
     mac_to_entity = _build_mac_entity_index(hass)
     return {
         name: entity_id
-        for name, mac in client_macs.items()
+        for name, mac in macs.items()
         if (entity_id := mac_to_entity.get(_normalize_mac(mac)))
     }
 
@@ -163,8 +185,18 @@ def _is_state_mac_candidate(state: object) -> bool:
     if domain == "device_tracker":
         return True
     attributes = getattr(state, "attributes", {})
-    if isinstance(attributes, dict) and attributes.get("source_type") == "router":
+    if not isinstance(attributes, dict):
+        return False
+    if attributes.get("source_type") == "router":
         return True
+    return _has_mac_attribute(attributes)
+
+
+def _has_mac_attribute(attributes: dict[str, object]) -> bool:
+    for key in ("mac_address", "mac"):
+        value = attributes.get(key)
+        if isinstance(value, str) and value.strip():
+            return True
     return False
 
 

@@ -221,7 +221,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     const neighbors = edges.filter((edge) => edge.left === name || edge.right === name).map((edge) => edge.left === name ? edge.right : edge.left);
     const uniqueNeighbors = Array.from(new Set(neighbors));
     const list = uniqueNeighbors.length ? `<ul>${uniqueNeighbors.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : "<div>No linked nodes</div>";
-    const entityId = this._payload.client_entities?.[name];
+    const entityId = this._payload.node_entities?.[name] ?? this._payload.client_entities?.[name] ?? this._payload.device_entities?.[name];
     const safeEntityId = entityId ? escapeHtml(entityId) : "";
     const entitySection = entityId ? `
         <div class="unifi-network-map__panel-subtitle">Home Assistant</div>

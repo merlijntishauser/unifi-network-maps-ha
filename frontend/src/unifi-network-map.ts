@@ -67,7 +67,10 @@ type MapPayload = {
   node_types: Record<string, string>;
   gateways?: string[];
   client_entities?: Record<string, string>;
+  device_entities?: Record<string, string>;
+  node_entities?: Record<string, string>;
   client_macs?: Record<string, string>;
+  device_macs?: Record<string, string>;
 };
 
 class UnifiNetworkMapCard extends HTMLElement {
@@ -299,7 +302,10 @@ class UnifiNetworkMapCard extends HTMLElement {
     const list = uniqueNeighbors.length
       ? `<ul>${uniqueNeighbors.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
       : "<div>No linked nodes</div>";
-    const entityId = this._payload.client_entities?.[name];
+    const entityId =
+      this._payload.node_entities?.[name] ??
+      this._payload.client_entities?.[name] ??
+      this._payload.device_entities?.[name];
     const safeEntityId = entityId ? escapeHtml(entityId) : "";
     const entitySection = entityId
       ? `

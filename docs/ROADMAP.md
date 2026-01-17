@@ -28,7 +28,7 @@
 
 ## P3 - Release & polish
 - Add documentation with screenshots and example dashboards.
-- Re-enable HACS checks when brands PR is merged.
+- Re-enable HACS checks when brands PR is merged. (done)
 
 ## P4 - Code quality & refactoring (XP alignment)
 

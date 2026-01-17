@@ -49,7 +49,7 @@ def _render_map(config: Config, settings: RenderSettings) -> UniFiNetworkMapData
     edges, clients = _apply_clients(config, settings, topology, devices)
     node_types = build_node_type_map(devices, clients, client_mode=settings.client_scope)
     svg = _render_svg(edges, node_types, settings)
-    payload = _build_payload(edges, node_types, gateways, clients)
+    payload = _build_payload(edges, node_types, gateways, clients, devices)
     return UniFiNetworkMapData(svg=svg, payload=payload)
 
 
@@ -125,6 +125,7 @@ def _build_payload(
     node_types: dict[str, str],
     gateways: list[str],
     clients: list[object] | None,
+    devices: list[Device],
 ) -> dict[str, Any]:
     return {
         "schema_version": PAYLOAD_SCHEMA_VERSION,
@@ -132,6 +133,7 @@ def _build_payload(
         "node_types": node_types,
         "gateways": gateways,
         "client_macs": _build_client_mac_index(clients),
+        "device_macs": _build_device_mac_index(devices),
     }
 
 
@@ -156,6 +158,14 @@ def _build_client_mac_index(clients: list[object] | None) -> dict[str, str]:
             continue
         client_macs[name] = mac.lower()
     return client_macs
+
+
+def _build_device_mac_index(devices: list[Device]) -> dict[str, str]:
+    device_macs: dict[str, str] = {}
+    for device in devices:
+        if device.name and device.mac:
+            device_macs[device.name] = device.mac.lower()
+    return device_macs
 
 
 def _client_display_name(client: object) -> str | None:

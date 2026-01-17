@@ -82,6 +82,7 @@ def _assert_payload_schema(payload: dict[str, Any]) -> None:
     _assert_node_types(payload["node_types"])
     _assert_gateways(payload["gateways"])
     _assert_client_macs(payload["client_macs"])
+    _assert_device_macs(payload["device_macs"])
 
 
 def _assert_edges(edges: Iterable[dict[str, Any]]) -> None:
@@ -114,6 +115,12 @@ def _assert_gateways(gateways: Iterable[Any]) -> None:
 
 def _assert_client_macs(client_macs: dict[str, Any]) -> None:
     for name, mac in client_macs.items():
+        assert isinstance(name, str)
+        assert isinstance(mac, str)
+
+
+def _assert_device_macs(device_macs: dict[str, Any]) -> None:
+    for name, mac in device_macs.items():
         assert isinstance(name, str)
         assert isinstance(mac, str)
 
