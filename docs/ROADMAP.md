@@ -79,7 +79,6 @@
 - Show hop count and identify bottlenecks in path
 
 ### Enhanced Detail Panel
-- Add tabs: Overview, Stats, History, Actions
 - Add copy-to-clipboard for MAC/IP addresses
 - Show all associated HA entities (not just device tracker)
 - Add mini-graphs of bandwidth/signal over time

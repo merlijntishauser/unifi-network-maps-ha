@@ -555,11 +555,11 @@ class UnifiNetworkMapCard extends HTMLElement {
       .panel-header__badge { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; padding: 2px 8px; background: rgba(59, 130, 246, 0.15); color: #60a5fa; border-radius: 12px; font-size: 11px; text-transform: capitalize; }
 
       /* Tabs */
-      .panel-tabs { display: flex; padding: 0 12px; background: rgba(0,0,0,0.1); border-bottom: 1px solid rgba(255,255,255,0.05); }
+      .panel-tabs { display: flex; padding: 0 16px; background: rgba(0,0,0,0.1); border-bottom: 1px solid rgba(255,255,255,0.05); }
       .panel-tab { flex: 1; padding: 10px 8px; background: none; border: none; border-bottom: 2px solid transparent; color: #64748b; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s ease; }
       .panel-tab:hover { color: #94a3b8; }
       .panel-tab--active { color: #60a5fa; border-bottom-color: #3b82f6; }
-      .panel-tab-content { flex: 1; overflow-y: auto; padding: 12px; }
+      .panel-tab-content { flex: 1; overflow-y: auto; padding: 16px; }
 
       /* Sections */
       .panel-section { margin-bottom: 16px; }

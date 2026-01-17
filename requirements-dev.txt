@@ -6,3 +6,4 @@ voluptuous==0.16.0
 pytest-cov==7.0.0
 yarl==1.22.0
 ruff==0.14.13
+types-requests==2.32.4.20250913

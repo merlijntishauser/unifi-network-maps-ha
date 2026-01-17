@@ -7,9 +7,10 @@ from time import monotonic
 from unifi_network_maps.adapters.config import Config
 from unifi_network_maps.adapters.unifi import fetch_devices
 from requests import RequestException
+from requests.exceptions import HTTPError
 
 from .data import UniFiNetworkMapData
-from .errors import CannotConnect, InvalidAuth
+from .errors import CannotConnect, InvalidAuth, UniFiNetworkMapError
 from .renderer import RenderSettings, UniFiNetworkMapRenderer
 from .const import DEFAULT_RENDER_CACHE_SECONDS
 
@@ -44,7 +45,7 @@ class UniFiNetworkMapClient:
             password=self.password,
             verify_ssl=self.verify_ssl,
         )
-        data = UniFiNetworkMapRenderer().render(config, self.settings)
+        data = _render_map_payload(config, self.settings)
         self._store_cache(data)
         return data
 
@@ -104,6 +105,35 @@ def _assert_unifi_connectivity(config: Config, site: str, auth_error) -> None:
         raise InvalidAuth("Authentication failed") from exc
     except (OSError, RequestException, RuntimeError, ValueError) as exc:
         raise CannotConnect("Unable to connect") from exc
+
+
+def _render_map_payload(config: Config, settings: RenderSettings) -> UniFiNetworkMapData:
+    try:
+        return UniFiNetworkMapRenderer().render(config, settings)
+    except _unifi_auth_error() as exc:
+        raise _map_auth_error(exc) from exc
+    except (OSError, RequestException, RuntimeError) as exc:
+        raise CannotConnect("Unable to connect") from exc
+
+
+def _map_auth_error(exc: Exception) -> UniFiNetworkMapError:
+    status_code = _status_code_from_exception(exc)
+    if status_code == 429:
+        return CannotConnect("Rate limited by UniFi controller")
+    return InvalidAuth("Authentication failed")
+
+
+def _status_code_from_exception(exc: Exception) -> int | None:
+    cause = getattr(exc, "__cause__", None)
+    if isinstance(cause, HTTPError) and cause.response is not None:
+        return cause.response.status_code
+    return None
+
+
+def _unifi_auth_error():
+    from unifi_controller_api import UnifiAuthenticationError
+
+    return UnifiAuthenticationError
 
 
 class _OnceSSLWarningFilter(logging.Filter):
