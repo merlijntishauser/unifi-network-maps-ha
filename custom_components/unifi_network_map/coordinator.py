@@ -44,6 +44,10 @@ class UniFiNetworkMapCoordinator(DataUpdateCoordinator[UniFiNetworkMapData]):
         )
         self._client = _build_client(hass, entry)
 
+    @property
+    def settings(self) -> RenderSettings:
+        return self._client.settings
+
     async def _async_update_data(self) -> UniFiNetworkMapData:
         try:
             return await self.hass.async_add_executor_job(self._client.fetch_map)

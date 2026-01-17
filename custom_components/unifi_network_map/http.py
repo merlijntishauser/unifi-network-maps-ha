@@ -2,11 +2,16 @@ from __future__ import annotations
 
 from aiohttp import web
 import re
+from importlib import resources as importlib_resources
 
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
+from unifi_network_maps.model.topology import Edge
+from unifi_network_maps.render.svg import SvgOptions, render_svg, render_svg_isometric
+from unifi_network_maps.render.svg_theme import SvgTheme
+from unifi_network_maps.render.theme import resolve_themes
 
 from .const import DOMAIN
 from .coordinator import UniFiNetworkMapCoordinator
@@ -40,9 +45,17 @@ class UniFiNetworkMapSvgView(HomeAssistantView):
     name = "api:unifi_network_map:svg"
 
     async def get(self, request: web.Request, entry_id: str) -> web.Response:
-        data = _get_data(_get_coordinator(request.app["hass"], entry_id))
+        hass = request.app["hass"]
+        coordinator = _get_coordinator(hass, entry_id)
+        data = _get_data(coordinator)
         if data is None:
             raise web.HTTPNotFound()
+        theme_name = request.query.get("theme")
+        if theme_name and coordinator is not None:
+            themed_svg = await hass.async_add_executor_job(
+                _render_svg_with_theme, data, coordinator, theme_name
+            )
+            return web.Response(text=themed_svg, content_type="image/svg+xml")
         return web.Response(text=data.svg, content_type="image/svg+xml")
 
 
@@ -279,6 +292,66 @@ def _extract_mac(value: str) -> str | None:
         packed = match.group(0)
         return _normalize_mac(":".join(packed[i : i + 2] for i in range(0, 12, 2)))
     return None
+
+
+def _render_svg_with_theme(
+    data: UniFiNetworkMapData, coordinator: UniFiNetworkMapCoordinator, theme_name: str
+) -> str:
+    payload = data.payload or {}
+    edges_payload = payload.get("edges") or []
+    node_types = payload.get("node_types") or {}
+    if not edges_payload or not node_types:
+        return data.svg
+    theme = _resolve_svg_theme(theme_name)
+    if theme is None:
+        return data.svg
+    edges = [_edge_from_payload(edge) for edge in edges_payload if _valid_edge_payload(edge)]
+    if not edges:
+        return data.svg
+    settings = coordinator.settings
+    options = SvgOptions(width=settings.svg_width, height=settings.svg_height)
+    if settings.svg_isometric:
+        return render_svg_isometric(edges, node_types=node_types, options=options, theme=theme)
+    return render_svg(edges, node_types=node_types, options=options, theme=theme)
+
+
+def _resolve_svg_theme(theme_name: str) -> SvgTheme | None:
+    theme_file = _resolve_theme_file(theme_name)
+    if theme_file is None:
+        return None
+    with importlib_resources.as_file(theme_file) as path:
+        _mermaid_theme, svg_theme = resolve_themes(path)
+        return svg_theme
+
+
+def _resolve_theme_file(theme_name: str):
+    theme_key = theme_name.strip().lower()
+    if theme_key == "dark":
+        filename = "dark.yaml"
+    elif theme_key == "light":
+        filename = "default.yaml"
+    else:
+        return None
+    theme_root = importlib_resources.files("unifi_network_maps.assets.themes")
+    return theme_root / filename
+
+
+def _valid_edge_payload(edge: object) -> bool:
+    return (
+        isinstance(edge, dict)
+        and isinstance(edge.get("left"), str)
+        and isinstance(edge.get("right"), str)
+    )
+
+
+def _edge_from_payload(edge: dict[str, object]) -> Edge:
+    return Edge(
+        left=str(edge.get("left", "")),
+        right=str(edge.get("right", "")),
+        label=edge.get("label") if isinstance(edge.get("label"), str) else None,
+        poe=edge.get("poe") if isinstance(edge.get("poe"), bool) else None,
+        wireless=edge.get("wireless") if isinstance(edge.get("wireless"), bool) else None,
+    )
 
 
 def _format_mac(value: str) -> str | None:

@@ -44,7 +44,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     return document.createElement("unifi-network-map-editor");
   }
   static getStubConfig() {
-    return { entry_id: "" };
+    return { entry_id: "", theme: "dark" };
   }
   setConfig(config) {
     this._config = this._normalizeConfig(config);
@@ -52,9 +52,12 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   }
   _normalizeConfig(config) {
     if (config.entry_id) {
+      const theme = config.theme ?? "dark";
+      const themeSuffix = `?theme=${theme}`;
       return {
         entry_id: config.entry_id,
-        svg_url: `/api/${DOMAIN}/${config.entry_id}/svg`,
+        theme,
+        svg_url: `/api/${DOMAIN}/${config.entry_id}/svg${themeSuffix}`,
         data_url: `/api/${DOMAIN}/${config.entry_id}/payload`
       };
     }
@@ -89,8 +92,9 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       this._error = void 0;
     }
     const body = this._error ? `<div style="padding:16px;color:#b00020;">${escapeHtml(this._error)}</div>` : this._svgContent ? this._renderLayout() : `<div style="padding:16px;">Loading map...</div>`;
+    const theme = this._config.theme ?? "dark";
     this.innerHTML = `
-      <ha-card>
+      <ha-card data-theme="${theme}">
         ${body}
       </ha-card>
     `;
@@ -502,6 +506,35 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       .panel-hint { display: flex; align-items: center; gap: 8px; padding: 12px; margin: 12px; background: rgba(59, 130, 246, 0.1); border-radius: 8px; color: #94a3b8; font-size: 12px; }
       .panel-hint__icon { font-size: 14px; }
 
+      /* Light theme overrides */
+      ha-card[data-theme="light"] .unifi-network-map__viewport { background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); }
+      ha-card[data-theme="light"] .unifi-network-map__controls button { background: rgba(226, 232, 240, 0.9); color: #0f172a; border-color: rgba(148, 163, 184, 0.5); }
+      ha-card[data-theme="light"] .unifi-network-map__panel { background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%); color: #0f172a; }
+      ha-card[data-theme="light"] .panel-header { background: rgba(148, 163, 184, 0.15); border-bottom-color: rgba(148, 163, 184, 0.3); }
+      ha-card[data-theme="light"] .panel-header__title { color: #0f172a; }
+      ha-card[data-theme="light"] .panel-header__badge { background: rgba(59, 130, 246, 0.15); color: #1d4ed8; }
+      ha-card[data-theme="light"] .panel-tab { color: #64748b; }
+      ha-card[data-theme="light"] .panel-tab--active { color: #1d4ed8; border-bottom-color: #3b82f6; }
+      ha-card[data-theme="light"] .panel-section__title { color: #475569; }
+      ha-card[data-theme="light"] .stat-card__label { color: #64748b; }
+      ha-card[data-theme="light"] .device-row { background: rgba(15, 23, 42, 0.04); }
+      ha-card[data-theme="light"] .device-row__label { color: #0f172a; }
+      ha-card[data-theme="light"] .device-row__count { color: #1d4ed8; }
+      ha-card[data-theme="light"] .neighbor-item { background: rgba(15, 23, 42, 0.04); }
+      ha-card[data-theme="light"] .neighbor-item__name { color: #0f172a; }
+      ha-card[data-theme="light"] .stats-row { background: rgba(15, 23, 42, 0.04); }
+      ha-card[data-theme="light"] .stats-row__label { color: #64748b; }
+      ha-card[data-theme="light"] .stats-row__value { color: #0f172a; }
+      ha-card[data-theme="light"] .info-row { background: rgba(15, 23, 42, 0.04); }
+      ha-card[data-theme="light"] .info-row__label { color: #64748b; }
+      ha-card[data-theme="light"] .info-row__value { color: #1d4ed8; }
+      ha-card[data-theme="light"] .action-button { background: rgba(15, 23, 42, 0.04); border-color: rgba(148, 163, 184, 0.5); color: #0f172a; }
+      ha-card[data-theme="light"] .action-button--primary { background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.3); }
+      ha-card[data-theme="light"] .entity-id { background: rgba(15, 23, 42, 0.06); color: #1d4ed8; }
+      ha-card[data-theme="light"] .panel-empty__text { color: #64748b; }
+      ha-card[data-theme="light"] .panel-hint { background: rgba(59, 130, 246, 0.08); color: #475569; }
+      ha-card[data-theme="light"] .unifi-network-map__tooltip { background: rgba(15, 23, 42, 0.9); }
+
       @media (max-width: 800px) {
         .unifi-network-map__layout { grid-template-columns: 1fr; }
       }
@@ -768,6 +801,10 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
         domain: DOMAIN
       });
       this._entries = entries;
+      if (!this._config?.entry_id && this._entries.length === 1) {
+        this._updateConfigEntry(this._entries[0].entry_id);
+        return;
+      }
       this._render();
     } catch {
       this._entries = [];
@@ -775,32 +812,78 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
     }
   }
   _render() {
-    const options = this._entries.map(
-      (e) => `<option value="${escapeHtml(e.entry_id)}" ${this._config?.entry_id === e.entry_id ? "selected" : ""}>${escapeHtml(e.title)}</option>`
-    ).join("");
     const noEntries = this._entries.length === 0;
+    if (noEntries) {
+      this.innerHTML = `
+        <div style="padding: 16px;">
+          <p style="color: var(--secondary-text-color);">
+            No UniFi Network Map integrations found. Please add one first.
+          </p>
+        </div>
+      `;
+      return;
+    }
     this.innerHTML = `
       <div style="padding: 16px;">
-        <label style="display: block; margin-bottom: 8px; font-weight: 500;">
-          UniFi Network Map Instance
-        </label>
-        ${noEntries ? `<p style="color: #999;">No UniFi Network Map integrations found. Please add one first.</p>` : `<select style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
-                <option value="">Select an instance...</option>
-                ${options}
-              </select>`}
+        <ha-form></ha-form>
       </div>
     `;
-    const select = this.querySelector("select");
-    if (select) {
-      select.addEventListener("change", (e) => this._onChange(e));
+    const form = this.querySelector("ha-form");
+    if (!form) {
+      return;
     }
+    const entryOptions = this._entries.map((entry) => ({
+      label: entry.title,
+      value: entry.entry_id
+    }));
+    form.schema = [
+      {
+        name: "entry_id",
+        required: true,
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: entryOptions
+          }
+        },
+        label: "UniFi Network Map Instance"
+      },
+      {
+        name: "theme",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: [
+              { label: "Dark (default)", value: "dark" },
+              { label: "Light", value: "light" }
+            ]
+          }
+        },
+        label: "Theme"
+      }
+    ];
+    form.data = {
+      entry_id: this._config?.entry_id ?? "",
+      theme: this._config?.theme ?? "dark"
+    };
+    form.addEventListener("value-changed", (event) => this._onChange(event));
   }
   _onChange(e) {
-    const select = e.target;
-    const entryId = select.value;
+    const detail = e.detail;
+    const entryId = detail.value?.entry_id ?? this._config?.entry_id ?? "";
+    const themeValue = detail.value?.theme ?? this._config?.theme ?? "dark";
+    const theme = themeValue === "light" ? "light" : "dark";
+    this._updateConfig({ entry_id: entryId, theme });
+  }
+  _updateConfigEntry(entryId) {
+    const selectedTheme = this._config?.theme ?? "dark";
+    this._updateConfig({ entry_id: entryId, theme: selectedTheme });
+  }
+  _updateConfig(update) {
     this._config = {
       type: "custom:unifi-network-map",
-      entry_id: entryId
+      entry_id: update.entry_id,
+      theme: update.theme
     };
     this.dispatchEvent(
       new CustomEvent("config-changed", {
