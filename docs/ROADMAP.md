@@ -1,27 +1,32 @@
 # Roadmap (Prioritized)
 
-## P0 - MVP loop
-- Expose a stable map payload schema (versioned) for the card. (done: `schema_version`)
-- Add a service to force refresh the map (`unifi_network_map.refresh`). (done)
-- Add basic error entity/state for connectivity/auth failures. (done)
-- Bundle and publish the custom card build output (resource instructions). (done)
-- "connect" clients to the entities of the "official" unifi integration. (done)
+## P1 - Security (Critical)
 
-## P1 - Usable UX
-- Add Lovelace card UI (zoom/pan, tooltip, device details panel). (done)
-- Add map options flow (include ports/clients, isometric, only UniFi). (done)
-- Cache rendered SVG/payload to avoid re-render on each request. (done)
-- Fix UI controls visibility and node click selection in the card. (done)
-- Link client nodes to official UniFi integration entities via MAC mapping. (done)
+### Frontend
+- **XSS via innerHTML** (`unifi-network-map.ts:170, 217, 223, 230`) - SVG content and node names rendered via innerHTML without sanitization. Malicious SVG or node names could execute JavaScript.
+- **Unescaped error messages** (`unifi-network-map.ts:71`) - Error text interpolated directly into HTML.
+
+### Backend
+- **URL embedded credentials not stripped** (`config_flow.py:152-155`) - URLs like `https://user:pass@host` accepted without warning.
+
+## P2 - Bugs (High Impact)
+
+### Frontend
+- **Event listener leaks** (`unifi-network-map.ts:279-309`) - Listeners added on each render without cleanup. Memory leak grows with each node selection.
+- **Race condition in async loads** (`unifi-network-map.ts:91-126`) - Rapid config changes can cause old responses to overwrite new ones.
+
+### Backend
+- **KeyError on coordinator access** (`sensor.py:18`) - Direct dict access without null check can crash sensor setup.
+- **None return from _select_edges** (`renderer.py:102-103`) - Returns None if both edge lists are None, but signature promises list[Edge]. Causes TypeError downstream.
+- **MAC normalization inconsistent** (`renderer.py:157` vs `http.py:111`) - renderer uses `.lower()`, http uses `.strip().lower()`. Different formats (colons vs hyphens) won't match.
+- **Race condition in Lovelace retry** (`__init__.py:213-217`) - Non-atomic counter increment can exceed 6-attempt limit.
 
 ## P2 - Quality & ops
-- Add diagnostics endpoint (anonymized) for support. (done)
 - Add clients list to diagnostics endpoint (anonymized).
-- Add integration config options validation (client scope, sizes). (done)
-- Add contract tests for renderer payload schema changes. (done)
+- **Silent Lovelace registration failure** (`__init__.py:276-310`) - If both registration paths fail, no error is logged.
+- **Diagnostics missing timestamp** (`diagnostics.py:19-32`) - No indication of data freshness.
 
 ## P3 - Release & polish
-- Add CI packaging/build release for the card. (done)
 - Add documentation with screenshots and example dashboards.
 - Re-enable HACS checks when brands PR is merged.
 
@@ -41,6 +46,8 @@
 - Extract duplicate registration flag patterns in `__init__.py:42-43,64-65`
 - Simplify complex logic: Lovelace resource handling, MAC extraction, options schema building
 - Improve naming: `_svg_size_validator` → `_create_svg_size_validator`, `call` → type-hinted `call: ServiceCall`
+- **Validate entry.data keys exist** (`coordinator.py:52-60`) - Add defensive checks for required config keys.
+- **Use inspect.iscoroutine()** (`__init__.py:243-256`) - Replace fragile `hasattr(x, "__await__")` check.
 
 ### Frontend (TypeScript)
 - Split long functions (>15 lines) violating XP principles:
@@ -60,6 +67,9 @@
 - Extract generic `_fetchWithAuth<T>()` to eliminate duplicate fetch patterns
 - Improve naming: `_panMoved` → `_hasPanMovedBeyondThreshold`, `_wireInteractions()` → `_attachEventListeners()`
 - Add explicit return types to all private methods
+- **Use textContent or DOMPurify** - Replace innerHTML with safer alternatives for user-controlled content.
+- **Add AbortController to fetches** - Prevent race conditions in `_loadSvg`/`_loadPayload`.
+- **Event delegation or proper cleanup** - Use single delegated listener or removeEventListener.
 
 ## P5 - Killer features
 
