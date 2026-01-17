@@ -12,8 +12,8 @@
 ## P2 - Bugs (High Impact)
 
 ### Frontend
-- **Event listener leaks** (`unifi-network-map.ts:279-309`) - Listeners added on each render without cleanup. Memory leak grows with each node selection.
-- **Race condition in async loads** (`unifi-network-map.ts:91-126`) - Rapid config changes can cause old responses to overwrite new ones.
+- ~~**Event listener leaks** (`unifi-network-map.ts:279-309`) - Listeners added on each render without cleanup. Memory leak grows with each node selection.~~ ✓ Fixed: Replaced with event delegation via `_onPanelClick`.
+- ~~**Race condition in async loads** (`unifi-network-map.ts:91-126`) - Rapid config changes can cause old responses to overwrite new ones.~~ ✓ Fixed: Added AbortController to cancel in-flight requests.
 
 ### Backend
 - **KeyError on coordinator access** (`sensor.py:18`) - Direct dict access without null check can crash sensor setup.
