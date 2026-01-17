@@ -59,7 +59,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     if (token && this._error === "Missing auth token") {
       this._error = void 0;
     }
-    const body = this._error ? `<div style="padding:16px;color:#b00020;">${this._error}</div>` : this._svgContent ? this._renderLayout() : `<div style="padding:16px;">Loading map...</div>`;
+    const body = this._error ? `<div style="padding:16px;color:#b00020;">${escapeHtml(this._error)}</div>` : this._svgContent ? this._renderLayout() : `<div style="padding:16px;">Loading map...</div>`;
     this.innerHTML = `
       <ha-card>
         ${body}
