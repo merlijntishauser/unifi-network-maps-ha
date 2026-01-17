@@ -212,6 +212,11 @@ def _schedule_lovelace_resource_retry(hass: HomeAssistant) -> None:
     data = hass.data.setdefault(DOMAIN, {})
     attempts = data.get("lovelace_resource_attempts", 0)
     if attempts >= 6:
+        LOGGER.warning(
+            "Lovelace resource registration failed after %d attempts. Add manually: %s",
+            attempts,
+            _frontend_bundle_url(),
+        )
         return
     data["lovelace_resource_attempts"] = attempts + 1
     hass.async_create_task(_retry_lovelace_resource(hass, 10))
@@ -302,11 +307,14 @@ async def _create_lovelace_resource(hass: HomeAssistant, resources, resource_url
         info = resources.async_get_info(hass)
     except Exception as err:  # pragma: no cover - defensive
         LOGGER.debug("Unable to read Lovelace resources for create: %s", err)
+        LOGGER.warning("Failed to auto-register Lovelace resource. Add manually: %s", resource_url)
         return
 
     created = await _create_lovelace_resource_with_collection(info, payload)
     if created:
         LOGGER.info("Registered Lovelace resource %s", resource_url)
+    else:
+        LOGGER.warning("Failed to auto-register Lovelace resource. Add manually: %s", resource_url)
 
 
 async def _create_lovelace_resource_with_module(
