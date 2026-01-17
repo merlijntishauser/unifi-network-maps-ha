@@ -128,6 +128,7 @@ class UnifiNetworkMapCard extends HTMLElement {
   private _hoveredNode?: string;
   private _svgAbortController?: AbortController;
   private _payloadAbortController?: AbortController;
+  private _activeTab: "overview" | "stats" | "actions" = "overview";
 
   private _render() {
     if (!this._config) {
@@ -278,65 +279,251 @@ class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _renderPanelContent() {
-    if (this._selectedNode) {
-      return this._renderNodeDetails(this._selectedNode);
+    if (!this._selectedNode) {
+      return this._renderMapOverview();
     }
-    if (!this._payload) {
-      return `<div>Waiting for device data...</div>`;
-    }
-    return this._renderOverview();
+    return this._renderNodePanel(this._selectedNode);
   }
 
-  private _renderOverview() {
-    const nodes = Object.keys(this._payload?.node_types ?? {});
-    const edges = this._payload?.edges ?? [];
-    return `
-      <div class="unifi-network-map__panel-title">Map Overview</div>
-      <div>Nodes: ${nodes.length}</div>
-      <div>Links: ${edges.length}</div>
-      <div class="unifi-network-map__panel-hint">Click a node in the map to see details.</div>
-    `;
-  }
-
-  private _renderNodeDetails(name: string) {
-    const safeName = escapeHtml(name);
+  private _renderMapOverview() {
     if (!this._payload) {
       return `
-        <div class="unifi-network-map__panel-title">${safeName}</div>
-        <div class="unifi-network-map__panel-hint">
-          Provide <code>data_url</code> to show node details.
+        <div class="panel-empty">
+          <div class="panel-empty__icon">📡</div>
+          <div class="panel-empty__text">Loading network data...</div>
         </div>
       `;
     }
-    const nodeType = escapeHtml(this._payload.node_types?.[name] ?? "unknown");
+    const nodes = Object.keys(this._payload.node_types ?? {});
     const edges = this._payload.edges ?? [];
+    const nodeTypes = this._payload.node_types ?? {};
+    const gateways = nodes.filter((n) => nodeTypes[n] === "gateway").length;
+    const switches = nodes.filter((n) => nodeTypes[n] === "switch").length;
+    const aps = nodes.filter((n) => nodeTypes[n] === "ap").length;
+    const clients = nodes.filter((n) => nodeTypes[n] === "client").length;
+    const other = nodes.length - gateways - switches - aps - clients;
+
+    return `
+      <div class="panel-header">
+        <div class="panel-header__title">Network Overview</div>
+      </div>
+      <div class="panel-stats-grid">
+        <div class="stat-card">
+          <div class="stat-card__value">${nodes.length}</div>
+          <div class="stat-card__label">Total Nodes</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__value">${edges.length}</div>
+          <div class="stat-card__label">Connections</div>
+        </div>
+      </div>
+      <div class="panel-section">
+        <div class="panel-section__title">Device Breakdown</div>
+        <div class="device-list">
+          ${gateways > 0 ? `<div class="device-row"><span class="device-row__icon">🌐</span><span class="device-row__label">Gateways</span><span class="device-row__count">${gateways}</span></div>` : ""}
+          ${switches > 0 ? `<div class="device-row"><span class="device-row__icon">🔀</span><span class="device-row__label">Switches</span><span class="device-row__count">${switches}</span></div>` : ""}
+          ${aps > 0 ? `<div class="device-row"><span class="device-row__icon">📶</span><span class="device-row__label">Access Points</span><span class="device-row__count">${aps}</span></div>` : ""}
+          ${clients > 0 ? `<div class="device-row"><span class="device-row__icon">💻</span><span class="device-row__label">Clients</span><span class="device-row__count">${clients}</span></div>` : ""}
+          ${other > 0 ? `<div class="device-row"><span class="device-row__icon">📦</span><span class="device-row__label">Other</span><span class="device-row__count">${other}</span></div>` : ""}
+        </div>
+      </div>
+      <div class="panel-hint">
+        <span class="panel-hint__icon">💡</span>
+        Click a node in the map to see details
+      </div>
+    `;
+  }
+
+  private _renderNodePanel(name: string) {
+    const safeName = escapeHtml(name);
+    if (!this._payload) {
+      return `
+        <div class="panel-header">
+          <button type="button" class="panel-header__back" data-action="back">←</button>
+          <div class="panel-header__title">${safeName}</div>
+        </div>
+        <div class="panel-empty">
+          <div class="panel-empty__text">No data available</div>
+        </div>
+      `;
+    }
+
+    const nodeType = this._payload.node_types?.[name] ?? "unknown";
+    const typeIcon = this._getNodeTypeIcon(nodeType);
+
+    return `
+      <div class="panel-header">
+        <button type="button" class="panel-header__back" data-action="back">←</button>
+        <div class="panel-header__info">
+          <div class="panel-header__title">${safeName}</div>
+          <div class="panel-header__badge">${typeIcon} ${escapeHtml(nodeType)}</div>
+        </div>
+      </div>
+      <div class="panel-tabs">
+        <button type="button" class="panel-tab ${this._activeTab === "overview" ? "panel-tab--active" : ""}" data-tab="overview">Overview</button>
+        <button type="button" class="panel-tab ${this._activeTab === "stats" ? "panel-tab--active" : ""}" data-tab="stats">Stats</button>
+        <button type="button" class="panel-tab ${this._activeTab === "actions" ? "panel-tab--active" : ""}" data-tab="actions">Actions</button>
+      </div>
+      <div class="panel-tab-content">
+        ${this._renderTabContent(name)}
+      </div>
+    `;
+  }
+
+  private _getNodeTypeIcon(nodeType: string): string {
+    switch (nodeType) {
+      case "gateway":
+        return "🌐";
+      case "switch":
+        return "🔀";
+      case "ap":
+        return "📶";
+      case "client":
+        return "💻";
+      default:
+        return "📦";
+    }
+  }
+
+  private _renderTabContent(name: string): string {
+    switch (this._activeTab) {
+      case "overview":
+        return this._renderOverviewTab(name);
+      case "stats":
+        return this._renderStatsTab(name);
+      case "actions":
+        return this._renderActionsTab(name);
+      default:
+        return "";
+    }
+  }
+
+  private _renderOverviewTab(name: string): string {
+    const edges = this._payload?.edges ?? [];
     const neighbors = edges
       .filter((edge) => edge.left === name || edge.right === name)
-      .map((edge) => (edge.left === name ? edge.right : edge.left));
-    const uniqueNeighbors = Array.from(new Set(neighbors));
-    const list = uniqueNeighbors.length
-      ? `<ul>${uniqueNeighbors.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
-      : "<div>No linked nodes</div>";
-    const entityId =
-      this._payload.node_entities?.[name] ??
-      this._payload.client_entities?.[name] ??
-      this._payload.device_entities?.[name];
-    const safeEntityId = entityId ? escapeHtml(entityId) : "";
-    const entitySection = entityId
-      ? `
-        <div class="unifi-network-map__panel-subtitle">Home Assistant</div>
-        <div class="unifi-network-map__entity">${safeEntityId}</div>
-        <button type="button" class="unifi-network-map__entity-button" data-entity-id="${safeEntityId}">
-          Open entity
-        </button>
-      `
-      : "";
+      .map((edge) => ({
+        name: edge.left === name ? edge.right : edge.left,
+        label: edge.label,
+        wireless: edge.wireless,
+        poe: edge.poe,
+      }));
+    const uniqueNeighbors = Array.from(new Map(neighbors.map((n) => [n.name, n])).values());
+
+    const neighborList = uniqueNeighbors.length
+      ? uniqueNeighbors
+          .map(
+            (n) => `
+            <div class="neighbor-item">
+              <span class="neighbor-item__name">${escapeHtml(n.name)}</span>
+              <span class="neighbor-item__badges">
+                ${n.wireless ? '<span class="badge badge--wireless">WiFi</span>' : ""}
+                ${n.poe ? '<span class="badge badge--poe">PoE</span>' : ""}
+                ${n.label ? `<span class="badge badge--port">${escapeHtml(n.label)}</span>` : ""}
+              </span>
+            </div>
+          `,
+          )
+          .join("")
+      : '<div class="panel-empty__text">No connections</div>';
+
     return `
-      <div class="unifi-network-map__panel-title">${safeName}</div>
-      <div>Type: ${nodeType}</div>
-      <div class="unifi-network-map__panel-subtitle">Neighbors</div>
-      ${list}
-      ${entitySection}
+      <div class="panel-section">
+        <div class="panel-section__title">Connected Devices</div>
+        <div class="neighbor-list">${neighborList}</div>
+      </div>
+    `;
+  }
+
+  private _renderStatsTab(name: string): string {
+    const edges = this._payload?.edges ?? [];
+    const nodeEdges = edges.filter((edge) => edge.left === name || edge.right === name);
+    const wirelessCount = nodeEdges.filter((e) => e.wireless).length;
+    const wiredCount = nodeEdges.length - wirelessCount;
+    const poeCount = nodeEdges.filter((e) => e.poe).length;
+
+    const mac = this._payload?.client_macs?.[name] ?? this._payload?.device_macs?.[name] ?? null;
+
+    return `
+      <div class="panel-section">
+        <div class="panel-section__title">Connection Stats</div>
+        <div class="stats-list">
+          <div class="stats-row">
+            <span class="stats-row__label">Total Connections</span>
+            <span class="stats-row__value">${nodeEdges.length}</span>
+          </div>
+          <div class="stats-row">
+            <span class="stats-row__label">Wired</span>
+            <span class="stats-row__value">${wiredCount}</span>
+          </div>
+          <div class="stats-row">
+            <span class="stats-row__label">Wireless</span>
+            <span class="stats-row__value">${wirelessCount}</span>
+          </div>
+          ${poeCount > 0 ? `<div class="stats-row"><span class="stats-row__label">PoE Powered</span><span class="stats-row__value">${poeCount}</span></div>` : ""}
+        </div>
+      </div>
+      ${
+        mac
+          ? `
+        <div class="panel-section">
+          <div class="panel-section__title">Device Info</div>
+          <div class="info-row">
+            <span class="info-row__label">MAC Address</span>
+            <code class="info-row__value">${escapeHtml(mac)}</code>
+          </div>
+        </div>
+      `
+          : ""
+      }
+    `;
+  }
+
+  private _renderActionsTab(name: string): string {
+    const entityId =
+      this._payload?.node_entities?.[name] ??
+      this._payload?.client_entities?.[name] ??
+      this._payload?.device_entities?.[name];
+    const mac = this._payload?.client_macs?.[name] ?? this._payload?.device_macs?.[name] ?? null;
+    const safeEntityId = entityId ? escapeHtml(entityId) : "";
+    const safeMac = mac ? escapeHtml(mac) : "";
+
+    return `
+      <div class="panel-section">
+        <div class="panel-section__title">Quick Actions</div>
+        <div class="actions-list">
+          ${
+            entityId
+              ? `
+              <button type="button" class="action-button action-button--primary" data-entity-id="${safeEntityId}">
+                <span class="action-button__icon">📊</span>
+                <span class="action-button__text">View Entity Details</span>
+              </button>
+            `
+              : `<div class="panel-empty__text">No Home Assistant entity linked</div>`
+          }
+          ${
+            mac
+              ? `
+              <button type="button" class="action-button" data-action="copy" data-copy-value="${safeMac}">
+                <span class="action-button__icon">📋</span>
+                <span class="action-button__text">Copy MAC Address</span>
+              </button>
+            `
+              : ""
+          }
+        </div>
+      </div>
+      ${
+        entityId
+          ? `
+        <div class="panel-section">
+          <div class="panel-section__title">Entity</div>
+          <code class="entity-id">${safeEntityId}</code>
+        </div>
+      `
+          : ""
+      }
     `;
   }
 
@@ -349,21 +536,93 @@ class UnifiNetworkMapCard extends HTMLElement {
     style.textContent = `
       unifi-network-map { display: block; height: 100%; }
       unifi-network-map ha-card { display: flex; flex-direction: column; height: 100%; box-sizing: border-box; }
-      .unifi-network-map__layout { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 1fr); gap: 12px; flex: 1; padding: 12px; }
-      .unifi-network-map__viewport { position: relative; overflow: hidden; min-height: 300px; background: #0b1016; border-radius: 8px; touch-action: none; }
+      .unifi-network-map__layout { display: grid; grid-template-columns: minmax(0, 2.5fr) minmax(280px, 1fr); gap: 12px; flex: 1; padding: 12px; }
+      .unifi-network-map__viewport { position: relative; overflow: hidden; min-height: 300px; background: linear-gradient(135deg, #0b1016 0%, #111827 100%); border-radius: 12px; touch-action: none; }
       .unifi-network-map__viewport svg { width: 100%; height: auto; display: block; }
       .unifi-network-map__controls { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; z-index: 3; }
-      .unifi-network-map__controls button { background: rgba(15, 23, 42, 0.9); color: #e5e7eb; border: 1px solid #1f2937; border-radius: 6px; padding: 4px 8px; font-size: 12px; cursor: pointer; }
-      .unifi-network-map__controls button:hover { background: rgba(30, 41, 59, 0.95); }
+      .unifi-network-map__controls button { background: rgba(15, 23, 42, 0.9); color: #e5e7eb; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 6px 10px; font-size: 12px; cursor: pointer; backdrop-filter: blur(8px); transition: all 0.15s ease; }
+      .unifi-network-map__controls button:hover { background: rgba(59, 130, 246, 0.3); border-color: rgba(59, 130, 246, 0.5); }
       .unifi-network-map__viewport svg text, .unifi-network-map__viewport svg g { cursor: pointer; }
-      .unifi-network-map__panel { padding: 12px; background: #111827; color: #e5e7eb; border-radius: 8px; font-size: 14px; }
-      .unifi-network-map__panel-title { font-weight: 600; margin-bottom: 8px; }
-      .unifi-network-map__panel-subtitle { margin-top: 12px; font-weight: 600; }
-      .unifi-network-map__panel-hint { margin-top: 8px; color: #9ca3af; font-size: 12px; }
-      .unifi-network-map__entity { font-size: 12px; color: #cbd5f5; }
-      .unifi-network-map__entity-button { margin-top: 6px; padding: 6px 8px; border-radius: 6px; border: 1px solid #1f2937; background: #0f172a; color: #e5e7eb; cursor: pointer; font-size: 12px; }
-      .unifi-network-map__entity-button:hover { background: #1f2937; }
-      .unifi-network-map__tooltip { position: fixed; z-index: 2; background: rgba(0,0,0,0.8); color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 12px; pointer-events: none; }
+      .unifi-network-map__panel { padding: 0; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); color: #e5e7eb; border-radius: 12px; font-size: 13px; overflow: hidden; display: flex; flex-direction: column; }
+      .unifi-network-map__tooltip { position: fixed; z-index: 2; background: rgba(15, 23, 42, 0.95); color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 12px; pointer-events: none; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(8px); }
+
+      /* Panel Header */
+      .panel-header { display: flex; align-items: center; gap: 12px; padding: 16px; background: rgba(0,0,0,0.2); border-bottom: 1px solid rgba(255,255,255,0.05); }
+      .panel-header__back { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #94a3b8; padding: 6px 10px; cursor: pointer; font-size: 14px; transition: all 0.15s ease; }
+      .panel-header__back:hover { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+      .panel-header__info { flex: 1; min-width: 0; }
+      .panel-header__title { font-weight: 600; font-size: 15px; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .panel-header__badge { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; padding: 2px 8px; background: rgba(59, 130, 246, 0.15); color: #60a5fa; border-radius: 12px; font-size: 11px; text-transform: capitalize; }
+
+      /* Tabs */
+      .panel-tabs { display: flex; padding: 0 12px; background: rgba(0,0,0,0.1); border-bottom: 1px solid rgba(255,255,255,0.05); }
+      .panel-tab { flex: 1; padding: 10px 8px; background: none; border: none; border-bottom: 2px solid transparent; color: #64748b; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s ease; }
+      .panel-tab:hover { color: #94a3b8; }
+      .panel-tab--active { color: #60a5fa; border-bottom-color: #3b82f6; }
+      .panel-tab-content { flex: 1; overflow-y: auto; padding: 12px; }
+
+      /* Sections */
+      .panel-section { margin-bottom: 16px; }
+      .panel-section__title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-bottom: 8px; }
+
+      /* Stats Grid */
+      .panel-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px; }
+      .stat-card { background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 10px; padding: 12px; text-align: center; }
+      .stat-card__value { font-size: 24px; font-weight: 700; color: #60a5fa; }
+      .stat-card__label { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+
+      /* Device List */
+      .device-list { display: flex; flex-direction: column; gap: 4px; }
+      .device-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: rgba(255,255,255,0.03); border-radius: 8px; }
+      .device-row__icon { font-size: 14px; }
+      .device-row__label { flex: 1; color: #cbd5e1; }
+      .device-row__count { font-weight: 600; color: #60a5fa; background: rgba(59, 130, 246, 0.15); padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+
+      /* Neighbor List */
+      .neighbor-list { display: flex; flex-direction: column; gap: 6px; }
+      .neighbor-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; background: rgba(255,255,255,0.03); border-radius: 8px; transition: background 0.15s ease; }
+      .neighbor-item:hover { background: rgba(255,255,255,0.06); }
+      .neighbor-item__name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #e2e8f0; font-size: 12px; }
+      .neighbor-item__badges { display: flex; gap: 4px; flex-shrink: 0; }
+
+      /* Badges */
+      .badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; }
+      .badge--wireless { background: rgba(168, 85, 247, 0.2); color: #c084fc; }
+      .badge--poe { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+      .badge--port { background: rgba(255,255,255,0.1); color: #94a3b8; }
+
+      /* Stats List */
+      .stats-list { display: flex; flex-direction: column; gap: 2px; }
+      .stats-row { display: flex; justify-content: space-between; padding: 8px 10px; background: rgba(255,255,255,0.03); border-radius: 6px; }
+      .stats-row__label { color: #94a3b8; }
+      .stats-row__value { font-weight: 600; color: #e2e8f0; }
+
+      /* Info Row */
+      .info-row { display: flex; flex-direction: column; gap: 4px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; }
+      .info-row__label { font-size: 11px; color: #64748b; }
+      .info-row__value { font-family: ui-monospace, monospace; font-size: 12px; color: #60a5fa; word-break: break-all; }
+
+      /* Actions */
+      .actions-list { display: flex; flex-direction: column; gap: 8px; }
+      .action-button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; color: #e2e8f0; font-size: 13px; cursor: pointer; transition: all 0.15s ease; text-align: left; }
+      .action-button:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.15); }
+      .action-button--primary { background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.3); }
+      .action-button--primary:hover { background: rgba(59, 130, 246, 0.25); border-color: rgba(59, 130, 246, 0.4); }
+      .action-button__icon { font-size: 16px; }
+      .action-button__text { flex: 1; }
+
+      /* Entity ID */
+      .entity-id { display: block; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 6px; font-family: ui-monospace, monospace; font-size: 11px; color: #60a5fa; word-break: break-all; }
+
+      /* Empty State */
+      .panel-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 16px; text-align: center; }
+      .panel-empty__icon { font-size: 32px; margin-bottom: 12px; opacity: 0.5; }
+      .panel-empty__text { color: #64748b; font-size: 13px; }
+
+      /* Hint */
+      .panel-hint { display: flex; align-items: center; gap: 8px; padding: 12px; margin: 12px; background: rgba(59, 130, 246, 0.1); border-radius: 8px; color: #94a3b8; font-size: 12px; }
+      .panel-hint__icon { font-size: 14px; }
+
       @media (max-width: 800px) {
         .unifi-network-map__layout { grid-template-columns: 1fr; }
       }
@@ -400,22 +659,65 @@ class UnifiNetworkMapCard extends HTMLElement {
 
   private _onPanelClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    const button = target.closest("[data-entity-id]") as HTMLElement | null;
-    if (!button) {
+
+    // Handle tab clicks
+    const tab = target.closest("[data-tab]") as HTMLElement | null;
+    if (tab) {
+      event.preventDefault();
+      const tabName = tab.getAttribute("data-tab") as "overview" | "stats" | "actions";
+      if (tabName && tabName !== this._activeTab) {
+        this._activeTab = tabName;
+        this._render();
+      }
       return;
     }
-    event.preventDefault();
-    const entityId = button.getAttribute("data-entity-id");
-    if (!entityId) {
+
+    // Handle back button
+    const backButton = target.closest('[data-action="back"]') as HTMLElement | null;
+    if (backButton) {
+      event.preventDefault();
+      this._selectedNode = undefined;
+      this._activeTab = "overview";
+      this._render();
       return;
     }
-    this.dispatchEvent(
-      new CustomEvent("hass-more-info", {
-        bubbles: true,
-        composed: true,
-        detail: { entityId },
-      }),
-    );
+
+    // Handle copy action
+    const copyButton = target.closest('[data-action="copy"]') as HTMLElement | null;
+    if (copyButton) {
+      event.preventDefault();
+      const value = copyButton.getAttribute("data-copy-value");
+      if (value) {
+        navigator.clipboard.writeText(value).then(() => {
+          const textEl = copyButton.querySelector(".action-button__text");
+          if (textEl) {
+            const original = textEl.textContent;
+            textEl.textContent = "Copied!";
+            setTimeout(() => {
+              textEl.textContent = original;
+            }, 1500);
+          }
+        });
+      }
+      return;
+    }
+
+    // Handle entity button clicks
+    const entityButton = target.closest("[data-entity-id]") as HTMLElement | null;
+    if (entityButton) {
+      event.preventDefault();
+      const entityId = entityButton.getAttribute("data-entity-id");
+      if (entityId) {
+        this.dispatchEvent(
+          new CustomEvent("hass-more-info", {
+            bubbles: true,
+            composed: true,
+            detail: { entityId },
+          }),
+        );
+      }
+      return;
+    }
   }
 
   private _wireControls(svg: SVGElement) {
