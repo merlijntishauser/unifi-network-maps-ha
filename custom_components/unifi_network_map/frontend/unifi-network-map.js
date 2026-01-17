@@ -93,6 +93,28 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   _getAuthToken() {
     return this._hass?.auth?.data?.access_token;
   }
+  async _fetchWithAuth(url, signal, parseResponse) {
+    const token = this._getAuthToken();
+    if (!token) {
+      return { error: "Missing auth token" };
+    }
+    try {
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return { data: await parseResponse(response) };
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        return { aborted: true };
+      }
+      const message = err instanceof Error ? err.message : String(err);
+      return { error: message };
+    }
+  }
   _render() {
     if (!this._config) {
       this.innerHTML = `
@@ -136,8 +158,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     if (this._loading || this._config.svg_url === this._lastSvgUrl) {
       return;
     }
-    const token = this._getAuthToken();
-    if (!token) {
+    if (!this._getAuthToken()) {
       this._error = "Missing auth token";
       this._render();
       return;
@@ -146,65 +167,54 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._svgAbortController = new AbortController();
     const currentUrl = this._config.svg_url;
     this._loading = true;
-    try {
-      const response = await fetch(currentUrl, {
-        headers: { Authorization: `Bearer ${token}` },
-        signal: this._svgAbortController.signal
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      this._svgContent = await response.text();
-      this._error = void 0;
-      this._lastSvgUrl = currentUrl;
-    } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") {
-        return;
-      }
-      const message = err instanceof Error ? err.message : String(err);
-      this._error = `Failed to load SVG (${message})`;
-      this._lastSvgUrl = currentUrl;
-    } finally {
-      this._loading = false;
-      this._render();
+    const result = await this._fetchWithAuth(
+      currentUrl,
+      this._svgAbortController.signal,
+      (r) => r.text()
+    );
+    if ("aborted" in result) {
+      return;
     }
+    if ("error" in result) {
+      this._error = `Failed to load SVG (${result.error})`;
+    } else {
+      this._svgContent = result.data;
+      this._error = void 0;
+    }
+    this._lastSvgUrl = currentUrl;
+    this._loading = false;
+    this._render();
   }
   async _loadPayload() {
-    if (!this._config || !this._config.data_url || !this._hass) {
+    if (!this._config?.data_url || !this._hass) {
       return;
     }
     if (this._dataLoading || this._config.data_url === this._lastDataUrl) {
       return;
     }
-    const token = this._getAuthToken();
-    if (!token) {
+    if (!this._getAuthToken()) {
       return;
     }
     this._payloadAbortController?.abort();
     this._payloadAbortController = new AbortController();
     const currentUrl = this._config.data_url;
     this._dataLoading = true;
-    try {
-      const response = await fetch(currentUrl, {
-        headers: { Authorization: `Bearer ${token}` },
-        signal: this._payloadAbortController.signal
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      this._payload = await response.json();
-      this._lastDataUrl = currentUrl;
-    } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") {
-        return;
-      }
-      const message = err instanceof Error ? err.message : String(err);
-      this._error = `Failed to load payload (${message})`;
-      this._lastDataUrl = currentUrl;
-    } finally {
-      this._dataLoading = false;
-      this._render();
+    const result = await this._fetchWithAuth(
+      currentUrl,
+      this._payloadAbortController.signal,
+      (r) => r.json()
+    );
+    if ("aborted" in result) {
+      return;
     }
+    if ("error" in result) {
+      this._error = `Failed to load payload (${result.error})`;
+    } else {
+      this._payload = result.data;
+    }
+    this._lastDataUrl = currentUrl;
+    this._dataLoading = false;
+    this._render();
   }
   _renderLayout() {
     const safeSvg = this._svgContent ? sanitizeSvg(this._svgContent) : "";
