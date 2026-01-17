@@ -3,11 +3,11 @@
 ## P1 - Security (Critical)
 
 ### Frontend
-- **XSS via innerHTML** (`unifi-network-map.ts:170, 217, 223, 230`) - SVG content and node names rendered via innerHTML without sanitization. Malicious SVG or node names could execute JavaScript.
-- **Unescaped error messages** (`unifi-network-map.ts:71`) - Error text interpolated directly into HTML.
+- ~~**XSS via innerHTML** (`unifi-network-map.ts:170, 217, 223, 230`) - SVG content and node names rendered via innerHTML without sanitization. Malicious SVG or node names could execute JavaScript.~~ ✓ Fixed: Added `escapeHtml()` and `sanitizeSvg()` helpers.
+- ~~**Unescaped error messages** (`unifi-network-map.ts:71`) - Error text interpolated directly into HTML.~~ ✓ Fixed: Applied `escapeHtml()` to error messages.
 
 ### Backend
-- **URL embedded credentials not stripped** (`config_flow.py:152-155`) - URLs like `https://user:pass@host` accepted without warning.
+- ~~**URL embedded credentials not stripped** (`config_flow.py:152-155`) - URLs like `https://user:pass@host` accepted without warning.~~ ✓ Fixed: Added `UrlHasCredentials` validation error.
 
 ## P2 - Bugs (High Impact)
 
