@@ -83,3 +83,16 @@ def test_step_user_reports_invalid_url(monkeypatch):
 
     assert result["type"] == "form"
     assert result["errors"]["base"] == "invalid_url"
+
+
+def test_step_user_rejects_url_with_credentials(monkeypatch):
+    def _validate(*_args: object, **_kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(config_flow_module, "validate_unifi_credentials", _validate)
+    bad_input = _base_input()
+    bad_input[CONF_URL] = "https://user:pass@unifi.local/"
+    result = _run(_make_flow().async_step_user(bad_input))
+
+    assert result["type"] == "form"
+    assert result["errors"]["base"] == "url_has_credentials"

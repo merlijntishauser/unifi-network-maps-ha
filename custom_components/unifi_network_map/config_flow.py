@@ -30,7 +30,7 @@ from .const import (
     DEFAULT_VERIFY_SSL,
     DOMAIN,
 )
-from .errors import CannotConnect, InvalidAuth, InvalidUrl
+from .errors import CannotConnect, InvalidAuth, InvalidUrl, UrlHasCredentials
 
 
 class UniFiNetworkMapConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -44,6 +44,8 @@ class UniFiNetworkMapConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 await self._async_validate_auth(data)
             except InvalidUrl:
                 errors["base"] = "invalid_url"
+            except UrlHasCredentials:
+                errors["base"] = "url_has_credentials"
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
             except CannotConnect:
@@ -153,3 +155,5 @@ def _validate_url(url: str) -> None:
     parsed = URL(url)
     if parsed.scheme not in {"http", "https"} or not parsed.host:
         raise InvalidUrl
+    if parsed.user or parsed.password:
+        raise UrlHasCredentials

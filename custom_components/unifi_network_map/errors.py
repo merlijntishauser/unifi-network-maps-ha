@@ -9,6 +9,10 @@ class InvalidUrl(UniFiNetworkMapError):
     """Raised when the controller URL is invalid."""
 
 
+class UrlHasCredentials(UniFiNetworkMapError):
+    """Raised when the URL contains embedded credentials."""
+
+
 class InvalidAuth(UniFiNetworkMapError):
     """Raised when authentication fails."""
 
