@@ -81,9 +81,6 @@ release: ci version-bump
 	if ! command -v gh >/dev/null 2>&1; then \
 		echo "GitHub CLI not found. Install gh first."; exit 1; \
 	fi; \
-	if ! gh api user >/dev/null 2>&1; then \
-		echo "gh is not authenticated. Skipping GitHub release creation."; exit 0; \
-	fi; \
 	gh release create "v$$version" --title "v$$version" --notes-file CHANGELOG.md
 
 version-bump:
