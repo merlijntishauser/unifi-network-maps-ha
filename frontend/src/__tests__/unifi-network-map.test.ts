@@ -36,9 +36,12 @@ describe("unifi-network-map card", () => {
     element.hass = { auth: { data: { access_token: "token" } } };
     element.setConfig({ svg_url: "/map.svg" });
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(fetchMock).toHaveBeenCalledWith("/map.svg", {
-      headers: { Authorization: "Bearer token" },
-    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/map.svg",
+      expect.objectContaining({
+        headers: { Authorization: "Bearer token" },
+      }),
+    );
     expect(element.innerHTML).toContain("<svg");
   });
 
@@ -60,9 +63,12 @@ describe("unifi-network-map card", () => {
     element.hass = { auth: { data: { access_token: "token" } } };
     element.setConfig({ svg_url: "/map.svg", data_url: "/map.json" });
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(fetchMock).toHaveBeenCalledWith("/map.json", {
-      headers: { Authorization: "Bearer token" },
-    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/map.json",
+      expect.objectContaining({
+        headers: { Authorization: "Bearer token" },
+      }),
+    );
   });
 
   it("reports missing auth token", () => {

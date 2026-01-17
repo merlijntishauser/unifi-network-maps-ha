@@ -126,6 +126,8 @@ class UnifiNetworkMapCard extends HTMLElement {
   private _panMoved = false;
   private _selectedNode?: string;
   private _hoveredNode?: string;
+  private _svgAbortController?: AbortController;
+  private _payloadAbortController?: AbortController;
 
   private _render() {
     if (!this._config) {
@@ -186,23 +188,29 @@ class UnifiNetworkMapCard extends HTMLElement {
       return;
     }
 
+    this._svgAbortController?.abort();
+    this._svgAbortController = new AbortController();
+    const currentUrl = this._config.svg_url;
+
     this._loading = true;
     try {
-      const response = await fetch(this._config.svg_url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await fetch(currentUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: this._svgAbortController.signal,
       });
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
       this._svgContent = await response.text();
       this._error = undefined;
-      this._lastSvgUrl = this._config.svg_url;
+      this._lastSvgUrl = currentUrl;
     } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        return;
+      }
       const message = err instanceof Error ? err.message : String(err);
       this._error = `Failed to load SVG (${message})`;
-      this._lastSvgUrl = this._config.svg_url;
+      this._lastSvgUrl = currentUrl;
     } finally {
       this._loading = false;
       this._render();
@@ -220,22 +228,29 @@ class UnifiNetworkMapCard extends HTMLElement {
     if (!token) {
       return;
     }
+
+    this._payloadAbortController?.abort();
+    this._payloadAbortController = new AbortController();
+    const currentUrl = this._config.data_url;
+
     this._dataLoading = true;
     try {
-      const response = await fetch(this._config.data_url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await fetch(currentUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: this._payloadAbortController.signal,
       });
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
       this._payload = (await response.json()) as MapPayload;
-      this._lastDataUrl = this._config.data_url;
+      this._lastDataUrl = currentUrl;
     } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        return;
+      }
       const message = err instanceof Error ? err.message : String(err);
       this._error = `Failed to load payload (${message})`;
-      this._lastDataUrl = this._config.data_url;
+      this._lastDataUrl = currentUrl;
     } finally {
       this._dataLoading = false;
       this._render();
@@ -360,13 +375,13 @@ class UnifiNetworkMapCard extends HTMLElement {
     const viewport = this.querySelector(".unifi-network-map__viewport") as HTMLElement | null;
     const svg = viewport?.querySelector("svg") as SVGElement | null;
     const tooltip = viewport?.querySelector(".unifi-network-map__tooltip") as HTMLElement | null;
+    const panel = this.querySelector(".unifi-network-map__panel") as HTMLElement | null;
     if (!viewport || !svg || !tooltip) {
       return;
     }
     this._ensureStyles();
     this._applyTransform(svg);
     this._wireControls(svg);
-    this._wireEntityActions();
 
     viewport.onwheel = (event) => this._onWheel(event, svg);
     viewport.onpointerdown = (event) => this._onPointerDown(event);
@@ -377,27 +392,30 @@ class UnifiNetworkMapCard extends HTMLElement {
       this._hideTooltip(tooltip);
     };
     viewport.onclick = (event) => this._onClick(event, tooltip);
+
+    if (panel) {
+      panel.onclick = (event) => this._onPanelClick(event);
+    }
   }
 
-  private _wireEntityActions() {
-    const buttons = this.querySelectorAll("[data-entity-id]");
-    buttons.forEach((button) => {
-      button.addEventListener("click", (event) => {
-        event.preventDefault();
-        const target = event.currentTarget as HTMLElement;
-        const entityId = target.getAttribute("data-entity-id");
-        if (!entityId) {
-          return;
-        }
-        this.dispatchEvent(
-          new CustomEvent("hass-more-info", {
-            bubbles: true,
-            composed: true,
-            detail: { entityId },
-          }),
-        );
-      });
-    });
+  private _onPanelClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    const button = target.closest("[data-entity-id]") as HTMLElement | null;
+    if (!button) {
+      return;
+    }
+    event.preventDefault();
+    const entityId = button.getAttribute("data-entity-id");
+    if (!entityId) {
+      return;
+    }
+    this.dispatchEvent(
+      new CustomEvent("hass-more-info", {
+        bubbles: true,
+        composed: true,
+        detail: { entityId },
+      }),
+    );
   }
 
   private _wireControls(svg: SVGElement) {
