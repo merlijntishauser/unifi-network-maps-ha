@@ -1,13 +1,19 @@
 {
   "domain": "unifi_network_map",
   "name": "UniFi Network Map",
-  "after_dependencies": ["lovelace"],
-  "codeowners": ["@merlijntishauser"],
+  "after_dependencies": [
+    "lovelace"
+  ],
+  "codeowners": [
+    "@merlijntishauser"
+  ],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/merlijntishauser/unifi-network-maps-ha",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/merlijntishauser/unifi-network-maps-ha/issues",
-  "requirements": ["unifi-network-maps==1.4.9"],
-  "version": "0.0.1"
+  "requirements": [
+    "unifi-network-maps==1.4.9"
+  ],
+  "version": "0.0.2"
 }
