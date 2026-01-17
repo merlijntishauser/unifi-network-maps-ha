@@ -6,6 +6,7 @@ from time import monotonic
 
 from unifi_network_maps.adapters.config import Config
 from unifi_network_maps.adapters.unifi import fetch_devices
+from requests import RequestException
 
 from .data import UniFiNetworkMapData
 from .errors import CannotConnect, InvalidAuth
@@ -101,7 +102,7 @@ def _assert_unifi_connectivity(config: Config, site: str, auth_error) -> None:
         fetch_devices(config, site=site, detailed=False, use_cache=False)
     except auth_error as exc:
         raise InvalidAuth("Authentication failed") from exc
-    except Exception as exc:  # noqa: BLE001
+    except (OSError, RequestException, RuntimeError, ValueError) as exc:
         raise CannotConnect("Unable to connect") from exc
 
 

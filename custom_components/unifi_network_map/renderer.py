@@ -54,7 +54,7 @@ class UniFiNetworkMapRenderer:
     def render(self, config: Config, settings: RenderSettings) -> UniFiNetworkMapData:
         try:
             return _render_map(config, settings)
-        except Exception as err:  # noqa: BLE001
+        except (KeyError, TypeError, ValueError) as err:
             raise UniFiNetworkMapError(f"Failed to render UniFi network map: {err}") from err
 
 
