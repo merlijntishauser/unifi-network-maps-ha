@@ -5,11 +5,11 @@ from typing import Any
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_PASSWORD, CONF_URL, CONF_USERNAME
+from homeassistant.helpers import selector
 from yarl import URL
 
 from .api import validate_unifi_credentials
 from .const import (
-    CLIENT_SCOPE_OPTIONS,
     CONF_CLIENT_SCOPE,
     CONF_INCLUDE_CLIENTS,
     CONF_INCLUDE_PORTS,
@@ -119,19 +119,44 @@ def _options_schema_fields(options: dict[str, Any]) -> dict[vol.Marker, object]:
         return vol.Optional(key, default=options.get(key, default))
 
     return {
-        opt(CONF_INCLUDE_PORTS, DEFAULT_INCLUDE_PORTS): bool,
-        opt(CONF_INCLUDE_CLIENTS, DEFAULT_INCLUDE_CLIENTS): bool,
-        opt(CONF_CLIENT_SCOPE, DEFAULT_CLIENT_SCOPE): vol.In(CLIENT_SCOPE_OPTIONS),
-        opt(CONF_ONLY_UNIFI, DEFAULT_ONLY_UNIFI): bool,
-        opt(CONF_SVG_ISOMETRIC, DEFAULT_SVG_ISOMETRIC): bool,
-        opt(CONF_SVG_WIDTH, None): _create_svg_size_validator(),
-        opt(CONF_SVG_HEIGHT, None): _create_svg_size_validator(),
-        opt(CONF_USE_CACHE, DEFAULT_USE_CACHE): bool,
+        opt(CONF_INCLUDE_PORTS, DEFAULT_INCLUDE_PORTS): _boolean_selector(),
+        opt(CONF_INCLUDE_CLIENTS, DEFAULT_INCLUDE_CLIENTS): _boolean_selector(),
+        opt(CONF_CLIENT_SCOPE, DEFAULT_CLIENT_SCOPE): _client_scope_selector(),
+        opt(CONF_ONLY_UNIFI, DEFAULT_ONLY_UNIFI): _boolean_selector(),
+        opt(CONF_SVG_ISOMETRIC, DEFAULT_SVG_ISOMETRIC): _boolean_selector(),
+        opt(CONF_SVG_WIDTH, None): _size_selector(),
+        opt(CONF_SVG_HEIGHT, None): _size_selector(),
+        opt(CONF_USE_CACHE, DEFAULT_USE_CACHE): _boolean_selector(),
     }
 
 
-def _create_svg_size_validator() -> vol.Schema:
-    return vol.Any(None, vol.All(vol.Coerce(int), vol.Range(min=100, max=5000)))
+def _boolean_selector() -> selector.BooleanSelector:
+    return selector.BooleanSelector()
+
+
+def _client_scope_selector() -> selector.SelectSelector:
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=[
+                selector.SelectOptionDict(value="wired", label="Wired"),
+                selector.SelectOptionDict(value="wireless", label="Wireless"),
+                selector.SelectOptionDict(value="all", label="All"),
+            ],
+            mode=selector.SelectSelectorMode.DROPDOWN,
+        )
+    )
+
+
+def _size_selector() -> selector.NumberSelector:
+    return selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=100,
+            max=5000,
+            step=10,
+            mode=selector.NumberSelectorMode.BOX,
+            unit_of_measurement="px",
+        )
+    )
 
 
 def _prepare_entry_data(user_input: dict[str, Any]) -> dict[str, Any]:

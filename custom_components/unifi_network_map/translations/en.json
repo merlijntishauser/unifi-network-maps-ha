@@ -15,21 +15,59 @@
       },
       "init": {
         "title": "Map Options",
-        "description": "Tune how the map is rendered.",
+        "description": "Choose what appears on the map and how it renders.",
         "data": {
-          "include_ports": "Include switch ports",
-          "include_clients": "Include clients",
+          "include_ports": "Show port labels",
+          "include_clients": "Show clients",
           "client_scope": "Client scope",
-          "only_unifi": "Only show UniFi devices",
+          "only_unifi": "Only UniFi devices",
           "svg_isometric": "Isometric layout",
-          "svg_width": "SVG width override (px)",
-          "svg_height": "SVG height override (px)",
+          "svg_width": "SVG width (px)",
+          "svg_height": "SVG height (px)",
           "use_cache": "Cache rendered map"
+        },
+        "data_description": {
+          "include_ports": "Adds switch port labels to links.",
+          "include_clients": "Includes client devices on the topology.",
+          "client_scope": "Choose wired, wireless, or all clients.",
+          "only_unifi": "Hide non-UniFi devices in the topology.",
+          "svg_isometric": "Render a 3D-style view.",
+          "svg_width": "Leave blank to auto-size.",
+          "svg_height": "Leave blank to auto-size.",
+          "use_cache": "Re-use the last render between polls."
         }
       }
     },
     "error": {
       "invalid_url": "Enter a valid controller URL including http or https."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Map Options",
+        "description": "Choose what appears on the map and how it renders.",
+        "data": {
+          "include_ports": "Show port labels",
+          "include_clients": "Show clients",
+          "client_scope": "Client scope",
+          "only_unifi": "Only UniFi devices",
+          "svg_isometric": "Isometric layout",
+          "svg_width": "SVG width (px)",
+          "svg_height": "SVG height (px)",
+          "use_cache": "Cache rendered map"
+        },
+        "data_description": {
+          "include_ports": "Adds switch port labels to links.",
+          "include_clients": "Includes client devices on the topology.",
+          "client_scope": "Choose wired, wireless, or all clients.",
+          "only_unifi": "Hide non-UniFi devices in the topology.",
+          "svg_isometric": "Render a 3D-style view.",
+          "svg_width": "Leave blank to auto-size.",
+          "svg_height": "Leave blank to auto-size.",
+          "use_cache": "Re-use the last render between polls."
+        }
+      }
     }
   }
 }

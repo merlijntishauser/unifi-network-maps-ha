@@ -562,11 +562,11 @@ class UnifiNetworkMapCard extends HTMLElement {
       .panel-tab-content { flex: 1; overflow-y: auto; padding: 16px; }
 
       /* Sections */
-      .panel-section { margin-bottom: 16px; }
+      .panel-section { margin-bottom: 16px; padding: 0 16px; }
       .panel-section__title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-bottom: 8px; }
 
       /* Stats Grid */
-      .panel-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px; }
+      .panel-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 16px; }
       .stat-card { background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 10px; padding: 12px; text-align: center; }
       .stat-card__value { font-size: 24px; font-weight: 700; color: #60a5fa; }
       .stat-card__label { font-size: 11px; color: #94a3b8; margin-top: 2px; }

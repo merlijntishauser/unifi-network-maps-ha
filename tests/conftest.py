@@ -35,6 +35,7 @@ def _install_homeassistant_stubs() -> None:
     components = cast(Any, ModuleType("homeassistant.components"))
     components_http = cast(Any, ModuleType("homeassistant.components.http"))
     helpers = cast(Any, ModuleType("homeassistant.helpers"))
+    selector = cast(Any, ModuleType("homeassistant.helpers.selector"))
     device_registry = cast(Any, ModuleType("homeassistant.helpers.device_registry"))
     entity_registry = cast(Any, ModuleType("homeassistant.helpers.entity_registry"))
     update_coordinator = cast(Any, ModuleType("homeassistant.helpers.update_coordinator"))
@@ -94,6 +95,35 @@ def _install_homeassistant_stubs() -> None:
         path: str
         cache_headers: bool
 
+    class BooleanSelector:  # minimal stub for imports
+        def __init__(self) -> None:
+            pass
+
+    class SelectSelectorConfig:  # minimal stub for imports
+        def __init__(self, **_kwargs: object) -> None:
+            pass
+
+    class SelectOptionDict(dict[str, str]):  # minimal stub for imports
+        pass
+
+    class SelectSelectorMode:  # minimal stub for imports
+        DROPDOWN = "dropdown"
+
+    class SelectSelector:  # minimal stub for imports
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+    class NumberSelectorConfig:  # minimal stub for imports
+        def __init__(self, **_kwargs: object) -> None:
+            pass
+
+    class NumberSelectorMode:  # minimal stub for imports
+        BOX = "box"
+
+    class NumberSelector:  # minimal stub for imports
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
     config_entries.ConfigEntry = ConfigEntry
     config_entries.ConfigFlow = ConfigFlow
     config_entries.OptionsFlow = OptionsFlow
@@ -112,6 +142,14 @@ def _install_homeassistant_stubs() -> None:
     entity_registry.async_get = _async_get_stub
     components_http.HomeAssistantView = HomeAssistantView
     components_http.StaticPathConfig = StaticPathConfig
+    selector.BooleanSelector = BooleanSelector
+    selector.SelectSelector = SelectSelector
+    selector.SelectSelectorConfig = SelectSelectorConfig
+    selector.SelectOptionDict = SelectOptionDict
+    selector.SelectSelectorMode = SelectSelectorMode
+    selector.NumberSelector = NumberSelector
+    selector.NumberSelectorConfig = NumberSelectorConfig
+    selector.NumberSelectorMode = NumberSelectorMode
 
     sys.modules.setdefault("homeassistant", homeassistant)
     sys.modules.setdefault("homeassistant.components", components)
@@ -120,6 +158,7 @@ def _install_homeassistant_stubs() -> None:
     sys.modules.setdefault("homeassistant.core", core)
     sys.modules.setdefault("homeassistant.const", const)
     sys.modules.setdefault("homeassistant.helpers", helpers)
+    sys.modules.setdefault("homeassistant.helpers.selector", selector)
     sys.modules.setdefault("homeassistant.helpers.device_registry", device_registry)
     sys.modules.setdefault("homeassistant.helpers.entity_registry", entity_registry)
     sys.modules.setdefault("homeassistant.helpers.update_coordinator", update_coordinator)
