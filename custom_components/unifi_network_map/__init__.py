@@ -188,8 +188,12 @@ async def _ensure_lovelace_resource(hass: HomeAssistant) -> None:
         LOGGER.info("Lovelace resource already registered: %s", resource_url)
         _mark_lovelace_resource_registered(hass)
         return
-    await _create_lovelace_resource(hass, resources, resource_url)
-    _mark_lovelace_resource_registered(hass)
+    created = await _create_lovelace_resource(hass, resources, resource_url)
+    if created:
+        _mark_lovelace_resource_registered(hass)
+    else:
+        LOGGER.debug("Lovelace resource creation failed, will retry")
+        _schedule_lovelace_resource_retry(hass)
 
 
 def _schedule_lovelace_resource_registration(hass: HomeAssistant) -> None:
@@ -278,7 +282,7 @@ async def _fetch_lovelace_items(hass: HomeAssistant, resources) -> list[dict[str
     return _as_resource_list(info)
 
 
-async def _create_lovelace_resource(hass: HomeAssistant, resources, resource_url: str) -> None:
+async def _create_lovelace_resource(hass: HomeAssistant, resources, resource_url: str) -> bool:
     payload: Mapping[str, object] = {
         "url": resource_url,
         "res_type": "module",
@@ -293,7 +297,7 @@ async def _create_lovelace_resource(hass: HomeAssistant, resources, resource_url
             if resource_collection and hasattr(resource_collection, "async_create_item"):
                 await resource_collection.async_create_item(payload)
                 LOGGER.info("Registered Lovelace resource %s", resource_url)
-                return
+                return True
     except Exception as err:
         LOGGER.debug("Unable to create via collection: %s", err)
 
@@ -301,20 +305,19 @@ async def _create_lovelace_resource(hass: HomeAssistant, resources, resource_url
     result = await _create_lovelace_resource_with_module(hass, resources, payload)
     if result:
         LOGGER.info("Registered Lovelace resource %s", resource_url)
-        return
+        return True
 
     try:
         info = resources.async_get_info(hass)
     except Exception as err:  # pragma: no cover - defensive
         LOGGER.debug("Unable to read Lovelace resources for create: %s", err)
-        LOGGER.warning("Failed to auto-register Lovelace resource. Add manually: %s", resource_url)
-        return
+        return False
 
     created = await _create_lovelace_resource_with_collection(info, payload)
     if created:
         LOGGER.info("Registered Lovelace resource %s", resource_url)
-    else:
-        LOGGER.warning("Failed to auto-register Lovelace resource. Add manually: %s", resource_url)
+        return True
+    return False
 
 
 async def _create_lovelace_resource_with_module(
