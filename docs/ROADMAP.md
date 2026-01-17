@@ -17,7 +17,7 @@
 
 ### Backend
 - ~~**KeyError on coordinator access** (`sensor.py:18`) - Direct dict access without null check can crash sensor setup.~~ ✓ Fixed: Use defensive `.get()` access.
-- **None return from _select_edges** (`renderer.py:102-103`) - Returns None if both edge lists are None, but signature promises list[Edge]. Causes TypeError downstream.
+- ~~**None return from _select_edges** (`renderer.py:102-103`) - Returns None if both edge lists are None, but signature promises list[Edge]. Causes TypeError downstream.~~ ✓ Fixed: Added empty list fallback.
 - **MAC normalization inconsistent** (`renderer.py:157` vs `http.py:111`) - renderer uses `.lower()`, http uses `.strip().lower()`. Different formats (colons vs hyphens) won't match.
 - **Race condition in Lovelace retry** (`__init__.py:213-217`) - Non-atomic counter increment can exceed 6-attempt limit.
 
