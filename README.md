@@ -6,10 +6,14 @@
 See your UniFi network as a live SVG map in Home Assistant, with optional
 client visibility and drill-down details.
 
+![UniFi Network Map Lovelace card](screenshots/lovelace-card.png)
+
 ## Requirements
 - Home Assistant 2024.12+
 - UniFi Network controller (UniFi OS or self-hosted)
 - A local UniFi account (read access to devices/clients)
+- Strongly recommended: install the official UniFi Network integration
+  (`unifi`) to enrich clients/devices with existing entity data.
 
 ## Install (HACS)
 1) Add this repository to HACS as a custom integration.
