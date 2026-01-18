@@ -624,6 +624,17 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       .panel-hint { display: flex; align-items: center; gap: 8px; padding: 12px; margin: 12px; background: rgba(59, 130, 246, 0.1); border-radius: 8px; color: #94a3b8; font-size: 12px; }
       .panel-hint__icon { font-size: 14px; }
 
+      /* Selected node highlight */
+      .unifi-network-map__viewport svg [data-selected="true"],
+      .unifi-network-map__viewport svg .node--selected {
+        filter: drop-shadow(0 0 8px #3b82f6) drop-shadow(0 0 16px rgba(59, 130, 246, 0.6));
+      }
+      .unifi-network-map__viewport svg [data-selected="true"] > *,
+      .unifi-network-map__viewport svg .node--selected > * {
+        stroke: #3b82f6 !important;
+        stroke-width: 2px;
+      }
+
       /* Light theme overrides */
       ha-card[data-theme="light"] .unifi-network-map__viewport { background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); }
       ha-card[data-theme="light"] .unifi-network-map__controls button { background: rgba(226, 232, 240, 0.9); color: #0f172a; border-color: rgba(148, 163, 184, 0.5); }
@@ -672,6 +683,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     }
     this._ensureStyles();
     this._applyTransform(svg);
+    this._highlightSelectedNode(svg);
     this._wireControls(svg);
     viewport.onwheel = (event) => this._onWheel(event, svg);
     viewport.onpointerdown = (event) => this._onPointerDown(event);
@@ -900,6 +912,52 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       return idHolder.getAttribute("id")?.trim() ?? null;
     }
     return null;
+  }
+  _highlightSelectedNode(svg) {
+    svg.querySelectorAll("[data-selected]").forEach((el) => {
+      el.removeAttribute("data-selected");
+    });
+    svg.querySelectorAll(".node--selected").forEach((el) => {
+      el.classList.remove("node--selected");
+    });
+    if (!this._selectedNode) {
+      return;
+    }
+    const nodeName = this._selectedNode;
+    const byDataId = svg.querySelector(`[data-node-id="${CSS.escape(nodeName)}"]`);
+    if (byDataId) {
+      const group = byDataId.closest("g") ?? byDataId;
+      group.setAttribute("data-selected", "true");
+      return;
+    }
+    const byAriaLabel = svg.querySelector(`[aria-label="${CSS.escape(nodeName)}"]`);
+    if (byAriaLabel) {
+      const group = byAriaLabel.closest("g") ?? byAriaLabel;
+      group.setAttribute("data-selected", "true");
+      return;
+    }
+    const textElements = svg.querySelectorAll("text");
+    for (const textEl of textElements) {
+      if (textEl.textContent?.trim() === nodeName) {
+        const group = textEl.closest("g");
+        if (group) {
+          group.classList.add("node--selected");
+        } else {
+          textEl.classList.add("node--selected");
+        }
+        return;
+      }
+    }
+    const titleElements = svg.querySelectorAll("title");
+    for (const titleEl of titleElements) {
+      if (titleEl.textContent?.trim() === nodeName) {
+        const group = titleEl.closest("g");
+        if (group) {
+          group.classList.add("node--selected");
+        }
+        return;
+      }
+    }
   }
 };
 var UnifiNetworkMapEditor = class extends HTMLElement {
