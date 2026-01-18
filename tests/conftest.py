@@ -34,11 +34,13 @@ def _install_homeassistant_stubs() -> None:
     const = cast(Any, ModuleType("homeassistant.const"))
     components = cast(Any, ModuleType("homeassistant.components"))
     components_http = cast(Any, ModuleType("homeassistant.components.http"))
+    components_diagnostics = cast(Any, ModuleType("homeassistant.components.diagnostics"))
+    components_sensor = cast(Any, ModuleType("homeassistant.components.sensor"))
     helpers = cast(Any, ModuleType("homeassistant.helpers"))
+    helpers_update = cast(Any, ModuleType("homeassistant.helpers.update_coordinator"))
     selector = cast(Any, ModuleType("homeassistant.helpers.selector"))
     device_registry = cast(Any, ModuleType("homeassistant.helpers.device_registry"))
     entity_registry = cast(Any, ModuleType("homeassistant.helpers.entity_registry"))
-    update_coordinator = cast(Any, ModuleType("homeassistant.helpers.update_coordinator"))
     exceptions = cast(Any, ModuleType("homeassistant.exceptions"))
 
     class ConfigEntry:  # minimal stub for imports
@@ -47,6 +49,20 @@ def _install_homeassistant_stubs() -> None:
     class HomeAssistant:  # minimal stub for imports
         async def async_add_executor_job(self, func, *args: object):
             return func(*args)
+
+    def async_redact_data(data: dict[str, object], _keys: set[str]) -> dict[str, object]:
+        return dict(data)
+
+    class SensorEntity:  # minimal stub for imports
+        pass
+
+    class CoordinatorEntity:  # minimal stub for imports
+        def __init__(self, coordinator: object) -> None:
+            self.coordinator = coordinator
+
+        @classmethod
+        def __class_getitem__(cls, _item: object):
+            return cls
 
     class ServiceCall:  # minimal stub for imports
         def __init__(self, data: dict[str, object] | None = None) -> None:
@@ -144,8 +160,9 @@ def _install_homeassistant_stubs() -> None:
     const.CONF_URL = "url"
     const.CONF_USERNAME = "username"
     const.EVENT_HOMEASSISTANT_START = "homeassistant_start"
-    update_coordinator.DataUpdateCoordinator = DataUpdateCoordinator
-    update_coordinator.UpdateFailed = UpdateFailed
+    helpers_update.DataUpdateCoordinator = DataUpdateCoordinator
+    helpers_update.UpdateFailed = UpdateFailed
+    helpers_update.CoordinatorEntity = CoordinatorEntity
     exceptions.HomeAssistantError = Exception
     device_registry.CONNECTION_NETWORK_MAC = "mac"
     device_registry.async_get = _async_get_stub
@@ -153,6 +170,8 @@ def _install_homeassistant_stubs() -> None:
     entity_registry.async_get = _async_get_stub
     components_http.HomeAssistantView = HomeAssistantView
     components_http.StaticPathConfig = StaticPathConfig
+    components_diagnostics.async_redact_data = async_redact_data
+    components_sensor.SensorEntity = SensorEntity
     selector.BooleanSelector = BooleanSelector
     selector.SelectSelector = SelectSelector
     selector.SelectSelectorConfig = SelectSelectorConfig
@@ -168,6 +187,8 @@ def _install_homeassistant_stubs() -> None:
     sys.modules.setdefault("homeassistant", homeassistant)
     sys.modules.setdefault("homeassistant.components", components)
     sys.modules.setdefault("homeassistant.components.http", components_http)
+    sys.modules.setdefault("homeassistant.components.diagnostics", components_diagnostics)
+    sys.modules.setdefault("homeassistant.components.sensor", components_sensor)
     sys.modules.setdefault("homeassistant.config_entries", config_entries)
     sys.modules.setdefault("homeassistant.core", core)
     sys.modules.setdefault("homeassistant.const", const)
@@ -175,7 +196,7 @@ def _install_homeassistant_stubs() -> None:
     sys.modules.setdefault("homeassistant.helpers.selector", selector)
     sys.modules.setdefault("homeassistant.helpers.device_registry", device_registry)
     sys.modules.setdefault("homeassistant.helpers.entity_registry", entity_registry)
-    sys.modules.setdefault("homeassistant.helpers.update_coordinator", update_coordinator)
+    sys.modules.setdefault("homeassistant.helpers.update_coordinator", helpers_update)
     sys.modules.setdefault("homeassistant.exceptions", exceptions)
 
 
