@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Custom entity modal with related entities overview.
+- Edge hover tooltip showing connection details.
+
+### Changed
+- Improved Home Assistant artifacts (device registration, entry title, scan interval).
+- Added auth backoff logging and tightened frontend types.
 
 ## [0.1.2] - 2026-01-18
 ### Added
