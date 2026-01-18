@@ -1,4 +1,4 @@
-.PHONY: help venv install install-dev test format frontend-install frontend-build frontend-test frontend-typecheck frontend-lint frontend-format pre-commit-install pre-commit-run ci version-bump version release release-hotfix clean
+.PHONY: help venv install install-dev test test-unit test-integration test-contract format frontend-install frontend-build frontend-test frontend-typecheck frontend-lint frontend-format pre-commit-install pre-commit-run ci version-bump version release release-hotfix clean
 
 VENV_DIR := .venv
 PYTHON_BIN := $(shell command -v python3.13 >/dev/null 2>&1 && echo python3.13 || echo python3)
@@ -12,7 +12,10 @@ help:
 	@echo "  venv            Create local .venv"
 	@echo "  install         Install Python requirements into .venv"
 	@echo "  install-dev     Install Python dev requirements into .venv"
-	@echo "  test            Run Python tests"
+	@echo "  test            Run all Python tests with coverage"
+	@echo "  test-unit       Run unit tests"
+	@echo "  test-integration Run integration tests"
+	@echo "  test-contract   Run contract tests"
 	@echo "  format          Run ruff format on the repo"
 	@echo "  frontend-install Install frontend deps (requires Node.js)"
 	@echo "  frontend-build  Run frontend build (requires Node.js)"
@@ -39,7 +42,16 @@ install-dev: install
 	PIP_CACHE_DIR=$(PIP_CACHE_DIR) $(PIP) install -r requirements-dev.txt
 
 test: install-dev
-	$(VENV_DIR)/bin/pytest -v --cov=custom_components --cov-report=term-missing
+	$(VENV_DIR)/bin/pytest -v --cov=custom_components --cov-report=term-missing tests/unit tests/integration tests/contract
+
+test-unit: install-dev
+	$(VENV_DIR)/bin/pytest -v tests/unit
+
+test-integration: install-dev
+	$(VENV_DIR)/bin/pytest -v tests/integration
+
+test-contract: install-dev
+	$(VENV_DIR)/bin/pytest -v tests/contract
 
 format: install-dev
 	$(VENV_DIR)/bin/ruff format .
