@@ -90,7 +90,8 @@ release: ci version-bump
 	zip_path="$$dist_dir/$$zip_name"; \
 	rm -f "$$zip_path"; \
 	python3 scripts/build_release_zip.py "$$zip_path"; \
-	gh release create "v$$version" "$$zip_path" --title "v$$version" --notes-file CHANGELOG.md
+	echo "Release zip created at $$zip_path. Run the following to publish:"; \
+	echo "gh release create \"v$$version\" \"$$zip_path\" --title \"v$$version\" --notes-file CHANGELOG.md"
 
 version-bump:
 	@current=$$(cat $(VERSION_FILE)); \
