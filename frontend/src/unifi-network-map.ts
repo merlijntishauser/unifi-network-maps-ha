@@ -7,6 +7,8 @@ function escapeHtml(text: string): string {
     .replace(/'/g, "&#39;");
 }
 
+import DOMPurify from "dompurify";
+
 function sanitizeSvg(svg: string): string {
   const parser = new DOMParser();
   const doc = parser.parseFromString(svg, "image/svg+xml");
@@ -29,6 +31,15 @@ function sanitizeSvg(svg: string): string {
     });
   });
   return svgElement.outerHTML;
+}
+
+const DOMPURIFY_CONFIG = {
+  USE_PROFILES: { html: true, svg: true, svgFilters: true },
+  ADD_ATTR: ["data-node-id", "data-action", "data-tab"],
+};
+
+function sanitizeHtml(markup: string): string {
+  return DOMPurify.sanitize(markup, DOMPURIFY_CONFIG);
 }
 
 type Hass = {
@@ -359,21 +370,17 @@ class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _render() {
+    const theme = this._config?.theme ?? "dark";
     if (!this._config) {
-      this.innerHTML = `
-        <ha-card>
-          <div style="padding:16px;">Missing configuration</div>
-        </ha-card>
-      `;
+      this._setCardBody('<div style="padding:16px;">Missing configuration</div>', theme);
       return;
     }
 
     if (!this._config.svg_url) {
-      this.innerHTML = `
-        <ha-card>
-          <div style="padding:16px;">Select a UniFi Network Map instance in the card settings.</div>
-        </ha-card>
-      `;
+      this._setCardBody(
+        '<div style="padding:16px;">Select a UniFi Network Map instance in the card settings.</div>',
+        theme,
+      );
       return;
     }
 
@@ -388,12 +395,7 @@ class UnifiNetworkMapCard extends HTMLElement {
         ? this._renderLayout()
         : `<div style="padding:16px;">Loading map...</div>`;
 
-    const theme = this._config.theme ?? "dark";
-    this.innerHTML = `
-      <ha-card data-theme="${theme}">
-        ${body}
-      </ha-card>
-    `;
+    this._setCardBody(body, theme);
 
     if (!token && this._error === "Missing auth token") {
       return;
@@ -402,6 +404,13 @@ class UnifiNetworkMapCard extends HTMLElement {
     this._loadSvg();
     this._loadPayload();
     this._wireInteractions();
+  }
+
+  private _setCardBody(body: string, theme: string) {
+    const card = document.createElement("ha-card");
+    card.dataset.theme = theme;
+    card.innerHTML = sanitizeHtml(body);
+    this.replaceChildren(card);
   }
 
   private async _loadSvg() {
