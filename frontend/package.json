@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "esbuild src/unifi-network-map.ts --bundle --format=esm --target=es2020 --outfile=dist/unifi-network-map.js",
+    "build": "esbuild src/unifi-network-map.ts --bundle --format=esm --target=es2020 --define:__CARD_VERSION__=\\\"$npm_package_version\\\" --outfile=dist/unifi-network-map.js",
     "test": "jest --coverage",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\"",

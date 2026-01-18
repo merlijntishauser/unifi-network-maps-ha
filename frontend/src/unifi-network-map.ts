@@ -9,6 +9,10 @@ function escapeHtml(text: string): string {
 
 import DOMPurify from "dompurify";
 
+declare const __CARD_VERSION__: string;
+
+const CARD_VERSION = __CARD_VERSION__;
+
 function sanitizeSvg(svg: string): string {
   const parser = new DOMParser();
   const doc = parser.parseFromString(svg, "image/svg+xml");
@@ -1400,4 +1404,4 @@ customElements.define("unifi-network-map-editor", UnifiNetworkMapEditor);
   description: "Displays your UniFi network topology as an interactive SVG map",
 });
 
-console.info("unifi-network-map card loaded v0.0.2");
+console.info(`unifi-network-map card loaded v${CARD_VERSION}`);

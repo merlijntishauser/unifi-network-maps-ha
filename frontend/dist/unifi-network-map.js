@@ -1021,6 +1021,7 @@ var purify = createDOMPurify();
 function escapeHtml(text2) {
   return text2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
+var CARD_VERSION = "0.1.1";
 function sanitizeSvg(svg2) {
   const parser = new DOMParser();
   const doc = parser.parseFromString(svg2, "image/svg+xml");
@@ -2183,7 +2184,7 @@ window.customCards.push({
   name: "UniFi Network Map",
   description: "Displays your UniFi network topology as an interactive SVG map"
 });
-console.info("unifi-network-map card loaded v0.0.2");
+console.info(`unifi-network-map card loaded v${CARD_VERSION}`);
 /*! Bundled license information:
 
 dompurify/dist/purify.es.mjs:
