@@ -40,6 +40,7 @@ class _FakeHass:
 
 def test_register_frontend_assets_with_async_static_paths() -> None:
     hass = _FakeHass()
+    hass.data["unifi_network_map"] = {}
     register = getattr(unifi_network_map, "_register_frontend_assets")
     register(hass)
     assert hass.http.registered, "Expected static path registration to be called"
@@ -53,6 +54,7 @@ def test_register_frontend_assets_warns_when_bundle_missing(
     tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
     hass = _FakeHass()
+    hass.data["unifi_network_map"] = {}
     missing_path = tmp_path / "missing.js"
     monkeypatch_frontend_path = cast(
         Callable[[], Path], getattr(unifi_network_map, "_frontend_bundle_path")
@@ -94,3 +96,13 @@ def test_build_static_path_configs_falls_back_to_dict(tmp_path: Path) -> None:
 
     assert isinstance(configs[0], dict)
     assert configs[0]["path"] == "/unifi-network-map/unifi-network-map.js"
+
+
+def test_register_frontend_assets_skips_when_already_registered() -> None:
+    hass = _FakeHass()
+    hass.data["unifi_network_map"] = {"frontend_registered": True}
+
+    register = getattr(unifi_network_map, "_register_frontend_assets")
+    register(hass)
+
+    assert not hass.http.registered

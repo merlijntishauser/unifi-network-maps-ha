@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import sys
+from types import ModuleType
 from typing import Callable, cast
 
 import pytest
@@ -268,6 +270,107 @@ def test_schedule_lovelace_resource_retry_logs_failure(caplog: pytest.LogCapture
 
     assert "Lovelace auto-registration failed after" in caplog.text
     assert hass.data["unifi_network_map"]["lovelace_resource_failed"] is True
+
+
+def test_ensure_lovelace_resource_returns_when_already_marked() -> None:
+    hass = _FakeHass()
+    hass.data["unifi_network_map"] = {"lovelace_resource_registered": True}
+
+    ensure_resource = getattr(unifi_network_map, "_ensure_lovelace_resource")
+    asyncio.run(ensure_resource(hass))
+
+    assert not hass.tasks
+
+
+def test_ensure_lovelace_resource_retries_when_items_missing() -> None:
+    hass = _FakeHass()
+    hass.data["unifi_network_map"] = {}
+    resources = _ResourcesModule()
+
+    original_load = getattr(unifi_network_map, "_load_lovelace_resources")
+    original_fetch = getattr(unifi_network_map, "_fetch_lovelace_items")
+
+    async def _fetch(_hass: _FakeHass, _resources: object):
+        return None
+
+    setattr(unifi_network_map, "_load_lovelace_resources", lambda: resources)
+    setattr(unifi_network_map, "_fetch_lovelace_items", _fetch)
+    try:
+        ensure_resource = getattr(unifi_network_map, "_ensure_lovelace_resource")
+        asyncio.run(ensure_resource(hass))
+    finally:
+        setattr(unifi_network_map, "_load_lovelace_resources", original_load)
+        setattr(unifi_network_map, "_fetch_lovelace_items", original_fetch)
+
+    assert hass.data["unifi_network_map"]["lovelace_resource_attempts"] == 1
+    assert hass.tasks
+
+
+def test_ensure_lovelace_resource_marks_registered_on_existing() -> None:
+    hass, _collection = _make_hass_with_collection(
+        [{"url": "/unifi-network-map/unifi-network-map.js", "type": "module"}]
+    )
+    hass.data["unifi_network_map"] = {}
+    resources = _ResourcesModule()
+
+    original_load = getattr(unifi_network_map, "_load_lovelace_resources")
+    setattr(unifi_network_map, "_load_lovelace_resources", lambda: resources)
+    try:
+        ensure_resource = getattr(unifi_network_map, "_ensure_lovelace_resource")
+        asyncio.run(ensure_resource(hass))
+    finally:
+        setattr(unifi_network_map, "_load_lovelace_resources", original_load)
+
+    assert hass.data["unifi_network_map"]["lovelace_resource_registered"] is True
+
+
+def test_schedule_lovelace_resource_registration_runs_on_start() -> None:
+    hass = _FakeHass()
+    hass.is_running = False
+    hass.data["unifi_network_map"] = {}
+
+    called = {"ensure": False}
+
+    async def _ensure(_hass: _FakeHass) -> None:
+        called["ensure"] = True
+
+    original_ensure = getattr(unifi_network_map, "_ensure_lovelace_resource")
+    setattr(unifi_network_map, "_ensure_lovelace_resource", _ensure)
+    try:
+        schedule_registration = getattr(
+            unifi_network_map, "_schedule_lovelace_resource_registration"
+        )
+        schedule_registration(hass)
+        asyncio.run(hass.bus.fire_event("homeassistant_start"))
+    finally:
+        setattr(unifi_network_map, "_ensure_lovelace_resource", original_ensure)
+
+    assert called["ensure"] is True
+
+
+def test_fetch_lovelace_items_returns_none_when_missing() -> None:
+    hass = _FakeHass()
+    resources = _ResourcesModule()
+
+    fetch_items = getattr(unifi_network_map, "_fetch_lovelace_items")
+    result = asyncio.run(fetch_items(hass, resources))
+
+    assert result is None
+
+
+def test_load_lovelace_resources_prefers_module() -> None:
+    resources_module = ModuleType("resources")
+    lovelace_module = ModuleType("homeassistant.components.lovelace")
+    lovelace_module.resources = resources_module
+
+    sys.modules["homeassistant.components.lovelace"] = lovelace_module
+
+    load_resources = cast(
+        Callable[[], object | None], getattr(unifi_network_map, "_load_lovelace_resources")
+    )
+    result = load_resources()
+
+    assert result is resources_module
 
 
 def test_resource_payload_uses_res_type_field() -> None:
