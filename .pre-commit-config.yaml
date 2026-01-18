@@ -7,9 +7,19 @@ repos:
           bash -c 'docker run --rm -v "$PWD":/github/workspace ghcr.io/home-assistant/hassfest:latest'
         language: system
         pass_filenames: false
-      - id: pytest
-        name: pytest
-        entry: bash -c 'make test'
+      - id: pytest-unit
+        name: pytest unit
+        entry: bash -c 'make test-unit'
+        language: system
+        pass_filenames: false
+      - id: pytest-integration
+        name: pytest integration
+        entry: bash -c 'make test-integration'
+        language: system
+        pass_filenames: false
+      - id: pytest-contract
+        name: pytest contract
+        entry: bash -c 'make test-contract'
         language: system
         pass_filenames: false
       - id: pyright
