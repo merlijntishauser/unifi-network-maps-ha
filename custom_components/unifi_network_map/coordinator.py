@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any, Mapping, Protocol
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_URL, CONF_USERNAME
@@ -30,29 +30,90 @@ from .const import (
     LOGGER,
 )
 from .data import UniFiNetworkMapData
-from .errors import UniFiNetworkMapError
+from .errors import CannotConnect, InvalidAuth, UniFiNetworkMapError
 from .renderer import RenderSettings
+from .utils import monotonic_seconds
+
+AUTH_BACKOFF_BASE_SECONDS = 30
+AUTH_BACKOFF_MAX_SECONDS = 600
+
+
+class MapClient(Protocol):
+    settings: RenderSettings
+
+    def fetch_map(self) -> UniFiNetworkMapData: ...
 
 
 class UniFiNetworkMapCoordinator(DataUpdateCoordinator[UniFiNetworkMapData]):
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        client: MapClient | None = None,
+    ) -> None:
         super().__init__(
             hass,
             LOGGER,
             name=DOMAIN,
             update_interval=DEFAULT_SCAN_INTERVAL,
         )
-        self._client = _build_client(hass, entry)
+        self._client = client or _build_client(hass, entry)
+        self._auth_backoff_until: float | None = None
+        self._auth_backoff_seconds = AUTH_BACKOFF_BASE_SECONDS
 
     @property
     def settings(self) -> RenderSettings:
         return self._client.settings
 
+    @property
+    def auth_backoff_until(self) -> float | None:
+        return self._auth_backoff_until
+
+    @property
+    def auth_backoff_seconds(self) -> int:
+        return self._auth_backoff_seconds
+
     async def _async_update_data(self) -> UniFiNetworkMapData:
+        backoff_remaining = self._auth_backoff_remaining()
+        if backoff_remaining is not None:
+            raise UpdateFailed(f"Auth backoff active, retrying in {int(backoff_remaining)}s")
         try:
-            return await self.hass.async_add_executor_job(self._client.fetch_map)
+            data = await self.hass.async_add_executor_job(self._client.fetch_map)
+            self._reset_auth_backoff()
+            return data
         except UniFiNetworkMapError as err:
+            if _should_backoff(err):
+                self._advance_auth_backoff()
             raise UpdateFailed(str(err)) from err
+
+    async def async_fetch_for_testing(self) -> UniFiNetworkMapData:
+        return await self._async_update_data()
+
+    def _auth_backoff_remaining(self) -> float | None:
+        if self._auth_backoff_until is None:
+            return None
+        remaining = self._auth_backoff_until - monotonic_seconds()
+        if remaining <= 0:
+            return None
+        return remaining
+
+    def _advance_auth_backoff(self) -> None:
+        now = monotonic_seconds()
+        delay = min(self._auth_backoff_seconds, AUTH_BACKOFF_MAX_SECONDS)
+        self._auth_backoff_until = now + delay
+        self._auth_backoff_seconds = min(delay * 2, AUTH_BACKOFF_MAX_SECONDS)
+
+    def _reset_auth_backoff(self) -> None:
+        self._auth_backoff_until = None
+        self._auth_backoff_seconds = AUTH_BACKOFF_BASE_SECONDS
+
+
+def _should_backoff(err: UniFiNetworkMapError) -> bool:
+    if isinstance(err, InvalidAuth):
+        return True
+    if isinstance(err, CannotConnect):
+        return "rate limited" in str(err).lower()
+    return False
 
 
 def _build_client(hass: HomeAssistant, entry: ConfigEntry) -> UniFiNetworkMapClient:
