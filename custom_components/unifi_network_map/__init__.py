@@ -287,14 +287,24 @@ def _schedule_lovelace_resource_retry(hass: HomeAssistant) -> None:
     data = hass.data.setdefault(DOMAIN, {})
     attempts = data.get("lovelace_resource_attempts", 0)
     if attempts >= 6:
-        LOGGER.warning(
-            "Lovelace resource registration failed after %d attempts. Add manually: %s",
-            attempts,
-            _frontend_bundle_url(),
-        )
+        _log_lovelace_registration_failure(hass, attempts)
         return
     data["lovelace_resource_attempts"] = attempts + 1
     hass.async_create_task(_retry_lovelace_resource(hass, 10))
+
+
+def _log_lovelace_registration_failure(hass: HomeAssistant, attempts: int) -> None:
+    data = hass.data.setdefault(DOMAIN, {})
+    if data.get("lovelace_resource_failed"):
+        return
+    data["lovelace_resource_failed"] = True
+    LOGGER.error(
+        "Lovelace auto-registration failed after %d attempts. "
+        "Add this resource manually: url=%s type=module. "
+        "If the resource is missing, confirm Lovelace is in Storage mode and reload.",
+        attempts,
+        _frontend_bundle_url(),
+    )
 
 
 def _lovelace_resource_registered(hass: HomeAssistant) -> bool:
