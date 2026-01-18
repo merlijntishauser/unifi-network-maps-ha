@@ -594,6 +594,7 @@ describe("unifi-network-map card", () => {
   });
 
   it("shows entity modal and dispatches hass-more-info on entity click", () => {
+    jest.useFakeTimers();
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     const card = element as unknown as {
       _svgContent?: string;
@@ -622,18 +623,49 @@ describe("unifi-network-map card", () => {
     } as unknown as MouseEvent);
 
     // Verify modal is shown
-    const modal = element.querySelector(".entity-modal-overlay");
+    const modal = document.querySelector(".entity-modal-overlay");
     expect(modal).not.toBeNull();
-    expect(element.innerHTML).toContain("Device Information");
+    expect(modal?.textContent).toContain("Device Information");
 
     // Click entity item in modal to dispatch hass-more-info
     const handler = jest.fn();
     element.addEventListener("hass-more-info", handler);
-    const entityItem = element.querySelector(
+    const entityItem = document.querySelector(
       '[data-modal-entity-id="sensor.gateway"]',
     ) as HTMLElement;
     entityItem?.click();
+    expect(document.querySelector(".entity-modal-overlay")).toBeNull();
+    expect(handler).not.toHaveBeenCalled();
+    jest.runAllTimers();
     expect(handler).toHaveBeenCalled();
+  });
+
+  it("keeps entity modal open across hass re-renders", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as {
+      _svgContent?: string;
+      _payload?: unknown;
+      _selectedNode?: string;
+      _activeTab?: string;
+      _showEntityModal: (nodeName: string) => void;
+    };
+    card._svgContent = makeSvg("Gateway");
+    card._payload = {
+      ...samplePayload(),
+      node_entities: { Gateway: "sensor.gateway" },
+      related_entities: {
+        Gateway: [{ entity_id: "sensor.gateway", domain: "sensor", state: "on" }],
+      },
+    };
+    card._selectedNode = "Gateway";
+    card._activeTab = "actions";
+    element.setConfig({ svg_url: "/map.svg" });
+
+    card._showEntityModal("Gateway");
+    expect(document.querySelector(".entity-modal-overlay")).not.toBeNull();
+
+    element.hass = { auth: { data: { access_token: "token" } } };
+    expect(document.querySelector(".entity-modal-overlay")).not.toBeNull();
   });
 
   it("formats last changed timestamps", () => {

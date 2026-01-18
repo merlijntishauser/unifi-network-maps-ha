@@ -1401,29 +1401,29 @@ var CARD_STYLES = `
   }
 
   /* Light theme modal */
-  ha-card[data-theme="light"] .entity-modal {
+  .entity-modal-overlay[data-theme="light"] .entity-modal {
     background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
   }
-  ha-card[data-theme="light"] .entity-modal__header {
+  .entity-modal-overlay[data-theme="light"] .entity-modal__header {
     background: rgba(148, 163, 184, 0.15);
     border-bottom-color: rgba(148, 163, 184, 0.3);
   }
-  ha-card[data-theme="light"] .entity-modal__title { color: #0f172a; }
-  ha-card[data-theme="light"] .entity-modal__close { color: #64748b; }
-  ha-card[data-theme="light"] .entity-modal__close:hover { background: rgba(15, 23, 42, 0.1); color: #0f172a; }
-  ha-card[data-theme="light"] .entity-modal__section-title { color: #475569; }
-  ha-card[data-theme="light"] .entity-modal__info-row { background: rgba(15, 23, 42, 0.04); }
-  ha-card[data-theme="light"] .entity-modal__info-label { color: #64748b; }
-  ha-card[data-theme="light"] .entity-modal__info-value { color: #0f172a; }
-  ha-card[data-theme="light"] .entity-modal__entity-item { background: rgba(15, 23, 42, 0.04); }
-  ha-card[data-theme="light"] .entity-modal__entity-item:hover { background: rgba(59, 130, 246, 0.1); }
-  ha-card[data-theme="light"] .entity-modal__entity-name { color: #0f172a; }
-  ha-card[data-theme="light"] .entity-modal__entity-id { color: #64748b; }
-  ha-card[data-theme="light"] .entity-modal__state-badge--home,
-  ha-card[data-theme="light"] .entity-modal__state-badge--on { background: rgba(34, 197, 94, 0.15); color: #16a34a; }
-  ha-card[data-theme="light"] .entity-modal__state-badge--not_home,
-  ha-card[data-theme="light"] .entity-modal__state-badge--off { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
-  ha-card[data-theme="light"] .entity-modal__state-badge--default { background: rgba(107, 114, 128, 0.15); color: #6b7280; }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__title { color: #0f172a; }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__close { color: #64748b; }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__close:hover { background: rgba(15, 23, 42, 0.1); color: #0f172a; }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__section-title { color: #475569; }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__info-row { background: rgba(15, 23, 42, 0.04); }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__info-label { color: #64748b; }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__info-value { color: #0f172a; }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__entity-item { background: rgba(15, 23, 42, 0.04); }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__entity-item:hover { background: rgba(59, 130, 246, 0.1); }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__entity-name { color: #0f172a; }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__entity-id { color: #64748b; }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__state-badge--home,
+  .entity-modal-overlay[data-theme="light"] .entity-modal__state-badge--on { background: rgba(34, 197, 94, 0.15); color: #16a34a; }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__state-badge--not_home,
+  .entity-modal-overlay[data-theme="light"] .entity-modal__state-badge--off { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__state-badge--default { background: rgba(107, 114, 128, 0.15); color: #6b7280; }
 `;
 var UnifiNetworkMapCard = class extends HTMLElement {
   constructor() {
@@ -1472,6 +1472,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   }
   disconnectedCallback() {
     this._stopStatusPolling();
+    this._removeEntityModal();
   }
   _startStatusPolling() {
     this._stopStatusPolling();
@@ -2042,16 +2043,14 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     return true;
   }
   _showEntityModal(nodeName) {
-    const existingModal = this.querySelector(".entity-modal-overlay");
-    if (existingModal) {
-      existingModal.remove();
-    }
+    this._removeEntityModal();
     const modalHtml = this._renderEntityModal(nodeName);
     const container = document.createElement("div");
     container.innerHTML = modalHtml;
     const overlay = container.firstElementChild;
     if (!overlay) return;
-    this.appendChild(overlay);
+    document.body.appendChild(overlay);
+    this._entityModalOverlay = overlay;
     this._wireEntityModalEvents(overlay);
   }
   _renderEntityModal(nodeName) {
@@ -2103,8 +2102,9 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       </div>
     `);
     const entityItems = relatedEntities.map((entity) => this._renderEntityItem(entity)).join("");
+    const theme = this._config?.theme ?? "dark";
     return `
-      <div class="entity-modal-overlay" data-modal-overlay>
+      <div class="entity-modal-overlay" data-modal-overlay data-theme="${escapeHtml(theme)}">
         <div class="entity-modal">
           <div class="entity-modal__header">
             <div class="entity-modal__title">
@@ -2182,31 +2182,45 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     return "entity-modal__state-badge--default";
   }
   _wireEntityModalEvents(overlay) {
-    overlay.onclick = (event) => {
+    overlay.addEventListener("click", (event) => {
       const target = event.target;
       if (target.hasAttribute("data-modal-overlay")) {
-        overlay.remove();
+        this._removeEntityModal();
         return;
       }
       const closeButton = target.closest('[data-action="close-modal"]');
       if (closeButton) {
-        overlay.remove();
+        this._removeEntityModal();
         return;
       }
       const entityItem = target.closest("[data-modal-entity-id]");
       if (entityItem) {
+        event.preventDefault();
+        event.stopPropagation();
         const entityId = entityItem.getAttribute("data-modal-entity-id");
         if (entityId) {
-          this.dispatchEvent(
-            new CustomEvent("hass-more-info", {
-              bubbles: true,
-              composed: true,
-              detail: { entityId }
-            })
-          );
+          this._openEntityDetails(entityId, overlay);
         }
       }
-    };
+    });
+  }
+  _openEntityDetails(entityId, overlay) {
+    this._removeEntityModal();
+    window.setTimeout(() => {
+      this.dispatchEvent(
+        new CustomEvent("hass-more-info", {
+          bubbles: true,
+          composed: true,
+          detail: { entityId }
+        })
+      );
+    }, 0);
+  }
+  _removeEntityModal() {
+    if (this._entityModalOverlay) {
+      this._entityModalOverlay.remove();
+      this._entityModalOverlay = void 0;
+    }
   }
   _wireControls(svg2) {
     const zoomIn = this.querySelector('[data-action="zoom-in"]');
