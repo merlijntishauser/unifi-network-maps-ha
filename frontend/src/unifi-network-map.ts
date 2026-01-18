@@ -39,7 +39,14 @@ function sanitizeSvg(svg: string): string {
 
 const DOMPURIFY_CONFIG = {
   USE_PROFILES: { html: true, svg: true, svgFilters: true },
-  ADD_ATTR: ["data-node-id", "data-action", "data-tab"],
+  ADD_ATTR: [
+    "data-node-id",
+    "data-action",
+    "data-tab",
+    "data-edge",
+    "data-edge-left",
+    "data-edge-right",
+  ],
 };
 
 function sanitizeHtml(markup: string): string {
@@ -93,8 +100,15 @@ const CARD_STYLES = `
   .unifi-network-map__controls button { background: rgba(15, 23, 42, 0.9); color: #e5e7eb; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 6px 10px; font-size: 12px; cursor: pointer; backdrop-filter: blur(8px); transition: all 0.15s ease; }
   .unifi-network-map__controls button:hover { background: rgba(59, 130, 246, 0.3); border-color: rgba(59, 130, 246, 0.5); }
   .unifi-network-map__viewport svg text, .unifi-network-map__viewport svg g { cursor: pointer; }
+  .unifi-network-map__viewport svg path[data-edge] { cursor: pointer; transition: stroke-width 0.15s ease, filter 0.15s ease; pointer-events: stroke; }
+  .unifi-network-map__viewport svg path[data-edge]:hover { stroke-width: 4; filter: drop-shadow(0 0 4px currentColor); }
   .unifi-network-map__panel { padding: 0; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); color: #e5e7eb; border-radius: 12px; font-size: 13px; overflow: hidden; display: flex; flex-direction: column; }
-  .unifi-network-map__tooltip { position: fixed; z-index: 2; background: rgba(15, 23, 42, 0.95); color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 12px; pointer-events: none; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(8px); }
+  .unifi-network-map__tooltip { position: fixed; z-index: 2; background: rgba(15, 23, 42, 0.95); color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 12px; pointer-events: none; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(8px); max-width: 280px; }
+  .unifi-network-map__tooltip--edge { display: flex; flex-direction: column; gap: 4px; }
+  .tooltip-edge__title { font-weight: 600; color: #f1f5f9; margin-bottom: 2px; }
+  .tooltip-edge__row { display: flex; align-items: center; gap: 6px; color: #94a3b8; }
+  .tooltip-edge__icon { font-size: 14px; width: 18px; text-align: center; }
+  .tooltip-edge__label { color: #cbd5e1; }
 
   /* Panel Header */
   .panel-header { display: flex; align-items: center; gap: 12px; padding: 16px; background: rgba(0,0,0,0.2); border-bottom: 1px solid rgba(255,255,255,0.05); }
@@ -592,6 +606,7 @@ class UnifiNetworkMapCard extends HTMLElement {
   private _panMoved = false;
   private _selectedNode?: string;
   private _hoveredNode?: string;
+  private _hoveredEdge?: Edge;
   private _svgAbortController?: AbortController;
   private _payloadAbortController?: AbortController;
   private _activeTab: "overview" | "stats" | "actions" = "overview";
@@ -1161,6 +1176,7 @@ class UnifiNetworkMapCard extends HTMLElement {
     this._ensureStyles();
     this._applyTransform(svg);
     this._highlightSelectedNode(svg);
+    this._annotateEdges(svg);
     this._wireControls(svg);
 
     viewport.onwheel = (event) => this._onWheel(event, svg);
@@ -1169,6 +1185,7 @@ class UnifiNetworkMapCard extends HTMLElement {
     viewport.onpointerup = () => this._onPointerUp();
     viewport.onpointerleave = () => {
       this._hoveredNode = undefined;
+      this._hoveredEdge = undefined;
       this._hideTooltip(tooltip);
     };
     viewport.onclick = (event) => this._onClick(event, tooltip);
@@ -1493,6 +1510,19 @@ class UnifiNetworkMapCard extends HTMLElement {
       this._applyTransform(svg);
       return;
     }
+    const edge = this._findEdgeFromTarget(event.target as Element);
+    if (edge) {
+      this._hoveredEdge = edge;
+      this._hoveredNode = undefined;
+      tooltip.hidden = false;
+      tooltip.classList.add("unifi-network-map__tooltip--edge");
+      tooltip.innerHTML = this._renderEdgeTooltip(edge);
+      tooltip.style.transform = "none";
+      tooltip.style.left = `${event.clientX + TOOLTIP_OFFSET_PX}px`;
+      tooltip.style.top = `${event.clientY + TOOLTIP_OFFSET_PX}px`;
+      return;
+    }
+    this._hoveredEdge = undefined;
     const label = this._resolveNodeName(event);
     if (!label) {
       this._hoveredNode = undefined;
@@ -1501,6 +1531,7 @@ class UnifiNetworkMapCard extends HTMLElement {
     }
     this._hoveredNode = label;
     tooltip.hidden = false;
+    tooltip.classList.remove("unifi-network-map__tooltip--edge");
     tooltip.textContent = label;
     tooltip.style.transform = "none";
     tooltip.style.left = `${event.clientX + TOOLTIP_OFFSET_PX}px`;
@@ -1530,6 +1561,54 @@ class UnifiNetworkMapCard extends HTMLElement {
 
   private _hideTooltip(tooltip: HTMLElement) {
     tooltip.hidden = true;
+    tooltip.classList.remove("unifi-network-map__tooltip--edge");
+  }
+
+  private _annotateEdges(svg: SVGElement): void {
+    if (!this._payload?.edges) return;
+    const paths = svg.querySelectorAll("path[stroke]");
+    const edges = this._payload.edges;
+    paths.forEach((path, index) => {
+      if (index < edges.length) {
+        const edge = edges[index];
+        path.setAttribute("data-edge", "true");
+        path.setAttribute("data-edge-left", edge.left);
+        path.setAttribute("data-edge-right", edge.right);
+      }
+    });
+  }
+
+  private _findEdgeFromTarget(target: Element | null): Edge | null {
+    if (!target || !this._payload?.edges) return null;
+    const edgePath = target.closest("path[data-edge]");
+    if (!edgePath) return null;
+    const left = edgePath.getAttribute("data-edge-left");
+    const right = edgePath.getAttribute("data-edge-right");
+    if (!left || !right) return null;
+    return this._payload.edges.find((e) => e.left === left && e.right === right) ?? null;
+  }
+
+  private _renderEdgeTooltip(edge: Edge): string {
+    const connectionType = edge.wireless ? "Wireless" : "Wired";
+    const icon = edge.wireless ? "📶" : "🔗";
+    const rows: string[] = [];
+    rows.push(
+      `<div class="tooltip-edge__title">${escapeHtml(edge.left)} ↔ ${escapeHtml(edge.right)}</div>`,
+    );
+    rows.push(
+      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">${icon}</span><span class="tooltip-edge__label">${connectionType}</span></div>`,
+    );
+    if (edge.label) {
+      rows.push(
+        `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">🔌</span><span class="tooltip-edge__label">${escapeHtml(edge.label)}</span></div>`,
+      );
+    }
+    if (edge.poe) {
+      rows.push(
+        `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">⚡</span><span class="tooltip-edge__label">PoE Powered</span></div>`,
+      );
+    }
+    return rows.join("");
   }
 
   private _applyTransform(svg: SVGElement) {
