@@ -1,4 +1,4 @@
-.PHONY: help venv install install-dev test format frontend-install frontend-build frontend-test frontend-typecheck frontend-lint frontend-format pre-commit-install pre-commit-run ci version-bump version release clean
+.PHONY: help venv install install-dev test format frontend-install frontend-build frontend-test frontend-typecheck frontend-lint frontend-format pre-commit-install pre-commit-run ci version-bump version release release-hotfix clean
 
 VENV_DIR := .venv
 PYTHON_BIN := $(shell command -v python3.13 >/dev/null 2>&1 && echo python3.13 || echo python3)
@@ -23,8 +23,9 @@ help:
 	@echo "  pre-commit-install Install git hooks (requires pre-commit)"
 	@echo "  pre-commit-run  Run all pre-commit hooks"
 	@echo "  ci              Run full local CI (pre-commit hooks)"
-	@echo "  version-bump    Bump integration and card versions, tag, and push"
-	@echo "  release         Create a GitHub release for the current VERSION"
+	@echo "  version-bump    Bump integration and card versions, build frontend bundle, tag, and push"
+	@echo "  release         Build release zip and print the gh release command"
+	@echo "  release-hotfix  Rebuild bundle, retag, and print gh upload command"
 	@echo "  clean           Remove .venv"
 
 venv:
@@ -93,6 +94,37 @@ release: ci version-bump
 	echo "Release zip created at $$zip_path. Run the following to publish:"; \
 	echo "gh release create \"v$$version\" \"$$zip_path\" --title \"v$$version\" --notes-file CHANGELOG.md"
 
+release-hotfix: ci
+	@version=$$(cat $(VERSION_FILE)); \
+	if ! echo "$$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$$'; then \
+		echo "Invalid semver in $(VERSION_FILE): $$version"; exit 1; \
+	fi; \
+	if ! command -v gh >/dev/null 2>&1; then \
+		echo "GitHub CLI not found. Install gh first."; exit 1; \
+	fi; \
+	if ! git diff --quiet || ! git diff --cached --quiet; then \
+		echo "Working tree not clean. Commit or stash changes first."; exit 1; \
+	fi; \
+	$(MAKE) frontend-build; \
+	if ! git diff --quiet; then \
+		git add frontend/dist/unifi-network-map.js custom_components/unifi_network_map/frontend/unifi-network-map.js; \
+		git commit -m "Rebuild card bundle for v$$version"; \
+		git push origin HEAD; \
+	fi; \
+	git tag -f "v$$version"; \
+	git push -f origin "v$$version"; \
+	zip_name=$$(python3 -c 'import json; print(json.load(open("hacs.json"))["filename"])'); \
+	if [ -z "$$zip_name" ]; then \
+		echo "hacs.json filename is missing"; exit 1; \
+	fi; \
+	dist_dir="dist"; \
+	mkdir -p "$$dist_dir"; \
+	zip_path="$$dist_dir/$$zip_name"; \
+	rm -f "$$zip_path"; \
+	python3 scripts/build_release_zip.py "$$zip_path"; \
+	echo "Release zip created at $$zip_path. Run the following to update the release asset:"; \
+	echo "gh release upload \"v$$version\" \"$$zip_path\" --clobber"
+
 version-bump:
 	@current=$$(cat $(VERSION_FILE)); \
 	default=$$(python3 -c 'import sys; v=sys.argv[1].strip().split("."); \
@@ -116,7 +148,8 @@ version-bump:
 	if ! grep -q "\"filename\": \"unifi-network-maps-ha-$$next.zip\"" hacs.json; then \
 		echo "hacs.json filename did not update"; exit 1; \
 	fi; \
-	git add $(VERSION_FILE) custom_components/unifi_network_map/manifest.json frontend/package.json frontend/package-lock.json hacs.json; \
+	$(MAKE) frontend-build; \
+	git add $(VERSION_FILE) custom_components/unifi_network_map/manifest.json frontend/package.json frontend/package-lock.json hacs.json frontend/dist/unifi-network-map.js custom_components/unifi_network_map/frontend/unifi-network-map.js; \
 	git commit -m "Bump version to $$next"; \
 	git tag -a "v$$next" -m "v$$next"; \
 	git push origin HEAD; \
