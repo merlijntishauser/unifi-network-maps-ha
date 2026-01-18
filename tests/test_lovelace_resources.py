@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+from typing import Callable, cast
+
+import pytest
 
 import custom_components.unifi_network_map as unifi_network_map
 
@@ -237,6 +240,34 @@ def test_ensure_lovelace_resource_handles_missing_lovelace_data() -> None:
     finally:
         # Restore original function
         setattr(unifi_network_map, "_load_lovelace_resources", original_load)
+
+
+def test_schedule_lovelace_resource_retry_increments_attempts() -> None:
+    hass = _FakeHass()
+    hass.data["unifi_network_map"] = {"lovelace_resource_attempts": 1}
+
+    schedule_retry = getattr(unifi_network_map, "_schedule_lovelace_resource_retry")
+    schedule_retry(hass)
+
+    assert hass.data["unifi_network_map"]["lovelace_resource_attempts"] == 2
+    assert len(hass.tasks) == 1
+
+
+def test_schedule_lovelace_resource_retry_logs_failure(caplog: pytest.LogCaptureFixture) -> None:
+    hass = _FakeHass()
+    hass.data["unifi_network_map"] = {"lovelace_resource_attempts": 6}
+
+    log_failure = cast(
+        Callable[[object, int], None],
+        getattr(unifi_network_map, "_log_lovelace_registration_failure"),
+    )
+
+    caplog.set_level("ERROR")
+    log_failure(hass, 6)
+    log_failure(hass, 6)
+
+    assert "Lovelace auto-registration failed after" in caplog.text
+    assert hass.data["unifi_network_map"]["lovelace_resource_failed"] is True
 
 
 def test_resource_payload_uses_res_type_field() -> None:
