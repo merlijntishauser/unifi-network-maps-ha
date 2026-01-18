@@ -5,6 +5,8 @@ import asyncio
 from custom_components.unifi_network_map import config_flow as config_flow_module
 from custom_components.unifi_network_map.const import (
     CONF_SITE,
+    CONF_SVG_HEIGHT,
+    CONF_SVG_WIDTH,
     CONF_VERIFY_SSL,
     DEFAULT_SITE,
     DEFAULT_VERIFY_SSL,
@@ -16,6 +18,11 @@ from homeassistant.const import CONF_PASSWORD, CONF_URL, CONF_USERNAME
 class FakeHass:
     async def async_add_executor_job(self, func, *args: object):
         return func(*args)
+
+
+class FakeEntry:
+    def __init__(self, options: dict[str, object] | None = None) -> None:
+        self.options = options or {}
 
 
 def _run(coro):
@@ -96,3 +103,47 @@ def test_step_user_rejects_url_with_credentials(monkeypatch):
 
     assert result["type"] == "form"
     assert result["errors"]["base"] == "url_has_credentials"
+
+
+def test_options_flow_returns_form_without_input(monkeypatch):
+    flow = config_flow_module.UniFiNetworkMapOptionsFlow(FakeEntry())
+
+    def _schema(_options):
+        return config_flow_module.vol.Schema({})
+
+    monkeypatch.setattr(config_flow_module, "_build_options_schema", _schema)
+    result = _run(flow.async_step_init())
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "init"
+
+
+def test_options_flow_filters_empty_svg_sizes():
+    flow = config_flow_module.UniFiNetworkMapOptionsFlow(FakeEntry())
+    user_input = {
+        "include_ports": True,
+        CONF_SVG_WIDTH: "",
+        CONF_SVG_HEIGHT: None,
+    }
+
+    result = _run(flow.async_step_init(user_input))
+
+    assert result["type"] == "create_entry"
+    assert CONF_SVG_WIDTH not in result["data"]
+    assert CONF_SVG_HEIGHT not in result["data"]
+
+
+def test_options_flow_reports_invalid_svg_size(monkeypatch):
+    flow = config_flow_module.UniFiNetworkMapOptionsFlow(FakeEntry())
+    user_input = {
+        CONF_SVG_WIDTH: "abc",
+    }
+
+    def _schema(_options):
+        return config_flow_module.vol.Schema({})
+
+    monkeypatch.setattr(config_flow_module, "_build_options_schema", _schema)
+    result = _run(flow.async_step_init(user_input))
+
+    assert result["type"] == "form"
+    assert result["errors"][CONF_SVG_WIDTH] == "expected_int"

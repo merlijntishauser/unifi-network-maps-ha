@@ -84,8 +84,19 @@ def _install_homeassistant_stubs() -> None:
             return {"type": "create_entry", "title": title, "data": data}
 
     class OptionsFlow:  # minimal stub for imports
-        def async_show_form(self, *, step_id: str, data_schema):
-            return {"type": "form", "step_id": step_id, "data_schema": data_schema}
+        def async_show_form(
+            self,
+            *,
+            step_id: str,
+            data_schema,
+            errors: dict[str, str] | None = None,
+        ):
+            return {
+                "type": "form",
+                "step_id": step_id,
+                "data_schema": data_schema,
+                "errors": errors,
+            }
 
         def async_create_entry(self, *, title: str, data: dict[str, object]):
             return {"type": "create_entry", "title": title, "data": data}
