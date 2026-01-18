@@ -10,7 +10,12 @@
 
 ## P3 - UX polish (User-facing)
 - **Docs improvements** - Add more screenshots + example dashboards.
+- **Card availability after install** - Warn users to hard-refresh or re-open dashboard when card isn't listed after auto-adding resource.
+- **Dashboard layout guidance** - Recommend sections view or 4-column layout for wide cards.
 - **Tooltip boundary detection** - Prevent off-screen tooltips.
+- **Isometric toggle refresh** - Switching isometric on/off requires reload; investigate auto-refresh on options change.
+- **Edge tooltip hitbox** - Increase hover target area so link tooltips trigger more easily.
+- **Entity quick-action popup** - Investigate why the HA entity details popup closes immediately; keep it open for interaction.
 - **Multi-site support** - Allow site selection from the UI.
 - **Search/filter in detail panel** - Find clients/devices quickly.
 - **Separate reset vs clear selection** - Reset view shouldn't clear panel.

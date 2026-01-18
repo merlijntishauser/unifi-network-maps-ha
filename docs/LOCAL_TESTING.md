@@ -14,14 +14,17 @@ repo.
 ```yaml
 # configuration.yaml
 default_config:
+
 logger:
   default: info
+  logs:
+    custom_components.unifi_network_map: debug
 ```
 
 2. Run Home Assistant with the integration mounted:
 
 ```bash
-docker run --rm -it \
+docker run -d -it \
   -p 8123:8123 \
   -v "$PWD/custom_components":/config/custom_components \
   -v "$PWD/configuration.yaml":/config/configuration.yaml \
