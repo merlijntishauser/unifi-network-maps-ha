@@ -52,7 +52,6 @@
 
 ### Enhanced Detail Panel
 - Copy-to-clipboard for MAC/IP.
-- show custom popup when clicking the device tracker entity, with all relevant info nicely formatted, instead of just the device tracker entity
 - Show all related HA entities.
 - Mini-graphs over time.
 - Quick actions (restart, block, open controller).
@@ -64,4 +63,5 @@
 - Virtualize large lists; lazy-load details; SVG culling.
 
 ## Done
+- show custom popup when clicking the device tracker entity, with all relevant info nicely formatted, instead of just the device tracker entity
 - All completed items added to the [changelog](CHANGELOG.md)
