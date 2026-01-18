@@ -9,11 +9,11 @@
 - **Diagnostics include clients list** (anonymized) - Include counts + sample names.
 
 ## P3 - UX polish (User-facing)
+- **Docs improvements** - Add more screenshots + example dashboards.
+- **Tooltip boundary detection** - Prevent off-screen tooltips.
+- **Multi-site support** - Allow site selection from the UI.
 - **Search/filter in detail panel** - Find clients/devices quickly.
 - **Separate reset vs clear selection** - Reset view shouldn't clear panel.
-- **Tooltip boundary detection** - Prevent off-screen tooltips.
-- **Docs improvements** - Add more screenshots + example dashboards.
-- **Multi-site support** - Allow site selection from the UI.
 
 ## P4 - Code quality & refactoring (XP alignment)
 - **Frontend split long methods** (>15 lines):
@@ -33,10 +33,10 @@
 
 ## P5 - Feature expansion (Nice-to-have)
 ### UX Enhancements
-- Keyboard navigation and accessibility improvements.
-- Double-click zoom-to-fit; pinch-to-zoom on touch.
-- Loading state + retry for payload fetches.
 - Export current view as PNG.
+- Loading state + retry for payload fetches.
+- Double-click zoom-to-fit; pinch-to-zoom on touch.
+- Keyboard navigation and accessibility improvements.
 
 ### Real-time Device Status
 - Online/offline halos, bandwidth/signal overlays.
