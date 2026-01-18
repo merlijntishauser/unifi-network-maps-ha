@@ -37,6 +37,10 @@
 - Loading state + retry for payload fetches.
 - Double-click zoom-to-fit; pinch-to-zoom on touch.
 - Keyboard navigation and accessibility improvements.
+- Improve highlighting of selected nodes in the svg, the blue outline looks ugly on label text
+- Attributes of the entity feels outdated
+- Asses if we create the right entities / HA artifacts for this integration
+- Add picture to custom card chooser in lovelace
 
 ### Real-time Device Status
 - Online/offline halos, bandwidth/signal overlays.
@@ -51,6 +55,7 @@
 ### Enhanced Detail Panel
 - Copy-to-clipboard for MAC/IP.
 - Show all related HA entities.
+- show custom popup when clicking the device tracker entity, with all relevant info nicely formatted, instead of just the device tracker entity 
 - Mini-graphs over time.
 - Quick actions (restart, block, open controller).
 
