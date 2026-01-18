@@ -132,6 +132,13 @@ describe("unifi-network-map card", () => {
     expect(config?.data_url).toBe("/api/unifi_network_map/entry-1/payload");
   });
 
+  it("defaults to dark theme when entry_id config has no theme", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    element.setConfig({ entry_id: "entry-2" });
+    const config = (element as unknown as { _config?: { svg_url?: string } })._config;
+    expect(config?.svg_url).toBe("/api/unifi_network_map/entry-2/svg?theme=dark");
+  });
+
   it("sanitizes svg content before rendering", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     (element as unknown as { _svgContent?: string })._svgContent =
@@ -140,6 +147,21 @@ describe("unifi-network-map card", () => {
     expect(element.innerHTML).toContain("<svg");
     expect(element.innerHTML).not.toContain("<script");
     expect(element.innerHTML).not.toContain("onload");
+  });
+
+  it("sanitizes svg without an svg root", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    (element as unknown as { _svgContent?: string })._svgContent = "<div>no svg</div>";
+    element.setConfig({ svg_url: "/map.svg" });
+    expect(element.innerHTML).not.toContain("<svg");
+  });
+
+  it("strips javascript: URLs from svg attributes", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    (element as unknown as { _svgContent?: string })._svgContent =
+      '<svg><a href="javascript:alert(1)">bad</a></svg>';
+    element.setConfig({ svg_url: "/map.svg" });
+    expect(element.innerHTML).not.toContain("javascript:");
   });
 
   it("renders overview stats when payload loads", async () => {
@@ -178,6 +200,16 @@ describe("unifi-network-map card", () => {
     expect(element.innerHTML).toContain("Failed to load SVG (HTTP 500)");
   });
 
+  it("clears missing auth error once token is available", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as { _error?: string; _config?: { svg_url?: string } };
+    card._error = "Missing auth token";
+    card._config = { svg_url: "/map.svg" };
+    element.hass = { auth: { data: { access_token: "token" } } };
+    element.setConfig({ svg_url: "/map.svg" });
+    expect(card._error).toBeUndefined();
+  });
+
   it("selects a node on click and shows panel details", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     (element as unknown as { _svgContent?: string })._svgContent = makeSvg("Node A");
@@ -209,6 +241,24 @@ describe("unifi-network-map card", () => {
     expect(element.innerHTML).toContain("No data available");
   });
 
+  it("shows live status badge in node panel", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as {
+      _svgContent?: string;
+      _payload?: unknown;
+      _selectedNode?: string;
+    };
+    card._svgContent = makeSvg("Gateway");
+    card._payload = {
+      edges: [],
+      node_types: { Gateway: "gateway" },
+      node_status: { Gateway: { entity_id: "sensor.gateway", state: "offline" } },
+    };
+    card._selectedNode = "Gateway";
+    element.setConfig({ svg_url: "/map.svg" });
+    expect(element.innerHTML).toContain("Offline");
+  });
+
   it("renders stats and device info tab content", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     const card = element as unknown as {
@@ -237,6 +287,27 @@ describe("unifi-network-map card", () => {
     expect(element.innerHTML).toContain("MAC Address");
   });
 
+  it("omits stats live status when status is missing", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as {
+      _svgContent?: string;
+      _payload?: unknown;
+      _selectedNode?: string;
+      _activeTab?: string;
+    };
+    card._svgContent = makeSvg("Gateway");
+    card._payload = {
+      edges: [],
+      node_types: { Gateway: "gateway" },
+      node_status: {},
+      device_macs: { Gateway: "aa:bb:cc:dd:ee:ff" },
+    };
+    card._selectedNode = "Gateway";
+    card._activeTab = "stats";
+    element.setConfig({ svg_url: "/map.svg" });
+    expect(element.innerHTML).not.toContain("Live Status</div>");
+  });
+
   it("renders actions tab when no entity is linked", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     const card = element as unknown as {
@@ -251,6 +322,28 @@ describe("unifi-network-map card", () => {
     card._activeTab = "actions";
     element.setConfig({ svg_url: "/map.svg" });
     expect(element.innerHTML).toContain("No Home Assistant entity linked");
+  });
+
+  it("renders overview neighbor badges for wireless, poe, and label", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as {
+      _svgContent?: string;
+      _payload?: unknown;
+      _selectedNode?: string;
+      _activeTab?: string;
+    };
+    card._svgContent = makeSvg("Gateway");
+    card._payload = {
+      edges: [{ left: "Gateway", right: "AP", label: "Port 1", wireless: true, poe: true }],
+      node_types: { Gateway: "gateway", AP: "ap" },
+      node_status: {},
+    };
+    card._selectedNode = "Gateway";
+    card._activeTab = "overview";
+    element.setConfig({ svg_url: "/map.svg" });
+    expect(element.innerHTML).toContain("WiFi");
+    expect(element.innerHTML).toContain("PoE");
+    expect(element.innerHTML).toContain("Port 1");
   });
 
   it("clamps zoom levels within bounds", () => {
@@ -291,6 +384,25 @@ describe("unifi-network-map card", () => {
     expect(card._panMoved).toBe(true);
   });
 
+  it("keeps tooltip hidden when hover target has no label", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as {
+      _onPointerMove: (event: PointerEvent, svg: SVGElement, tooltip: HTMLElement) => void;
+    };
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    const tooltip = document.createElement("div");
+    tooltip.hidden = false;
+    const originalElementFromPoint = document.elementFromPoint;
+    document.elementFromPoint = () => null;
+    card._onPointerMove(
+      { composedPath: () => [], clientX: 0, clientY: 0 } as unknown as PointerEvent,
+      svg,
+      tooltip,
+    );
+    document.elementFromPoint = originalElementFromPoint;
+    expect(tooltip.hidden).toBe(true);
+  });
+
   it("infers node names from aria labels", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     const card = element as unknown as {
@@ -299,6 +411,46 @@ describe("unifi-network-map card", () => {
     const node = document.createElement("div");
     node.setAttribute("aria-label", "Switch A");
     expect(card._inferNodeName(node)).toBe("Switch A");
+  });
+
+  it("infers node name from text element", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as {
+      _inferNodeName: (target: Element | null) => string | null;
+    };
+    const text = document.createElement("text");
+    text.textContent = "Text Node";
+    expect(card._inferNodeName(text)).toBe("Text Node");
+  });
+
+  it("infers node name from group title", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as {
+      _inferNodeName: (target: Element | null) => string | null;
+    };
+    const group = document.createElement("g");
+    const title = document.createElement("title");
+    title.textContent = "Title Node";
+    group.appendChild(title);
+    expect(card._inferNodeName(group)).toBe("Title Node");
+  });
+
+  it("finds node element by aria label and title", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as {
+      _findNodeElement: (svg: SVGElement, name: string) => Element | null;
+    };
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    const ariaGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    ariaGroup.setAttribute("aria-label", "Node B");
+    svg.appendChild(ariaGroup);
+    const titleGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+    title.textContent = "Node C";
+    titleGroup.appendChild(title);
+    svg.appendChild(titleGroup);
+    expect(card._findNodeElement(svg, "Node B")).toBe(ariaGroup);
+    expect(card._findNodeElement(svg, "Node C")).toBe(titleGroup);
   });
 
   it("returns aborted state on fetch abort", async () => {
@@ -471,6 +623,10 @@ describe("unifi-network-map card", () => {
     expect(card._formatLastChanged(null)).toBe("Unknown");
     expect(card._formatLastChanged("invalid")).toBe("NaNd ago");
     expect(card._formatLastChanged(new Date().toISOString())).toBe("Just now");
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    expect(card._formatLastChanged(twoHoursAgo)).toContain("h ago");
+    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+    expect(card._formatLastChanged(twoDaysAgo)).toContain("d ago");
   });
 
   it("returns missing auth error from fetch helper", async () => {
@@ -485,6 +641,194 @@ describe("unifi-network-map card", () => {
     const controller = new AbortController();
     const result = await card._fetchWithAuth("/map.svg", controller.signal, async () => "");
     expect(result).toEqual({ error: "Missing auth token" });
+  });
+
+  it("skips payload loading when auth token is missing", async () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as {
+      _config?: { data_url?: string };
+      _hass?: unknown;
+      _loadPayload: () => Promise<void>;
+      _dataLoading: boolean;
+    };
+    card._config = { data_url: "/map.json" };
+    card._hass = {};
+    await card._loadPayload();
+    expect(card._dataLoading).toBe(false);
+  });
+
+  it("returns error when fetch throws non-Error", async () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as {
+      _fetchWithAuth: (
+        url: string,
+        signal: AbortSignal,
+        parseResponse: (response: Response) => Promise<string>,
+      ) => Promise<{ error: string }>;
+      _hass?: { auth?: { data?: { access_token?: string } } };
+    };
+    card._hass = { auth: { data: { access_token: "token" } } };
+    (globalThis as { fetch?: typeof fetch }).fetch = jest.fn().mockRejectedValue("boom");
+    const controller = new AbortController();
+    const result = await card._fetchWithAuth("/map.svg", controller.signal, async () => "");
+    expect(result).toEqual({ error: "boom" });
+  });
+
+  it("returns early when clicking with no resolved node", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as {
+      _onClick: (event: MouseEvent, tooltip: HTMLElement) => void;
+      _selectedNode?: string;
+    };
+    const tooltip = document.createElement("div");
+    const originalElementFromPoint = document.elementFromPoint;
+    document.elementFromPoint = () => null;
+    card._onClick(
+      { composedPath: () => [], clientX: 0, clientY: 0 } as unknown as MouseEvent,
+      tooltip,
+    );
+    document.elementFromPoint = originalElementFromPoint;
+    expect(card._selectedNode).toBeUndefined();
+  });
+
+  it("marks selected elements for non-g tags", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as { _markNodeSelected: (el: Element) => void };
+    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    card._markNodeSelected(rect);
+    expect(rect.classList.contains("node--selected")).toBe(true);
+  });
+
+  it("returns node type icons for common types", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as { _getNodeTypeIcon: (type: string) => string };
+    expect(card._getNodeTypeIcon("gateway")).toBe("🌐");
+    expect(card._getNodeTypeIcon("switch")).toBe("🔀");
+    expect(card._getNodeTypeIcon("ap")).toBe("📶");
+    expect(card._getNodeTypeIcon("client")).toBe("💻");
+    expect(card._getNodeTypeIcon("unknown")).toBe("📦");
+  });
+
+  it("returns default tab content for unknown tab", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as {
+      _renderTabContent: (name: string) => string;
+      _activeTab: "overview" | "stats" | "actions" | "other";
+    };
+    card._activeTab = "other";
+    expect(card._renderTabContent("Node A")).toBe("");
+  });
+
+  it("handles missing panel while wiring interactions", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    element.innerHTML = `
+      <div class="unifi-network-map__viewport">
+        <svg></svg>
+        <div class="unifi-network-map__tooltip" hidden></div>
+      </div>
+    `;
+    const card = element as unknown as { _wireInteractions: () => void };
+    card._wireInteractions();
+    expect(element.querySelector(".unifi-network-map__tooltip")).not.toBeNull();
+  });
+
+  it("handles pointer up reset state", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as {
+      _onPointerUp: () => void;
+      _isPanning: boolean;
+      _panStart: object | null;
+    };
+    card._isPanning = true;
+    card._panStart = { x: 1, y: 1 };
+    card._onPointerUp();
+    expect(card._isPanning).toBe(false);
+    expect(card._panStart).toBeNull();
+  });
+
+  it("resolves node name from text element in event path", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as { _resolveNodeName: (event: MouseEvent) => string | null };
+    const text = document.createElement("text");
+    text.textContent = "Path Text";
+    const event = {
+      composedPath: () => [text],
+      clientX: 0,
+      clientY: 0,
+    } as unknown as MouseEvent;
+    expect(card._resolveNodeName(event)).toBe("Path Text");
+  });
+
+  it("resolves node name from title element in event path", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as { _resolveNodeName: (event: MouseEvent) => string | null };
+    const title = document.createElement("title");
+    title.textContent = "Title Path";
+    const event = {
+      composedPath: () => [title],
+      clientX: 0,
+      clientY: 0,
+    } as unknown as MouseEvent;
+    expect(card._resolveNodeName(event)).toBe("Title Path");
+  });
+
+  it("falls back to inferNodeName when resolve path has no match", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as { _resolveNodeName: (event: MouseEvent) => string | null };
+    const target = document.createElement("div");
+    target.setAttribute("data-node-id", "Fallback Node");
+    const originalElementFromPoint = document.elementFromPoint;
+    document.elementFromPoint = () => target;
+    const event = {
+      composedPath: () => [],
+      clientX: 0,
+      clientY: 0,
+    } as unknown as MouseEvent;
+    expect(card._resolveNodeName(event)).toBe("Fallback Node");
+    document.elementFromPoint = originalElementFromPoint;
+  });
+
+  it("infers node name from group text", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as {
+      _inferNodeName: (target: Element | null) => string | null;
+    };
+    const group = document.createElement("g");
+    const text = document.createElement("text");
+    text.textContent = "Group Text";
+    group.appendChild(text);
+    expect(card._inferNodeName(group)).toBe("Group Text");
+  });
+
+  it("returns null when infer node name has no matches", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as {
+      _inferNodeName: (target: Element | null) => string | null;
+    };
+    expect(card._inferNodeName(null)).toBeNull();
+    const empty = document.createElement("div");
+    expect(card._inferNodeName(empty)).toBeNull();
+  });
+
+  it("finds node element by text content", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as {
+      _findNodeElement: (svg: SVGElement, name: string) => Element | null;
+    };
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    text.textContent = "Node D";
+    svg.appendChild(text);
+    expect(card._findNodeElement(svg, "Node D")).toBe(text);
+  });
+
+  it("returns null when findNodeElement has no matches", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as {
+      _findNodeElement: (svg: SVGElement, name: string) => Element | null;
+    };
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    expect(card._findNodeElement(svg, "Missing")).toBeNull();
   });
 
   it("exposes layout and editor helpers", () => {
@@ -534,6 +878,31 @@ describe("unifi-network-map card", () => {
     element.disconnectedCallback?.();
     expect(card._statusPollInterval).toBeUndefined();
     jest.useRealTimers();
+  });
+
+  it("ignores pointer down on control targets", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as {
+      _onPointerDown: (event: PointerEvent) => void;
+      _isPanning: boolean;
+    };
+    const controls = document.createElement("div");
+    controls.classList.add("unifi-network-map__controls");
+    card._onPointerDown({ target: controls } as unknown as PointerEvent);
+    expect(card._isPanning).toBe(false);
+  });
+
+  it("updates zoom based on wheel direction", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as {
+      _onWheel: (event: WheelEvent, svg: SVGElement) => void;
+      _panState: { scale: number };
+    };
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    card._onWheel({ deltaY: 1, preventDefault: () => undefined } as unknown as WheelEvent, svg);
+    expect(card._panState.scale).toBeLessThan(1);
+    card._onWheel({ deltaY: -1, preventDefault: () => undefined } as unknown as WheelEvent, svg);
+    expect(card._panState.scale).toBeGreaterThan(0.5);
   });
 
   it("sets missing auth error when loading svg without token", async () => {
@@ -787,5 +1156,47 @@ describe("unifi-network-map editor", () => {
     element.hass = { callWS: jest.fn().mockRejectedValue(new Error("fail")) };
     await flushPromises();
     expect(element.innerHTML).toContain("No UniFi Network Map integrations found");
+  });
+
+  it("keeps config when entry and theme are unchanged", async () => {
+    const element = document.createElement("unifi-network-map-editor") as EditorElement;
+    element.setConfig({ entry_id: "entry-1", theme: "dark" });
+    const callWS = jest
+      .fn()
+      .mockResolvedValue([{ entry_id: "entry-1", title: "Site", domain: "unifi_network_map" }]);
+    element.hass = { callWS };
+    await flushPromises();
+    const handler = jest.fn();
+    element.addEventListener("config-changed", handler);
+    const form = element.querySelector("ha-form") as HTMLElement;
+    form.dispatchEvent(
+      new CustomEvent("value-changed", {
+        detail: { value: { entry_id: "entry-1", theme: "dark" } },
+      }),
+    );
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("skips loading entries when hass callWS is missing", async () => {
+    const element = document.createElement("unifi-network-map-editor") as EditorElement;
+    element.hass = {};
+    await flushPromises();
+    element.setConfig({ entry_id: "", theme: "dark" });
+    expect(element.innerHTML).toContain("No UniFi Network Map integrations found");
+  });
+
+  it("renders without form when ha-form is unavailable", async () => {
+    const element = document.createElement("unifi-network-map-editor") as EditorElement;
+    const entries: ConfigEntry[] = [
+      { entry_id: "entry-1", title: "Site 1", domain: "unifi_network_map" },
+    ];
+    element.hass = { callWS: jest.fn().mockResolvedValue(entries) };
+    await flushPromises();
+    const originalQuerySelector = element.querySelector.bind(element);
+    element.querySelector = (() => null) as typeof element.querySelector;
+    element.setConfig({ entry_id: "entry-1", theme: "dark" });
+    element.querySelector = originalQuerySelector;
+    const form = element.querySelector("ha-form");
+    expect(form).not.toBeNull();
   });
 });
