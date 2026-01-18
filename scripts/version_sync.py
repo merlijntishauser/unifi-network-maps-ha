@@ -10,6 +10,9 @@ VERSION_FILE = ROOT / "VERSION"
 MANIFEST_FILE = ROOT / "custom_components" / "unifi_network_map" / "manifest.json"
 FRONTEND_PACKAGE = ROOT / "frontend" / "package.json"
 FRONTEND_LOCK = ROOT / "frontend" / "package-lock.json"
+HACS_FILE = ROOT / "hacs.json"
+HACS_ZIP_PREFIX = "unifi-network-maps-ha-"
+HACS_ZIP_SUFFIX = ".zip"
 
 
 def read_version(path: Path) -> str:
@@ -50,10 +53,18 @@ def update_frontend_lock(version: str) -> None:
     write_json(FRONTEND_LOCK, lock)
 
 
+def update_hacs(version: str) -> None:
+    hacs = load_json(HACS_FILE)
+    hacs["zip_release"] = True
+    hacs["filename"] = f"{HACS_ZIP_PREFIX}{version}{HACS_ZIP_SUFFIX}"
+    write_json(HACS_FILE, hacs)
+
+
 def update_versions(version: str) -> None:
     update_manifest(version)
     update_frontend_package(version)
     update_frontend_lock(version)
+    update_hacs(version)
 
 
 def main() -> int:

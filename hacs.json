@@ -2,5 +2,6 @@
   "name": "UniFi Network Map",
   "content_in_root": false,
   "render_readme": true,
-  "zip_release": true
+  "zip_release": true,
+  "filename": "unifi-network-maps-ha-0.1.1.zip"
 }

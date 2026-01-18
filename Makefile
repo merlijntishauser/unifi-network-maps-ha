@@ -81,7 +81,16 @@ release: ci version-bump
 	if ! command -v gh >/dev/null 2>&1; then \
 		echo "GitHub CLI not found. Install gh first."; exit 1; \
 	fi; \
-	gh release create "v$$version" --title "v$$version" --notes-file CHANGELOG.md
+	zip_name=$$(python3 -c 'import json; print(json.load(open("hacs.json"))["filename"])'); \
+	if [ -z "$$zip_name" ]; then \
+		echo "hacs.json filename is missing"; exit 1; \
+	fi; \
+	dist_dir="dist"; \
+	mkdir -p "$$dist_dir"; \
+	zip_path="$$dist_dir/$$zip_name"; \
+	rm -f "$$zip_path"; \
+	python3 scripts/build_release_zip.py "$$zip_path"; \
+	gh release create "v$$version" "$$zip_path" --title "v$$version" --notes-file CHANGELOG.md
 
 version-bump:
 	@current=$$(cat $(VERSION_FILE)); \
@@ -103,7 +112,10 @@ version-bump:
 	if ! grep -q "\"version\": \"$$next\"" custom_components/unifi_network_map/manifest.json; then \
 		echo "manifest.json version did not update"; exit 1; \
 	fi; \
-	git add $(VERSION_FILE) custom_components/unifi_network_map/manifest.json frontend/package.json frontend/package-lock.json; \
+	if ! grep -q "\"filename\": \"unifi-network-maps-ha-$$next.zip\"" hacs.json; then \
+		echo "hacs.json filename did not update"; exit 1; \
+	fi; \
+	git add $(VERSION_FILE) custom_components/unifi_network_map/manifest.json frontend/package.json frontend/package-lock.json hacs.json; \
 	git commit -m "Bump version to $$next"; \
 	git tag -a "v$$next" -m "v$$next"; \
 	git push origin HEAD; \
