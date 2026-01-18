@@ -27,7 +27,6 @@
 
 ### Frontend (TypeScript)
 - Split long functions (>15 lines) violating XP principles:
-  - `_renderStatsTab()` (63 lines) - split into sections
   - `UnifiNetworkMapEditor._render()` (63 lines) - extract form building
   - `_onPanelClick()` (62 lines) - split handlers
   - `_highlightSelectedNode()` (57 lines) - extract node finding strategies

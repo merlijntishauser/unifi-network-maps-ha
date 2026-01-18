@@ -612,13 +612,19 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   _renderStatsTab(name) {
     const edges = this._payload?.edges ?? [];
     const nodeEdges = edges.filter((edge) => edge.left === name || edge.right === name);
-    const wirelessCount = nodeEdges.filter((e) => e.wireless).length;
-    const wiredCount = nodeEdges.length - wirelessCount;
-    const poeCount = nodeEdges.filter((e) => e.poe).length;
     const mac = this._payload?.client_macs?.[name] ?? this._payload?.device_macs?.[name] ?? null;
     const status = this._payload?.node_status?.[name];
     return `
-      ${status ? `
+      ${this._renderStatsLiveStatus(status)}
+      ${this._renderStatsConnectionSection(nodeEdges)}
+      ${this._renderStatsDeviceInfo(mac)}
+    `;
+  }
+  _renderStatsLiveStatus(status) {
+    if (!status) {
+      return "";
+    }
+    return `
       <div class="panel-section">
         <div class="panel-section__title">Live Status</div>
         <div class="stats-list">
@@ -632,7 +638,14 @@ var UnifiNetworkMapCard = class extends HTMLElement {
           </div>
         </div>
       </div>
-      ` : ""}
+    `;
+  }
+  _renderStatsConnectionSection(nodeEdges) {
+    const wirelessCount = nodeEdges.filter((e) => e.wireless).length;
+    const wiredCount = nodeEdges.length - wirelessCount;
+    const poeCount = nodeEdges.filter((e) => e.poe).length;
+    const poeRow = poeCount > 0 ? `<div class="stats-row"><span class="stats-row__label">PoE Powered</span><span class="stats-row__value">${poeCount}</span></div>` : "";
+    return `
       <div class="panel-section">
         <div class="panel-section__title">Connection Stats</div>
         <div class="stats-list">
@@ -648,18 +661,23 @@ var UnifiNetworkMapCard = class extends HTMLElement {
             <span class="stats-row__label">Wireless</span>
             <span class="stats-row__value">${wirelessCount}</span>
           </div>
-          ${poeCount > 0 ? `<div class="stats-row"><span class="stats-row__label">PoE Powered</span><span class="stats-row__value">${poeCount}</span></div>` : ""}
+          ${poeRow}
         </div>
       </div>
-      ${mac ? `
-        <div class="panel-section">
-          <div class="panel-section__title">Device Info</div>
-          <div class="info-row">
-            <span class="info-row__label">MAC Address</span>
-            <code class="info-row__value">${escapeHtml(mac)}</code>
-          </div>
+    `;
+  }
+  _renderStatsDeviceInfo(mac) {
+    if (!mac) {
+      return "";
+    }
+    return `
+      <div class="panel-section">
+        <div class="panel-section__title">Device Info</div>
+        <div class="info-row">
+          <span class="info-row__label">MAC Address</span>
+          <code class="info-row__value">${escapeHtml(mac)}</code>
         </div>
-      ` : ""}
+      </div>
     `;
   }
   _renderActionsTab(name) {

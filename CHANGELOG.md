@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Extracted CSS styles to `CARD_STYLES` constant (reduced `_ensureStyles()` from 164 to 9 lines).
 - Split `_renderMapOverview()` into focused helper methods (67 → 30 lines).
+- Split `_renderStatsTab()` into focused helper methods (63 → 12 lines).
 
 ## [0.1.1] - 2026-01-17
 - Validate GitHub workflows and HACS checks.
