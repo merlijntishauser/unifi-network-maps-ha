@@ -236,6 +236,205 @@ const CARD_STYLES = `
   @media (max-width: 800px) {
     .unifi-network-map__layout { grid-template-columns: 1fr; }
   }
+
+  /* Entity Modal Styles */
+  .entity-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+  }
+  .entity-modal {
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 480px;
+    max-height: 85vh;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+  }
+  .entity-modal__header {
+    padding: 20px 24px;
+    background: rgba(148, 163, 184, 0.1);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .entity-modal__title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #f8fafc;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .entity-modal__close {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: all 0.2s;
+  }
+  .entity-modal__close:hover {
+    background: rgba(148, 163, 184, 0.2);
+    color: #f8fafc;
+  }
+  .entity-modal__body {
+    padding: 20px 24px;
+    overflow-y: auto;
+    max-height: calc(85vh - 80px);
+  }
+  .entity-modal__section {
+    margin-bottom: 20px;
+  }
+  .entity-modal__section:last-child {
+    margin-bottom: 0;
+  }
+  .entity-modal__section-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748b;
+    margin-bottom: 12px;
+  }
+  .entity-modal__info-grid {
+    display: grid;
+    gap: 8px;
+  }
+  .entity-modal__info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: rgba(30, 41, 59, 0.5);
+    border-radius: 8px;
+    border: 1px solid rgba(148, 163, 184, 0.1);
+  }
+  .entity-modal__info-label {
+    color: #94a3b8;
+    font-size: 13px;
+  }
+  .entity-modal__info-value {
+    color: #f8fafc;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: monospace;
+  }
+  .entity-modal__entity-list {
+    display: grid;
+    gap: 8px;
+  }
+  .entity-modal__entity-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: rgba(30, 41, 59, 0.5);
+    border-radius: 10px;
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .entity-modal__entity-item:hover {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.3);
+  }
+  .entity-modal__entity-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    flex: 1;
+  }
+  .entity-modal__entity-name {
+    color: #f8fafc;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .entity-modal__entity-id {
+    color: #64748b;
+    font-size: 11px;
+    font-family: monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .entity-modal__entity-state {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .entity-modal__state-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .entity-modal__state-badge--home,
+  .entity-modal__state-badge--on {
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+  }
+  .entity-modal__state-badge--not_home,
+  .entity-modal__state-badge--off {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+  }
+  .entity-modal__state-badge--default {
+    background: rgba(148, 163, 184, 0.2);
+    color: #94a3b8;
+  }
+  .entity-modal__domain-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+    margin-right: 12px;
+  }
+  .entity-modal__arrow {
+    color: #64748b;
+    margin-left: 8px;
+  }
+
+  /* Light theme modal */
+  ha-card[data-theme="light"] .entity-modal {
+    background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+  }
+  ha-card[data-theme="light"] .entity-modal__header {
+    background: rgba(148, 163, 184, 0.15);
+    border-bottom-color: rgba(148, 163, 184, 0.3);
+  }
+  ha-card[data-theme="light"] .entity-modal__title { color: #0f172a; }
+  ha-card[data-theme="light"] .entity-modal__close { color: #64748b; }
+  ha-card[data-theme="light"] .entity-modal__close:hover { background: rgba(15, 23, 42, 0.1); color: #0f172a; }
+  ha-card[data-theme="light"] .entity-modal__section-title { color: #475569; }
+  ha-card[data-theme="light"] .entity-modal__info-row { background: rgba(15, 23, 42, 0.04); }
+  ha-card[data-theme="light"] .entity-modal__info-label { color: #64748b; }
+  ha-card[data-theme="light"] .entity-modal__info-value { color: #0f172a; }
+  ha-card[data-theme="light"] .entity-modal__entity-item { background: rgba(15, 23, 42, 0.04); }
+  ha-card[data-theme="light"] .entity-modal__entity-item:hover { background: rgba(59, 130, 246, 0.1); }
+  ha-card[data-theme="light"] .entity-modal__entity-name { color: #0f172a; }
+  ha-card[data-theme="light"] .entity-modal__entity-id { color: #64748b; }
+  ha-card[data-theme="light"] .entity-modal__state-badge--home,
+  ha-card[data-theme="light"] .entity-modal__state-badge--on { background: rgba(34, 197, 94, 0.15); color: #16a34a; }
+  ha-card[data-theme="light"] .entity-modal__state-badge--not_home,
+  ha-card[data-theme="light"] .entity-modal__state-badge--off { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
+  ha-card[data-theme="light"] .entity-modal__state-badge--default { background: rgba(107, 114, 128, 0.15); color: #6b7280; }
 `;
 
 interface Edge {
@@ -290,6 +489,15 @@ interface FormSchemaEntry {
   label: string;
 }
 
+interface RelatedEntity {
+  entity_id: string;
+  domain: string;
+  state: string | null;
+  last_changed?: string | null;
+  ip?: string | null;
+  friendly_name?: string | null;
+}
+
 interface MapPayload {
   schema_version?: string;
   edges: Edge[];
@@ -301,6 +509,7 @@ interface MapPayload {
   node_status?: Record<string, NodeStatus>;
   client_macs?: Record<string, string>;
   device_macs?: Record<string, string>;
+  related_entities?: Record<string, RelatedEntity[]>;
 }
 
 class UnifiNetworkMapCard extends HTMLElement {
@@ -1028,17 +1237,202 @@ class UnifiNetworkMapCard extends HTMLElement {
     if (!entityButton) return false;
 
     event.preventDefault();
-    const entityId = entityButton.getAttribute("data-entity-id");
-    if (entityId) {
-      this.dispatchEvent(
-        new CustomEvent("hass-more-info", {
-          bubbles: true,
-          composed: true,
-          detail: { entityId },
-        }),
-      );
+    if (this._selectedNode) {
+      this._showEntityModal(this._selectedNode);
     }
     return true;
+  }
+
+  private _showEntityModal(nodeName: string): void {
+    const existingModal = this.querySelector(".entity-modal-overlay");
+    if (existingModal) {
+      existingModal.remove();
+    }
+
+    const modalHtml = this._renderEntityModal(nodeName);
+    const container = document.createElement("div");
+    container.innerHTML = modalHtml;
+    const overlay = container.firstElementChild as HTMLElement;
+    if (!overlay) return;
+
+    this.appendChild(overlay);
+    this._wireEntityModalEvents(overlay);
+  }
+
+  private _renderEntityModal(nodeName: string): string {
+    const safeName = escapeHtml(nodeName);
+    const mac = this._payload?.client_macs?.[nodeName] ?? this._payload?.device_macs?.[nodeName];
+    const nodeType = this._payload?.node_types?.[nodeName] ?? "unknown";
+    const status = this._payload?.node_status?.[nodeName];
+    const relatedEntities = this._payload?.related_entities?.[nodeName] ?? [];
+    const typeIcon = this._getNodeTypeIcon(nodeType);
+
+    const infoRows: string[] = [];
+
+    if (mac) {
+      infoRows.push(`
+        <div class="entity-modal__info-row">
+          <span class="entity-modal__info-label">MAC Address</span>
+          <span class="entity-modal__info-value">${escapeHtml(mac)}</span>
+        </div>
+      `);
+    }
+
+    const ipEntity = relatedEntities.find((e) => e.ip);
+    if (ipEntity?.ip) {
+      infoRows.push(`
+        <div class="entity-modal__info-row">
+          <span class="entity-modal__info-label">IP Address</span>
+          <span class="entity-modal__info-value">${escapeHtml(ipEntity.ip)}</span>
+        </div>
+      `);
+    }
+
+    if (status?.state) {
+      const stateDisplay =
+        status.state === "online" ? "Online" : status.state === "offline" ? "Offline" : "Unknown";
+      infoRows.push(`
+        <div class="entity-modal__info-row">
+          <span class="entity-modal__info-label">Status</span>
+          <span class="entity-modal__info-value">${stateDisplay}</span>
+        </div>
+      `);
+    }
+
+    if (status?.last_changed) {
+      infoRows.push(`
+        <div class="entity-modal__info-row">
+          <span class="entity-modal__info-label">Last Changed</span>
+          <span class="entity-modal__info-value">${this._formatLastChanged(status.last_changed)}</span>
+        </div>
+      `);
+    }
+
+    infoRows.push(`
+      <div class="entity-modal__info-row">
+        <span class="entity-modal__info-label">Device Type</span>
+        <span class="entity-modal__info-value">${escapeHtml(nodeType)}</span>
+      </div>
+    `);
+
+    const entityItems = relatedEntities.map((entity) => this._renderEntityItem(entity)).join("");
+
+    return `
+      <div class="entity-modal-overlay" data-modal-overlay>
+        <div class="entity-modal">
+          <div class="entity-modal__header">
+            <div class="entity-modal__title">
+              <span>${typeIcon}</span>
+              <span>${safeName}</span>
+            </div>
+            <button type="button" class="entity-modal__close" data-action="close-modal">&times;</button>
+          </div>
+          <div class="entity-modal__body">
+            <div class="entity-modal__section">
+              <div class="entity-modal__section-title">Device Information</div>
+              <div class="entity-modal__info-grid">
+                ${infoRows.join("")}
+              </div>
+            </div>
+            ${
+              relatedEntities.length > 0
+                ? `
+              <div class="entity-modal__section">
+                <div class="entity-modal__section-title">Related Entities (${relatedEntities.length})</div>
+                <div class="entity-modal__entity-list">
+                  ${entityItems}
+                </div>
+              </div>
+            `
+                : `
+              <div class="entity-modal__section">
+                <div class="entity-modal__section-title">Related Entities</div>
+                <div class="panel-empty__text">No Home Assistant entities found for this device</div>
+              </div>
+            `
+            }
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  private _renderEntityItem(entity: RelatedEntity): string {
+    const domainIcon = this._getDomainIcon(entity.domain);
+    const displayName = entity.friendly_name ?? entity.entity_id;
+    const safeDisplayName = escapeHtml(displayName);
+    const safeEntityId = escapeHtml(entity.entity_id);
+    const state = entity.state ?? "unavailable";
+    const stateClass = this._getStateBadgeClass(state);
+
+    return `
+      <div class="entity-modal__entity-item" data-modal-entity-id="${safeEntityId}">
+        <span class="entity-modal__domain-icon">${domainIcon}</span>
+        <div class="entity-modal__entity-info">
+          <span class="entity-modal__entity-name">${safeDisplayName}</span>
+          <span class="entity-modal__entity-id">${safeEntityId}</span>
+        </div>
+        <div class="entity-modal__entity-state">
+          <span class="entity-modal__state-badge ${stateClass}">${escapeHtml(state)}</span>
+          <span class="entity-modal__arrow">›</span>
+        </div>
+      </div>
+    `;
+  }
+
+  private _getDomainIcon(domain: string): string {
+    const icons: Record<string, string> = {
+      device_tracker: "📍",
+      switch: "🔘",
+      sensor: "📊",
+      binary_sensor: "⚡",
+      light: "💡",
+      button: "🔲",
+      update: "🔄",
+      image: "🖼️",
+    };
+    return icons[domain] ?? "📦";
+  }
+
+  private _getStateBadgeClass(state: string): string {
+    if (state === "home" || state === "on") {
+      return `entity-modal__state-badge--${state}`;
+    }
+    if (state === "not_home" || state === "off") {
+      return `entity-modal__state-badge--${state}`;
+    }
+    return "entity-modal__state-badge--default";
+  }
+
+  private _wireEntityModalEvents(overlay: HTMLElement): void {
+    overlay.onclick = (event) => {
+      const target = event.target as HTMLElement;
+
+      if (target.hasAttribute("data-modal-overlay")) {
+        overlay.remove();
+        return;
+      }
+
+      const closeButton = target.closest('[data-action="close-modal"]');
+      if (closeButton) {
+        overlay.remove();
+        return;
+      }
+
+      const entityItem = target.closest("[data-modal-entity-id]") as HTMLElement | null;
+      if (entityItem) {
+        const entityId = entityItem.getAttribute("data-modal-entity-id");
+        if (entityId) {
+          this.dispatchEvent(
+            new CustomEvent("hass-more-info", {
+              bubbles: true,
+              composed: true,
+              detail: { entityId },
+            }),
+          );
+        }
+      }
+    };
   }
 
   private _wireControls(svg: SVGElement) {

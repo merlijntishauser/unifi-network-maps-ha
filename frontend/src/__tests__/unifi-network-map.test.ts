@@ -593,7 +593,7 @@ describe("unifi-network-map card", () => {
     expect(element.innerHTML).toContain("Network Overview");
   });
 
-  it("dispatches hass-more-info event for entity button", () => {
+  it("shows entity modal and dispatches hass-more-info on entity click", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     const card = element as unknown as {
       _svgContent?: string;
@@ -603,17 +603,36 @@ describe("unifi-network-map card", () => {
       _onPanelClick: (event: MouseEvent) => void;
     };
     card._svgContent = makeSvg("Gateway");
-    card._payload = { ...samplePayload(), node_entities: { Gateway: "sensor.gateway" } };
+    card._payload = {
+      ...samplePayload(),
+      node_entities: { Gateway: "sensor.gateway" },
+      related_entities: {
+        Gateway: [{ entity_id: "sensor.gateway", domain: "sensor", state: "on" }],
+      },
+    };
     card._selectedNode = "Gateway";
     card._activeTab = "actions";
     element.setConfig({ svg_url: "/map.svg" });
-    const handler = jest.fn();
-    element.addEventListener("hass-more-info", handler);
+
+    // Click entity button to show modal
     const entityButton = element.querySelector('[data-entity-id="sensor.gateway"]') as HTMLElement;
     card._onPanelClick({
       target: entityButton,
       preventDefault: () => undefined,
     } as unknown as MouseEvent);
+
+    // Verify modal is shown
+    const modal = element.querySelector(".entity-modal-overlay");
+    expect(modal).not.toBeNull();
+    expect(element.innerHTML).toContain("Device Information");
+
+    // Click entity item in modal to dispatch hass-more-info
+    const handler = jest.fn();
+    element.addEventListener("hass-more-info", handler);
+    const entityItem = element.querySelector(
+      '[data-modal-entity-id="sensor.gateway"]',
+    ) as HTMLElement;
+    entityItem?.click();
     expect(handler).toHaveBeenCalled();
   });
 

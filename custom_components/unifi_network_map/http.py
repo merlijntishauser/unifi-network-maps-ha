@@ -69,8 +69,10 @@ class UniFiNetworkMapPayloadView(HomeAssistantView):
         if data is None:
             raise web.HTTPNotFound()
         payload = dict(data.payload)
-        client_entities = resolve_client_entity_map(hass, payload.get("client_macs", {}))
-        device_entities = resolve_device_entity_map(hass, payload.get("device_macs", {}))
+        client_macs = payload.get("client_macs", {})
+        device_macs = payload.get("device_macs", {})
+        client_entities = resolve_client_entity_map(hass, client_macs)
+        device_entities = resolve_device_entity_map(hass, device_macs)
         node_entities = resolve_node_entity_map(client_entities, device_entities)
         if client_entities:
             payload["client_entities"] = client_entities
@@ -81,6 +83,9 @@ class UniFiNetworkMapPayloadView(HomeAssistantView):
         node_status = resolve_node_status_map(hass, node_entities)
         if node_status:
             payload["node_status"] = node_status
+        related_entities = resolve_related_entities(hass, client_macs, device_macs)
+        if related_entities:
+            payload["related_entities"] = related_entities
         return web.json_response(payload)
 
 
@@ -117,6 +122,75 @@ def resolve_node_status_map(
             "last_changed": state.last_changed.isoformat() if state.last_changed else None,
         }
     return status_map
+
+
+RelatedEntity = dict[str, str | None]
+
+
+def resolve_related_entities(
+    hass: HomeAssistant,
+    client_macs: dict[str, str],
+    device_macs: dict[str, str],
+) -> dict[str, list[RelatedEntity]]:
+    """Resolve all related entities for each node by MAC address."""
+    mac_to_entities = _build_mac_to_all_entities_index(hass)
+    all_macs = {**device_macs, **client_macs}
+    result: dict[str, list[RelatedEntity]] = {}
+    for node_name, mac in all_macs.items():
+        normalized = _normalize_mac(mac)
+        entities = mac_to_entities.get(normalized, [])
+        if entities:
+            result[node_name] = [_entity_state_details(hass, eid) for eid in entities]
+    return result
+
+
+def _build_mac_to_all_entities_index(hass: HomeAssistant) -> dict[str, list[str]]:
+    """Build index mapping MAC addresses to ALL related entity IDs."""
+    entity_registry = er.async_get(hass)
+    device_registry = dr.async_get(hass)
+    mac_to_entities: dict[str, list[str]] = {}
+
+    for entry in _iter_unifi_entity_entries(hass, entity_registry):
+        mac = mac_from_entity_entry(hass, entry, device_registry)
+        if mac:
+            mac_to_entities.setdefault(mac, []).append(entry.entity_id)
+
+    for state in _iter_state_entries(hass):
+        if not _is_state_mac_candidate(state):
+            continue
+        mac = _mac_from_state_entry(state)
+        entity_id = getattr(state, "entity_id", None)
+        if mac and entity_id:
+            entities = mac_to_entities.setdefault(mac, [])
+            if entity_id not in entities:
+                entities.append(entity_id)
+
+    return mac_to_entities
+
+
+def _entity_state_details(hass: HomeAssistant, entity_id: str) -> RelatedEntity:
+    """Get state details for an entity."""
+    domain = entity_id.split(".", 1)[0] if entity_id else ""
+    state = hass.states.get(entity_id)
+    if state is None:
+        return {"entity_id": entity_id, "domain": domain, "state": None}
+
+    details: RelatedEntity = {
+        "entity_id": entity_id,
+        "domain": domain,
+        "state": state.state,
+        "last_changed": state.last_changed.isoformat() if state.last_changed else None,
+    }
+
+    attrs = state.attributes or {}
+    if "ip" in attrs:
+        details["ip"] = str(attrs["ip"])
+    elif "ip_address" in attrs:
+        details["ip"] = str(attrs["ip_address"])
+    if "friendly_name" in attrs:
+        details["friendly_name"] = str(attrs["friendly_name"])
+
+    return details
 
 
 def _normalize_tracker_state(state: str) -> str:
