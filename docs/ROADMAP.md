@@ -45,7 +45,6 @@
 - Animated data flow on edges.
 
 ### Interactive Network Exploration
-- Edge hover/click (link speed, PoE, wireless band).
 - Group/collapse nodes; filter by type.
 - Path visualization and bottleneck hints.
 - Context menu for quick actions.
@@ -63,5 +62,6 @@
 - Virtualize large lists; lazy-load details; SVG culling.
 
 ## Done
+- Edge hover/click (link speed, PoE, wireless band).
 - show custom popup when clicking the device tracker entity, with all relevant info nicely formatted, instead of just the device tracker entity
 - All completed items added to the [changelog](CHANGELOG.md)
