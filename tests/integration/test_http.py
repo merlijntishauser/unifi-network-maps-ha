@@ -272,11 +272,21 @@ def test_edge_payload_validation_and_defaults() -> None:
     assert valid_edge_payload({"left": "a", "right": "b"}) is True
     assert valid_edge_payload({"left": "a"}) is False
     edge = edge_from_payload(
-        {"left": "a", "right": "b", "label": 123, "poe": None, "wireless": None}
+        {
+            "left": "a",
+            "right": "b",
+            "label": 123,
+            "poe": None,
+            "wireless": None,
+            "speed": "fast",
+            "channel": "auto",
+        }
     )
     assert edge.label is None
     assert edge.poe is False
     assert edge.wireless is False
+    assert edge.speed is None
+    assert edge.channel is None
 
 
 def test_payload_view_returns_404_when_missing_data() -> None:

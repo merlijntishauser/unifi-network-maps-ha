@@ -170,6 +170,8 @@ def _edge_to_dict(edge: Edge) -> dict[str, Any]:
         "label": edge.label,
         "poe": edge.poe,
         "wireless": edge.wireless,
+        "speed": edge.speed,
+        "channel": edge.channel,
     }
 
 

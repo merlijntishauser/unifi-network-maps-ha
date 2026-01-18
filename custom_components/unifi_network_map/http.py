@@ -453,12 +453,16 @@ def _edge_from_payload(edge: dict[str, object]) -> Edge:
     label = edge.get("label")
     poe_value = edge.get("poe")
     wireless_value = edge.get("wireless")
+    speed_value = edge.get("speed")
+    channel_value = edge.get("channel")
     return Edge(
         left=str(edge.get("left", "")),
         right=str(edge.get("right", "")),
         label=label if isinstance(label, str) else None,
         poe=poe_value if isinstance(poe_value, bool) else False,
         wireless=wireless_value if isinstance(wireless_value, bool) else False,
+        speed=speed_value if isinstance(speed_value, int) else None,
+        channel=channel_value if isinstance(channel_value, int) else None,
     )
 
 

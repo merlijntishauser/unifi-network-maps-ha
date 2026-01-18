@@ -97,6 +97,8 @@ def _assert_edges(edges: Iterable[dict[str, Any]]) -> None:
                 "label": (str, type(None)),
                 "poe": (bool, type(None)),
                 "wireless": (bool, type(None)),
+                "speed": (int, type(None)),
+                "channel": (int, type(None)),
             },
         )
 
