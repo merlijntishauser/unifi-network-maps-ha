@@ -516,57 +516,97 @@ class UnifiNetworkMapCard extends HTMLElement {
     const edges = this._payload.edges ?? [];
     const nodeTypes = this._payload.node_types ?? {};
     const nodeStatus = this._payload.node_status ?? {};
-    const gateways = nodes.filter((n) => nodeTypes[n] === "gateway").length;
-    const switches = nodes.filter((n) => nodeTypes[n] === "switch").length;
-    const aps = nodes.filter((n) => nodeTypes[n] === "ap").length;
-    const clients = nodes.filter((n) => nodeTypes[n] === "client").length;
-    const other = nodes.length - gateways - switches - aps - clients;
 
-    const statusValues = Object.values(nodeStatus);
-    const onlineCount = statusValues.filter((s) => s.state === "online").length;
-    const offlineCount = statusValues.filter((s) => s.state === "offline").length;
-    const hasStatus = statusValues.length > 0;
+    const deviceCounts = this._countDevicesByType(nodes, nodeTypes);
+    const statusCounts = this._countNodeStatus(nodeStatus);
 
     return `
       <div class="panel-header">
         <div class="panel-header__title">Network Overview</div>
       </div>
-      <div class="panel-stats-grid">
-        <div class="stat-card">
-          <div class="stat-card__value">${nodes.length}</div>
-          <div class="stat-card__label">Total Nodes</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-card__value">${edges.length}</div>
-          <div class="stat-card__label">Connections</div>
-        </div>
-      </div>
-      ${
-        hasStatus
-          ? `
-      <div class="panel-section">
-        <div class="panel-section__title">Live Status</div>
-        <div class="device-list">
-          <div class="device-row"><span class="status-dot status-dot--online"></span><span class="device-row__label">Online</span><span class="device-row__count">${onlineCount}</span></div>
-          <div class="device-row"><span class="status-dot status-dot--offline"></span><span class="device-row__label">Offline</span><span class="device-row__count">${offlineCount}</span></div>
-        </div>
-      </div>
-      `
-          : ""
-      }
-      <div class="panel-section">
-        <div class="panel-section__title">Device Breakdown</div>
-        <div class="device-list">
-          ${gateways > 0 ? `<div class="device-row"><span class="device-row__icon">🌐</span><span class="device-row__label">Gateways</span><span class="device-row__count">${gateways}</span></div>` : ""}
-          ${switches > 0 ? `<div class="device-row"><span class="device-row__icon">🔀</span><span class="device-row__label">Switches</span><span class="device-row__count">${switches}</span></div>` : ""}
-          ${aps > 0 ? `<div class="device-row"><span class="device-row__icon">📶</span><span class="device-row__label">Access Points</span><span class="device-row__count">${aps}</span></div>` : ""}
-          ${clients > 0 ? `<div class="device-row"><span class="device-row__icon">💻</span><span class="device-row__label">Clients</span><span class="device-row__count">${clients}</span></div>` : ""}
-          ${other > 0 ? `<div class="device-row"><span class="device-row__icon">📦</span><span class="device-row__label">Other</span><span class="device-row__count">${other}</span></div>` : ""}
-        </div>
-      </div>
+      ${this._renderOverviewStatsGrid(nodes.length, edges.length)}
+      ${this._renderOverviewStatusSection(statusCounts)}
+      ${this._renderOverviewDeviceBreakdown(deviceCounts)}
       <div class="panel-hint">
         <span class="panel-hint__icon">💡</span>
         Click a node in the map to see details
+      </div>
+    `;
+  }
+
+  private _countDevicesByType(nodes: string[], nodeTypes: Record<string, string>) {
+    return {
+      gateways: nodes.filter((n) => nodeTypes[n] === "gateway").length,
+      switches: nodes.filter((n) => nodeTypes[n] === "switch").length,
+      aps: nodes.filter((n) => nodeTypes[n] === "ap").length,
+      clients: nodes.filter((n) => nodeTypes[n] === "client").length,
+      other: nodes.filter((n) => !["gateway", "switch", "ap", "client"].includes(nodeTypes[n]))
+        .length,
+    };
+  }
+
+  private _countNodeStatus(nodeStatus: Record<string, NodeStatus>) {
+    const values = Object.values(nodeStatus);
+    return {
+      online: values.filter((s) => s.state === "online").length,
+      offline: values.filter((s) => s.state === "offline").length,
+      hasStatus: values.length > 0,
+    };
+  }
+
+  private _renderOverviewStatsGrid(nodeCount: number, edgeCount: number) {
+    return `
+      <div class="panel-stats-grid">
+        <div class="stat-card">
+          <div class="stat-card__value">${nodeCount}</div>
+          <div class="stat-card__label">Total Nodes</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__value">${edgeCount}</div>
+          <div class="stat-card__label">Connections</div>
+        </div>
+      </div>
+    `;
+  }
+
+  private _renderOverviewStatusSection(counts: {
+    online: number;
+    offline: number;
+    hasStatus: boolean;
+  }) {
+    if (!counts.hasStatus) {
+      return "";
+    }
+    return `
+      <div class="panel-section">
+        <div class="panel-section__title">Live Status</div>
+        <div class="device-list">
+          <div class="device-row"><span class="status-dot status-dot--online"></span><span class="device-row__label">Online</span><span class="device-row__count">${counts.online}</span></div>
+          <div class="device-row"><span class="status-dot status-dot--offline"></span><span class="device-row__label">Offline</span><span class="device-row__count">${counts.offline}</span></div>
+        </div>
+      </div>
+    `;
+  }
+
+  private _renderOverviewDeviceBreakdown(counts: Record<string, number>) {
+    const items = [
+      { key: "gateways", icon: "🌐", label: "Gateways" },
+      { key: "switches", icon: "🔀", label: "Switches" },
+      { key: "aps", icon: "📶", label: "Access Points" },
+      { key: "clients", icon: "💻", label: "Clients" },
+      { key: "other", icon: "📦", label: "Other" },
+    ];
+    const rows = items
+      .filter((item) => counts[item.key] > 0)
+      .map(
+        (item) =>
+          `<div class="device-row"><span class="device-row__icon">${item.icon}</span><span class="device-row__label">${item.label}</span><span class="device-row__count">${counts[item.key]}</span></div>`,
+      )
+      .join("");
+    return `
+      <div class="panel-section">
+        <div class="panel-section__title">Device Breakdown</div>
+        <div class="device-list">${rows}</div>
       </div>
     `;
   }
