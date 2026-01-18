@@ -5,7 +5,8 @@ Thanks for helping improve UniFi Network Map for Home Assistant.
 ## Project layout
 ```
 custom_components/unifi_network_map/   # HA integration
-frontend/                               # Lovelace custom card (TS)
+frontend/                               # Lovelace custom card source (TS)
+custom_components/unifi_network_map/frontend/  # Built card bundle for HA
 .github/workflows/                      # CI (hassfest + hacs)
 hacs.json                               # HACS metadata
 ```
@@ -41,6 +42,7 @@ pre-commit run --all-files
 ## Testing
 - Python: `make test`
 - Frontend: `make frontend-test`
+ - Build bundle for HA: `make frontend-build` (copies to `custom_components/unifi_network_map/frontend/`)
 
 ## Architecture notes
 - The integration renders SVG + JSON via `unifi-network-maps`.
