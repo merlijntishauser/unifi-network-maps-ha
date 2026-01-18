@@ -1,7 +1,7 @@
 # Roadmap (Prioritized)
 
 ## P1 - Security & stability (Critical)
-- **Harden card rendering** - Replace `innerHTML` for user-controlled content with safe DOM APIs or DOMPurify.
+- no current issues known
 
 ## P2 - Bugs & correctness (High Impact)
 - **Race condition in Lovelace retry** (`__init__.py:213-217`) - Non-atomic counter increment can exceed 6-attempt limit.
@@ -64,3 +64,4 @@
 - **Card configuration UI editor** - Visual editor for entry + theme selection.
 - **Auth/backoff handling** - Avoid rapid re-auth attempts when UniFi returns 401/429.
 - **Log registration failures** - If Lovelace auto-registration fails, log a clear error with next steps.
+- **Harden card rendering** - Replace `innerHTML` for user-controlled content with safe DOM APIs or DOMPurify.
