@@ -457,6 +457,8 @@ interface Edge {
   label?: string | null;
   poe?: boolean | null;
   wireless?: boolean | null;
+  speed?: number | null;
+  channel?: number | null;
 }
 
 interface Point {
@@ -1608,7 +1610,44 @@ class UnifiNetworkMapCard extends HTMLElement {
         `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">⚡</span><span class="tooltip-edge__label">PoE Powered</span></div>`,
       );
     }
+    if (edge.speed) {
+      rows.push(
+        `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">🚀</span><span class="tooltip-edge__label">${this._formatSpeed(edge.speed)}</span></div>`,
+      );
+    }
+    if (edge.channel) {
+      rows.push(
+        `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">📡</span><span class="tooltip-edge__label">${this._formatChannel(edge.channel)}</span></div>`,
+      );
+    }
     return rows.join("");
+  }
+
+  private _formatSpeed(speedMbps: number): string {
+    if (speedMbps >= 1000) {
+      const gbps = (speedMbps / 1000).toFixed(1).replace(/\.0$/, "");
+      return `${gbps} Gbps`;
+    }
+    return `${speedMbps} Mbps`;
+  }
+
+  private _formatChannel(channel: number): string {
+    const band = this._channelBand(channel);
+    const suffix = band ? ` (${band})` : "";
+    return `Channel ${channel}${suffix}`;
+  }
+
+  private _channelBand(channel: number): string | null {
+    if (channel >= 1 && channel <= 14) {
+      return "2.4GHz";
+    }
+    if (channel >= 36 && channel <= 177) {
+      return "5GHz";
+    }
+    if (channel >= 1) {
+      return "6GHz";
+    }
+    return null;
   }
 
   private _applyTransform(svg: SVGElement) {

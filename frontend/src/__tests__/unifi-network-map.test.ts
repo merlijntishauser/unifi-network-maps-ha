@@ -728,6 +728,28 @@ describe("unifi-network-map card", () => {
     expect(card._getNodeTypeIcon("unknown")).toBe("📦");
   });
 
+  it("formats edge tooltip with speed and channel", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as {
+      _renderEdgeTooltip: (edge: {
+        left: string;
+        right: string;
+        wireless?: boolean | null;
+        speed?: number | null;
+        channel?: number | null;
+      }) => string;
+    };
+    const html = card._renderEdgeTooltip({
+      left: "AP",
+      right: "Switch",
+      wireless: true,
+      speed: 1000,
+      channel: 36,
+    });
+    expect(html).toContain("1 Gbps");
+    expect(html).toContain("Channel 36 (5GHz)");
+  });
+
   it("returns default tab content for unknown tab", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     const card = element as unknown as {

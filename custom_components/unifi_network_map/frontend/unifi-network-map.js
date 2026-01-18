@@ -1047,7 +1047,14 @@ function sanitizeSvg(svg2) {
 }
 var DOMPURIFY_CONFIG = {
   USE_PROFILES: { html: true, svg: true, svgFilters: true },
-  ADD_ATTR: ["data-node-id", "data-action", "data-tab"]
+  ADD_ATTR: [
+    "data-node-id",
+    "data-action",
+    "data-tab",
+    "data-edge",
+    "data-edge-left",
+    "data-edge-right"
+  ]
 };
 function sanitizeHtml(markup) {
   return purify.sanitize(markup, DOMPURIFY_CONFIG);
@@ -1068,8 +1075,15 @@ var CARD_STYLES = `
   .unifi-network-map__controls button { background: rgba(15, 23, 42, 0.9); color: #e5e7eb; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 6px 10px; font-size: 12px; cursor: pointer; backdrop-filter: blur(8px); transition: all 0.15s ease; }
   .unifi-network-map__controls button:hover { background: rgba(59, 130, 246, 0.3); border-color: rgba(59, 130, 246, 0.5); }
   .unifi-network-map__viewport svg text, .unifi-network-map__viewport svg g { cursor: pointer; }
+  .unifi-network-map__viewport svg path[data-edge] { cursor: pointer; transition: stroke-width 0.15s ease, filter 0.15s ease; pointer-events: stroke; }
+  .unifi-network-map__viewport svg path[data-edge]:hover { stroke-width: 4; filter: drop-shadow(0 0 4px currentColor); }
   .unifi-network-map__panel { padding: 0; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); color: #e5e7eb; border-radius: 12px; font-size: 13px; overflow: hidden; display: flex; flex-direction: column; }
-  .unifi-network-map__tooltip { position: fixed; z-index: 2; background: rgba(15, 23, 42, 0.95); color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 12px; pointer-events: none; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(8px); }
+  .unifi-network-map__tooltip { position: fixed; z-index: 2; background: rgba(15, 23, 42, 0.95); color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 12px; pointer-events: none; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(8px); max-width: 280px; }
+  .unifi-network-map__tooltip--edge { display: flex; flex-direction: column; gap: 4px; }
+  .tooltip-edge__title { font-weight: 600; color: #f1f5f9; margin-bottom: 2px; }
+  .tooltip-edge__row { display: flex; align-items: center; gap: 6px; color: #94a3b8; }
+  .tooltip-edge__icon { font-size: 14px; width: 18px; text-align: center; }
+  .tooltip-edge__label { color: #cbd5e1; }
 
   /* Panel Header */
   .panel-header { display: flex; align-items: center; gap: 12px; padding: 16px; background: rgba(0,0,0,0.2); border-bottom: 1px solid rgba(255,255,255,0.05); }
@@ -1211,13 +1225,212 @@ var CARD_STYLES = `
   @media (max-width: 800px) {
     .unifi-network-map__layout { grid-template-columns: 1fr; }
   }
+
+  /* Entity Modal Styles */
+  .entity-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+  }
+  .entity-modal {
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 480px;
+    max-height: 85vh;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+  }
+  .entity-modal__header {
+    padding: 20px 24px;
+    background: rgba(148, 163, 184, 0.1);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .entity-modal__title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #f8fafc;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .entity-modal__close {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: all 0.2s;
+  }
+  .entity-modal__close:hover {
+    background: rgba(148, 163, 184, 0.2);
+    color: #f8fafc;
+  }
+  .entity-modal__body {
+    padding: 20px 24px;
+    overflow-y: auto;
+    max-height: calc(85vh - 80px);
+  }
+  .entity-modal__section {
+    margin-bottom: 20px;
+  }
+  .entity-modal__section:last-child {
+    margin-bottom: 0;
+  }
+  .entity-modal__section-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748b;
+    margin-bottom: 12px;
+  }
+  .entity-modal__info-grid {
+    display: grid;
+    gap: 8px;
+  }
+  .entity-modal__info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: rgba(30, 41, 59, 0.5);
+    border-radius: 8px;
+    border: 1px solid rgba(148, 163, 184, 0.1);
+  }
+  .entity-modal__info-label {
+    color: #94a3b8;
+    font-size: 13px;
+  }
+  .entity-modal__info-value {
+    color: #f8fafc;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: monospace;
+  }
+  .entity-modal__entity-list {
+    display: grid;
+    gap: 8px;
+  }
+  .entity-modal__entity-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: rgba(30, 41, 59, 0.5);
+    border-radius: 10px;
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .entity-modal__entity-item:hover {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.3);
+  }
+  .entity-modal__entity-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    flex: 1;
+  }
+  .entity-modal__entity-name {
+    color: #f8fafc;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .entity-modal__entity-id {
+    color: #64748b;
+    font-size: 11px;
+    font-family: monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .entity-modal__entity-state {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .entity-modal__state-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .entity-modal__state-badge--home,
+  .entity-modal__state-badge--on {
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+  }
+  .entity-modal__state-badge--not_home,
+  .entity-modal__state-badge--off {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+  }
+  .entity-modal__state-badge--default {
+    background: rgba(148, 163, 184, 0.2);
+    color: #94a3b8;
+  }
+  .entity-modal__domain-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+    margin-right: 12px;
+  }
+  .entity-modal__arrow {
+    color: #64748b;
+    margin-left: 8px;
+  }
+
+  /* Light theme modal */
+  ha-card[data-theme="light"] .entity-modal {
+    background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+  }
+  ha-card[data-theme="light"] .entity-modal__header {
+    background: rgba(148, 163, 184, 0.15);
+    border-bottom-color: rgba(148, 163, 184, 0.3);
+  }
+  ha-card[data-theme="light"] .entity-modal__title { color: #0f172a; }
+  ha-card[data-theme="light"] .entity-modal__close { color: #64748b; }
+  ha-card[data-theme="light"] .entity-modal__close:hover { background: rgba(15, 23, 42, 0.1); color: #0f172a; }
+  ha-card[data-theme="light"] .entity-modal__section-title { color: #475569; }
+  ha-card[data-theme="light"] .entity-modal__info-row { background: rgba(15, 23, 42, 0.04); }
+  ha-card[data-theme="light"] .entity-modal__info-label { color: #64748b; }
+  ha-card[data-theme="light"] .entity-modal__info-value { color: #0f172a; }
+  ha-card[data-theme="light"] .entity-modal__entity-item { background: rgba(15, 23, 42, 0.04); }
+  ha-card[data-theme="light"] .entity-modal__entity-item:hover { background: rgba(59, 130, 246, 0.1); }
+  ha-card[data-theme="light"] .entity-modal__entity-name { color: #0f172a; }
+  ha-card[data-theme="light"] .entity-modal__entity-id { color: #64748b; }
+  ha-card[data-theme="light"] .entity-modal__state-badge--home,
+  ha-card[data-theme="light"] .entity-modal__state-badge--on { background: rgba(34, 197, 94, 0.15); color: #16a34a; }
+  ha-card[data-theme="light"] .entity-modal__state-badge--not_home,
+  ha-card[data-theme="light"] .entity-modal__state-badge--off { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
+  ha-card[data-theme="light"] .entity-modal__state-badge--default { background: rgba(107, 114, 128, 0.15); color: #6b7280; }
 `;
 var UnifiNetworkMapCard = class extends HTMLElement {
   constructor() {
     super(...arguments);
     this._loading = false;
     this._dataLoading = false;
-    this._panState = { x: 0, y: 0, scale: 1 };
+    this._viewTransform = { x: 0, y: 0, scale: 1 };
     this._isPanning = false;
     this._panStart = null;
     this._panMoved = false;
@@ -1613,7 +1826,9 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       wireless: edge.wireless,
       poe: edge.poe
     }));
-    const uniqueNeighbors = Array.from(new Map(neighbors.map((n) => [n.name, n])).values());
+    const uniqueNeighbors = Array.from(
+      new Map(neighbors.map((n) => [n.name, n])).values()
+    );
     const neighborList = uniqueNeighbors.length ? uniqueNeighbors.map(
       (n) => `
             <div class="neighbor-item">
@@ -1755,6 +1970,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._ensureStyles();
     this._applyTransform(svg2);
     this._highlightSelectedNode(svg2);
+    this._annotateEdges(svg2);
     this._wireControls(svg2);
     viewport.onwheel = (event) => this._onWheel(event, svg2);
     viewport.onpointerdown = (event) => this._onPointerDown(event);
@@ -1762,6 +1978,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     viewport.onpointerup = () => this._onPointerUp();
     viewport.onpointerleave = () => {
       this._hoveredNode = void 0;
+      this._hoveredEdge = void 0;
       this._hideTooltip(tooltip);
     };
     viewport.onclick = (event) => this._onClick(event, tooltip);
@@ -1819,17 +2036,177 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     const entityButton = target.closest("[data-entity-id]");
     if (!entityButton) return false;
     event.preventDefault();
-    const entityId = entityButton.getAttribute("data-entity-id");
-    if (entityId) {
-      this.dispatchEvent(
-        new CustomEvent("hass-more-info", {
-          bubbles: true,
-          composed: true,
-          detail: { entityId }
-        })
-      );
+    if (this._selectedNode) {
+      this._showEntityModal(this._selectedNode);
     }
     return true;
+  }
+  _showEntityModal(nodeName) {
+    const existingModal = this.querySelector(".entity-modal-overlay");
+    if (existingModal) {
+      existingModal.remove();
+    }
+    const modalHtml = this._renderEntityModal(nodeName);
+    const container = document.createElement("div");
+    container.innerHTML = modalHtml;
+    const overlay = container.firstElementChild;
+    if (!overlay) return;
+    this.appendChild(overlay);
+    this._wireEntityModalEvents(overlay);
+  }
+  _renderEntityModal(nodeName) {
+    const safeName = escapeHtml(nodeName);
+    const mac = this._payload?.client_macs?.[nodeName] ?? this._payload?.device_macs?.[nodeName];
+    const nodeType = this._payload?.node_types?.[nodeName] ?? "unknown";
+    const status = this._payload?.node_status?.[nodeName];
+    const relatedEntities = this._payload?.related_entities?.[nodeName] ?? [];
+    const typeIcon = this._getNodeTypeIcon(nodeType);
+    const infoRows = [];
+    if (mac) {
+      infoRows.push(`
+        <div class="entity-modal__info-row">
+          <span class="entity-modal__info-label">MAC Address</span>
+          <span class="entity-modal__info-value">${escapeHtml(mac)}</span>
+        </div>
+      `);
+    }
+    const ipEntity = relatedEntities.find((e) => e.ip);
+    if (ipEntity?.ip) {
+      infoRows.push(`
+        <div class="entity-modal__info-row">
+          <span class="entity-modal__info-label">IP Address</span>
+          <span class="entity-modal__info-value">${escapeHtml(ipEntity.ip)}</span>
+        </div>
+      `);
+    }
+    if (status?.state) {
+      const stateDisplay = status.state === "online" ? "Online" : status.state === "offline" ? "Offline" : "Unknown";
+      infoRows.push(`
+        <div class="entity-modal__info-row">
+          <span class="entity-modal__info-label">Status</span>
+          <span class="entity-modal__info-value">${stateDisplay}</span>
+        </div>
+      `);
+    }
+    if (status?.last_changed) {
+      infoRows.push(`
+        <div class="entity-modal__info-row">
+          <span class="entity-modal__info-label">Last Changed</span>
+          <span class="entity-modal__info-value">${this._formatLastChanged(status.last_changed)}</span>
+        </div>
+      `);
+    }
+    infoRows.push(`
+      <div class="entity-modal__info-row">
+        <span class="entity-modal__info-label">Device Type</span>
+        <span class="entity-modal__info-value">${escapeHtml(nodeType)}</span>
+      </div>
+    `);
+    const entityItems = relatedEntities.map((entity) => this._renderEntityItem(entity)).join("");
+    return `
+      <div class="entity-modal-overlay" data-modal-overlay>
+        <div class="entity-modal">
+          <div class="entity-modal__header">
+            <div class="entity-modal__title">
+              <span>${typeIcon}</span>
+              <span>${safeName}</span>
+            </div>
+            <button type="button" class="entity-modal__close" data-action="close-modal">&times;</button>
+          </div>
+          <div class="entity-modal__body">
+            <div class="entity-modal__section">
+              <div class="entity-modal__section-title">Device Information</div>
+              <div class="entity-modal__info-grid">
+                ${infoRows.join("")}
+              </div>
+            </div>
+            ${relatedEntities.length > 0 ? `
+              <div class="entity-modal__section">
+                <div class="entity-modal__section-title">Related Entities (${relatedEntities.length})</div>
+                <div class="entity-modal__entity-list">
+                  ${entityItems}
+                </div>
+              </div>
+            ` : `
+              <div class="entity-modal__section">
+                <div class="entity-modal__section-title">Related Entities</div>
+                <div class="panel-empty__text">No Home Assistant entities found for this device</div>
+              </div>
+            `}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  _renderEntityItem(entity) {
+    const domainIcon = this._getDomainIcon(entity.domain);
+    const displayName = entity.friendly_name ?? entity.entity_id;
+    const safeDisplayName = escapeHtml(displayName);
+    const safeEntityId = escapeHtml(entity.entity_id);
+    const state = entity.state ?? "unavailable";
+    const stateClass = this._getStateBadgeClass(state);
+    return `
+      <div class="entity-modal__entity-item" data-modal-entity-id="${safeEntityId}">
+        <span class="entity-modal__domain-icon">${domainIcon}</span>
+        <div class="entity-modal__entity-info">
+          <span class="entity-modal__entity-name">${safeDisplayName}</span>
+          <span class="entity-modal__entity-id">${safeEntityId}</span>
+        </div>
+        <div class="entity-modal__entity-state">
+          <span class="entity-modal__state-badge ${stateClass}">${escapeHtml(state)}</span>
+          <span class="entity-modal__arrow">\u203A</span>
+        </div>
+      </div>
+    `;
+  }
+  _getDomainIcon(domain) {
+    const icons = {
+      device_tracker: "\u{1F4CD}",
+      switch: "\u{1F518}",
+      sensor: "\u{1F4CA}",
+      binary_sensor: "\u26A1",
+      light: "\u{1F4A1}",
+      button: "\u{1F532}",
+      update: "\u{1F504}",
+      image: "\u{1F5BC}\uFE0F"
+    };
+    return icons[domain] ?? "\u{1F4E6}";
+  }
+  _getStateBadgeClass(state) {
+    if (state === "home" || state === "on") {
+      return `entity-modal__state-badge--${state}`;
+    }
+    if (state === "not_home" || state === "off") {
+      return `entity-modal__state-badge--${state}`;
+    }
+    return "entity-modal__state-badge--default";
+  }
+  _wireEntityModalEvents(overlay) {
+    overlay.onclick = (event) => {
+      const target = event.target;
+      if (target.hasAttribute("data-modal-overlay")) {
+        overlay.remove();
+        return;
+      }
+      const closeButton = target.closest('[data-action="close-modal"]');
+      if (closeButton) {
+        overlay.remove();
+        return;
+      }
+      const entityItem = target.closest("[data-modal-entity-id]");
+      if (entityItem) {
+        const entityId = entityItem.getAttribute("data-modal-entity-id");
+        if (entityId) {
+          this.dispatchEvent(
+            new CustomEvent("hass-more-info", {
+              bubbles: true,
+              composed: true,
+              detail: { entityId }
+            })
+          );
+        }
+      }
+    };
   }
   _wireControls(svg2) {
     const zoomIn = this.querySelector('[data-action="zoom-in"]');
@@ -1865,21 +2242,37 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     }
     this._isPanning = true;
     this._panMoved = false;
-    this._panStart = { x: event.clientX - this._panState.x, y: event.clientY - this._panState.y };
+    this._panStart = {
+      x: event.clientX - this._viewTransform.x,
+      y: event.clientY - this._viewTransform.y
+    };
     event.currentTarget.setPointerCapture(event.pointerId);
   }
   _onPointerMove(event, svg2, tooltip) {
     if (this._isPanning && this._panStart) {
       const nextX = event.clientX - this._panStart.x;
       const nextY = event.clientY - this._panStart.y;
-      if (Math.abs(nextX - this._panState.x) > MIN_PAN_MOVEMENT_THRESHOLD || Math.abs(nextY - this._panState.y) > MIN_PAN_MOVEMENT_THRESHOLD) {
+      if (Math.abs(nextX - this._viewTransform.x) > MIN_PAN_MOVEMENT_THRESHOLD || Math.abs(nextY - this._viewTransform.y) > MIN_PAN_MOVEMENT_THRESHOLD) {
         this._panMoved = true;
       }
-      this._panState.x = nextX;
-      this._panState.y = nextY;
+      this._viewTransform.x = nextX;
+      this._viewTransform.y = nextY;
       this._applyTransform(svg2);
       return;
     }
+    const edge = this._findEdgeFromTarget(event.target);
+    if (edge) {
+      this._hoveredEdge = edge;
+      this._hoveredNode = void 0;
+      tooltip.hidden = false;
+      tooltip.classList.add("unifi-network-map__tooltip--edge");
+      tooltip.innerHTML = this._renderEdgeTooltip(edge);
+      tooltip.style.transform = "none";
+      tooltip.style.left = `${event.clientX + TOOLTIP_OFFSET_PX}px`;
+      tooltip.style.top = `${event.clientY + TOOLTIP_OFFSET_PX}px`;
+      return;
+    }
+    this._hoveredEdge = void 0;
     const label = this._resolveNodeName(event);
     if (!label) {
       this._hoveredNode = void 0;
@@ -1888,6 +2281,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     }
     this._hoveredNode = label;
     tooltip.hidden = false;
+    tooltip.classList.remove("unifi-network-map__tooltip--edge");
     tooltip.textContent = label;
     tooltip.style.transform = "none";
     tooltip.style.left = `${event.clientX + TOOLTIP_OFFSET_PX}px`;
@@ -1914,9 +2308,88 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   }
   _hideTooltip(tooltip) {
     tooltip.hidden = true;
+    tooltip.classList.remove("unifi-network-map__tooltip--edge");
+  }
+  _annotateEdges(svg2) {
+    if (!this._payload?.edges) return;
+    const paths = svg2.querySelectorAll("path[stroke]");
+    const edges = this._payload.edges;
+    paths.forEach((path, index) => {
+      if (index < edges.length) {
+        const edge = edges[index];
+        path.setAttribute("data-edge", "true");
+        path.setAttribute("data-edge-left", edge.left);
+        path.setAttribute("data-edge-right", edge.right);
+      }
+    });
+  }
+  _findEdgeFromTarget(target) {
+    if (!target || !this._payload?.edges) return null;
+    const edgePath = target.closest("path[data-edge]");
+    if (!edgePath) return null;
+    const left = edgePath.getAttribute("data-edge-left");
+    const right = edgePath.getAttribute("data-edge-right");
+    if (!left || !right) return null;
+    return this._payload.edges.find((e) => e.left === left && e.right === right) ?? null;
+  }
+  _renderEdgeTooltip(edge) {
+    const connectionType = edge.wireless ? "Wireless" : "Wired";
+    const icon = edge.wireless ? "\u{1F4F6}" : "\u{1F517}";
+    const rows = [];
+    rows.push(
+      `<div class="tooltip-edge__title">${escapeHtml(edge.left)} \u2194 ${escapeHtml(edge.right)}</div>`
+    );
+    rows.push(
+      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">${icon}</span><span class="tooltip-edge__label">${connectionType}</span></div>`
+    );
+    if (edge.label) {
+      rows.push(
+        `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">\u{1F50C}</span><span class="tooltip-edge__label">${escapeHtml(edge.label)}</span></div>`
+      );
+    }
+    if (edge.poe) {
+      rows.push(
+        `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">\u26A1</span><span class="tooltip-edge__label">PoE Powered</span></div>`
+      );
+    }
+    if (edge.speed) {
+      rows.push(
+        `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">\u{1F680}</span><span class="tooltip-edge__label">${this._formatSpeed(edge.speed)}</span></div>`
+      );
+    }
+    if (edge.channel) {
+      rows.push(
+        `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">\u{1F4E1}</span><span class="tooltip-edge__label">${this._formatChannel(edge.channel)}</span></div>`
+      );
+    }
+    return rows.join("");
+  }
+  _formatSpeed(speedMbps) {
+    if (speedMbps >= 1e3) {
+      const gbps = (speedMbps / 1e3).toFixed(1).replace(/\.0$/, "");
+      return `${gbps} Gbps`;
+    }
+    return `${speedMbps} Mbps`;
+  }
+  _formatChannel(channel) {
+    const band = this._channelBand(channel);
+    const suffix = band ? ` (${band})` : "";
+    return `Channel ${channel}${suffix}`;
+  }
+  _channelBand(channel) {
+    if (channel >= 1 && channel <= 14) {
+      return "2.4GHz";
+    }
+    if (channel >= 36 && channel <= 177) {
+      return "5GHz";
+    }
+    if (channel >= 1) {
+      return "6GHz";
+    }
+    return null;
   }
   _applyTransform(svg2) {
-    const { x, y, scale } = this._panState;
+    const { x, y, scale } = this._viewTransform;
     svg2.style.transformOrigin = "0 0";
     svg2.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
     svg2.style.cursor = this._isPanning ? "grabbing" : "grab";
@@ -1950,13 +2423,13 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   _applyZoom(delta, svg2) {
     const nextScale = Math.min(
       MAX_ZOOM_SCALE,
-      Math.max(MIN_ZOOM_SCALE, this._panState.scale + delta)
+      Math.max(MIN_ZOOM_SCALE, this._viewTransform.scale + delta)
     );
-    this._panState.scale = Number(nextScale.toFixed(2));
+    this._viewTransform.scale = Number(nextScale.toFixed(2));
     this._applyTransform(svg2);
   }
   _resetPan(svg2) {
-    this._panState = { x: 0, y: 0, scale: 1 };
+    this._viewTransform = { x: 0, y: 0, scale: 1 };
     this._selectedNode = void 0;
     this._applyTransform(svg2);
     this._render();
