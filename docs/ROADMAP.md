@@ -27,7 +27,6 @@
 
 ### Frontend (TypeScript)
 - Split long functions (>15 lines) violating XP principles:
-  - `_onPanelClick()` (62 lines) - split handlers
   - `_highlightSelectedNode()` (57 lines) - extract node finding strategies
   - `_renderActionsTab()` (47 lines) - split into sections
   - `_render()` (45 lines) - extract view builders

@@ -915,64 +915,73 @@ class UnifiNetworkMapCard extends HTMLElement {
   private _onPanelClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
 
-    // Handle tab clicks
+    if (this._handleTabClick(target, event)) return;
+    if (this._handleBackClick(target, event)) return;
+    if (this._handleCopyClick(target, event)) return;
+    this._handleEntityClick(target, event);
+  }
+
+  private _handleTabClick(target: HTMLElement, event: MouseEvent): boolean {
     const tab = target.closest("[data-tab]") as HTMLElement | null;
-    if (tab) {
-      event.preventDefault();
-      const tabName = tab.getAttribute("data-tab") as "overview" | "stats" | "actions";
-      if (tabName && tabName !== this._activeTab) {
-        this._activeTab = tabName;
-        this._render();
-      }
-      return;
-    }
+    if (!tab) return false;
 
-    // Handle back button
-    const backButton = target.closest('[data-action="back"]') as HTMLElement | null;
-    if (backButton) {
-      event.preventDefault();
-      this._selectedNode = undefined;
-      this._activeTab = "overview";
+    event.preventDefault();
+    const tabName = tab.getAttribute("data-tab") as "overview" | "stats" | "actions";
+    if (tabName && tabName !== this._activeTab) {
+      this._activeTab = tabName;
       this._render();
-      return;
     }
+    return true;
+  }
 
-    // Handle copy action
+  private _handleBackClick(target: HTMLElement, event: MouseEvent): boolean {
+    const backButton = target.closest('[data-action="back"]') as HTMLElement | null;
+    if (!backButton) return false;
+
+    event.preventDefault();
+    this._selectedNode = undefined;
+    this._activeTab = "overview";
+    this._render();
+    return true;
+  }
+
+  private _handleCopyClick(target: HTMLElement, event: MouseEvent): boolean {
     const copyButton = target.closest('[data-action="copy"]') as HTMLElement | null;
-    if (copyButton) {
-      event.preventDefault();
-      const value = copyButton.getAttribute("data-copy-value");
-      if (value) {
-        navigator.clipboard.writeText(value).then(() => {
-          const textEl = copyButton.querySelector(".action-button__text");
-          if (textEl) {
-            const original = textEl.textContent;
-            textEl.textContent = "Copied!";
-            setTimeout(() => {
-              textEl.textContent = original;
-            }, 1500);
-          }
-        });
-      }
-      return;
-    }
+    if (!copyButton) return false;
 
-    // Handle entity button clicks
-    const entityButton = target.closest("[data-entity-id]") as HTMLElement | null;
-    if (entityButton) {
-      event.preventDefault();
-      const entityId = entityButton.getAttribute("data-entity-id");
-      if (entityId) {
-        this.dispatchEvent(
-          new CustomEvent("hass-more-info", {
-            bubbles: true,
-            composed: true,
-            detail: { entityId },
-          }),
-        );
-      }
-      return;
+    event.preventDefault();
+    const value = copyButton.getAttribute("data-copy-value");
+    if (value) {
+      navigator.clipboard.writeText(value).then(() => {
+        const textEl = copyButton.querySelector(".action-button__text");
+        if (textEl) {
+          const original = textEl.textContent;
+          textEl.textContent = "Copied!";
+          setTimeout(() => {
+            textEl.textContent = original;
+          }, 1500);
+        }
+      });
     }
+    return true;
+  }
+
+  private _handleEntityClick(target: HTMLElement, event: MouseEvent): boolean {
+    const entityButton = target.closest("[data-entity-id]") as HTMLElement | null;
+    if (!entityButton) return false;
+
+    event.preventDefault();
+    const entityId = entityButton.getAttribute("data-entity-id");
+    if (entityId) {
+      this.dispatchEvent(
+        new CustomEvent("hass-more-info", {
+          bubbles: true,
+          composed: true,
+          detail: { entityId },
+        }),
+      );
+    }
+    return true;
   }
 
   private _wireControls(svg: SVGElement) {

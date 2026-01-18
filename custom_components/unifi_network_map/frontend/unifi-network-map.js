@@ -747,57 +747,65 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   }
   _onPanelClick(event) {
     const target = event.target;
+    if (this._handleTabClick(target, event)) return;
+    if (this._handleBackClick(target, event)) return;
+    if (this._handleCopyClick(target, event)) return;
+    this._handleEntityClick(target, event);
+  }
+  _handleTabClick(target, event) {
     const tab = target.closest("[data-tab]");
-    if (tab) {
-      event.preventDefault();
-      const tabName = tab.getAttribute("data-tab");
-      if (tabName && tabName !== this._activeTab) {
-        this._activeTab = tabName;
-        this._render();
-      }
-      return;
-    }
-    const backButton = target.closest('[data-action="back"]');
-    if (backButton) {
-      event.preventDefault();
-      this._selectedNode = void 0;
-      this._activeTab = "overview";
+    if (!tab) return false;
+    event.preventDefault();
+    const tabName = tab.getAttribute("data-tab");
+    if (tabName && tabName !== this._activeTab) {
+      this._activeTab = tabName;
       this._render();
-      return;
     }
+    return true;
+  }
+  _handleBackClick(target, event) {
+    const backButton = target.closest('[data-action="back"]');
+    if (!backButton) return false;
+    event.preventDefault();
+    this._selectedNode = void 0;
+    this._activeTab = "overview";
+    this._render();
+    return true;
+  }
+  _handleCopyClick(target, event) {
     const copyButton = target.closest('[data-action="copy"]');
-    if (copyButton) {
-      event.preventDefault();
-      const value = copyButton.getAttribute("data-copy-value");
-      if (value) {
-        navigator.clipboard.writeText(value).then(() => {
-          const textEl = copyButton.querySelector(".action-button__text");
-          if (textEl) {
-            const original = textEl.textContent;
-            textEl.textContent = "Copied!";
-            setTimeout(() => {
-              textEl.textContent = original;
-            }, 1500);
-          }
-        });
-      }
-      return;
+    if (!copyButton) return false;
+    event.preventDefault();
+    const value = copyButton.getAttribute("data-copy-value");
+    if (value) {
+      navigator.clipboard.writeText(value).then(() => {
+        const textEl = copyButton.querySelector(".action-button__text");
+        if (textEl) {
+          const original = textEl.textContent;
+          textEl.textContent = "Copied!";
+          setTimeout(() => {
+            textEl.textContent = original;
+          }, 1500);
+        }
+      });
     }
+    return true;
+  }
+  _handleEntityClick(target, event) {
     const entityButton = target.closest("[data-entity-id]");
-    if (entityButton) {
-      event.preventDefault();
-      const entityId = entityButton.getAttribute("data-entity-id");
-      if (entityId) {
-        this.dispatchEvent(
-          new CustomEvent("hass-more-info", {
-            bubbles: true,
-            composed: true,
-            detail: { entityId }
-          })
-        );
-      }
-      return;
+    if (!entityButton) return false;
+    event.preventDefault();
+    const entityId = entityButton.getAttribute("data-entity-id");
+    if (entityId) {
+      this.dispatchEvent(
+        new CustomEvent("hass-more-info", {
+          bubbles: true,
+          composed: true,
+          detail: { entityId }
+        })
+      );
     }
+    return true;
   }
   _wireControls(svg) {
     const zoomIn = this.querySelector('[data-action="zoom-in"]');
