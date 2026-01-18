@@ -100,6 +100,9 @@ dist
 !frontend/dist/
 !frontend/dist/**
 
+# Release zip artifacts
+dist/*.zip
+
 # Gatsby files
 .cache/
 # Comment in the public line in if your project uses Gatsby and not Next.js
