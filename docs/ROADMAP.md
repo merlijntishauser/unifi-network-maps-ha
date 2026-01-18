@@ -27,21 +27,26 @@
 
 ### Frontend (TypeScript)
 - Split long functions (>15 lines) violating XP principles:
-  - `unifi-network-map.ts:55-89` `_render()` (35 lines) - extract view builders
-  - `unifi-network-map.ts:91-126` `_loadSvg()` (36 lines) - extract fetch logic
-  - `unifi-network-map.ts:128-159` `_loadPayload()` (32 lines) - extract fetch logic
-  - `unifi-network-map.ts:201-236` `_renderNodeDetails()` (36 lines) - split into sections
-  - `unifi-network-map.ts:238-265` `_ensureStyles()` (28 lines) - extract CSS constant
-  - `unifi-network-map.ts:267-288` `_wireInteractions()` (22 lines) - split handlers
-  - `unifi-network-map.ts:311-333` `_wireControls()` (23 lines) - individual handlers
-  - `unifi-network-map.ts:351-375` `_onPointerMove()` (25 lines) - split pan/tooltip
-  - `unifi-network-map.ts:409-431` `_resolveNodeName()` (23 lines) - extract strategies
-  - `unifi-network-map.ts:450-480` `_inferNodeName()` (31 lines) - split fallback strategies
+  - `_renderMapOverview()` (67 lines) - split into sections
+  - `_renderStatsTab()` (63 lines) - split into sections
+  - `UnifiNetworkMapEditor._render()` (63 lines) - extract form building
+  - `_onPanelClick()` (62 lines) - split handlers
+  - `_highlightSelectedNode()` (57 lines) - extract node finding strategies
+  - `_renderActionsTab()` (47 lines) - split into sections
+  - `_render()` (45 lines) - extract view builders
+  - `_renderNodePanel()` (40 lines) - split into sections
+  - `_renderOverviewTab()` (36 lines) - split into sections
+  - `_loadSvg()` (35 lines) - extract fetch logic
+  - `_loadPayload()` (34 lines) - extract fetch logic
+  - `_inferNodeName()` (31 lines) - split fallback strategies
+  - `_onPointerMove()` (28 lines) - split pan/tooltip
+  - `_wireInteractions()` (27 lines) - split handlers
+  - `_resolveNodeName()` (23 lines) - extract strategies
+  - `_wireControls()` (23 lines) - individual handlers
 - Extract named interfaces: `CardConfig`, `PanState` instead of inline types
 - Improve naming: `_panMoved` → `_hasPanMovedBeyondThreshold`, `_wireInteractions()` → `_attachEventListeners()`
 - Add explicit return types to all private methods
 - **Use textContent or DOMPurify** - Replace innerHTML with safer alternatives for user-controlled content.
-- **Add AbortController to fetches** - Prevent race conditions in `_loadSvg`/`_loadPayload`.
 - **Event delegation or proper cleanup** - Use single delegated listener or removeEventListener.
 
 ## P5 - Killer features
