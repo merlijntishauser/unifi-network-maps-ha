@@ -350,13 +350,13 @@ describe("unifi-network-map card", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     const card = element as unknown as {
       _applyZoom: (delta: number, svg: SVGElement) => void;
-      _panState: { scale: number };
+      _viewTransform: { scale: number };
     };
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     card._applyZoom(10, svg);
-    expect(card._panState.scale).toBe(4);
+    expect(card._viewTransform.scale).toBe(4);
     card._applyZoom(-10, svg);
-    expect(card._panState.scale).toBe(0.5);
+    expect(card._viewTransform.scale).toBe(0.5);
   });
 
   it("updates pan state on pointer move", () => {
@@ -364,7 +364,7 @@ describe("unifi-network-map card", () => {
     const card = element as unknown as {
       _onPointerDown: (event: PointerEvent) => void;
       _onPointerMove: (event: PointerEvent, svg: SVGElement, tooltip: HTMLElement) => void;
-      _panState: { x: number; y: number; scale: number };
+      _viewTransform: { x: number; y: number; scale: number };
       _panMoved: boolean;
     };
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -379,8 +379,8 @@ describe("unifi-network-map card", () => {
       currentTarget: viewport,
     } as unknown as PointerEvent);
     card._onPointerMove({ clientX: 30, clientY: 50 } as unknown as PointerEvent, svg, tooltip);
-    expect(card._panState.x).toBe(20);
-    expect(card._panState.y).toBe(30);
+    expect(card._viewTransform.x).toBe(20);
+    expect(card._viewTransform.y).toBe(30);
     expect(card._panMoved).toBe(true);
   });
 
@@ -896,13 +896,13 @@ describe("unifi-network-map card", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     const card = element as unknown as {
       _onWheel: (event: WheelEvent, svg: SVGElement) => void;
-      _panState: { scale: number };
+      _viewTransform: { scale: number };
     };
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     card._onWheel({ deltaY: 1, preventDefault: () => undefined } as unknown as WheelEvent, svg);
-    expect(card._panState.scale).toBeLessThan(1);
+    expect(card._viewTransform.scale).toBeLessThan(1);
     card._onWheel({ deltaY: -1, preventDefault: () => undefined } as unknown as WheelEvent, svg);
-    expect(card._panState.scale).toBeGreaterThan(0.5);
+    expect(card._viewTransform.scale).toBeGreaterThan(0.5);
   });
 
   it("sets missing auth error when loading svg without token", async () => {

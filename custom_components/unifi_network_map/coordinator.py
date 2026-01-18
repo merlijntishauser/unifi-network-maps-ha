@@ -76,6 +76,7 @@ class UniFiNetworkMapCoordinator(DataUpdateCoordinator[UniFiNetworkMapData]):
     async def _async_update_data(self) -> UniFiNetworkMapData:
         backoff_remaining = self._auth_backoff_remaining()
         if backoff_remaining is not None:
+            LOGGER.debug("Skipping fetch: backoff active for %ds", int(backoff_remaining))
             raise UpdateFailed(f"Auth backoff active, retrying in {int(backoff_remaining)}s")
         try:
             data = await self.hass.async_add_executor_job(self._client.fetch_map)
@@ -101,9 +102,16 @@ class UniFiNetworkMapCoordinator(DataUpdateCoordinator[UniFiNetworkMapData]):
         now = monotonic_seconds()
         delay = min(self._auth_backoff_seconds, AUTH_BACKOFF_MAX_SECONDS)
         self._auth_backoff_until = now + delay
+        LOGGER.warning(
+            "Auth backoff activated: waiting %ds before retry (next delay: %ds)",
+            delay,
+            min(delay * 2, AUTH_BACKOFF_MAX_SECONDS),
+        )
         self._auth_backoff_seconds = min(delay * 2, AUTH_BACKOFF_MAX_SECONDS)
 
     def _reset_auth_backoff(self) -> None:
+        if self._auth_backoff_until is not None:
+            LOGGER.debug("Auth backoff cleared after successful fetch")
         self._auth_backoff_until = None
         self._auth_backoff_seconds = AUTH_BACKOFF_BASE_SECONDS
 

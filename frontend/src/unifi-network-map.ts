@@ -238,15 +238,61 @@ const CARD_STYLES = `
   }
 `;
 
-type MapPayload = {
+interface Edge {
+  left: string;
+  right: string;
+  label?: string | null;
+  poe?: boolean | null;
+  wireless?: boolean | null;
+}
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+interface ViewTransform {
+  x: number;
+  y: number;
+  scale: number;
+}
+
+interface DeviceCounts {
+  gateways: number;
+  switches: number;
+  aps: number;
+  clients: number;
+  other: number;
+}
+
+interface StatusCounts {
+  online: number;
+  offline: number;
+  hasStatus: boolean;
+}
+
+interface Neighbor {
+  name: string;
+  label?: string | null;
+  wireless?: boolean | null;
+  poe?: boolean | null;
+}
+
+interface FormSchemaEntry {
+  name: string;
+  required?: boolean;
+  selector: {
+    select: {
+      mode: string;
+      options: Array<{ label: string; value: string }>;
+    };
+  };
+  label: string;
+}
+
+interface MapPayload {
   schema_version?: string;
-  edges: Array<{
-    left: string;
-    right: string;
-    label?: string | null;
-    poe?: boolean | null;
-    wireless?: boolean | null;
-  }>;
+  edges: Edge[];
   node_types: Record<string, string>;
   gateways?: string[];
   client_entities?: Record<string, string>;
@@ -255,7 +301,7 @@ type MapPayload = {
   node_status?: Record<string, NodeStatus>;
   client_macs?: Record<string, string>;
   device_macs?: Record<string, string>;
-};
+}
 
 class UnifiNetworkMapCard extends HTMLElement {
   static getLayoutOptions() {
@@ -331,9 +377,9 @@ class UnifiNetworkMapCard extends HTMLElement {
   private _error?: string;
   private _loading = false;
   private _dataLoading = false;
-  private _panState = { x: 0, y: 0, scale: 1 };
+  private _viewTransform: ViewTransform = { x: 0, y: 0, scale: 1 };
   private _isPanning = false;
-  private _panStart: { x: number; y: number } | null = null;
+  private _panStart: Point | null = null;
   private _panMoved = false;
   private _selectedNode?: string;
   private _hoveredNode?: string;
@@ -488,7 +534,7 @@ class UnifiNetworkMapCard extends HTMLElement {
     this._render();
   }
 
-  private _renderLayout() {
+  private _renderLayout(): string {
     const safeSvg = this._svgContent ? sanitizeSvg(this._svgContent) : "";
     return `
       <div class="unifi-network-map__layout">
@@ -509,14 +555,14 @@ class UnifiNetworkMapCard extends HTMLElement {
     `;
   }
 
-  private _renderPanelContent() {
+  private _renderPanelContent(): string {
     if (!this._selectedNode) {
       return this._renderMapOverview();
     }
     return this._renderNodePanel(this._selectedNode);
   }
 
-  private _renderMapOverview() {
+  private _renderMapOverview(): string {
     if (!this._payload) {
       return `
         <div class="panel-empty">
@@ -547,7 +593,7 @@ class UnifiNetworkMapCard extends HTMLElement {
     `;
   }
 
-  private _countDevicesByType(nodes: string[], nodeTypes: Record<string, string>) {
+  private _countDevicesByType(nodes: string[], nodeTypes: Record<string, string>): DeviceCounts {
     return {
       gateways: nodes.filter((n) => nodeTypes[n] === "gateway").length,
       switches: nodes.filter((n) => nodeTypes[n] === "switch").length,
@@ -558,7 +604,7 @@ class UnifiNetworkMapCard extends HTMLElement {
     };
   }
 
-  private _countNodeStatus(nodeStatus: Record<string, NodeStatus>) {
+  private _countNodeStatus(nodeStatus: Record<string, NodeStatus>): StatusCounts {
     const values = Object.values(nodeStatus);
     return {
       online: values.filter((s) => s.state === "online").length,
@@ -567,7 +613,7 @@ class UnifiNetworkMapCard extends HTMLElement {
     };
   }
 
-  private _renderOverviewStatsGrid(nodeCount: number, edgeCount: number) {
+  private _renderOverviewStatsGrid(nodeCount: number, edgeCount: number): string {
     return `
       <div class="panel-stats-grid">
         <div class="stat-card">
@@ -582,11 +628,7 @@ class UnifiNetworkMapCard extends HTMLElement {
     `;
   }
 
-  private _renderOverviewStatusSection(counts: {
-    online: number;
-    offline: number;
-    hasStatus: boolean;
-  }) {
+  private _renderOverviewStatusSection(counts: StatusCounts): string {
     if (!counts.hasStatus) {
       return "";
     }
@@ -601,8 +643,8 @@ class UnifiNetworkMapCard extends HTMLElement {
     `;
   }
 
-  private _renderOverviewDeviceBreakdown(counts: Record<string, number>) {
-    const items = [
+  private _renderOverviewDeviceBreakdown(counts: DeviceCounts): string {
+    const items: Array<{ key: keyof DeviceCounts; icon: string; label: string }> = [
       { key: "gateways", icon: "🌐", label: "Gateways" },
       { key: "switches", icon: "🔀", label: "Switches" },
       { key: "aps", icon: "📶", label: "Access Points" },
@@ -624,7 +666,7 @@ class UnifiNetworkMapCard extends HTMLElement {
     `;
   }
 
-  private _renderNodePanel(name: string) {
+  private _renderNodePanel(name: string): string {
     const safeName = escapeHtml(name);
     if (!this._payload) {
       return `
@@ -722,7 +764,7 @@ class UnifiNetworkMapCard extends HTMLElement {
 
   private _renderOverviewTab(name: string): string {
     const edges = this._payload?.edges ?? [];
-    const neighbors = edges
+    const neighbors: Neighbor[] = edges
       .filter((edge) => edge.left === name || edge.right === name)
       .map((edge) => ({
         name: edge.left === name ? edge.right : edge.left,
@@ -730,7 +772,9 @@ class UnifiNetworkMapCard extends HTMLElement {
         wireless: edge.wireless,
         poe: edge.poe,
       }));
-    const uniqueNeighbors = Array.from(new Map(neighbors.map((n) => [n.name, n])).values());
+    const uniqueNeighbors: Neighbor[] = Array.from(
+      new Map(neighbors.map((n) => [n.name, n])).values(),
+    );
 
     const neighborList = uniqueNeighbors.length
       ? uniqueNeighbors
@@ -1033,7 +1077,10 @@ class UnifiNetworkMapCard extends HTMLElement {
     }
     this._isPanning = true;
     this._panMoved = false;
-    this._panStart = { x: event.clientX - this._panState.x, y: event.clientY - this._panState.y };
+    this._panStart = {
+      x: event.clientX - this._viewTransform.x,
+      y: event.clientY - this._viewTransform.y,
+    };
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
   }
 
@@ -1042,13 +1089,13 @@ class UnifiNetworkMapCard extends HTMLElement {
       const nextX = event.clientX - this._panStart.x;
       const nextY = event.clientY - this._panStart.y;
       if (
-        Math.abs(nextX - this._panState.x) > MIN_PAN_MOVEMENT_THRESHOLD ||
-        Math.abs(nextY - this._panState.y) > MIN_PAN_MOVEMENT_THRESHOLD
+        Math.abs(nextX - this._viewTransform.x) > MIN_PAN_MOVEMENT_THRESHOLD ||
+        Math.abs(nextY - this._viewTransform.y) > MIN_PAN_MOVEMENT_THRESHOLD
       ) {
         this._panMoved = true;
       }
-      this._panState.x = nextX;
-      this._panState.y = nextY;
+      this._viewTransform.x = nextX;
+      this._viewTransform.y = nextY;
       this._applyTransform(svg);
       return;
     }
@@ -1092,7 +1139,7 @@ class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _applyTransform(svg: SVGElement) {
-    const { x, y, scale } = this._panState;
+    const { x, y, scale } = this._viewTransform;
     svg.style.transformOrigin = "0 0";
     svg.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
     svg.style.cursor = this._isPanning ? "grabbing" : "grab";
@@ -1129,14 +1176,14 @@ class UnifiNetworkMapCard extends HTMLElement {
   private _applyZoom(delta: number, svg: SVGElement) {
     const nextScale = Math.min(
       MAX_ZOOM_SCALE,
-      Math.max(MIN_ZOOM_SCALE, this._panState.scale + delta),
+      Math.max(MIN_ZOOM_SCALE, this._viewTransform.scale + delta),
     );
-    this._panState.scale = Number(nextScale.toFixed(2));
+    this._viewTransform.scale = Number(nextScale.toFixed(2));
     this._applyTransform(svg);
   }
 
   private _resetPan(svg: SVGElement) {
-    this._panState = { x: 0, y: 0, scale: 1 };
+    this._viewTransform = { x: 0, y: 0, scale: 1 };
     this._selectedNode = undefined;
     this._applyTransform(svg);
     this._render();
@@ -1323,7 +1370,7 @@ class UnifiNetworkMapEditor extends HTMLElement {
     this._form.addEventListener("value-changed", this._boundOnChange);
   }
 
-  private _buildFormSchema() {
+  private _buildFormSchema(): FormSchemaEntry[] {
     const entryOptions = this._entries.map((entry) => ({
       label: entry.title,
       value: entry.entry_id,
