@@ -969,49 +969,55 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     return null;
   }
   _highlightSelectedNode(svg) {
+    this._clearNodeSelection(svg);
+    if (!this._selectedNode) {
+      return;
+    }
+    const element = this._findNodeElement(svg, this._selectedNode);
+    if (element) {
+      this._markNodeSelected(element);
+    }
+  }
+  _clearNodeSelection(svg) {
     svg.querySelectorAll("[data-selected]").forEach((el) => {
       el.removeAttribute("data-selected");
     });
     svg.querySelectorAll(".node--selected").forEach((el) => {
       el.classList.remove("node--selected");
     });
-    if (!this._selectedNode) {
-      return;
-    }
-    const nodeName = this._selectedNode;
-    const byDataId = svg.querySelector(`[data-node-id="${CSS.escape(nodeName)}"]`);
-    if (byDataId) {
-      const group = byDataId.closest("g") ?? byDataId;
-      group.setAttribute("data-selected", "true");
-      return;
-    }
-    const byAriaLabel = svg.querySelector(`[aria-label="${CSS.escape(nodeName)}"]`);
-    if (byAriaLabel) {
-      const group = byAriaLabel.closest("g") ?? byAriaLabel;
-      group.setAttribute("data-selected", "true");
-      return;
-    }
-    const textElements = svg.querySelectorAll("text");
-    for (const textEl of textElements) {
+  }
+  _findNodeElement(svg, nodeName) {
+    return this._findByDataNodeId(svg, nodeName) ?? this._findByAriaLabel(svg, nodeName) ?? this._findByTextContent(svg, nodeName) ?? this._findByTitleElement(svg, nodeName);
+  }
+  _findByDataNodeId(svg, nodeName) {
+    const el = svg.querySelector(`[data-node-id="${CSS.escape(nodeName)}"]`);
+    return el ? el.closest("g") ?? el : null;
+  }
+  _findByAriaLabel(svg, nodeName) {
+    const el = svg.querySelector(`[aria-label="${CSS.escape(nodeName)}"]`);
+    return el ? el.closest("g") ?? el : null;
+  }
+  _findByTextContent(svg, nodeName) {
+    for (const textEl of svg.querySelectorAll("text")) {
       if (textEl.textContent?.trim() === nodeName) {
-        const group = textEl.closest("g");
-        if (group) {
-          group.classList.add("node--selected");
-        } else {
-          textEl.classList.add("node--selected");
-        }
-        return;
+        return textEl.closest("g") ?? textEl;
       }
     }
-    const titleElements = svg.querySelectorAll("title");
-    for (const titleEl of titleElements) {
+    return null;
+  }
+  _findByTitleElement(svg, nodeName) {
+    for (const titleEl of svg.querySelectorAll("title")) {
       if (titleEl.textContent?.trim() === nodeName) {
-        const group = titleEl.closest("g");
-        if (group) {
-          group.classList.add("node--selected");
-        }
-        return;
+        return titleEl.closest("g");
       }
+    }
+    return null;
+  }
+  _markNodeSelected(element) {
+    if (element.tagName.toLowerCase() === "g") {
+      element.setAttribute("data-selected", "true");
+    } else {
+      element.classList.add("node--selected");
     }
   }
 };

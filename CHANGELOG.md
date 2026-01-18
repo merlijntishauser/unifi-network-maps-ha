@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Split `_renderStatsTab()` into focused helper methods (63 → 12 lines).
 - Split `UnifiNetworkMapEditor._render()` into focused helper methods (63 → 17 lines).
 - Split `_onPanelClick()` into individual click handlers (62 → 8 lines).
+- Split `_highlightSelectedNode()` into node-finding strategies (57 → 10 lines).
 
 ## [0.1.1] - 2026-01-17
 - Validate GitHub workflows and HACS checks.
