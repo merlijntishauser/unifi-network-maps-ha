@@ -1250,47 +1250,60 @@ class UnifiNetworkMapEditor extends HTMLElement {
   }
 
   private _render() {
-    const noEntries = this._entries.length === 0;
-    if (noEntries) {
-      this.innerHTML = `
-        <div style="padding: 16px;">
-          <p style="color: var(--secondary-text-color);">
-            No UniFi Network Map integrations found. Please add one first.
-          </p>
-        </div>
-      `;
-      this._form = undefined;
+    if (this._entries.length === 0) {
+      this._renderNoEntries();
       return;
     }
     if (!this._form) {
-      this.innerHTML = `
-        <div style="padding: 16px;">
-          <ha-form></ha-form>
-        </div>
-      `;
-      const form = this.querySelector("ha-form") as
-        | (HTMLElement & { schema: unknown; data: Record<string, unknown> })
-        | null;
-      if (!form) {
+      this._initializeForm();
+      if (!this._form) {
         return;
       }
-      this._form = form;
-      this._form.addEventListener("value-changed", this._boundOnChange);
     }
+    this._form.schema = this._buildFormSchema();
+    this._form.data = {
+      entry_id: this._config?.entry_id ?? "",
+      theme: this._config?.theme ?? "dark",
+    };
+  }
+
+  private _renderNoEntries() {
+    this.innerHTML = `
+      <div style="padding: 16px;">
+        <p style="color: var(--secondary-text-color);">
+          No UniFi Network Map integrations found. Please add one first.
+        </p>
+      </div>
+    `;
+    this._form = undefined;
+  }
+
+  private _initializeForm() {
+    this.innerHTML = `
+      <div style="padding: 16px;">
+        <ha-form></ha-form>
+      </div>
+    `;
+    const form = this.querySelector("ha-form") as
+      | (HTMLElement & { schema: unknown; data: Record<string, unknown> })
+      | null;
+    if (!form) {
+      return;
+    }
+    this._form = form;
+    this._form.addEventListener("value-changed", this._boundOnChange);
+  }
+
+  private _buildFormSchema() {
     const entryOptions = this._entries.map((entry) => ({
       label: entry.title,
       value: entry.entry_id,
     }));
-    this._form.schema = [
+    return [
       {
         name: "entry_id",
         required: true,
-        selector: {
-          select: {
-            mode: "dropdown",
-            options: entryOptions,
-          },
-        },
+        selector: { select: { mode: "dropdown", options: entryOptions } },
         label: "UniFi Network Map Instance",
       },
       {
@@ -1307,10 +1320,6 @@ class UnifiNetworkMapEditor extends HTMLElement {
         label: "Theme",
       },
     ];
-    this._form.data = {
-      entry_id: this._config?.entry_id ?? "",
-      theme: this._config?.theme ?? "dark",
-    };
   }
 
   private _onChange(e: Event) {
