@@ -14,6 +14,7 @@ from .const import (
     CONF_INCLUDE_CLIENTS,
     CONF_INCLUDE_PORTS,
     CONF_ONLY_UNIFI,
+    CONF_SCAN_INTERVAL,
     CONF_SITE,
     CONF_SVG_HEIGHT,
     CONF_SVG_ISOMETRIC,
@@ -24,11 +25,14 @@ from .const import (
     DEFAULT_INCLUDE_CLIENTS,
     DEFAULT_INCLUDE_PORTS,
     DEFAULT_ONLY_UNIFI,
+    DEFAULT_SCAN_INTERVAL_MINUTES,
     DEFAULT_SITE,
     DEFAULT_SVG_ISOMETRIC,
     DEFAULT_USE_CACHE,
     DEFAULT_VERIFY_SSL,
     DOMAIN,
+    MAX_SCAN_INTERVAL_MINUTES,
+    MIN_SCAN_INTERVAL_MINUTES,
 )
 from .errors import CannotConnect, InvalidAuth, InvalidUrl, UrlHasCredentials
 
@@ -43,7 +47,8 @@ class UniFiNetworkMapConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if error:
                 errors["base"] = error
             else:
-                return self.async_create_entry(title=data[CONF_URL], data=data)
+                title = _build_entry_title(data)
+                return self.async_create_entry(title=title, data=data)
 
         return self.async_show_form(
             step_id="user",
@@ -126,6 +131,7 @@ def _options_schema_fields(options: dict[str, Any]) -> dict[vol.Marker, object]:
         return vol.Optional(key, default=options.get(key, default))
 
     return {
+        opt(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_MINUTES): _scan_interval_selector(),
         opt(CONF_INCLUDE_PORTS, DEFAULT_INCLUDE_PORTS): _boolean_selector(),
         opt(CONF_INCLUDE_CLIENTS, DEFAULT_INCLUDE_CLIENTS): _boolean_selector(),
         opt(CONF_CLIENT_SCOPE, DEFAULT_CLIENT_SCOPE): _client_scope_selector(),
@@ -137,6 +143,18 @@ def _options_schema_fields(options: dict[str, Any]) -> dict[vol.Marker, object]:
 
 def _boolean_selector() -> selector.BooleanSelector:
     return selector.BooleanSelector()
+
+
+def _scan_interval_selector() -> selector.NumberSelector:
+    return selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=MIN_SCAN_INTERVAL_MINUTES,
+            max=MAX_SCAN_INTERVAL_MINUTES,
+            step=1,
+            unit_of_measurement="minutes",
+            mode=selector.NumberSelectorMode.BOX,
+        )
+    )
 
 
 def _client_scope_selector() -> selector.SelectSelector:
@@ -194,3 +212,8 @@ def _validate_url(url: str) -> None:
         raise InvalidUrl
     if parsed.user or parsed.password:
         raise UrlHasCredentials
+
+
+def _build_entry_title(data: dict[str, Any]) -> str:
+    site = data.get(CONF_SITE, DEFAULT_SITE)
+    return f"UniFi Network Map ({site})"

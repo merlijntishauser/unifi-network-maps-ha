@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any, Mapping, Protocol
 
 from homeassistant.config_entries import ConfigEntry
@@ -13,6 +14,7 @@ from .const import (
     CONF_INCLUDE_CLIENTS,
     CONF_INCLUDE_PORTS,
     CONF_ONLY_UNIFI,
+    CONF_SCAN_INTERVAL,
     CONF_SITE,
     CONF_SVG_HEIGHT,
     CONF_SVG_ISOMETRIC,
@@ -23,7 +25,7 @@ from .const import (
     DEFAULT_INCLUDE_CLIENTS,
     DEFAULT_INCLUDE_PORTS,
     DEFAULT_ONLY_UNIFI,
-    DEFAULT_SCAN_INTERVAL,
+    DEFAULT_SCAN_INTERVAL_MINUTES,
     DEFAULT_SVG_ISOMETRIC,
     DEFAULT_USE_CACHE,
     DOMAIN,
@@ -51,11 +53,12 @@ class UniFiNetworkMapCoordinator(DataUpdateCoordinator[UniFiNetworkMapData]):
         entry: ConfigEntry,
         client: MapClient | None = None,
     ) -> None:
+        scan_interval = _get_scan_interval(entry)
         super().__init__(
             hass,
             LOGGER,
             name=DOMAIN,
-            update_interval=DEFAULT_SCAN_INTERVAL,
+            update_interval=scan_interval,
         )
         self._client = client or _build_client(hass, entry)
         self._auth_backoff_until: float | None = None
@@ -158,3 +161,8 @@ def _build_settings(entry: ConfigEntry) -> RenderSettings:
         svg_height=options.get(CONF_SVG_HEIGHT),
         use_cache=options.get(CONF_USE_CACHE, DEFAULT_USE_CACHE),
     )
+
+
+def _get_scan_interval(entry: ConfigEntry) -> timedelta:
+    minutes = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_MINUTES)
+    return timedelta(minutes=int(minutes))

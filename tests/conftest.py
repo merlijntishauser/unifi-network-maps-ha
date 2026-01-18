@@ -175,9 +175,19 @@ def _install_homeassistant_stubs() -> None:
     helpers_update.UpdateFailed = UpdateFailed
     helpers_update.CoordinatorEntity = CoordinatorEntity
     exceptions.HomeAssistantError = Exception
+
+    class DeviceEntryType:  # minimal stub for imports
+        SERVICE = "service"
+
+    class DeviceInfo(dict[str, object]):  # minimal stub for imports
+        def __init__(self, **kwargs: object) -> None:
+            super().__init__(kwargs)
+
     device_registry.CONNECTION_NETWORK_MAC = "mac"
     device_registry.async_get = _async_get_stub
     device_registry.format_mac = _format_mac
+    device_registry.DeviceEntryType = DeviceEntryType
+    device_registry.DeviceInfo = DeviceInfo
     entity_registry.async_get = _async_get_stub
     components_http.HomeAssistantView = HomeAssistantView
     components_http.StaticPathConfig = StaticPathConfig

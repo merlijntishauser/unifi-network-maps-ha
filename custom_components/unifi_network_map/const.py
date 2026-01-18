@@ -32,5 +32,10 @@ CONF_SVG_ISOMETRIC = "svg_isometric"
 CONF_SVG_WIDTH = "svg_width"
 CONF_SVG_HEIGHT = "svg_height"
 CONF_USE_CACHE = "use_cache"
+CONF_SCAN_INTERVAL = "scan_interval"
+
+MIN_SCAN_INTERVAL_MINUTES = 1
+MAX_SCAN_INTERVAL_MINUTES = 60
+DEFAULT_SCAN_INTERVAL_MINUTES = 10
 
 LOGGER = logging.getLogger(__name__)

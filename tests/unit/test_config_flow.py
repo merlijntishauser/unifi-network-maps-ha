@@ -54,7 +54,7 @@ def test_step_user_creates_entry_on_success(monkeypatch):
     result = _run(_make_flow().async_step_user(_base_input()))
 
     assert result["type"] == "create_entry"
-    assert result["title"] == "https://unifi.local"
+    assert result["title"] == "UniFi Network Map (default)"
     assert result["data"][CONF_URL] == "https://unifi.local"
 
 

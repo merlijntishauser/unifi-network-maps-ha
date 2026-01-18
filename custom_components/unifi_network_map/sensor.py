@@ -3,6 +3,7 @@ from __future__ import annotations
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, PAYLOAD_SCHEMA_VERSION
@@ -18,17 +19,24 @@ async def async_setup_entry(
     coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
     if not isinstance(coordinator, UniFiNetworkMapCoordinator):
         return
-    async_add_entities([UniFiNetworkMapSensor(coordinator, entry.entry_id)])
+    async_add_entities([UniFiNetworkMapSensor(coordinator, entry)])
 
 
 class UniFiNetworkMapSensor(CoordinatorEntity[UniFiNetworkMapData], SensorEntity):
-    _attr_name = "UniFi Network Map"
+    _attr_has_entity_name = True
+    _attr_name = "Status"
     _attr_icon = "mdi:graph"
 
-    def __init__(self, coordinator: UniFiNetworkMapCoordinator, entry_id: str) -> None:
+    def __init__(self, coordinator: UniFiNetworkMapCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator)
-        self._entry_id = entry_id
-        self._attr_unique_id = f"{entry_id}_map"
+        self._entry = entry
+        self._attr_unique_id = f"{entry.entry_id}_map"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry.entry_id)},
+            name=entry.title,
+            entry_type=DeviceEntryType.SERVICE,
+            manufacturer="Ubiquiti",
+        )
 
     @property
     def native_value(self) -> str:
@@ -37,10 +45,11 @@ class UniFiNetworkMapSensor(CoordinatorEntity[UniFiNetworkMapData], SensorEntity
     @property
     def extra_state_attributes(self) -> dict[str, str]:
         error = _format_error(self.coordinator)
+        entry_id = self._entry.entry_id
         return {
-            "entry_id": self._entry_id,
-            "svg_url": f"/api/unifi_network_map/{self._entry_id}/svg",
-            "payload_url": f"/api/unifi_network_map/{self._entry_id}/payload",
+            "entry_id": entry_id,
+            "svg_url": f"/api/unifi_network_map/{entry_id}/svg",
+            "payload_url": f"/api/unifi_network_map/{entry_id}/payload",
             "payload_schema_version": PAYLOAD_SCHEMA_VERSION,
             "last_error": error or "",
         }
