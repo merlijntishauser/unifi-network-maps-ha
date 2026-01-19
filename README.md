@@ -15,10 +15,19 @@ client visibility and drill-down details.
 - Strongly recommended: install the official UniFi Network integration
   (`unifi`) to enrich clients/devices with existing entity data.
 
-## Install (HACS)
-1) Add this repository to HACS as a custom integration.
-2) Install "UniFi Network Map".
-3) Restart Home Assistant.
+## Install (pre-HACS)
+Until the repository is listed in HACS by default, install it as a custom
+repository or manually.
+
+### Option A: HACS custom repository
+1) In HACS, go to **Integrations → ⋮ → Custom repositories**.
+2) Add `https://github.com/merlijntishauser/unifi-network-maps-ha` as **Integration**.
+3) Install **UniFi Network Map** and restart Home Assistant.
+
+### Option B: Manual copy
+1) Copy `custom_components/unifi_network_map` into your HA config at
+   `config/custom_components/unifi_network_map`.
+2) Restart Home Assistant.
 
 ## Set up the integration
 1) Go to **Settings → Devices & services → Add integration**.
