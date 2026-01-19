@@ -1021,7 +1021,7 @@ var purify = createDOMPurify();
 function escapeHtml(text2) {
   return text2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
-var CARD_VERSION = "0.1.2";
+var CARD_VERSION = "0.1.3";
 function sanitizeSvg(svg2) {
   const parser = new DOMParser();
   const doc = parser.parseFromString(svg2, "image/svg+xml");
