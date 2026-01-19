@@ -15,6 +15,13 @@ client visibility and drill-down details.
 - Strongly recommended: install the official UniFi Network integration
   (`unifi`) to enrich clients/devices with existing entity data.
 
+### Local UniFi account (required)
+Cloud-only credentials won’t work here. Create a local account in the UniFi
+Network app:
+1) Go to **Settings → Admins & Users** (or **System → Users** on newer UIs).
+2) Add a **Local User** (not a cloud account).
+3) Grant at least **Read** access to the Network application.
+
 ## Install (pre-HACS)
 Until the repository is listed in HACS by default, install it as a custom
 repository or manually.
