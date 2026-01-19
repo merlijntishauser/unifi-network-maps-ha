@@ -782,6 +782,26 @@ describe("unifi-network-map card", () => {
     expect(html).toContain("Channel 36 (5GHz)");
   });
 
+  it("adds a hitbox path for edge hover", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as {
+      _payload?: unknown;
+      _annotateEdges: (svg: SVGElement) => void;
+    };
+    card._payload = { edges: [{ left: "A", right: "B" }], node_types: {} };
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("stroke", "#000");
+    path.setAttribute("d", "M0 0 L10 10");
+    svg.appendChild(path);
+    card._annotateEdges(svg);
+
+    const hitbox = svg.querySelector('path[data-edge-hitbox="true"]');
+    expect(hitbox).not.toBeNull();
+    expect(hitbox?.getAttribute("data-edge-left")).toBe("A");
+    expect(hitbox?.getAttribute("data-edge-right")).toBe("B");
+  });
+
   it("returns default tab content for unknown tab", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     const card = element as unknown as {
