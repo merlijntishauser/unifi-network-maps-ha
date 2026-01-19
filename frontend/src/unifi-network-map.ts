@@ -215,12 +215,22 @@ const CARD_STYLES = `
   /* Selected node highlight */
   .unifi-network-map__viewport svg [data-selected="true"],
   .unifi-network-map__viewport svg .node--selected {
-    filter: drop-shadow(0 0 8px #3b82f6) drop-shadow(0 0 16px rgba(59, 130, 246, 0.6));
+    filter: none;
   }
   .unifi-network-map__viewport svg [data-selected="true"] > *,
   .unifi-network-map__viewport svg .node--selected > * {
     stroke: #3b82f6 !important;
     stroke-width: 2px;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+  .unifi-network-map__viewport svg [data-selected="true"] > :not(text):not(tspan):not(foreignObject),
+  .unifi-network-map__viewport svg .node--selected > :not(text):not(tspan):not(foreignObject) {
+    filter: drop-shadow(0 0 6px #3b82f6) drop-shadow(0 0 12px rgba(59, 130, 246, 0.45));
+  }
+  .unifi-network-map__viewport svg [data-selected="true"] text,
+  .unifi-network-map__viewport svg .node--selected text {
+    stroke: none !important;
   }
 
   /* Light theme overrides */

@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved Home Assistant artifacts (device registration, entry title, scan interval).
 - Added auth backoff logging and tightened frontend types.
 - Bump unifi-network-maps to 1.4.11
+- Selected node only highlights the shapes, not labels
 
 ## [0.1.2] - 2026-01-18
 ### Added
