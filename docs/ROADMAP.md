@@ -7,7 +7,6 @@
 - **Race condition in Lovelace retry** (`__init__.py`) - Non-atomic counter increment can exceed 6-attempt limit
 - **Diagnostics timestamp** - Add timestamp to show data freshness
 - **Diagnostics include clients list** (anonymized) - Include counts + sample names
-- **Isometric toggle refresh** - Switching isometric on/off requires reload; auto-refresh on options change
 
 ## P3 - UX Polish (User-facing)
 
@@ -103,6 +102,7 @@ Methods to break down for readability:
 - **L** = Large (> 1 day)
 
 ## Recently Completed
+- ✅ Isometric toggle auto-refresh (options changes take effect immediately)
 - ✅ Edge hover/click with speed, PoE, wireless channel display
 - ✅ Custom entity modal with related entities overview
 - ✅ Device registration with proper HA artifacts

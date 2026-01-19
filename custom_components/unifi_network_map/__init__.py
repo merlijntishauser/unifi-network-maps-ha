@@ -38,8 +38,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _store_coordinator(hass, entry.entry_id, coordinator)
     _register_runtime_services(hass, register_unifi_http_views)
     await _forward_entry_setups(hass, entry)
+    entry.async_on_unload(entry.add_update_listener(_async_options_updated))
     _log_api_endpoints(entry.entry_id)
     return True
+
+
+async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Handle options update - rebuild coordinator client and refresh."""
+    coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if isinstance(coordinator, UniFiNetworkMapCoordinator):
+        coordinator.update_settings()
+        await coordinator.async_request_refresh()
+        LOGGER.info("Options updated, refreshing UniFi Network Map")
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

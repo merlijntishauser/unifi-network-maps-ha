@@ -60,9 +60,16 @@ class UniFiNetworkMapCoordinator(DataUpdateCoordinator[UniFiNetworkMapData]):
             name=DOMAIN,
             update_interval=scan_interval,
         )
+        self._entry = entry
         self._client = client or _build_client(hass, entry)
         self._auth_backoff_until: float | None = None
         self._auth_backoff_seconds = AUTH_BACKOFF_BASE_SECONDS
+
+    def update_settings(self) -> None:
+        """Rebuild client with current entry options."""
+        self._client = _build_client(self.hass, self._entry)
+        self.update_interval = _get_scan_interval(self._entry)
+        LOGGER.debug("Coordinator settings updated from entry options")
 
     @property
     def settings(self) -> RenderSettings:

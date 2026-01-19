@@ -20,6 +20,14 @@ class FakeEntry:
     data: dict[str, object]
     options: dict[str, object]
 
+    def add_update_listener(self, _callback: Callable[..., object]) -> Callable[[], None]:
+        """Mock add_update_listener that returns a no-op removal function."""
+        return lambda: None
+
+    def async_on_unload(self, _func: Callable[[], None]) -> None:
+        """Mock async_on_unload that does nothing."""
+        pass
+
 
 class FakeServices:
     def __init__(self) -> None:
