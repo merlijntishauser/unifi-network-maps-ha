@@ -95,13 +95,8 @@ Methods to break down for readability:
 - **Bandwidth usage trends** - Daily/weekly graphs per device
 - **Connection quality metrics** - Signal strength, retry rates for wireless
 
-## Effort Key
-- **S** = Small (< 2 hours)
-- **M** = Medium (2-8 hours)
-- **L** = Large (> 1 day)
-
 ## Recently Completed
-- ✅ Context menu with right-click actions (select, details, copy MAC, restart, block)
+- Context menu with right-click actions (select, details, copy MAC, restart, block)
 
 
 See [CHANGELOG.md](CHANGELOG.md) for full history.
