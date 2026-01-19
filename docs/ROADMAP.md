@@ -64,7 +64,6 @@ Methods to break down for readability:
 | Pinch-to-zoom on touch | Mobile/tablet support | S |
 | Group/collapse nodes | Collapse switches with all their clients | L |
 | Path visualization | Highlight route between two selected nodes | M |
-| Context menu | Right-click actions (restart, block, details) | M |
 | Drag-to-rearrange | Custom node positioning with save/restore | L |
 | Filter by device type | Show only APs, only clients, etc. | S |
 
@@ -102,14 +101,7 @@ Methods to break down for readability:
 - **L** = Large (> 1 day)
 
 ## Recently Completed
-- ✅ Isometric toggle auto-refresh (options changes take effect immediately)
-- ✅ Edge hover/click with speed, PoE, wireless channel display
-- ✅ Custom entity modal with related entities overview
-- ✅ Device registration with proper HA artifacts
-- ✅ Configurable scan interval
-- ✅ Auth backoff logging for debugging
-- ✅ Frontend type improvements (interfaces, return types)
-- ✅ Edge tooltip hitbox improvement
-- ✅ Entity quick-action popup fix (keep modal open)
+- ✅ Context menu with right-click actions (select, details, copy MAC, restart, block)
+
 
 See [CHANGELOG.md](CHANGELOG.md) for full history.

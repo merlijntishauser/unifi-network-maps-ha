@@ -450,6 +450,92 @@ const CARD_STYLES = `
   .entity-modal-overlay[data-theme="light"] .entity-modal__state-badge--not_home,
   .entity-modal-overlay[data-theme="light"] .entity-modal__state-badge--off { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
   .entity-modal-overlay[data-theme="light"] .entity-modal__state-badge--default { background: rgba(107, 114, 128, 0.15); color: #6b7280; }
+
+  /* Context Menu */
+  .context-menu {
+    position: fixed;
+    z-index: 1001;
+    background: rgba(15, 23, 42, 0.98);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 12px;
+    padding: 6px;
+    min-width: 180px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(12px);
+  }
+  .context-menu__header {
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    margin-bottom: 4px;
+  }
+  .context-menu__title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #f1f5f9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+  }
+  .context-menu__type {
+    font-size: 10px;
+    color: #64748b;
+    margin-top: 2px;
+    text-transform: capitalize;
+  }
+  .context-menu__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: #e2e8f0;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+  }
+  .context-menu__item:hover {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+  }
+  .context-menu__item:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .context-menu__item:disabled:hover {
+    background: transparent;
+    color: #e2e8f0;
+  }
+  .context-menu__icon {
+    font-size: 14px;
+    width: 20px;
+    text-align: center;
+  }
+  .context-menu__divider {
+    height: 1px;
+    background: rgba(148, 163, 184, 0.1);
+    margin: 4px 0;
+  }
+  .context-menu__item--danger:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+  }
+
+  /* Light theme context menu */
+  .context-menu[data-theme="light"] {
+    background: rgba(255, 255, 255, 0.98);
+    border-color: rgba(148, 163, 184, 0.3);
+  }
+  .context-menu[data-theme="light"] .context-menu__title { color: #0f172a; }
+  .context-menu[data-theme="light"] .context-menu__type { color: #64748b; }
+  .context-menu[data-theme="light"] .context-menu__item { color: #0f172a; }
+  .context-menu[data-theme="light"] .context-menu__item:hover { background: rgba(59, 130, 246, 0.1); color: #1d4ed8; }
+  .context-menu[data-theme="light"] .context-menu__item--danger:hover { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+  .context-menu[data-theme="light"] .context-menu__divider { background: rgba(148, 163, 184, 0.2); }
 `;
 
 interface Edge {
@@ -515,6 +601,12 @@ interface RelatedEntity {
   friendly_name?: string | null;
 }
 
+interface ContextMenuState {
+  nodeName: string;
+  x: number;
+  y: number;
+}
+
 interface MapPayload {
   schema_version?: string;
   edges: Edge[];
@@ -574,6 +666,7 @@ class UnifiNetworkMapCard extends HTMLElement {
   disconnectedCallback() {
     this._stopStatusPolling();
     this._removeEntityModal();
+    this._removeContextMenu();
   }
 
   private _startStatusPolling() {
@@ -616,6 +709,8 @@ class UnifiNetworkMapCard extends HTMLElement {
   private _activeTab: "overview" | "stats" | "actions" = "overview";
   private _statusPollInterval?: number;
   private _entityModalOverlay?: HTMLElement;
+  private _contextMenu?: ContextMenuState;
+  private _contextMenuElement?: HTMLElement;
 
   private _getAuthToken(): string | undefined {
     return this._hass?.auth?.data?.access_token;
@@ -1194,6 +1289,7 @@ class UnifiNetworkMapCard extends HTMLElement {
       this._hideTooltip(tooltip);
     };
     viewport.onclick = (event) => this._onClick(event, tooltip);
+    viewport.oncontextmenu = (event) => this._onContextMenu(event);
 
     if (panel) {
       panel.onclick = (event) => this._onPanelClick(event);
@@ -1469,6 +1565,342 @@ class UnifiNetworkMapCard extends HTMLElement {
       this._entityModalOverlay.remove();
       this._entityModalOverlay = undefined;
     }
+  }
+
+  private _onContextMenu(event: MouseEvent): void {
+    const nodeName = this._resolveNodeName(event);
+    if (!nodeName) {
+      return;
+    }
+    event.preventDefault();
+    this._removeContextMenu();
+    this._contextMenu = { nodeName, x: event.clientX, y: event.clientY };
+    this._showContextMenu();
+  }
+
+  private _showContextMenu(): void {
+    if (!this._contextMenu) return;
+
+    const menuHtml = this._renderContextMenu(this._contextMenu.nodeName);
+    const container = document.createElement("div");
+    container.innerHTML = menuHtml;
+    const menu = container.firstElementChild as HTMLElement;
+    if (!menu) return;
+
+    document.body.appendChild(menu);
+    this._contextMenuElement = menu;
+
+    this._positionContextMenu(menu, this._contextMenu.x, this._contextMenu.y);
+    this._wireContextMenuEvents(menu);
+  }
+
+  private _renderContextMenu(nodeName: string): string {
+    const safeName = escapeHtml(nodeName);
+    const nodeType = this._payload?.node_types?.[nodeName] ?? "unknown";
+    const typeIcon = this._getNodeTypeIcon(nodeType);
+    const mac = this._payload?.client_macs?.[nodeName] ?? this._payload?.device_macs?.[nodeName];
+    const entityId =
+      this._payload?.node_entities?.[nodeName] ??
+      this._payload?.client_entities?.[nodeName] ??
+      this._payload?.device_entities?.[nodeName];
+    const isDevice = nodeType !== "client";
+    const isClient = nodeType === "client";
+    const theme = this._config?.theme ?? "dark";
+
+    const items: string[] = [];
+
+    items.push(`
+      <button type="button" class="context-menu__item" data-context-action="select">
+        <span class="context-menu__icon">👆</span>
+        <span>Select</span>
+      </button>
+    `);
+
+    if (entityId) {
+      items.push(`
+        <button type="button" class="context-menu__item" data-context-action="details">
+          <span class="context-menu__icon">📊</span>
+          <span>View Details</span>
+        </button>
+      `);
+    }
+
+    if (mac) {
+      items.push(`
+        <button type="button" class="context-menu__item" data-context-action="copy-mac" data-mac="${escapeHtml(mac)}">
+          <span class="context-menu__icon">📋</span>
+          <span>Copy MAC Address</span>
+        </button>
+      `);
+    }
+
+    items.push('<div class="context-menu__divider"></div>');
+
+    if (isDevice) {
+      items.push(`
+        <button type="button" class="context-menu__item" data-context-action="restart" ${!entityId ? "disabled" : ""}>
+          <span class="context-menu__icon">🔄</span>
+          <span>Restart Device</span>
+        </button>
+      `);
+    }
+
+    if (isClient) {
+      items.push(`
+        <button type="button" class="context-menu__item context-menu__item--danger" data-context-action="block" ${!entityId ? "disabled" : ""}>
+          <span class="context-menu__icon">🚫</span>
+          <span>Block Client</span>
+        </button>
+      `);
+    }
+
+    return `
+      <div class="context-menu" data-theme="${escapeHtml(theme)}" data-context-node="${safeName}">
+        <div class="context-menu__header">
+          <div class="context-menu__title">${typeIcon} ${safeName}</div>
+          <div class="context-menu__type">${escapeHtml(nodeType)}</div>
+        </div>
+        ${items.join("")}
+      </div>
+    `;
+  }
+
+  private _positionContextMenu(menu: HTMLElement, x: number, y: number): void {
+    menu.style.left = `${x}px`;
+    menu.style.top = `${y}px`;
+
+    requestAnimationFrame(() => {
+      const rect = menu.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      let adjustedX = x;
+      let adjustedY = y;
+
+      if (rect.right > viewportWidth) {
+        adjustedX = viewportWidth - rect.width - 8;
+      }
+      if (rect.bottom > viewportHeight) {
+        adjustedY = viewportHeight - rect.height - 8;
+      }
+      if (adjustedX < 8) {
+        adjustedX = 8;
+      }
+      if (adjustedY < 8) {
+        adjustedY = 8;
+      }
+
+      menu.style.left = `${adjustedX}px`;
+      menu.style.top = `${adjustedY}px`;
+    });
+  }
+
+  private _wireContextMenuEvents(menu: HTMLElement): void {
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      const actionButton = target.closest("[data-context-action]") as HTMLButtonElement | null;
+
+      if (actionButton && !actionButton.disabled) {
+        event.preventDefault();
+        event.stopPropagation();
+        const action = actionButton.getAttribute("data-context-action");
+        const mac = actionButton.getAttribute("data-mac");
+        if (action && this._contextMenu) {
+          this._handleContextMenuAction(action, this._contextMenu.nodeName, mac);
+        }
+      }
+    };
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!menu.contains(event.target as Node)) {
+        this._removeContextMenu();
+      }
+    };
+
+    const handleKeydown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        this._removeContextMenu();
+      }
+    };
+
+    menu.addEventListener("click", handleClick);
+    document.addEventListener("click", handleClickOutside, { once: true });
+    document.addEventListener("keydown", handleKeydown);
+
+    (menu as HTMLElement & { _cleanup?: () => void })._cleanup = () => {
+      menu.removeEventListener("click", handleClick);
+      document.removeEventListener("click", handleClickOutside);
+      document.removeEventListener("keydown", handleKeydown);
+    };
+  }
+
+  private _handleContextMenuAction(action: string, nodeName: string, mac: string | null): void {
+    switch (action) {
+      case "select":
+        this._selectedNode = nodeName;
+        this._removeContextMenu();
+        this._render();
+        break;
+
+      case "details":
+        this._removeContextMenu();
+        this._showEntityModal(nodeName);
+        break;
+
+      case "copy-mac":
+        if (mac) {
+          navigator.clipboard.writeText(mac).then(() => {
+            this._showCopyFeedback();
+          });
+        }
+        this._removeContextMenu();
+        break;
+
+      case "restart":
+        this._handleRestartDevice(nodeName);
+        this._removeContextMenu();
+        break;
+
+      case "block":
+        this._handleBlockClient(nodeName);
+        this._removeContextMenu();
+        break;
+
+      default:
+        this._removeContextMenu();
+    }
+  }
+
+  private _showCopyFeedback(): void {
+    const feedback = document.createElement("div");
+    feedback.textContent = "MAC address copied!";
+    feedback.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(34, 197, 94, 0.9);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 1002;
+      animation: fadeInOut 2s ease forwards;
+    `;
+
+    const style = document.createElement("style");
+    style.textContent = `
+      @keyframes fadeInOut {
+        0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
+        15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+      }
+    `;
+    feedback.appendChild(style);
+    document.body.appendChild(feedback);
+
+    setTimeout(() => feedback.remove(), 2000);
+  }
+
+  private _handleRestartDevice(nodeName: string): void {
+    const entityId =
+      this._payload?.node_entities?.[nodeName] ?? this._payload?.device_entities?.[nodeName];
+
+    if (!entityId) {
+      this._showActionError("No entity found for this device");
+      return;
+    }
+
+    this.dispatchEvent(
+      new CustomEvent("hass-action", {
+        bubbles: true,
+        composed: true,
+        detail: {
+          action: "call-service",
+          service: "button.press",
+          target: { entity_id: entityId.replace(/\.[^.]+$/, ".restart") },
+        },
+      }),
+    );
+
+    this._showActionFeedback("Restart command sent");
+  }
+
+  private _handleBlockClient(nodeName: string): void {
+    const entityId = this._payload?.client_entities?.[nodeName];
+
+    if (!entityId) {
+      this._showActionError("No entity found for this client");
+      return;
+    }
+
+    this.dispatchEvent(
+      new CustomEvent("hass-action", {
+        bubbles: true,
+        composed: true,
+        detail: {
+          action: "call-service",
+          service: "switch.turn_off",
+          target: { entity_id: entityId.replace(/\.[^.]+$/, ".block") },
+        },
+      }),
+    );
+
+    this._showActionFeedback("Block command sent");
+  }
+
+  private _showActionFeedback(message: string): void {
+    const feedback = document.createElement("div");
+    feedback.textContent = message;
+    feedback.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(59, 130, 246, 0.9);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 1002;
+      animation: fadeInOut 2s ease forwards;
+    `;
+    document.body.appendChild(feedback);
+    setTimeout(() => feedback.remove(), 2000);
+  }
+
+  private _showActionError(message: string): void {
+    const feedback = document.createElement("div");
+    feedback.textContent = message;
+    feedback.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(239, 68, 68, 0.9);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 1002;
+      animation: fadeInOut 2s ease forwards;
+    `;
+    document.body.appendChild(feedback);
+    setTimeout(() => feedback.remove(), 2000);
+  }
+
+  private _removeContextMenu(): void {
+    if (this._contextMenuElement) {
+      const cleanup = (this._contextMenuElement as HTMLElement & { _cleanup?: () => void })
+        ._cleanup;
+      if (cleanup) {
+        cleanup();
+      }
+      this._contextMenuElement.remove();
+      this._contextMenuElement = undefined;
+    }
+    this._contextMenu = undefined;
   }
 
   private _wireControls(svg: SVGElement) {
