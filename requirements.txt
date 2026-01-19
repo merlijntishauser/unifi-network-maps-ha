@@ -1,1 +1,1 @@
-unifi-network-maps==1.4.10
+unifi-network-maps==1.4.11

@@ -1885,7 +1885,7 @@ class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _onContextMenu(event: MouseEvent): void {
-    const nodeName = this._resolveNodeName(event);
+    const nodeName = this._resolveNodeName(event) ?? this._hoveredNode;
     if (!nodeName) {
       return;
     }
@@ -1921,7 +1921,6 @@ class UnifiNetworkMapCard extends HTMLElement {
       this._payload?.client_entities?.[nodeName] ??
       this._payload?.device_entities?.[nodeName];
     const isDevice = nodeType !== "client";
-    const isClient = nodeType === "client";
     const theme = this._config?.theme ?? "dark";
 
     const items: string[] = [];
@@ -1958,15 +1957,6 @@ class UnifiNetworkMapCard extends HTMLElement {
         <button type="button" class="context-menu__item" data-context-action="restart" ${!entityId ? "disabled" : ""}>
           <span class="context-menu__icon">🔄</span>
           <span>Restart Device</span>
-        </button>
-      `);
-    }
-
-    if (isClient) {
-      items.push(`
-        <button type="button" class="context-menu__item context-menu__item--danger" data-context-action="block" ${!entityId ? "disabled" : ""}>
-          <span class="context-menu__icon">🚫</span>
-          <span>Block Client</span>
         </button>
       `);
     }
@@ -2078,11 +2068,6 @@ class UnifiNetworkMapCard extends HTMLElement {
         this._removeContextMenu();
         break;
 
-      case "block":
-        this._handleBlockClient(nodeName);
-        this._removeContextMenu();
-        break;
-
       default:
         this._removeContextMenu();
     }
@@ -2130,29 +2115,6 @@ class UnifiNetworkMapCard extends HTMLElement {
     );
 
     this._showActionFeedback("Restart command sent");
-  }
-
-  private _handleBlockClient(nodeName: string): void {
-    const entityId = this._payload?.client_entities?.[nodeName];
-
-    if (!entityId) {
-      this._showActionError("No entity found for this client");
-      return;
-    }
-
-    this.dispatchEvent(
-      new CustomEvent("hass-action", {
-        bubbles: true,
-        composed: true,
-        detail: {
-          action: "call-service",
-          service: "switch.turn_off",
-          target: { entity_id: entityId.replace(/\.[^.]+$/, ".block") },
-        },
-      }),
-    );
-
-    this._showActionFeedback("Block command sent");
   }
 
   private _showActionFeedback(message: string): void {
@@ -2322,17 +2284,29 @@ class UnifiNetworkMapCard extends HTMLElement {
 
   private _annotateEdges(svg: SVGElement): void {
     if (!this._payload?.edges) return;
-    const paths = svg.querySelectorAll("path[stroke]:not([data-edge-hitbox])");
-    const edges = this._payload.edges;
-    paths.forEach((path, index) => {
-      if (index < edges.length) {
-        const edge = edges[index];
-        path.setAttribute("data-edge", "true");
-        path.setAttribute("data-edge-left", edge.left);
-        path.setAttribute("data-edge-right", edge.right);
-        this._ensureEdgeHitbox(path as SVGPathElement, edge);
-      }
+    const edgesByKey = this._buildEdgeLookup(this._payload.edges);
+    const paths = svg.querySelectorAll("path[data-edge-left][data-edge-right]");
+    paths.forEach((path) => {
+      const left = path.getAttribute("data-edge-left");
+      const right = path.getAttribute("data-edge-right");
+      if (!left || !right) return;
+      const edge = edgesByKey.get(this._edgeKey(left, right));
+      if (!edge) return;
+      path.setAttribute("data-edge", "true");
+      this._ensureEdgeHitbox(path as SVGPathElement, edge);
     });
+  }
+
+  private _buildEdgeLookup(edges: Edge[]): Map<string, Edge> {
+    const map = new Map<string, Edge>();
+    edges.forEach((edge) => {
+      map.set(this._edgeKey(edge.left, edge.right), edge);
+    });
+    return map;
+  }
+
+  private _edgeKey(left: string, right: string): string {
+    return [left.trim(), right.trim()].sort().join("|");
   }
 
   private _findEdgeFromTarget(target: Element | null): Edge | null {
@@ -2342,7 +2316,8 @@ class UnifiNetworkMapCard extends HTMLElement {
     const left = edgePath.getAttribute("data-edge-left");
     const right = edgePath.getAttribute("data-edge-right");
     if (!left || !right) return null;
-    return this._payload.edges.find((e) => e.left === left && e.right === right) ?? null;
+    const lookup = this._buildEdgeLookup(this._payload.edges);
+    return lookup.get(this._edgeKey(left, right)) ?? null;
   }
 
   private _ensureEdgeHitbox(path: SVGPathElement, edge: Edge): void {

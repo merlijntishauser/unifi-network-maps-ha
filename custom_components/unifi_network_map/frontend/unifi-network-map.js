@@ -2627,7 +2627,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     }
   }
   _onContextMenu(event) {
-    const nodeName = this._resolveNodeName(event);
+    const nodeName = this._resolveNodeName(event) ?? this._hoveredNode;
     if (!nodeName) {
       return;
     }
@@ -2655,7 +2655,6 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     const mac = this._payload?.client_macs?.[nodeName] ?? this._payload?.device_macs?.[nodeName];
     const entityId = this._payload?.node_entities?.[nodeName] ?? this._payload?.client_entities?.[nodeName] ?? this._payload?.device_entities?.[nodeName];
     const isDevice = nodeType !== "client";
-    const isClient = nodeType === "client";
     const theme = this._config?.theme ?? "dark";
     const items = [];
     items.push(`
@@ -2686,14 +2685,6 @@ var UnifiNetworkMapCard = class extends HTMLElement {
         <button type="button" class="context-menu__item" data-context-action="restart" ${!entityId ? "disabled" : ""}>
           <span class="context-menu__icon">\u{1F504}</span>
           <span>Restart Device</span>
-        </button>
-      `);
-    }
-    if (isClient) {
-      items.push(`
-        <button type="button" class="context-menu__item context-menu__item--danger" data-context-action="block" ${!entityId ? "disabled" : ""}>
-          <span class="context-menu__icon">\u{1F6AB}</span>
-          <span>Block Client</span>
         </button>
       `);
     }
@@ -2788,10 +2779,6 @@ var UnifiNetworkMapCard = class extends HTMLElement {
         this._handleRestartDevice(nodeName);
         this._removeContextMenu();
         break;
-      case "block":
-        this._handleBlockClient(nodeName);
-        this._removeContextMenu();
-        break;
       default:
         this._removeContextMenu();
     }
@@ -2833,25 +2820,6 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       })
     );
     this._showActionFeedback("Restart command sent");
-  }
-  _handleBlockClient(nodeName) {
-    const entityId = this._payload?.client_entities?.[nodeName];
-    if (!entityId) {
-      this._showActionError("No entity found for this client");
-      return;
-    }
-    this.dispatchEvent(
-      new CustomEvent("hass-action", {
-        bubbles: true,
-        composed: true,
-        detail: {
-          action: "call-service",
-          service: "switch.turn_off",
-          target: { entity_id: entityId.replace(/\.[^.]+$/, ".block") }
-        }
-      })
-    );
-    this._showActionFeedback("Block command sent");
   }
   _showActionFeedback(message) {
     const feedback = document.createElement("div");
@@ -3006,17 +2974,27 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   }
   _annotateEdges(svg2) {
     if (!this._payload?.edges) return;
-    const paths = svg2.querySelectorAll("path[stroke]:not([data-edge-hitbox])");
-    const edges = this._payload.edges;
-    paths.forEach((path, index) => {
-      if (index < edges.length) {
-        const edge = edges[index];
-        path.setAttribute("data-edge", "true");
-        path.setAttribute("data-edge-left", edge.left);
-        path.setAttribute("data-edge-right", edge.right);
-        this._ensureEdgeHitbox(path, edge);
-      }
+    const edgesByKey = this._buildEdgeLookup(this._payload.edges);
+    const paths = svg2.querySelectorAll("path[data-edge-left][data-edge-right]");
+    paths.forEach((path) => {
+      const left = path.getAttribute("data-edge-left");
+      const right = path.getAttribute("data-edge-right");
+      if (!left || !right) return;
+      const edge = edgesByKey.get(this._edgeKey(left, right));
+      if (!edge) return;
+      path.setAttribute("data-edge", "true");
+      this._ensureEdgeHitbox(path, edge);
     });
+  }
+  _buildEdgeLookup(edges) {
+    const map = /* @__PURE__ */ new Map();
+    edges.forEach((edge) => {
+      map.set(this._edgeKey(edge.left, edge.right), edge);
+    });
+    return map;
+  }
+  _edgeKey(left, right) {
+    return [left.trim(), right.trim()].sort().join("|");
   }
   _findEdgeFromTarget(target) {
     if (!target || !this._payload?.edges) return null;
@@ -3025,7 +3003,8 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     const left = edgePath.getAttribute("data-edge-left");
     const right = edgePath.getAttribute("data-edge-right");
     if (!left || !right) return null;
-    return this._payload.edges.find((e) => e.left === left && e.right === right) ?? null;
+    const lookup = this._buildEdgeLookup(this._payload.edges);
+    return lookup.get(this._edgeKey(left, right)) ?? null;
   }
   _ensureEdgeHitbox(path, edge) {
     const next = path.nextElementSibling;

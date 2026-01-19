@@ -793,6 +793,8 @@ describe("unifi-network-map card", () => {
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("stroke", "#000");
     path.setAttribute("d", "M0 0 L10 10");
+    path.setAttribute("data-edge-left", "A");
+    path.setAttribute("data-edge-right", "B");
     svg.appendChild(path);
     card._annotateEdges(svg);
 
