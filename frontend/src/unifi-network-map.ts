@@ -46,6 +46,13 @@ const DOMPURIFY_CONFIG = {
     "data-edge",
     "data-edge-left",
     "data-edge-right",
+    "data-entity-id",
+    "data-copy-value",
+    "data-context-action",
+    "data-context-node",
+    "data-mac",
+    "data-modal-overlay",
+    "data-modal-entity-id",
   ],
 };
 
