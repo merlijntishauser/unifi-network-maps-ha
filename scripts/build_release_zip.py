@@ -21,12 +21,13 @@ def main() -> int:
         return 1
 
     zip_path = Path(sys.argv[1])
-    root = Path.cwd()
-    targets = (root / "custom_components", root / "hacs.json")
+    root = Path.cwd() / "custom_components" / "unifi_network_map"
+    if not root.exists():
+        print(f"Integration path not found: {root}", file=sys.stderr)
+        return 1
 
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        for path in targets:
-            _add_path(archive, root, path)
+        _add_path(archive, root, root)
     return 0
 
 
