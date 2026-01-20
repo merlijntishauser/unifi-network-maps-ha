@@ -1811,6 +1811,41 @@ function showToast(message, variant) {
   setTimeout(() => feedback.remove(), 2e3);
 }
 
+// src/card/data.ts
+async function loadSvg(fetchWithAuth2, url, signal) {
+  return fetchWithAuth2(url, signal, (response) => response.text());
+}
+async function loadPayload(fetchWithAuth2, url, signal) {
+  return fetchWithAuth2(url, signal, (response) => response.json());
+}
+
+// src/card/state.ts
+function normalizeConfig(config) {
+  if (config.entry_id) {
+    const theme = config.theme ?? "dark";
+    const themeSuffix = `?theme=${theme}`;
+    return {
+      entry_id: config.entry_id,
+      theme,
+      svg_url: `/api/${DOMAIN}/${config.entry_id}/svg${themeSuffix}`,
+      data_url: `/api/${DOMAIN}/${config.entry_id}/payload`
+    };
+  }
+  return config;
+}
+function startPolling(currentId, intervalMs, onTick) {
+  if (currentId !== void 0) {
+    window.clearInterval(currentId);
+  }
+  return window.setInterval(onTick, intervalMs);
+}
+function stopPolling(currentId) {
+  if (currentId !== void 0) {
+    window.clearInterval(currentId);
+  }
+  return void 0;
+}
+
 // src/card/viewport.ts
 function bindViewportInteractions(params) {
   const { viewport, svg: svg2, state, options, handlers, callbacks, bindings } = params;
@@ -2772,21 +2807,8 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     return { entry_id: "", theme: "dark" };
   }
   setConfig(config) {
-    this._config = this._normalizeConfig(config);
+    this._config = normalizeConfig(config);
     this._render();
-  }
-  _normalizeConfig(config) {
-    if (config.entry_id) {
-      const theme = config.theme ?? "dark";
-      const themeSuffix = `?theme=${theme}`;
-      return {
-        entry_id: config.entry_id,
-        theme,
-        svg_url: `/api/${DOMAIN}/${config.entry_id}/svg${themeSuffix}`,
-        data_url: `/api/${DOMAIN}/${config.entry_id}/payload`
-      };
-    }
-    return config;
   }
   set hass(hass) {
     this._hass = hass;
@@ -2802,16 +2824,12 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._removeContextMenu();
   }
   _startStatusPolling() {
-    this._stopStatusPolling();
-    this._statusPollInterval = window.setInterval(() => {
+    this._statusPollInterval = startPolling(this._statusPollInterval, 3e4, () => {
       this._refreshPayload();
-    }, 3e4);
+    });
   }
   _stopStatusPolling() {
-    if (this._statusPollInterval !== void 0) {
-      window.clearInterval(this._statusPollInterval);
-      this._statusPollInterval = void 0;
-    }
+    this._statusPollInterval = stopPolling(this._statusPollInterval);
   }
   _refreshPayload() {
     this._lastDataUrl = void 0;
@@ -2914,10 +2932,10 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._svgAbortController = new AbortController();
     const currentUrl = this._config.svg_url;
     this._loading = true;
-    const result = await this._fetchWithAuth(
+    const result = await loadSvg(
+      this._fetchWithAuth.bind(this),
       currentUrl,
-      this._svgAbortController.signal,
-      (r) => r.text()
+      this._svgAbortController.signal
     );
     if ("aborted" in result) {
       return;
@@ -2946,10 +2964,10 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._payloadAbortController = new AbortController();
     const currentUrl = this._config.data_url;
     this._dataLoading = true;
-    const result = await this._fetchWithAuth(
+    const result = await loadPayload(
+      this._fetchWithAuth.bind(this),
       currentUrl,
-      this._payloadAbortController.signal,
-      (r) => r.json()
+      this._payloadAbortController.signal
     );
     if ("aborted" in result) {
       return;
@@ -3491,6 +3509,38 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   }
 };
 
+// src/card/editor-helpers.ts
+function buildFormSchema(entries2) {
+  const entryOptions = entries2.map((entry) => ({
+    label: entry.title,
+    value: entry.entry_id
+  }));
+  return [
+    {
+      name: "entry_id",
+      required: true,
+      selector: { select: { mode: "dropdown", options: entryOptions } },
+      label: "UniFi Network Map Instance"
+    },
+    {
+      name: "theme",
+      selector: {
+        select: {
+          mode: "dropdown",
+          options: [
+            { label: "Dark (default)", value: "dark" },
+            { label: "Light", value: "light" }
+          ]
+        }
+      },
+      label: "Theme"
+    }
+  ];
+}
+function normalizeTheme(value) {
+  return value === "light" ? "light" : "dark";
+}
+
 // src/card/unifi-network-map-editor.ts
 var UnifiNetworkMapEditor = class extends HTMLElement {
   constructor() {
@@ -3567,37 +3617,13 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
     this._form.addEventListener("value-changed", this._boundOnChange);
   }
   _buildFormSchema() {
-    const entryOptions = this._entries.map((entry) => ({
-      label: entry.title,
-      value: entry.entry_id
-    }));
-    return [
-      {
-        name: "entry_id",
-        required: true,
-        selector: { select: { mode: "dropdown", options: entryOptions } },
-        label: "UniFi Network Map Instance"
-      },
-      {
-        name: "theme",
-        selector: {
-          select: {
-            mode: "dropdown",
-            options: [
-              { label: "Dark (default)", value: "dark" },
-              { label: "Light", value: "light" }
-            ]
-          }
-        },
-        label: "Theme"
-      }
-    ];
+    return buildFormSchema(this._entries);
   }
   _onChange(e) {
     const detail = e.detail;
     const entryId = detail.value?.entry_id ?? this._config?.entry_id ?? "";
     const themeValue = detail.value?.theme ?? this._config?.theme ?? "dark";
-    const theme = themeValue === "light" ? "light" : "dark";
+    const theme = normalizeTheme(themeValue);
     if (this._config?.entry_id === entryId && this._config?.theme === theme) {
       return;
     }
