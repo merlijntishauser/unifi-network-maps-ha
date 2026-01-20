@@ -1,4 +1,5 @@
 import { DOMAIN } from "./constants";
+import { buildFormSchema, normalizeTheme } from "./editor-helpers";
 import type { CardConfig, ConfigEntry, FormSchemaEntry, Hass } from "./types";
 
 export class UnifiNetworkMapEditor extends HTMLElement {
@@ -85,38 +86,14 @@ export class UnifiNetworkMapEditor extends HTMLElement {
   }
 
   private _buildFormSchema(): FormSchemaEntry[] {
-    const entryOptions = this._entries.map((entry) => ({
-      label: entry.title,
-      value: entry.entry_id,
-    }));
-    return [
-      {
-        name: "entry_id",
-        required: true,
-        selector: { select: { mode: "dropdown", options: entryOptions } },
-        label: "UniFi Network Map Instance",
-      },
-      {
-        name: "theme",
-        selector: {
-          select: {
-            mode: "dropdown",
-            options: [
-              { label: "Dark (default)", value: "dark" },
-              { label: "Light", value: "light" },
-            ],
-          },
-        },
-        label: "Theme",
-      },
-    ];
+    return buildFormSchema(this._entries);
   }
 
   private _onChange(e: Event) {
     const detail = (e as CustomEvent<{ value?: { entry_id?: string; theme?: string } }>).detail;
     const entryId = detail.value?.entry_id ?? this._config?.entry_id ?? "";
     const themeValue = detail.value?.theme ?? this._config?.theme ?? "dark";
-    const theme = themeValue === "light" ? "light" : "dark";
+    const theme = normalizeTheme(themeValue);
     if (this._config?.entry_id === entryId && this._config?.theme === theme) {
       return;
     }
