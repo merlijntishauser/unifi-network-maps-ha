@@ -1,5 +1,5 @@
-import { escapeHtml } from "./data/sanitize";
-import type { MapPayload, RelatedEntity } from "./types";
+import { escapeHtml } from "../data/sanitize";
+import type { MapPayload, RelatedEntity } from "../core/types";
 
 export type EntityModalContext = {
   nodeName: string;

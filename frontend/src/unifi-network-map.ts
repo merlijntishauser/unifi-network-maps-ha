@@ -1,5 +1,5 @@
-import { UnifiNetworkMapCard } from "./card/unifi-network-map-card";
-import { UnifiNetworkMapEditor } from "./card/unifi-network-map-editor";
+import { UnifiNetworkMapCard } from "./card/core/unifi-network-map-card";
+import { UnifiNetworkMapEditor } from "./card/core/unifi-network-map-editor";
 
 declare const __CARD_VERSION__: string;
 

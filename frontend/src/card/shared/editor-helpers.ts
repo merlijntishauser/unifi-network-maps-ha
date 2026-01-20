@@ -1,4 +1,4 @@
-import type { ConfigEntry, FormSchemaEntry } from "../types";
+import type { ConfigEntry, FormSchemaEntry } from "../core/types";
 
 export function buildFormSchema(entries: ConfigEntry[]): FormSchemaEntry[] {
   const entryOptions = entries.map((entry) => ({

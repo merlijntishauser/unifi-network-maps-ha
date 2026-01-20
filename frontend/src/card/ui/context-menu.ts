@@ -1,5 +1,5 @@
-import { escapeHtml } from "./data/sanitize";
-import type { MapPayload } from "./types";
+import { escapeHtml } from "../data/sanitize";
+import type { MapPayload } from "../core/types";
 
 export type ContextMenuRenderOptions = {
   nodeName: string;

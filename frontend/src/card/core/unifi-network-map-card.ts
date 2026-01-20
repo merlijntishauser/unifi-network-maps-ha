@@ -4,9 +4,9 @@ import {
   MIN_ZOOM_SCALE,
   TOOLTIP_OFFSET_PX,
   ZOOM_INCREMENT,
-} from "./shared/constants";
-import { escapeHtml, sanitizeHtml, sanitizeSvg } from "./data/sanitize";
-import { annotateEdges, renderEdgeTooltip } from "./data/svg";
+} from "../shared/constants";
+import { escapeHtml, sanitizeHtml, sanitizeSvg } from "../data/sanitize";
+import { annotateEdges, renderEdgeTooltip } from "../data/svg";
 import {
   clearNodeSelection,
   findNodeElement,
@@ -14,19 +14,19 @@ import {
   inferNodeName,
   markNodeSelected,
   resolveNodeName,
-} from "./node";
-import { renderEntityModal } from "./entity-modal";
-import { renderPanelContent, renderTabContent } from "./panel";
-import { renderContextMenu } from "./context-menu";
-import { fetchWithAuth } from "./data/auth";
-import { showToast } from "./shared/feedback";
-import { loadPayload, loadSvg } from "./data/data";
+} from "../interaction/node";
+import { renderEntityModal } from "../ui/entity-modal";
+import { renderPanelContent, renderTabContent } from "../ui/panel";
+import { renderContextMenu } from "../ui/context-menu";
+import { fetchWithAuth } from "../data/auth";
+import { showToast } from "../shared/feedback";
+import { loadPayload, loadSvg } from "../data/data";
 import { normalizeConfig, startPolling, stopPolling } from "./state";
 import {
   closeContextMenu,
   createContextMenuController,
   openContextMenu,
-} from "./context-menu-state";
+} from "../interaction/context-menu-state";
 import {
   clearSelectedNode,
   createSelectionState,
@@ -34,7 +34,7 @@ import {
   selectNode,
   setHoveredEdge,
   setHoveredNode,
-} from "./selection";
+} from "../interaction/selection";
 import {
   applyTransform,
   applyZoom,
@@ -46,8 +46,8 @@ import {
   onPointerUp,
   onWheel,
   resetPan,
-} from "./viewport";
-import { CARD_STYLES, GLOBAL_STYLES } from "./styles";
+} from "../interaction/viewport";
+import { CARD_STYLES, GLOBAL_STYLES } from "../ui/styles";
 import type { CardConfig, Edge, Hass, MapPayload } from "./types";
 
 export class UnifiNetworkMapCard extends HTMLElement {

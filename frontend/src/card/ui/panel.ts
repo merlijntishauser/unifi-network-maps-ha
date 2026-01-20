@@ -1,4 +1,4 @@
-import type { DeviceCounts, MapPayload, Neighbor, NodeStatus, StatusCounts } from "./types";
+import type { DeviceCounts, MapPayload, Neighbor, NodeStatus, StatusCounts } from "../core/types";
 
 export type PanelContext = {
   payload?: MapPayload;

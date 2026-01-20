@@ -1,4 +1,4 @@
-import { DOMAIN } from "./shared/constants";
+import { DOMAIN } from "../shared/constants";
 import type { CardConfig } from "./types";
 
 export function normalizeConfig(config: CardConfig): CardConfig {

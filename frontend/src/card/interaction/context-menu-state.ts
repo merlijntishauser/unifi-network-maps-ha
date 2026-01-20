@@ -1,5 +1,5 @@
-import { parseContextMenuAction } from "./context-menu";
-import type { ContextMenuState } from "./types";
+import { parseContextMenuAction } from "../ui/context-menu";
+import type { ContextMenuState } from "../core/types";
 
 type ContextMenuElement = HTMLElement & { _cleanup?: () => void };
 

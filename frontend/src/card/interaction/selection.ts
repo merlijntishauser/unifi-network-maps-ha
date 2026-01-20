@@ -1,4 +1,4 @@
-import type { Edge } from "./types";
+import type { Edge } from "../core/types";
 
 export type SelectionState = {
   selectedNode?: string;
