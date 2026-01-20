@@ -15,7 +15,11 @@ import {
   markNodeSelected,
   resolveNodeName,
 } from "../interaction/node";
-import { renderEntityModal } from "../ui/entity-modal";
+import {
+  closeEntityModal,
+  createEntityModalController,
+  openEntityModal,
+} from "../interaction/entity-modal-state";
 import { renderPanelContent, renderTabContent } from "../ui/panel";
 import { renderContextMenu } from "../ui/context-menu";
 import { fetchWithAuth } from "../data/auth";
@@ -114,7 +118,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
   private _payloadAbortController?: AbortController;
   private _activeTab: "overview" | "stats" | "actions" = "overview";
   private _statusPollInterval?: number;
-  private _entityModalOverlay?: HTMLElement;
+  private _entityModal = createEntityModalController();
   private _contextMenu = createContextMenuController();
   get _viewTransform() {
     return this._viewportState.viewTransform;
@@ -518,52 +522,14 @@ export class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _showEntityModal(nodeName: string): void {
-    this._removeEntityModal();
-    const modalHtml = this._renderEntityModal(nodeName);
-    const container = document.createElement("div");
-    container.innerHTML = modalHtml;
-    const overlay = container.firstElementChild as HTMLElement;
-    if (!overlay) return;
-
-    document.body.appendChild(overlay);
-    this._entityModalOverlay = overlay;
-    this._wireEntityModalEvents(overlay);
-  }
-
-  private _renderEntityModal(nodeName: string): string {
-    return renderEntityModal({
+    openEntityModal({
+      controller: this._entityModal,
       nodeName,
       payload: this._payload,
       theme: this._config?.theme ?? "dark",
       getNodeTypeIcon: (nodeType: string) => this._getNodeTypeIcon(nodeType),
       formatLastChanged: (value: string | null | undefined) => this._formatLastChanged(value),
-    });
-  }
-
-  private _wireEntityModalEvents(overlay: HTMLElement): void {
-    overlay.addEventListener("click", (event) => {
-      const target = event.target as HTMLElement;
-
-      if (target.hasAttribute("data-modal-overlay")) {
-        this._removeEntityModal();
-        return;
-      }
-
-      const closeButton = target.closest('[data-action="close-modal"]');
-      if (closeButton) {
-        this._removeEntityModal();
-        return;
-      }
-
-      const entityItem = target.closest("[data-modal-entity-id]") as HTMLElement | null;
-      if (entityItem) {
-        event.preventDefault();
-        event.stopPropagation();
-        const entityId = entityItem.getAttribute("data-modal-entity-id");
-        if (entityId) {
-          this._openEntityDetails(entityId);
-        }
-      }
+      onEntityDetails: (entityId) => this._openEntityDetails(entityId),
     });
   }
 
@@ -581,10 +547,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _removeEntityModal(): void {
-    if (this._entityModalOverlay) {
-      this._entityModalOverlay.remove();
-      this._entityModalOverlay = undefined;
-    }
+    closeEntityModal(this._entityModal);
   }
 
   private _showContextMenu(): void {
