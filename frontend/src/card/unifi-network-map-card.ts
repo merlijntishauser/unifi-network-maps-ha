@@ -8,19 +8,16 @@ import {
 } from "./constants";
 import { escapeHtml, sanitizeHtml, sanitizeSvg } from "./sanitize";
 import { annotateEdges, findEdgeFromTarget, renderEdgeTooltip } from "./svg";
+import { renderPanelContent, renderTabContent } from "./panel";
 import { CARD_STYLES, GLOBAL_STYLES } from "./styles";
 import type {
   CardConfig,
   ContextMenuState,
-  DeviceCounts,
   Edge,
   Hass,
   MapPayload,
-  Neighbor,
-  NodeStatus,
   Point,
   RelatedEntity,
-  StatusCounts,
   ViewTransform,
 } from "./types";
 
@@ -286,155 +283,36 @@ export class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _renderPanelContent(): string {
-    if (!this._selectedNode) {
-      return this._renderMapOverview();
-    }
-    return this._renderNodePanel(this._selectedNode);
+    return renderPanelContent(
+      {
+        payload: this._payload,
+        selectedNode: this._selectedNode,
+        activeTab: this._activeTab,
+      },
+      this._panelHelpers(),
+    );
   }
 
-  private _renderMapOverview(): string {
-    if (!this._payload) {
-      return `
-        <div class="panel-empty">
-          <div class="panel-empty__icon">📡</div>
-          <div class="panel-empty__text">Loading network data...</div>
-        </div>
-      `;
-    }
-    const nodes = Object.keys(this._payload.node_types ?? {});
-    const edges = this._payload.edges ?? [];
-    const nodeTypes = this._payload.node_types ?? {};
-    const nodeStatus = this._payload.node_status ?? {};
-
-    const deviceCounts = this._countDevicesByType(nodes, nodeTypes);
-    const statusCounts = this._countNodeStatus(nodeStatus);
-
-    return `
-      <div class="panel-header">
-        <div class="panel-header__title">Network Overview</div>
-      </div>
-      ${this._renderOverviewStatsGrid(nodes.length, edges.length)}
-      ${this._renderOverviewStatusSection(statusCounts)}
-      ${this._renderOverviewDeviceBreakdown(deviceCounts)}
-      <div class="panel-hint">
-        <span class="panel-hint__icon">💡</span>
-        Click a node in the map to see details
-      </div>
-    `;
+  private _renderTabContent(name: string): string {
+    return renderTabContent(
+      {
+        payload: this._payload,
+        selectedNode: this._selectedNode,
+        activeTab: this._activeTab,
+      },
+      name,
+      this._panelHelpers(),
+    );
   }
 
-  private _countDevicesByType(nodes: string[], nodeTypes: Record<string, string>): DeviceCounts {
+  private _panelHelpers() {
     return {
-      gateways: nodes.filter((n) => nodeTypes[n] === "gateway").length,
-      switches: nodes.filter((n) => nodeTypes[n] === "switch").length,
-      aps: nodes.filter((n) => nodeTypes[n] === "ap").length,
-      clients: nodes.filter((n) => nodeTypes[n] === "client").length,
-      other: nodes.filter((n) => !["gateway", "switch", "ap", "client"].includes(nodeTypes[n]))
-        .length,
+      escapeHtml,
+      getNodeTypeIcon: (nodeType: string) => this._getNodeTypeIcon(nodeType),
+      getStatusBadgeHtml: (state: "online" | "offline" | "unknown") =>
+        this._getStatusBadgeHtml(state),
+      formatLastChanged: (value: string | null | undefined) => this._formatLastChanged(value),
     };
-  }
-
-  private _countNodeStatus(nodeStatus: Record<string, NodeStatus>): StatusCounts {
-    const values = Object.values(nodeStatus);
-    return {
-      online: values.filter((s) => s.state === "online").length,
-      offline: values.filter((s) => s.state === "offline").length,
-      hasStatus: values.length > 0,
-    };
-  }
-
-  private _renderOverviewStatsGrid(nodeCount: number, edgeCount: number): string {
-    return `
-      <div class="panel-stats-grid">
-        <div class="stat-card">
-          <div class="stat-card__value">${nodeCount}</div>
-          <div class="stat-card__label">Total Nodes</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-card__value">${edgeCount}</div>
-          <div class="stat-card__label">Connections</div>
-        </div>
-      </div>
-    `;
-  }
-
-  private _renderOverviewStatusSection(counts: StatusCounts): string {
-    if (!counts.hasStatus) {
-      return "";
-    }
-    return `
-      <div class="panel-section">
-        <div class="panel-section__title">Live Status</div>
-        <div class="device-list">
-          <div class="device-row"><span class="status-dot status-dot--online"></span><span class="device-row__label">Online</span><span class="device-row__count">${counts.online}</span></div>
-          <div class="device-row"><span class="status-dot status-dot--offline"></span><span class="device-row__label">Offline</span><span class="device-row__count">${counts.offline}</span></div>
-        </div>
-      </div>
-    `;
-  }
-
-  private _renderOverviewDeviceBreakdown(counts: DeviceCounts): string {
-    const items: Array<{ key: keyof DeviceCounts; icon: string; label: string }> = [
-      { key: "gateways", icon: "🌐", label: "Gateways" },
-      { key: "switches", icon: "🔀", label: "Switches" },
-      { key: "aps", icon: "📶", label: "Access Points" },
-      { key: "clients", icon: "💻", label: "Clients" },
-      { key: "other", icon: "📦", label: "Other" },
-    ];
-    const rows = items
-      .filter((item) => counts[item.key] > 0)
-      .map(
-        (item) =>
-          `<div class="device-row"><span class="device-row__icon">${item.icon}</span><span class="device-row__label">${item.label}</span><span class="device-row__count">${counts[item.key]}</span></div>`,
-      )
-      .join("");
-    return `
-      <div class="panel-section">
-        <div class="panel-section__title">Device Breakdown</div>
-        <div class="device-list">${rows}</div>
-      </div>
-    `;
-  }
-
-  private _renderNodePanel(name: string): string {
-    const safeName = escapeHtml(name);
-    if (!this._payload) {
-      return `
-        <div class="panel-header">
-          <button type="button" class="panel-header__back" data-action="back">←</button>
-          <div class="panel-header__title">${safeName}</div>
-        </div>
-        <div class="panel-empty">
-          <div class="panel-empty__text">No data available</div>
-        </div>
-      `;
-    }
-
-    const nodeType = this._payload.node_types?.[name] ?? "unknown";
-    const typeIcon = this._getNodeTypeIcon(nodeType);
-    const status = this._payload.node_status?.[name];
-    const statusBadge = status ? this._getStatusBadgeHtml(status.state) : "";
-
-    return `
-      <div class="panel-header">
-        <button type="button" class="panel-header__back" data-action="back">←</button>
-        <div class="panel-header__info">
-          <div class="panel-header__title-row">
-            <span class="panel-header__title">${safeName}</span>
-            ${statusBadge}
-          </div>
-          <div class="panel-header__badge">${typeIcon} ${escapeHtml(nodeType)}</div>
-        </div>
-      </div>
-      <div class="panel-tabs">
-        <button type="button" class="panel-tab ${this._activeTab === "overview" ? "panel-tab--active" : ""}" data-tab="overview">Overview</button>
-        <button type="button" class="panel-tab ${this._activeTab === "stats" ? "panel-tab--active" : ""}" data-tab="stats">Stats</button>
-        <button type="button" class="panel-tab ${this._activeTab === "actions" ? "panel-tab--active" : ""}" data-tab="actions">Actions</button>
-      </div>
-      <div class="panel-tab-content">
-        ${this._renderTabContent(name)}
-      </div>
-    `;
   }
 
   private _getNodeTypeIcon(nodeType: string): string {
@@ -477,188 +355,6 @@ export class UnifiNetworkMapCard extends HTMLElement {
     } catch {
       return "Unknown";
     }
-  }
-
-  private _renderTabContent(name: string): string {
-    switch (this._activeTab) {
-      case "overview":
-        return this._renderOverviewTab(name);
-      case "stats":
-        return this._renderStatsTab(name);
-      case "actions":
-        return this._renderActionsTab(name);
-      default:
-        return "";
-    }
-  }
-
-  private _renderOverviewTab(name: string): string {
-    const edges = this._payload?.edges ?? [];
-    const neighbors: Neighbor[] = edges
-      .filter((edge) => edge.left === name || edge.right === name)
-      .map((edge) => ({
-        name: edge.left === name ? edge.right : edge.left,
-        label: edge.label,
-        wireless: edge.wireless,
-        poe: edge.poe,
-      }));
-    const uniqueNeighbors: Neighbor[] = Array.from(
-      new Map(neighbors.map((n) => [n.name, n])).values(),
-    );
-
-    const neighborList = uniqueNeighbors.length
-      ? uniqueNeighbors
-          .map(
-            (n) => `
-            <div class="neighbor-item">
-              <span class="neighbor-item__name">${escapeHtml(n.name)}</span>
-              <span class="neighbor-item__badges">
-                ${n.wireless ? '<span class="badge badge--wireless">WiFi</span>' : ""}
-                ${n.poe ? '<span class="badge badge--poe">PoE</span>' : ""}
-                ${n.label ? `<span class="badge badge--port">${escapeHtml(n.label)}</span>` : ""}
-              </span>
-            </div>
-          `,
-          )
-          .join("")
-      : '<div class="panel-empty__text">No connections</div>';
-
-    return `
-      <div class="panel-section">
-        <div class="panel-section__title">Connected Devices</div>
-        <div class="neighbor-list">${neighborList}</div>
-      </div>
-    `;
-  }
-
-  private _renderStatsTab(name: string): string {
-    const edges = this._payload?.edges ?? [];
-    const nodeEdges = edges.filter((edge) => edge.left === name || edge.right === name);
-    const mac = this._payload?.client_macs?.[name] ?? this._payload?.device_macs?.[name] ?? null;
-    const status = this._payload?.node_status?.[name];
-
-    return `
-      ${this._renderStatsLiveStatus(status)}
-      ${this._renderStatsConnectionSection(nodeEdges)}
-      ${this._renderStatsDeviceInfo(mac)}
-    `;
-  }
-
-  private _renderStatsLiveStatus(status: NodeStatus | undefined): string {
-    if (!status) {
-      return "";
-    }
-    return `
-      <div class="panel-section">
-        <div class="panel-section__title">Live Status</div>
-        <div class="stats-list">
-          <div class="stats-row">
-            <span class="stats-row__label">Status</span>
-            <span class="stats-row__value">${this._getStatusBadgeHtml(status.state)}</span>
-          </div>
-          <div class="stats-row">
-            <span class="stats-row__label">Last Changed</span>
-            <span class="stats-row__value">${this._formatLastChanged(status.last_changed)}</span>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  private _renderStatsConnectionSection(
-    nodeEdges: Array<{ wireless?: boolean | null; poe?: boolean | null }>,
-  ): string {
-    const wirelessCount = nodeEdges.filter((e) => e.wireless).length;
-    const wiredCount = nodeEdges.length - wirelessCount;
-    const poeCount = nodeEdges.filter((e) => e.poe).length;
-    const poeRow =
-      poeCount > 0
-        ? `<div class="stats-row"><span class="stats-row__label">PoE Powered</span><span class="stats-row__value">${poeCount}</span></div>`
-        : "";
-
-    return `
-      <div class="panel-section">
-        <div class="panel-section__title">Connection Stats</div>
-        <div class="stats-list">
-          <div class="stats-row">
-            <span class="stats-row__label">Total Connections</span>
-            <span class="stats-row__value">${nodeEdges.length}</span>
-          </div>
-          <div class="stats-row">
-            <span class="stats-row__label">Wired</span>
-            <span class="stats-row__value">${wiredCount}</span>
-          </div>
-          <div class="stats-row">
-            <span class="stats-row__label">Wireless</span>
-            <span class="stats-row__value">${wirelessCount}</span>
-          </div>
-          ${poeRow}
-        </div>
-      </div>
-    `;
-  }
-
-  private _renderStatsDeviceInfo(mac: string | null): string {
-    if (!mac) {
-      return "";
-    }
-    return `
-      <div class="panel-section">
-        <div class="panel-section__title">Device Info</div>
-        <div class="info-row">
-          <span class="info-row__label">MAC Address</span>
-          <code class="info-row__value">${escapeHtml(mac)}</code>
-        </div>
-      </div>
-    `;
-  }
-
-  private _renderActionsTab(name: string): string {
-    const entityId =
-      this._payload?.node_entities?.[name] ??
-      this._payload?.client_entities?.[name] ??
-      this._payload?.device_entities?.[name];
-    const mac = this._payload?.client_macs?.[name] ?? this._payload?.device_macs?.[name] ?? null;
-    const safeEntityId = entityId ? escapeHtml(entityId) : "";
-    const safeMac = mac ? escapeHtml(mac) : "";
-
-    return `
-      <div class="panel-section">
-        <div class="panel-section__title">Quick Actions</div>
-        <div class="actions-list">
-          ${
-            entityId
-              ? `
-              <button type="button" class="action-button action-button--primary" data-entity-id="${safeEntityId}">
-                <span class="action-button__icon">📊</span>
-                <span class="action-button__text">View Entity Details</span>
-              </button>
-            `
-              : `<div class="panel-empty__text">No Home Assistant entity linked</div>`
-          }
-          ${
-            mac
-              ? `
-              <button type="button" class="action-button" data-action="copy" data-copy-value="${safeMac}">
-                <span class="action-button__icon">📋</span>
-                <span class="action-button__text">Copy MAC Address</span>
-              </button>
-            `
-              : ""
-          }
-        </div>
-      </div>
-      ${
-        entityId
-          ? `
-        <div class="panel-section">
-          <div class="panel-section__title">Entity</div>
-          <code class="entity-id">${safeEntityId}</code>
-        </div>
-      `
-          : ""
-      }
-    `;
   }
 
   private _ensureStyles() {
