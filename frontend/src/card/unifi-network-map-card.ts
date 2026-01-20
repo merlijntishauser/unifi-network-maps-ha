@@ -20,6 +20,7 @@ import { renderEntityModal } from "./entity-modal";
 import { renderPanelContent, renderTabContent } from "./panel";
 import { parseContextMenuAction, renderContextMenu } from "./context-menu";
 import { fetchWithAuth } from "./auth";
+import { showToast } from "./feedback";
 import {
   applyTransform,
   applyZoom,
@@ -714,23 +715,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _showCopyFeedback(): void {
-    const feedback = document.createElement("div");
-    feedback.textContent = "MAC address copied!";
-    feedback.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(34, 197, 94, 0.9);
-      color: white;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-size: 14px;
-      z-index: 1002;
-      animation: fadeInOut 2s ease forwards;
-    `;
-    document.body.appendChild(feedback);
-    setTimeout(() => feedback.remove(), 2000);
+    showToast("MAC address copied!", "success");
   }
 
   private _handleRestartDevice(nodeName: string): void {
@@ -758,43 +743,11 @@ export class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _showActionFeedback(message: string): void {
-    const feedback = document.createElement("div");
-    feedback.textContent = message;
-    feedback.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(59, 130, 246, 0.9);
-      color: white;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-size: 14px;
-      z-index: 1002;
-      animation: fadeInOut 2s ease forwards;
-    `;
-    document.body.appendChild(feedback);
-    setTimeout(() => feedback.remove(), 2000);
+    showToast(message, "info");
   }
 
   private _showActionError(message: string): void {
-    const feedback = document.createElement("div");
-    feedback.textContent = message;
-    feedback.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(239, 68, 68, 0.9);
-      color: white;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-size: 14px;
-      z-index: 1002;
-      animation: fadeInOut 2s ease forwards;
-    `;
-    document.body.appendChild(feedback);
-    setTimeout(() => feedback.remove(), 2000);
+    showToast(message, "error");
   }
 
   private _removeContextMenu(): void {
