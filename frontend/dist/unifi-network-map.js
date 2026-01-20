@@ -1,3 +1,11 @@
+// src/card/constants.ts
+var DOMAIN = "unifi_network_map";
+var MIN_PAN_MOVEMENT_THRESHOLD = 2;
+var ZOOM_INCREMENT = 0.1;
+var MIN_ZOOM_SCALE = 0.5;
+var MAX_ZOOM_SCALE = 4;
+var TOOLTIP_OFFSET_PX = 12;
+
 // node_modules/dompurify/dist/purify.es.mjs
 var {
   entries,
@@ -1017,11 +1025,31 @@ function createDOMPurify() {
 }
 var purify = createDOMPurify();
 
-// src/unifi-network-map.ts
+// src/card/sanitize.ts
 function escapeHtml(text2) {
   return text2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
-var CARD_VERSION = "0.1.3";
+var DOMPURIFY_CONFIG = {
+  USE_PROFILES: { html: true, svg: true, svgFilters: true },
+  ADD_ATTR: [
+    "data-node-id",
+    "data-action",
+    "data-tab",
+    "data-edge",
+    "data-edge-left",
+    "data-edge-right",
+    "data-entity-id",
+    "data-copy-value",
+    "data-context-action",
+    "data-context-node",
+    "data-mac",
+    "data-modal-overlay",
+    "data-modal-entity-id"
+  ]
+};
+function sanitizeHtml(markup) {
+  return purify.sanitize(markup, DOMPURIFY_CONFIG);
+}
 function sanitizeSvg(svg2) {
   const parser = new DOMParser();
   const doc = parser.parseFromString(svg2, "image/svg+xml");
@@ -1045,33 +1073,696 @@ function sanitizeSvg(svg2) {
   });
   return svgElement.outerHTML;
 }
-var DOMPURIFY_CONFIG = {
-  USE_PROFILES: { html: true, svg: true, svgFilters: true },
-  ADD_ATTR: [
-    "data-node-id",
-    "data-action",
-    "data-tab",
-    "data-edge",
-    "data-edge-left",
-    "data-edge-right",
-    "data-entity-id",
-    "data-copy-value",
-    "data-context-action",
-    "data-context-node",
-    "data-mac",
-    "data-modal-overlay",
-    "data-modal-entity-id"
-  ]
-};
-function sanitizeHtml(markup) {
-  return purify.sanitize(markup, DOMPURIFY_CONFIG);
+
+// src/card/svg.ts
+function annotateEdges(svg2, edges) {
+  const edgesByKey = buildEdgeLookup(edges);
+  const paths = svg2.querySelectorAll("path[data-edge-left][data-edge-right]");
+  paths.forEach((path) => {
+    const left = path.getAttribute("data-edge-left");
+    const right = path.getAttribute("data-edge-right");
+    if (!left || !right) return;
+    const edge = edgesByKey.get(edgeKey(left, right));
+    if (!edge) return;
+    path.setAttribute("data-edge", "true");
+    ensureEdgeHitbox(path, edge);
+  });
 }
-var DOMAIN = "unifi_network_map";
-var MIN_PAN_MOVEMENT_THRESHOLD = 2;
-var ZOOM_INCREMENT = 0.1;
-var MIN_ZOOM_SCALE = 0.5;
-var MAX_ZOOM_SCALE = 4;
-var TOOLTIP_OFFSET_PX = 12;
+function findEdgeFromTarget(target, edges) {
+  if (!target) return null;
+  const edgePath = target.closest("path[data-edge], path[data-edge-hitbox]");
+  if (!edgePath) return null;
+  const left = edgePath.getAttribute("data-edge-left");
+  const right = edgePath.getAttribute("data-edge-right");
+  if (!left || !right) return null;
+  const lookup = buildEdgeLookup(edges);
+  return lookup.get(edgeKey(left, right)) ?? null;
+}
+function renderEdgeTooltip(edge) {
+  const connectionType = edge.wireless ? "Wireless" : "Wired";
+  const icon = edge.wireless ? "\u{1F4F6}" : "\u{1F517}";
+  const rows = [];
+  rows.push(
+    `<div class="tooltip-edge__title">${escapeHtml(edge.left)} \u2194 ${escapeHtml(edge.right)}</div>`
+  );
+  rows.push(
+    `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">${icon}</span><span class="tooltip-edge__label">${connectionType}</span></div>`
+  );
+  if (edge.label) {
+    rows.push(
+      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">\u{1F50C}</span><span class="tooltip-edge__label">${escapeHtml(edge.label)}</span></div>`
+    );
+  }
+  if (edge.poe) {
+    rows.push(
+      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">\u26A1</span><span class="tooltip-edge__label">PoE Powered</span></div>`
+    );
+  }
+  if (edge.speed) {
+    rows.push(
+      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">\u{1F680}</span><span class="tooltip-edge__label">${formatSpeed(edge.speed)}</span></div>`
+    );
+  }
+  if (edge.channel) {
+    rows.push(
+      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">\u{1F4E1}</span><span class="tooltip-edge__label">${formatChannel(edge.channel)}</span></div>`
+    );
+  }
+  return rows.join("");
+}
+function buildEdgeLookup(edges) {
+  const map = /* @__PURE__ */ new Map();
+  edges.forEach((edge) => {
+    map.set(edgeKey(edge.left, edge.right), edge);
+  });
+  return map;
+}
+function edgeKey(left, right) {
+  return [left.trim(), right.trim()].sort().join("|");
+}
+function ensureEdgeHitbox(path, edge) {
+  const next = path.nextElementSibling;
+  if (next?.getAttribute("data-edge-hitbox") === "true") {
+    return;
+  }
+  const hitbox = path.cloneNode(false);
+  hitbox.setAttribute("data-edge-hitbox", "true");
+  hitbox.setAttribute("data-edge-left", edge.left);
+  hitbox.setAttribute("data-edge-right", edge.right);
+  hitbox.setAttribute("stroke", "transparent");
+  hitbox.setAttribute("fill", "none");
+  path.after(hitbox);
+}
+function formatSpeed(speedMbps) {
+  if (speedMbps >= 1e3) {
+    const gbps = (speedMbps / 1e3).toFixed(1).replace(/\.0$/, "");
+    return `${gbps} Gbps`;
+  }
+  return `${speedMbps} Mbps`;
+}
+function formatChannel(channel) {
+  const band = channelBand(channel);
+  const suffix = band ? ` (${band})` : "";
+  return `Channel ${channel}${suffix}`;
+}
+function channelBand(channel) {
+  if (channel >= 1 && channel <= 14) {
+    return "2.4GHz";
+  }
+  if (channel >= 36 && channel <= 177) {
+    return "5GHz";
+  }
+  if (channel >= 1) {
+    return "6GHz";
+  }
+  return null;
+}
+
+// src/card/node.ts
+function resolveNodeName(event) {
+  const path = event.composedPath();
+  for (const item of path) {
+    if (item instanceof Element) {
+      const nodeId = item.getAttribute("data-node-id");
+      if (nodeId) {
+        return nodeId.trim();
+      }
+      const aria = item.getAttribute("aria-label");
+      if (aria) {
+        return aria.trim();
+      }
+      if (item.tagName.toLowerCase() === "text" && item.textContent) {
+        return item.textContent.trim();
+      }
+      if (item.tagName.toLowerCase() === "title" && item.textContent) {
+        return item.textContent.trim();
+      }
+    }
+  }
+  const fallback = document.elementFromPoint(event.clientX, event.clientY);
+  return inferNodeName(fallback);
+}
+function inferNodeName(target) {
+  if (!target) {
+    return null;
+  }
+  const node = target.closest("[data-node-id]");
+  if (node?.getAttribute("data-node-id")) {
+    return node.getAttribute("data-node-id")?.trim() ?? null;
+  }
+  const labelled = target.closest("[aria-label]");
+  if (labelled?.getAttribute("aria-label")) {
+    return labelled.getAttribute("aria-label")?.trim() ?? null;
+  }
+  const textNode = target.closest("text");
+  if (textNode?.textContent) {
+    return textNode.textContent.trim();
+  }
+  const group = target.closest("g");
+  const title = group?.querySelector("title");
+  if (title?.textContent) {
+    return title.textContent.trim();
+  }
+  const groupText = group?.querySelector("text");
+  if (groupText?.textContent) {
+    return groupText.textContent.trim();
+  }
+  const idHolder = target.closest("[id]");
+  if (idHolder?.getAttribute("id")) {
+    return idHolder.getAttribute("id")?.trim() ?? null;
+  }
+  return null;
+}
+function findNodeElement(svg2, nodeName) {
+  return findByDataNodeId(svg2, nodeName) ?? findByAriaLabel(svg2, nodeName) ?? findByTextContent(svg2, nodeName) ?? findByTitleElement(svg2, nodeName);
+}
+function highlightSelectedNode(svg2, selectedNode) {
+  clearNodeSelection(svg2);
+  if (!selectedNode) {
+    return;
+  }
+  const element = findNodeElement(svg2, selectedNode);
+  if (element) {
+    markNodeSelected(element);
+  }
+}
+function clearNodeSelection(svg2) {
+  svg2.querySelectorAll("[data-selected]").forEach((el) => {
+    el.removeAttribute("data-selected");
+  });
+  svg2.querySelectorAll(".node--selected").forEach((el) => {
+    el.classList.remove("node--selected");
+  });
+}
+function markNodeSelected(element) {
+  if (element.tagName.toLowerCase() === "g") {
+    element.setAttribute("data-selected", "true");
+  } else {
+    element.classList.add("node--selected");
+  }
+}
+function findByDataNodeId(svg2, nodeName) {
+  const el = svg2.querySelector(`[data-node-id="${CSS.escape(nodeName)}"]`);
+  return el ? el.closest("g") ?? el : null;
+}
+function findByAriaLabel(svg2, nodeName) {
+  const el = svg2.querySelector(`[aria-label="${CSS.escape(nodeName)}"]`);
+  return el ? el.closest("g") ?? el : null;
+}
+function findByTextContent(svg2, nodeName) {
+  for (const textEl of svg2.querySelectorAll("text")) {
+    if (textEl.textContent?.trim() === nodeName) {
+      return textEl.closest("g") ?? textEl;
+    }
+  }
+  return null;
+}
+function findByTitleElement(svg2, nodeName) {
+  for (const titleEl of svg2.querySelectorAll("title")) {
+    if (titleEl.textContent?.trim() === nodeName) {
+      return titleEl.closest("g");
+    }
+  }
+  return null;
+}
+
+// src/card/entity-modal.ts
+function renderEntityModal(context) {
+  const safeName = escapeHtml(context.nodeName);
+  const mac = context.payload?.client_macs?.[context.nodeName] ?? context.payload?.device_macs?.[context.nodeName];
+  const nodeType = context.payload?.node_types?.[context.nodeName] ?? "unknown";
+  const status = context.payload?.node_status?.[context.nodeName];
+  const relatedEntities = context.payload?.related_entities?.[context.nodeName] ?? [];
+  const typeIcon = context.getNodeTypeIcon(nodeType);
+  const infoRows = [];
+  if (mac) {
+    infoRows.push(`
+      <div class="entity-modal__info-row">
+        <span class="entity-modal__info-label">MAC Address</span>
+        <span class="entity-modal__info-value">${escapeHtml(mac)}</span>
+      </div>
+    `);
+  }
+  const ipEntity = relatedEntities.find((entity) => entity.ip);
+  if (ipEntity?.ip) {
+    infoRows.push(`
+      <div class="entity-modal__info-row">
+        <span class="entity-modal__info-label">IP Address</span>
+        <span class="entity-modal__info-value">${escapeHtml(ipEntity.ip)}</span>
+      </div>
+    `);
+  }
+  if (status?.state) {
+    const stateDisplay = status.state === "online" ? "Online" : status.state === "offline" ? "Offline" : "Unknown";
+    infoRows.push(`
+      <div class="entity-modal__info-row">
+        <span class="entity-modal__info-label">Status</span>
+        <span class="entity-modal__info-value">${stateDisplay}</span>
+      </div>
+    `);
+  }
+  if (status?.last_changed) {
+    infoRows.push(`
+      <div class="entity-modal__info-row">
+        <span class="entity-modal__info-label">Last Changed</span>
+        <span class="entity-modal__info-value">${context.formatLastChanged(status.last_changed)}</span>
+      </div>
+    `);
+  }
+  infoRows.push(`
+    <div class="entity-modal__info-row">
+      <span class="entity-modal__info-label">Device Type</span>
+      <span class="entity-modal__info-value">${escapeHtml(nodeType)}</span>
+    </div>
+  `);
+  const entityItems = relatedEntities.map((entity) => renderEntityItem(entity)).join("");
+  return `
+    <div class="entity-modal-overlay" data-modal-overlay data-theme="${escapeHtml(context.theme)}">
+      <div class="entity-modal">
+        <div class="entity-modal__header">
+          <div class="entity-modal__title">
+            <span>${typeIcon}</span>
+            <span>${safeName}</span>
+          </div>
+          <button type="button" class="entity-modal__close" data-action="close-modal">&times;</button>
+        </div>
+        <div class="entity-modal__body">
+          <div class="entity-modal__section">
+            <div class="entity-modal__section-title">Device Information</div>
+            <div class="entity-modal__info-grid">
+              ${infoRows.join("")}
+            </div>
+          </div>
+          ${relatedEntities.length > 0 ? `
+            <div class="entity-modal__section">
+              <div class="entity-modal__section-title">Related Entities (${relatedEntities.length})</div>
+              <div class="entity-modal__entity-list">
+                ${entityItems}
+              </div>
+            </div>
+          ` : `
+            <div class="entity-modal__section">
+              <div class="entity-modal__section-title">Related Entities</div>
+              <div class="panel-empty__text">No Home Assistant entities found for this device</div>
+            </div>
+          `}
+        </div>
+      </div>
+    </div>
+  `;
+}
+function renderEntityItem(entity) {
+  const domainIcon = getDomainIcon(entity.domain);
+  const displayName = entity.friendly_name ?? entity.entity_id;
+  const safeDisplayName = escapeHtml(displayName);
+  const safeEntityId = escapeHtml(entity.entity_id);
+  const state = entity.state ?? "unavailable";
+  const stateClass = getStateBadgeClass(state);
+  return `
+    <div class="entity-modal__entity-item" data-modal-entity-id="${safeEntityId}">
+      <span class="entity-modal__domain-icon">${domainIcon}</span>
+      <div class="entity-modal__entity-info">
+        <span class="entity-modal__entity-name">${safeDisplayName}</span>
+        <span class="entity-modal__entity-id">${safeEntityId}</span>
+      </div>
+      <div class="entity-modal__entity-state">
+        <span class="entity-modal__state-badge ${stateClass}">${escapeHtml(state)}</span>
+        <span class="entity-modal__arrow">\u203A</span>
+      </div>
+    </div>
+  `;
+}
+function getDomainIcon(domain) {
+  const icons = {
+    device_tracker: "\u{1F4CD}",
+    switch: "\u{1F518}",
+    sensor: "\u{1F4CA}",
+    binary_sensor: "\u26A1",
+    light: "\u{1F4A1}",
+    button: "\u{1F532}",
+    update: "\u{1F504}",
+    image: "\u{1F5BC}\uFE0F"
+  };
+  return icons[domain] ?? "\u{1F4E6}";
+}
+function getStateBadgeClass(state) {
+  if (state === "home" || state === "on") {
+    return `entity-modal__state-badge--${state}`;
+  }
+  if (state === "not_home" || state === "off") {
+    return `entity-modal__state-badge--${state}`;
+  }
+  return "entity-modal__state-badge--default";
+}
+
+// src/card/panel.ts
+function renderPanelContent(context, helpers) {
+  if (!context.selectedNode) {
+    return renderMapOverview(context);
+  }
+  return renderNodePanel(context, context.selectedNode, helpers);
+}
+function renderMapOverview(context) {
+  if (!context.payload) {
+    return `
+      <div class="panel-empty">
+        <div class="panel-empty__icon">\u{1F4E1}</div>
+        <div class="panel-empty__text">Loading network data...</div>
+      </div>
+    `;
+  }
+  const nodes = Object.keys(context.payload.node_types ?? {});
+  const edges = context.payload.edges ?? [];
+  const nodeTypes = context.payload.node_types ?? {};
+  const nodeStatus = context.payload.node_status ?? {};
+  const deviceCounts = countDevicesByType(nodes, nodeTypes);
+  const statusCounts = countNodeStatus(nodeStatus);
+  return `
+    <div class="panel-header">
+      <div class="panel-header__title">Network Overview</div>
+    </div>
+    ${renderOverviewStatsGrid(nodes.length, edges.length)}
+    ${renderOverviewStatusSection(statusCounts)}
+    ${renderOverviewDeviceBreakdown(deviceCounts)}
+    <div class="panel-hint">
+      <span class="panel-hint__icon">\u{1F4A1}</span>
+      Click a node in the map to see details
+    </div>
+  `;
+}
+function renderNodePanel(context, name, helpers) {
+  const safeName = helpers.escapeHtml(name);
+  if (!context.payload) {
+    return `
+      <div class="panel-header">
+        <button type="button" class="panel-header__back" data-action="back">\u2190</button>
+        <div class="panel-header__title">${safeName}</div>
+      </div>
+      <div class="panel-empty">
+        <div class="panel-empty__text">No data available</div>
+      </div>
+    `;
+  }
+  const nodeType = context.payload.node_types?.[name] ?? "unknown";
+  const typeIcon = helpers.getNodeTypeIcon(nodeType);
+  const status = context.payload.node_status?.[name];
+  const statusBadge = status ? helpers.getStatusBadgeHtml(status.state) : "";
+  return `
+    <div class="panel-header">
+      <button type="button" class="panel-header__back" data-action="back">\u2190</button>
+      <div class="panel-header__info">
+        <div class="panel-header__title-row">
+          <span class="panel-header__title">${safeName}</span>
+          ${statusBadge}
+        </div>
+        <div class="panel-header__badge">${typeIcon} ${helpers.escapeHtml(nodeType)}</div>
+      </div>
+    </div>
+    <div class="panel-tabs">
+      <button type="button" class="panel-tab ${context.activeTab === "overview" ? "panel-tab--active" : ""}" data-tab="overview">Overview</button>
+      <button type="button" class="panel-tab ${context.activeTab === "stats" ? "panel-tab--active" : ""}" data-tab="stats">Stats</button>
+      <button type="button" class="panel-tab ${context.activeTab === "actions" ? "panel-tab--active" : ""}" data-tab="actions">Actions</button>
+    </div>
+    <div class="panel-tab-content">
+      ${renderTabContent(context, name, helpers)}
+    </div>
+  `;
+}
+function renderTabContent(context, name, helpers) {
+  switch (context.activeTab) {
+    case "overview":
+      return renderOverviewTab(context, name, helpers);
+    case "stats":
+      return renderStatsTab(context, name, helpers);
+    case "actions":
+      return renderActionsTab(context, name, helpers);
+    default:
+      return "";
+  }
+}
+function renderOverviewTab(context, name, helpers) {
+  const edges = context.payload?.edges ?? [];
+  const neighbors = edges.filter((edge) => edge.left === name || edge.right === name).map((edge) => ({
+    name: edge.left === name ? edge.right : edge.left,
+    label: edge.label,
+    wireless: edge.wireless,
+    poe: edge.poe
+  }));
+  const uniqueNeighbors = Array.from(
+    new Map(neighbors.map((n) => [n.name, n])).values()
+  );
+  const neighborList = uniqueNeighbors.length ? uniqueNeighbors.map(
+    (n) => `
+          <div class="neighbor-item">
+            <span class="neighbor-item__name">${helpers.escapeHtml(n.name)}</span>
+            <span class="neighbor-item__badges">
+              ${n.wireless ? '<span class="badge badge--wireless">WiFi</span>' : ""}
+              ${n.poe ? '<span class="badge badge--poe">PoE</span>' : ""}
+              ${n.label ? `<span class="badge badge--port">${helpers.escapeHtml(n.label)}</span>` : ""}
+            </span>
+          </div>
+        `
+  ).join("") : '<div class="panel-empty__text">No connections</div>';
+  return `
+    <div class="panel-section">
+      <div class="panel-section__title">Connected Devices</div>
+      <div class="neighbor-list">${neighborList}</div>
+    </div>
+  `;
+}
+function renderStatsTab(context, name, helpers) {
+  const edges = context.payload?.edges ?? [];
+  const nodeEdges = edges.filter((edge) => edge.left === name || edge.right === name);
+  const mac = context.payload?.client_macs?.[name] ?? context.payload?.device_macs?.[name] ?? null;
+  const status = context.payload?.node_status?.[name];
+  return `
+    ${renderStatsLiveStatus(status, helpers)}
+    ${renderStatsConnectionSection(nodeEdges)}
+    ${renderStatsDeviceInfo(mac, helpers)}
+  `;
+}
+function renderStatsLiveStatus(status, helpers) {
+  if (!status) {
+    return "";
+  }
+  return `
+    <div class="panel-section">
+      <div class="panel-section__title">Live Status</div>
+      <div class="stats-list">
+        <div class="stats-row">
+          <span class="stats-row__label">Status</span>
+          <span class="stats-row__value">${helpers.getStatusBadgeHtml(status.state)}</span>
+        </div>
+        <div class="stats-row">
+          <span class="stats-row__label">Last Changed</span>
+          <span class="stats-row__value">${helpers.formatLastChanged(status.last_changed)}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+function renderStatsConnectionSection(nodeEdges) {
+  const wirelessCount = nodeEdges.filter((e) => e.wireless).length;
+  const wiredCount = nodeEdges.length - wirelessCount;
+  const poeCount = nodeEdges.filter((e) => e.poe).length;
+  const poeRow = poeCount > 0 ? `<div class="stats-row"><span class="stats-row__label">PoE Powered</span><span class="stats-row__value">${poeCount}</span></div>` : "";
+  return `
+    <div class="panel-section">
+      <div class="panel-section__title">Connection Stats</div>
+      <div class="stats-list">
+        <div class="stats-row">
+          <span class="stats-row__label">Total Connections</span>
+          <span class="stats-row__value">${nodeEdges.length}</span>
+        </div>
+        <div class="stats-row">
+          <span class="stats-row__label">Wired</span>
+          <span class="stats-row__value">${wiredCount}</span>
+        </div>
+        <div class="stats-row">
+          <span class="stats-row__label">Wireless</span>
+          <span class="stats-row__value">${wirelessCount}</span>
+        </div>
+        ${poeRow}
+      </div>
+    </div>
+  `;
+}
+function renderStatsDeviceInfo(mac, helpers) {
+  if (!mac) {
+    return "";
+  }
+  return `
+    <div class="panel-section">
+      <div class="panel-section__title">Device Info</div>
+      <div class="info-row">
+        <span class="info-row__label">MAC Address</span>
+        <code class="info-row__value">${helpers.escapeHtml(mac)}</code>
+      </div>
+    </div>
+  `;
+}
+function renderActionsTab(context, name, helpers) {
+  const entityId = context.payload?.node_entities?.[name] ?? context.payload?.client_entities?.[name] ?? context.payload?.device_entities?.[name];
+  const mac = context.payload?.client_macs?.[name] ?? context.payload?.device_macs?.[name] ?? null;
+  const safeEntityId = entityId ? helpers.escapeHtml(entityId) : "";
+  const safeMac = mac ? helpers.escapeHtml(mac) : "";
+  return `
+    <div class="panel-section">
+      <div class="panel-section__title">Quick Actions</div>
+      <div class="actions-list">
+        ${entityId ? `
+            <button type="button" class="action-button action-button--primary" data-entity-id="${safeEntityId}">
+              <span class="action-button__icon">\u{1F4CA}</span>
+              <span class="action-button__text">View Entity Details</span>
+            </button>
+          ` : `<div class="panel-empty__text">No Home Assistant entity linked</div>`}
+        ${mac ? `
+            <button type="button" class="action-button" data-action="copy" data-copy-value="${safeMac}">
+              <span class="action-button__icon">\u{1F4CB}</span>
+              <span class="action-button__text">Copy MAC Address</span>
+            </button>
+          ` : ""}
+      </div>
+    </div>
+    ${entityId ? `
+      <div class="panel-section">
+        <div class="panel-section__title">Entity</div>
+        <code class="entity-id">${safeEntityId}</code>
+      </div>
+    ` : ""}
+  `;
+}
+function renderOverviewStatsGrid(nodeCount, edgeCount) {
+  return `
+    <div class="panel-stats-grid">
+      <div class="stat-card">
+        <div class="stat-card__value">${nodeCount}</div>
+        <div class="stat-card__label">Total Nodes</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__value">${edgeCount}</div>
+        <div class="stat-card__label">Connections</div>
+      </div>
+    </div>
+  `;
+}
+function renderOverviewStatusSection(counts) {
+  if (!counts.hasStatus) {
+    return "";
+  }
+  return `
+    <div class="panel-section">
+      <div class="panel-section__title">Live Status</div>
+      <div class="device-list">
+        <div class="device-row"><span class="status-dot status-dot--online"></span><span class="device-row__label">Online</span><span class="device-row__count">${counts.online}</span></div>
+        <div class="device-row"><span class="status-dot status-dot--offline"></span><span class="device-row__label">Offline</span><span class="device-row__count">${counts.offline}</span></div>
+      </div>
+    </div>
+  `;
+}
+function renderOverviewDeviceBreakdown(counts) {
+  const items = [
+    { key: "gateways", icon: "\u{1F310}", label: "Gateways" },
+    { key: "switches", icon: "\u{1F500}", label: "Switches" },
+    { key: "aps", icon: "\u{1F4F6}", label: "Access Points" },
+    { key: "clients", icon: "\u{1F4BB}", label: "Clients" },
+    { key: "other", icon: "\u{1F4E6}", label: "Other" }
+  ];
+  const rows = items.filter((item) => counts[item.key] > 0).map(
+    (item) => `<div class="device-row"><span class="device-row__icon">${item.icon}</span><span class="device-row__label">${item.label}</span><span class="device-row__count">${counts[item.key]}</span></div>`
+  ).join("");
+  return `
+    <div class="panel-section">
+      <div class="panel-section__title">Device Breakdown</div>
+      <div class="device-list">${rows}</div>
+    </div>
+  `;
+}
+function countDevicesByType(nodes, nodeTypes) {
+  return {
+    gateways: nodes.filter((n) => nodeTypes[n] === "gateway").length,
+    switches: nodes.filter((n) => nodeTypes[n] === "switch").length,
+    aps: nodes.filter((n) => nodeTypes[n] === "ap").length,
+    clients: nodes.filter((n) => nodeTypes[n] === "client").length,
+    other: nodes.filter((n) => !["gateway", "switch", "ap", "client"].includes(nodeTypes[n])).length
+  };
+}
+function countNodeStatus(nodeStatus) {
+  const values = Object.values(nodeStatus);
+  return {
+    online: values.filter((s) => s.state === "online").length,
+    offline: values.filter((s) => s.state === "offline").length,
+    hasStatus: values.length > 0
+  };
+}
+
+// src/card/context-menu.ts
+function renderContextMenu(options) {
+  const safeName = escapeHtml(options.nodeName);
+  const nodeType = options.payload?.node_types?.[options.nodeName] ?? "unknown";
+  const typeIcon = options.getNodeTypeIcon(nodeType);
+  const mac = options.payload?.client_macs?.[options.nodeName] ?? options.payload?.device_macs?.[options.nodeName];
+  const entityId = options.payload?.node_entities?.[options.nodeName] ?? options.payload?.client_entities?.[options.nodeName] ?? options.payload?.device_entities?.[options.nodeName];
+  const isDevice = nodeType !== "client";
+  const items = [];
+  items.push(`
+    <button type="button" class="context-menu__item" data-context-action="select">
+      <span class="context-menu__icon">\u{1F446}</span>
+      <span>Select</span>
+    </button>
+  `);
+  if (entityId) {
+    items.push(`
+      <button type="button" class="context-menu__item" data-context-action="details">
+        <span class="context-menu__icon">\u{1F4CA}</span>
+        <span>View Details</span>
+      </button>
+    `);
+  }
+  if (mac) {
+    items.push(`
+      <button type="button" class="context-menu__item" data-context-action="copy-mac" data-mac="${escapeHtml(mac)}">
+        <span class="context-menu__icon">\u{1F4CB}</span>
+        <span>Copy MAC Address</span>
+      </button>
+    `);
+  }
+  items.push('<div class="context-menu__divider"></div>');
+  if (isDevice) {
+    items.push(`
+      <button type="button" class="context-menu__item" data-context-action="restart" ${!entityId ? "disabled" : ""}>
+        <span class="context-menu__icon">\u{1F504}</span>
+        <span>Restart Device</span>
+      </button>
+    `);
+  }
+  return `
+    <div class="context-menu" data-theme="${escapeHtml(options.theme)}" data-context-node="${safeName}">
+      <div class="context-menu__header">
+        <div class="context-menu__title">${typeIcon} ${safeName}</div>
+        <div class="context-menu__type">${escapeHtml(nodeType)}</div>
+      </div>
+      ${items.join("")}
+    </div>
+  `;
+}
+function parseContextMenuAction(target) {
+  const actionButton = target.closest("[data-context-action]");
+  if (!actionButton || actionButton.disabled) {
+    return null;
+  }
+  const action = actionButton.getAttribute("data-context-action") ?? "unknown";
+  const mac = actionButton.getAttribute("data-mac");
+  return {
+    action: isContextMenuAction(action) ? action : "unknown",
+    mac
+  };
+}
+function isContextMenuAction(action) {
+  return action === "select" || action === "details" || action === "copy-mac" || action === "restart";
+}
+
+// src/card/styles.ts
 var CARD_STYLES = `
   unifi-network-map { display: block; height: 100%; }
   unifi-network-map ha-card { display: flex; flex-direction: column; height: 100%; box-sizing: border-box; }
@@ -1827,6 +2518,8 @@ var GLOBAL_STYLES = `
     100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
   }
 `;
+
+// src/card/unifi-network-map-card.ts
 var UnifiNetworkMapCard = class extends HTMLElement {
   constructor() {
     super(...arguments);
@@ -2040,139 +2733,33 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     `;
   }
   _renderPanelContent() {
-    if (!this._selectedNode) {
-      return this._renderMapOverview();
-    }
-    return this._renderNodePanel(this._selectedNode);
+    return renderPanelContent(
+      {
+        payload: this._payload,
+        selectedNode: this._selectedNode,
+        activeTab: this._activeTab
+      },
+      this._panelHelpers()
+    );
   }
-  _renderMapOverview() {
-    if (!this._payload) {
-      return `
-        <div class="panel-empty">
-          <div class="panel-empty__icon">\u{1F4E1}</div>
-          <div class="panel-empty__text">Loading network data...</div>
-        </div>
-      `;
-    }
-    const nodes = Object.keys(this._payload.node_types ?? {});
-    const edges = this._payload.edges ?? [];
-    const nodeTypes = this._payload.node_types ?? {};
-    const nodeStatus = this._payload.node_status ?? {};
-    const deviceCounts = this._countDevicesByType(nodes, nodeTypes);
-    const statusCounts = this._countNodeStatus(nodeStatus);
-    return `
-      <div class="panel-header">
-        <div class="panel-header__title">Network Overview</div>
-      </div>
-      ${this._renderOverviewStatsGrid(nodes.length, edges.length)}
-      ${this._renderOverviewStatusSection(statusCounts)}
-      ${this._renderOverviewDeviceBreakdown(deviceCounts)}
-      <div class="panel-hint">
-        <span class="panel-hint__icon">\u{1F4A1}</span>
-        Click a node in the map to see details
-      </div>
-    `;
+  _renderTabContent(name) {
+    return renderTabContent(
+      {
+        payload: this._payload,
+        selectedNode: this._selectedNode,
+        activeTab: this._activeTab
+      },
+      name,
+      this._panelHelpers()
+    );
   }
-  _countDevicesByType(nodes, nodeTypes) {
+  _panelHelpers() {
     return {
-      gateways: nodes.filter((n) => nodeTypes[n] === "gateway").length,
-      switches: nodes.filter((n) => nodeTypes[n] === "switch").length,
-      aps: nodes.filter((n) => nodeTypes[n] === "ap").length,
-      clients: nodes.filter((n) => nodeTypes[n] === "client").length,
-      other: nodes.filter((n) => !["gateway", "switch", "ap", "client"].includes(nodeTypes[n])).length
+      escapeHtml,
+      getNodeTypeIcon: (nodeType) => this._getNodeTypeIcon(nodeType),
+      getStatusBadgeHtml: (state) => this._getStatusBadgeHtml(state),
+      formatLastChanged: (value) => this._formatLastChanged(value)
     };
-  }
-  _countNodeStatus(nodeStatus) {
-    const values = Object.values(nodeStatus);
-    return {
-      online: values.filter((s) => s.state === "online").length,
-      offline: values.filter((s) => s.state === "offline").length,
-      hasStatus: values.length > 0
-    };
-  }
-  _renderOverviewStatsGrid(nodeCount, edgeCount) {
-    return `
-      <div class="panel-stats-grid">
-        <div class="stat-card">
-          <div class="stat-card__value">${nodeCount}</div>
-          <div class="stat-card__label">Total Nodes</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-card__value">${edgeCount}</div>
-          <div class="stat-card__label">Connections</div>
-        </div>
-      </div>
-    `;
-  }
-  _renderOverviewStatusSection(counts) {
-    if (!counts.hasStatus) {
-      return "";
-    }
-    return `
-      <div class="panel-section">
-        <div class="panel-section__title">Live Status</div>
-        <div class="device-list">
-          <div class="device-row"><span class="status-dot status-dot--online"></span><span class="device-row__label">Online</span><span class="device-row__count">${counts.online}</span></div>
-          <div class="device-row"><span class="status-dot status-dot--offline"></span><span class="device-row__label">Offline</span><span class="device-row__count">${counts.offline}</span></div>
-        </div>
-      </div>
-    `;
-  }
-  _renderOverviewDeviceBreakdown(counts) {
-    const items = [
-      { key: "gateways", icon: "\u{1F310}", label: "Gateways" },
-      { key: "switches", icon: "\u{1F500}", label: "Switches" },
-      { key: "aps", icon: "\u{1F4F6}", label: "Access Points" },
-      { key: "clients", icon: "\u{1F4BB}", label: "Clients" },
-      { key: "other", icon: "\u{1F4E6}", label: "Other" }
-    ];
-    const rows = items.filter((item) => counts[item.key] > 0).map(
-      (item) => `<div class="device-row"><span class="device-row__icon">${item.icon}</span><span class="device-row__label">${item.label}</span><span class="device-row__count">${counts[item.key]}</span></div>`
-    ).join("");
-    return `
-      <div class="panel-section">
-        <div class="panel-section__title">Device Breakdown</div>
-        <div class="device-list">${rows}</div>
-      </div>
-    `;
-  }
-  _renderNodePanel(name) {
-    const safeName = escapeHtml(name);
-    if (!this._payload) {
-      return `
-        <div class="panel-header">
-          <button type="button" class="panel-header__back" data-action="back">\u2190</button>
-          <div class="panel-header__title">${safeName}</div>
-        </div>
-        <div class="panel-empty">
-          <div class="panel-empty__text">No data available</div>
-        </div>
-      `;
-    }
-    const nodeType = this._payload.node_types?.[name] ?? "unknown";
-    const typeIcon = this._getNodeTypeIcon(nodeType);
-    const status = this._payload.node_status?.[name];
-    const statusBadge = status ? this._getStatusBadgeHtml(status.state) : "";
-    return `
-      <div class="panel-header">
-        <button type="button" class="panel-header__back" data-action="back">\u2190</button>
-        <div class="panel-header__info">
-          <div class="panel-header__title-row">
-            <span class="panel-header__title">${safeName}</span>
-            ${statusBadge}
-          </div>
-          <div class="panel-header__badge">${typeIcon} ${escapeHtml(nodeType)}</div>
-        </div>
-      </div>
-      <div class="panel-tabs">
-        <button type="button" class="panel-tab ${this._activeTab === "overview" ? "panel-tab--active" : ""}" data-tab="overview">Overview</button>
-        <button type="button" class="panel-tab ${this._activeTab === "stats" ? "panel-tab--active" : ""}" data-tab="stats">Stats</button>
-        <button type="button" class="panel-tab ${this._activeTab === "actions" ? "panel-tab--active" : ""}" data-tab="actions">Actions</button>
-      </div>
-      <div class="panel-tab-content">
-        ${this._renderTabContent(name)}
-      </div>
-    `;
   }
   _getNodeTypeIcon(nodeType) {
     switch (nodeType) {
@@ -2212,150 +2799,6 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     } catch {
       return "Unknown";
     }
-  }
-  _renderTabContent(name) {
-    switch (this._activeTab) {
-      case "overview":
-        return this._renderOverviewTab(name);
-      case "stats":
-        return this._renderStatsTab(name);
-      case "actions":
-        return this._renderActionsTab(name);
-      default:
-        return "";
-    }
-  }
-  _renderOverviewTab(name) {
-    const edges = this._payload?.edges ?? [];
-    const neighbors = edges.filter((edge) => edge.left === name || edge.right === name).map((edge) => ({
-      name: edge.left === name ? edge.right : edge.left,
-      label: edge.label,
-      wireless: edge.wireless,
-      poe: edge.poe
-    }));
-    const uniqueNeighbors = Array.from(
-      new Map(neighbors.map((n) => [n.name, n])).values()
-    );
-    const neighborList = uniqueNeighbors.length ? uniqueNeighbors.map(
-      (n) => `
-            <div class="neighbor-item">
-              <span class="neighbor-item__name">${escapeHtml(n.name)}</span>
-              <span class="neighbor-item__badges">
-                ${n.wireless ? '<span class="badge badge--wireless">WiFi</span>' : ""}
-                ${n.poe ? '<span class="badge badge--poe">PoE</span>' : ""}
-                ${n.label ? `<span class="badge badge--port">${escapeHtml(n.label)}</span>` : ""}
-              </span>
-            </div>
-          `
-    ).join("") : '<div class="panel-empty__text">No connections</div>';
-    return `
-      <div class="panel-section">
-        <div class="panel-section__title">Connected Devices</div>
-        <div class="neighbor-list">${neighborList}</div>
-      </div>
-    `;
-  }
-  _renderStatsTab(name) {
-    const edges = this._payload?.edges ?? [];
-    const nodeEdges = edges.filter((edge) => edge.left === name || edge.right === name);
-    const mac = this._payload?.client_macs?.[name] ?? this._payload?.device_macs?.[name] ?? null;
-    const status = this._payload?.node_status?.[name];
-    return `
-      ${this._renderStatsLiveStatus(status)}
-      ${this._renderStatsConnectionSection(nodeEdges)}
-      ${this._renderStatsDeviceInfo(mac)}
-    `;
-  }
-  _renderStatsLiveStatus(status) {
-    if (!status) {
-      return "";
-    }
-    return `
-      <div class="panel-section">
-        <div class="panel-section__title">Live Status</div>
-        <div class="stats-list">
-          <div class="stats-row">
-            <span class="stats-row__label">Status</span>
-            <span class="stats-row__value">${this._getStatusBadgeHtml(status.state)}</span>
-          </div>
-          <div class="stats-row">
-            <span class="stats-row__label">Last Changed</span>
-            <span class="stats-row__value">${this._formatLastChanged(status.last_changed)}</span>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-  _renderStatsConnectionSection(nodeEdges) {
-    const wirelessCount = nodeEdges.filter((e) => e.wireless).length;
-    const wiredCount = nodeEdges.length - wirelessCount;
-    const poeCount = nodeEdges.filter((e) => e.poe).length;
-    const poeRow = poeCount > 0 ? `<div class="stats-row"><span class="stats-row__label">PoE Powered</span><span class="stats-row__value">${poeCount}</span></div>` : "";
-    return `
-      <div class="panel-section">
-        <div class="panel-section__title">Connection Stats</div>
-        <div class="stats-list">
-          <div class="stats-row">
-            <span class="stats-row__label">Total Connections</span>
-            <span class="stats-row__value">${nodeEdges.length}</span>
-          </div>
-          <div class="stats-row">
-            <span class="stats-row__label">Wired</span>
-            <span class="stats-row__value">${wiredCount}</span>
-          </div>
-          <div class="stats-row">
-            <span class="stats-row__label">Wireless</span>
-            <span class="stats-row__value">${wirelessCount}</span>
-          </div>
-          ${poeRow}
-        </div>
-      </div>
-    `;
-  }
-  _renderStatsDeviceInfo(mac) {
-    if (!mac) {
-      return "";
-    }
-    return `
-      <div class="panel-section">
-        <div class="panel-section__title">Device Info</div>
-        <div class="info-row">
-          <span class="info-row__label">MAC Address</span>
-          <code class="info-row__value">${escapeHtml(mac)}</code>
-        </div>
-      </div>
-    `;
-  }
-  _renderActionsTab(name) {
-    const entityId = this._payload?.node_entities?.[name] ?? this._payload?.client_entities?.[name] ?? this._payload?.device_entities?.[name];
-    const mac = this._payload?.client_macs?.[name] ?? this._payload?.device_macs?.[name] ?? null;
-    const safeEntityId = entityId ? escapeHtml(entityId) : "";
-    const safeMac = mac ? escapeHtml(mac) : "";
-    return `
-      <div class="panel-section">
-        <div class="panel-section__title">Quick Actions</div>
-        <div class="actions-list">
-          ${entityId ? `
-              <button type="button" class="action-button action-button--primary" data-entity-id="${safeEntityId}">
-                <span class="action-button__icon">\u{1F4CA}</span>
-                <span class="action-button__text">View Entity Details</span>
-              </button>
-            ` : `<div class="panel-empty__text">No Home Assistant entity linked</div>`}
-          ${mac ? `
-              <button type="button" class="action-button" data-action="copy" data-copy-value="${safeMac}">
-                <span class="action-button__icon">\u{1F4CB}</span>
-                <span class="action-button__text">Copy MAC Address</span>
-              </button>
-            ` : ""}
-        </div>
-      </div>
-      ${entityId ? `
-        <div class="panel-section">
-          <div class="panel-section__title">Entity</div>
-          <code class="entity-id">${safeEntityId}</code>
-        </div>
-      ` : ""}
-    `;
   }
   _ensureStyles() {
     if (this.querySelector("style[data-unifi-network-map]")) {
@@ -2472,132 +2915,13 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._wireEntityModalEvents(overlay);
   }
   _renderEntityModal(nodeName) {
-    const safeName = escapeHtml(nodeName);
-    const mac = this._payload?.client_macs?.[nodeName] ?? this._payload?.device_macs?.[nodeName];
-    const nodeType = this._payload?.node_types?.[nodeName] ?? "unknown";
-    const status = this._payload?.node_status?.[nodeName];
-    const relatedEntities = this._payload?.related_entities?.[nodeName] ?? [];
-    const typeIcon = this._getNodeTypeIcon(nodeType);
-    const infoRows = [];
-    if (mac) {
-      infoRows.push(`
-        <div class="entity-modal__info-row">
-          <span class="entity-modal__info-label">MAC Address</span>
-          <span class="entity-modal__info-value">${escapeHtml(mac)}</span>
-        </div>
-      `);
-    }
-    const ipEntity = relatedEntities.find((e) => e.ip);
-    if (ipEntity?.ip) {
-      infoRows.push(`
-        <div class="entity-modal__info-row">
-          <span class="entity-modal__info-label">IP Address</span>
-          <span class="entity-modal__info-value">${escapeHtml(ipEntity.ip)}</span>
-        </div>
-      `);
-    }
-    if (status?.state) {
-      const stateDisplay = status.state === "online" ? "Online" : status.state === "offline" ? "Offline" : "Unknown";
-      infoRows.push(`
-        <div class="entity-modal__info-row">
-          <span class="entity-modal__info-label">Status</span>
-          <span class="entity-modal__info-value">${stateDisplay}</span>
-        </div>
-      `);
-    }
-    if (status?.last_changed) {
-      infoRows.push(`
-        <div class="entity-modal__info-row">
-          <span class="entity-modal__info-label">Last Changed</span>
-          <span class="entity-modal__info-value">${this._formatLastChanged(status.last_changed)}</span>
-        </div>
-      `);
-    }
-    infoRows.push(`
-      <div class="entity-modal__info-row">
-        <span class="entity-modal__info-label">Device Type</span>
-        <span class="entity-modal__info-value">${escapeHtml(nodeType)}</span>
-      </div>
-    `);
-    const entityItems = relatedEntities.map((entity) => this._renderEntityItem(entity)).join("");
-    const theme = this._config?.theme ?? "dark";
-    return `
-      <div class="entity-modal-overlay" data-modal-overlay data-theme="${escapeHtml(theme)}">
-        <div class="entity-modal">
-          <div class="entity-modal__header">
-            <div class="entity-modal__title">
-              <span>${typeIcon}</span>
-              <span>${safeName}</span>
-            </div>
-            <button type="button" class="entity-modal__close" data-action="close-modal">&times;</button>
-          </div>
-          <div class="entity-modal__body">
-            <div class="entity-modal__section">
-              <div class="entity-modal__section-title">Device Information</div>
-              <div class="entity-modal__info-grid">
-                ${infoRows.join("")}
-              </div>
-            </div>
-            ${relatedEntities.length > 0 ? `
-              <div class="entity-modal__section">
-                <div class="entity-modal__section-title">Related Entities (${relatedEntities.length})</div>
-                <div class="entity-modal__entity-list">
-                  ${entityItems}
-                </div>
-              </div>
-            ` : `
-              <div class="entity-modal__section">
-                <div class="entity-modal__section-title">Related Entities</div>
-                <div class="panel-empty__text">No Home Assistant entities found for this device</div>
-              </div>
-            `}
-          </div>
-        </div>
-      </div>
-    `;
-  }
-  _renderEntityItem(entity) {
-    const domainIcon = this._getDomainIcon(entity.domain);
-    const displayName = entity.friendly_name ?? entity.entity_id;
-    const safeDisplayName = escapeHtml(displayName);
-    const safeEntityId = escapeHtml(entity.entity_id);
-    const state = entity.state ?? "unavailable";
-    const stateClass = this._getStateBadgeClass(state);
-    return `
-      <div class="entity-modal__entity-item" data-modal-entity-id="${safeEntityId}">
-        <span class="entity-modal__domain-icon">${domainIcon}</span>
-        <div class="entity-modal__entity-info">
-          <span class="entity-modal__entity-name">${safeDisplayName}</span>
-          <span class="entity-modal__entity-id">${safeEntityId}</span>
-        </div>
-        <div class="entity-modal__entity-state">
-          <span class="entity-modal__state-badge ${stateClass}">${escapeHtml(state)}</span>
-          <span class="entity-modal__arrow">\u203A</span>
-        </div>
-      </div>
-    `;
-  }
-  _getDomainIcon(domain) {
-    const icons = {
-      device_tracker: "\u{1F4CD}",
-      switch: "\u{1F518}",
-      sensor: "\u{1F4CA}",
-      binary_sensor: "\u26A1",
-      light: "\u{1F4A1}",
-      button: "\u{1F532}",
-      update: "\u{1F504}",
-      image: "\u{1F5BC}\uFE0F"
-    };
-    return icons[domain] ?? "\u{1F4E6}";
-  }
-  _getStateBadgeClass(state) {
-    if (state === "home" || state === "on") {
-      return `entity-modal__state-badge--${state}`;
-    }
-    if (state === "not_home" || state === "off") {
-      return `entity-modal__state-badge--${state}`;
-    }
-    return "entity-modal__state-badge--default";
+    return renderEntityModal({
+      nodeName,
+      payload: this._payload,
+      theme: this._config?.theme ?? "dark",
+      getNodeTypeIcon: (nodeType) => this._getNodeTypeIcon(nodeType),
+      formatLastChanged: (value) => this._formatLastChanged(value)
+    });
   }
   _wireEntityModalEvents(overlay) {
     overlay.addEventListener("click", (event) => {
@@ -2663,54 +2987,12 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._wireContextMenuEvents(menu);
   }
   _renderContextMenu(nodeName) {
-    const safeName = escapeHtml(nodeName);
-    const nodeType = this._payload?.node_types?.[nodeName] ?? "unknown";
-    const typeIcon = this._getNodeTypeIcon(nodeType);
-    const mac = this._payload?.client_macs?.[nodeName] ?? this._payload?.device_macs?.[nodeName];
-    const entityId = this._payload?.node_entities?.[nodeName] ?? this._payload?.client_entities?.[nodeName] ?? this._payload?.device_entities?.[nodeName];
-    const isDevice = nodeType !== "client";
-    const theme = this._config?.theme ?? "dark";
-    const items = [];
-    items.push(`
-      <button type="button" class="context-menu__item" data-context-action="select">
-        <span class="context-menu__icon">\u{1F446}</span>
-        <span>Select</span>
-      </button>
-    `);
-    if (entityId) {
-      items.push(`
-        <button type="button" class="context-menu__item" data-context-action="details">
-          <span class="context-menu__icon">\u{1F4CA}</span>
-          <span>View Details</span>
-        </button>
-      `);
-    }
-    if (mac) {
-      items.push(`
-        <button type="button" class="context-menu__item" data-context-action="copy-mac" data-mac="${escapeHtml(mac)}">
-          <span class="context-menu__icon">\u{1F4CB}</span>
-          <span>Copy MAC Address</span>
-        </button>
-      `);
-    }
-    items.push('<div class="context-menu__divider"></div>');
-    if (isDevice) {
-      items.push(`
-        <button type="button" class="context-menu__item" data-context-action="restart" ${!entityId ? "disabled" : ""}>
-          <span class="context-menu__icon">\u{1F504}</span>
-          <span>Restart Device</span>
-        </button>
-      `);
-    }
-    return `
-      <div class="context-menu" data-theme="${escapeHtml(theme)}" data-context-node="${safeName}">
-        <div class="context-menu__header">
-          <div class="context-menu__title">${typeIcon} ${safeName}</div>
-          <div class="context-menu__type">${escapeHtml(nodeType)}</div>
-        </div>
-        ${items.join("")}
-      </div>
-    `;
+    return renderContextMenu({
+      nodeName,
+      payload: this._payload,
+      theme: this._config?.theme ?? "dark",
+      getNodeTypeIcon: (nodeType) => this._getNodeTypeIcon(nodeType)
+    });
   }
   _positionContextMenu(menu, x, y) {
     menu.style.left = `${x}px`;
@@ -2740,15 +3022,11 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   _wireContextMenuEvents(menu) {
     const handleClick = (event) => {
       const target = event.target;
-      const actionButton = target.closest("[data-context-action]");
-      if (actionButton && !actionButton.disabled) {
+      const result = parseContextMenuAction(target);
+      if (result && this._contextMenu) {
         event.preventDefault();
         event.stopPropagation();
-        const action = actionButton.getAttribute("data-context-action");
-        const mac = actionButton.getAttribute("data-mac");
-        if (action && this._contextMenu) {
-          this._handleContextMenuAction(action, this._contextMenu.nodeName, mac);
-        }
+        this._handleContextMenuAction(result.action, this._contextMenu.nodeName, result.mac);
       }
     };
     const handleClickOutside = (event) => {
@@ -3031,106 +3309,14 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   }
   _annotateEdges(svg2) {
     if (!this._payload?.edges) return;
-    const edgesByKey = this._buildEdgeLookup(this._payload.edges);
-    const paths = svg2.querySelectorAll("path[data-edge-left][data-edge-right]");
-    paths.forEach((path) => {
-      const left = path.getAttribute("data-edge-left");
-      const right = path.getAttribute("data-edge-right");
-      if (!left || !right) return;
-      const edge = edgesByKey.get(this._edgeKey(left, right));
-      if (!edge) return;
-      path.setAttribute("data-edge", "true");
-      this._ensureEdgeHitbox(path, edge);
-    });
-  }
-  _buildEdgeLookup(edges) {
-    const map = /* @__PURE__ */ new Map();
-    edges.forEach((edge) => {
-      map.set(this._edgeKey(edge.left, edge.right), edge);
-    });
-    return map;
-  }
-  _edgeKey(left, right) {
-    return [left.trim(), right.trim()].sort().join("|");
+    annotateEdges(svg2, this._payload.edges);
   }
   _findEdgeFromTarget(target) {
-    if (!target || !this._payload?.edges) return null;
-    const edgePath = target.closest("path[data-edge], path[data-edge-hitbox]");
-    if (!edgePath) return null;
-    const left = edgePath.getAttribute("data-edge-left");
-    const right = edgePath.getAttribute("data-edge-right");
-    if (!left || !right) return null;
-    const lookup = this._buildEdgeLookup(this._payload.edges);
-    return lookup.get(this._edgeKey(left, right)) ?? null;
-  }
-  _ensureEdgeHitbox(path, edge) {
-    const next = path.nextElementSibling;
-    if (next?.getAttribute("data-edge-hitbox") === "true") {
-      return;
-    }
-    const hitbox = path.cloneNode(false);
-    hitbox.setAttribute("data-edge-hitbox", "true");
-    hitbox.setAttribute("data-edge-left", edge.left);
-    hitbox.setAttribute("data-edge-right", edge.right);
-    hitbox.setAttribute("stroke", "transparent");
-    hitbox.setAttribute("fill", "none");
-    path.after(hitbox);
+    if (!this._payload?.edges) return null;
+    return findEdgeFromTarget(target, this._payload.edges);
   }
   _renderEdgeTooltip(edge) {
-    const connectionType = edge.wireless ? "Wireless" : "Wired";
-    const icon = edge.wireless ? "\u{1F4F6}" : "\u{1F517}";
-    const rows = [];
-    rows.push(
-      `<div class="tooltip-edge__title">${escapeHtml(edge.left)} \u2194 ${escapeHtml(edge.right)}</div>`
-    );
-    rows.push(
-      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">${icon}</span><span class="tooltip-edge__label">${connectionType}</span></div>`
-    );
-    if (edge.label) {
-      rows.push(
-        `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">\u{1F50C}</span><span class="tooltip-edge__label">${escapeHtml(edge.label)}</span></div>`
-      );
-    }
-    if (edge.poe) {
-      rows.push(
-        `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">\u26A1</span><span class="tooltip-edge__label">PoE Powered</span></div>`
-      );
-    }
-    if (edge.speed) {
-      rows.push(
-        `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">\u{1F680}</span><span class="tooltip-edge__label">${this._formatSpeed(edge.speed)}</span></div>`
-      );
-    }
-    if (edge.channel) {
-      rows.push(
-        `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">\u{1F4E1}</span><span class="tooltip-edge__label">${this._formatChannel(edge.channel)}</span></div>`
-      );
-    }
-    return rows.join("");
-  }
-  _formatSpeed(speedMbps) {
-    if (speedMbps >= 1e3) {
-      const gbps = (speedMbps / 1e3).toFixed(1).replace(/\.0$/, "");
-      return `${gbps} Gbps`;
-    }
-    return `${speedMbps} Mbps`;
-  }
-  _formatChannel(channel) {
-    const band = this._channelBand(channel);
-    const suffix = band ? ` (${band})` : "";
-    return `Channel ${channel}${suffix}`;
-  }
-  _channelBand(channel) {
-    if (channel >= 1 && channel <= 14) {
-      return "2.4GHz";
-    }
-    if (channel >= 36 && channel <= 177) {
-      return "5GHz";
-    }
-    if (channel >= 1) {
-      return "6GHz";
-    }
-    return null;
+    return renderEdgeTooltip(edge);
   }
   _applyTransform(svg2) {
     const { x, y, scale } = this._viewTransform;
@@ -3139,27 +3325,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     svg2.style.cursor = this._isPanning ? "grabbing" : "grab";
   }
   _resolveNodeName(event) {
-    const path = event.composedPath();
-    for (const item of path) {
-      if (item instanceof Element) {
-        const nodeId = item.getAttribute("data-node-id");
-        if (nodeId) {
-          return nodeId.trim();
-        }
-        const aria = item.getAttribute("aria-label");
-        if (aria) {
-          return aria.trim();
-        }
-        if (item.tagName.toLowerCase() === "text" && item.textContent) {
-          return item.textContent.trim();
-        }
-        if (item.tagName.toLowerCase() === "title" && item.textContent) {
-          return item.textContent.trim();
-        }
-      }
-    }
-    const fallback = document.elementFromPoint(event.clientX, event.clientY);
-    return this._inferNodeName(fallback);
+    return resolveNodeName(event);
   }
   _isControlTarget(target) {
     return Boolean(target?.closest(".unifi-network-map__controls"));
@@ -3179,89 +3345,23 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._render();
   }
   _inferNodeName(target) {
-    if (!target) {
-      return null;
-    }
-    const node = target.closest("[data-node-id]");
-    if (node?.getAttribute("data-node-id")) {
-      return node.getAttribute("data-node-id")?.trim() ?? null;
-    }
-    const labelled = target.closest("[aria-label]");
-    if (labelled?.getAttribute("aria-label")) {
-      return labelled.getAttribute("aria-label")?.trim() ?? null;
-    }
-    const textNode = target.closest("text");
-    if (textNode?.textContent) {
-      return textNode.textContent.trim();
-    }
-    const group = target.closest("g");
-    const title = group?.querySelector("title");
-    if (title?.textContent) {
-      return title.textContent.trim();
-    }
-    const groupText = group?.querySelector("text");
-    if (groupText?.textContent) {
-      return groupText.textContent.trim();
-    }
-    const idHolder = target.closest("[id]");
-    if (idHolder?.getAttribute("id")) {
-      return idHolder.getAttribute("id")?.trim() ?? null;
-    }
-    return null;
+    return inferNodeName(target);
   }
   _highlightSelectedNode(svg2) {
-    this._clearNodeSelection(svg2);
-    if (!this._selectedNode) {
-      return;
-    }
-    const element = this._findNodeElement(svg2, this._selectedNode);
-    if (element) {
-      this._markNodeSelected(element);
-    }
+    highlightSelectedNode(svg2, this._selectedNode);
   }
   _clearNodeSelection(svg2) {
-    svg2.querySelectorAll("[data-selected]").forEach((el) => {
-      el.removeAttribute("data-selected");
-    });
-    svg2.querySelectorAll(".node--selected").forEach((el) => {
-      el.classList.remove("node--selected");
-    });
+    clearNodeSelection(svg2);
   }
   _findNodeElement(svg2, nodeName) {
-    return this._findByDataNodeId(svg2, nodeName) ?? this._findByAriaLabel(svg2, nodeName) ?? this._findByTextContent(svg2, nodeName) ?? this._findByTitleElement(svg2, nodeName);
-  }
-  _findByDataNodeId(svg2, nodeName) {
-    const el = svg2.querySelector(`[data-node-id="${CSS.escape(nodeName)}"]`);
-    return el ? el.closest("g") ?? el : null;
-  }
-  _findByAriaLabel(svg2, nodeName) {
-    const el = svg2.querySelector(`[aria-label="${CSS.escape(nodeName)}"]`);
-    return el ? el.closest("g") ?? el : null;
-  }
-  _findByTextContent(svg2, nodeName) {
-    for (const textEl of svg2.querySelectorAll("text")) {
-      if (textEl.textContent?.trim() === nodeName) {
-        return textEl.closest("g") ?? textEl;
-      }
-    }
-    return null;
-  }
-  _findByTitleElement(svg2, nodeName) {
-    for (const titleEl of svg2.querySelectorAll("title")) {
-      if (titleEl.textContent?.trim() === nodeName) {
-        return titleEl.closest("g");
-      }
-    }
-    return null;
+    return findNodeElement(svg2, nodeName);
   }
   _markNodeSelected(element) {
-    if (element.tagName.toLowerCase() === "g") {
-      element.setAttribute("data-selected", "true");
-    } else {
-      element.classList.add("node--selected");
-    }
+    markNodeSelected(element);
   }
 };
+
+// src/card/unifi-network-map-editor.ts
 var UnifiNetworkMapEditor = class extends HTMLElement {
   constructor() {
     super(...arguments);
@@ -3393,6 +3493,9 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
     );
   }
 };
+
+// src/unifi-network-map.ts
+var CARD_VERSION = "0.1.3";
 customElements.define("unifi-network-map", UnifiNetworkMapCard);
 customElements.define("unifi-network-map-editor", UnifiNetworkMapEditor);
 window.customCards = window.customCards || [];
