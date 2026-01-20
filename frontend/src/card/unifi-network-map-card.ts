@@ -17,11 +17,16 @@ import {
 } from "./node";
 import { renderEntityModal } from "./entity-modal";
 import { renderPanelContent, renderTabContent } from "./panel";
-import { parseContextMenuAction, renderContextMenu } from "./context-menu";
+import { renderContextMenu } from "./context-menu";
 import { fetchWithAuth } from "./auth";
 import { showToast } from "./feedback";
 import { loadPayload, loadSvg } from "./data";
 import { normalizeConfig, startPolling, stopPolling } from "./state";
+import {
+  closeContextMenu,
+  createContextMenuController,
+  openContextMenu,
+} from "./context-menu-state";
 import {
   clearSelectedNode,
   createSelectionState,
@@ -43,7 +48,7 @@ import {
   resetPan,
 } from "./viewport";
 import { CARD_STYLES, GLOBAL_STYLES } from "./styles";
-import type { CardConfig, ContextMenuState, Edge, Hass, MapPayload } from "./types";
+import type { CardConfig, Edge, Hass, MapPayload } from "./types";
 
 export class UnifiNetworkMapCard extends HTMLElement {
   static getLayoutOptions() {
@@ -110,8 +115,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
   private _activeTab: "overview" | "stats" | "actions" = "overview";
   private _statusPollInterval?: number;
   private _entityModalOverlay?: HTMLElement;
-  private _contextMenu?: ContextMenuState;
-  private _contextMenuElement?: HTMLElement;
+  private _contextMenu = createContextMenuController();
   get _viewTransform() {
     return this._viewportState.viewTransform;
   }
@@ -584,19 +588,16 @@ export class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _showContextMenu(): void {
-    if (!this._contextMenu) return;
+    if (!this._contextMenu.menu) {
+      return;
+    }
 
-    const menuHtml = this._renderContextMenu(this._contextMenu.nodeName);
-    const container = document.createElement("div");
-    container.innerHTML = menuHtml;
-    const menu = container.firstElementChild as HTMLElement;
-    if (!menu) return;
-
-    document.body.appendChild(menu);
-    this._contextMenuElement = menu;
-
-    this._positionContextMenu(menu, this._contextMenu.x, this._contextMenu.y);
-    this._wireContextMenuEvents(menu);
+    openContextMenu({
+      controller: this._contextMenu,
+      menu: this._contextMenu.menu,
+      renderMenu: (nodeName) => this._renderContextMenu(nodeName),
+      onAction: (action, nodeName, mac) => this._handleContextMenuAction(action, nodeName, mac),
+    });
   }
 
   private _renderContextMenu(nodeName: string): string {
@@ -606,71 +607,6 @@ export class UnifiNetworkMapCard extends HTMLElement {
       theme: this._config?.theme ?? "dark",
       getNodeTypeIcon: (nodeType: string) => this._getNodeTypeIcon(nodeType),
     });
-  }
-
-  private _positionContextMenu(menu: HTMLElement, x: number, y: number): void {
-    menu.style.left = `${x}px`;
-    menu.style.top = `${y}px`;
-
-    requestAnimationFrame(() => {
-      const rect = menu.getBoundingClientRect();
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-
-      let adjustedX = x;
-      let adjustedY = y;
-
-      if (rect.right > viewportWidth) {
-        adjustedX = viewportWidth - rect.width - 8;
-      }
-      if (rect.bottom > viewportHeight) {
-        adjustedY = viewportHeight - rect.height - 8;
-      }
-      if (adjustedX < 8) {
-        adjustedX = 8;
-      }
-      if (adjustedY < 8) {
-        adjustedY = 8;
-      }
-
-      menu.style.left = `${adjustedX}px`;
-      menu.style.top = `${adjustedY}px`;
-    });
-  }
-
-  private _wireContextMenuEvents(menu: HTMLElement): void {
-    const handleClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      const result = parseContextMenuAction(target);
-
-      if (result && this._contextMenu) {
-        event.preventDefault();
-        event.stopPropagation();
-        this._handleContextMenuAction(result.action, this._contextMenu.nodeName, result.mac);
-      }
-    };
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (!menu.contains(event.target as Node)) {
-        this._removeContextMenu();
-      }
-    };
-
-    const handleKeydown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        this._removeContextMenu();
-      }
-    };
-
-    menu.addEventListener("click", handleClick);
-    document.addEventListener("click", handleClickOutside, { once: true });
-    document.addEventListener("keydown", handleKeydown);
-
-    (menu as HTMLElement & { _cleanup?: () => void })._cleanup = () => {
-      menu.removeEventListener("click", handleClick);
-      document.removeEventListener("click", handleClickOutside);
-      document.removeEventListener("keydown", handleKeydown);
-    };
   }
 
   private _handleContextMenuAction(action: string, nodeName: string, mac: string | null): void {
@@ -742,16 +678,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _removeContextMenu(): void {
-    if (this._contextMenuElement) {
-      const cleanup = (this._contextMenuElement as HTMLElement & { _cleanup?: () => void })
-        ._cleanup;
-      if (cleanup) {
-        cleanup();
-      }
-      this._contextMenuElement.remove();
-      this._contextMenuElement = undefined;
-    }
-    this._contextMenu = undefined;
+    closeContextMenu(this._contextMenu);
   }
 
   private _wireControls(svg: SVGElement) {
@@ -806,7 +733,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
       },
       onOpenContextMenu: (x: number, y: number, nodeName: string) => {
         this._removeContextMenu();
-        this._contextMenu = { nodeName, x, y };
+        this._contextMenu.menu = { nodeName, x, y };
         this._showContextMenu();
       },
       onUpdateTransform: (transform: { x: number; y: number; scale: number }) => {
