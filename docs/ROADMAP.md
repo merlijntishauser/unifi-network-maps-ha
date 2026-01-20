@@ -81,7 +81,6 @@ Methods to break down for readability:
 | WebSocket updates | Replace polling with push updates | L |
 | HA theme sync | Auto dark/light based on HA theme | S |
 | Full-screen mode | Expand card to full viewport | S |
-| Mobile-optimized view | Responsive layout for small screens | M |
 | Custom node icons | Use HA entity pictures for client icons | M |
 | Virtualize large lists | Lazy-load for networks with 100+ clients | L |
 
@@ -97,5 +96,6 @@ Methods to break down for readability:
 
 ## Recently Completed
 - Race condition fix in Lovelace retry (atomic counter increment)
+- Implemented mobile friendly touch gestures
 
 See [CHANGELOG.md](CHANGELOG.md) for full history.

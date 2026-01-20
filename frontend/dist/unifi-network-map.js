@@ -1836,6 +1836,9 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._isPanning = false;
     this._panStart = null;
     this._panMoved = false;
+    this._activePointers = /* @__PURE__ */ new Map();
+    this._pinchStartDistance = null;
+    this._pinchStartScale = null;
     this._activeTab = "overview";
   }
   static getLayoutOptions() {
@@ -2389,7 +2392,8 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     viewport.onwheel = (event) => this._onWheel(event, svg2);
     viewport.onpointerdown = (event) => this._onPointerDown(event);
     viewport.onpointermove = (event) => this._onPointerMove(event, svg2, tooltip);
-    viewport.onpointerup = () => this._onPointerUp();
+    viewport.onpointerup = (event) => this._onPointerUp(event);
+    viewport.onpointercancel = (event) => this._onPointerUp(event);
     viewport.onpointerleave = () => {
       this._hoveredNode = void 0;
       this._hoveredEdge = void 0;
@@ -2912,15 +2916,51 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     if (this._isControlTarget(event.target)) {
       return;
     }
-    this._isPanning = true;
-    this._panMoved = false;
-    this._panStart = {
-      x: event.clientX - this._viewTransform.x,
-      y: event.clientY - this._viewTransform.y
-    };
+    this._activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     event.currentTarget.setPointerCapture(event.pointerId);
+    if (this._activePointers.size === 2) {
+      const [p1, p2] = Array.from(this._activePointers.values());
+      this._pinchStartDistance = this._getDistance(p1, p2);
+      this._pinchStartScale = this._viewTransform.scale;
+      this._isPanning = false;
+      this._panStart = null;
+    } else if (this._activePointers.size === 1) {
+      this._isPanning = true;
+      this._panMoved = false;
+      this._panStart = {
+        x: event.clientX - this._viewTransform.x,
+        y: event.clientY - this._viewTransform.y
+      };
+    }
+  }
+  _getDistance(p1, p2) {
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+  _getMidpoint(p1, p2) {
+    return {
+      x: (p1.x + p2.x) / 2,
+      y: (p1.y + p2.y) / 2
+    };
   }
   _onPointerMove(event, svg2, tooltip) {
+    if (this._activePointers.has(event.pointerId)) {
+      this._activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    }
+    if (this._activePointers.size === 2 && this._pinchStartDistance !== null && this._pinchStartScale !== null) {
+      const [p1, p2] = Array.from(this._activePointers.values());
+      const currentDistance = this._getDistance(p1, p2);
+      const scaleFactor = currentDistance / this._pinchStartDistance;
+      const newScale = Math.min(
+        MAX_ZOOM_SCALE,
+        Math.max(MIN_ZOOM_SCALE, this._pinchStartScale * scaleFactor)
+      );
+      this._viewTransform.scale = Number(newScale.toFixed(2));
+      this._panMoved = true;
+      this._applyTransform(svg2);
+      return;
+    }
     if (this._isPanning && this._panStart) {
       const nextX = event.clientX - this._panStart.x;
       const nextY = event.clientY - this._panStart.y;
@@ -2959,9 +2999,16 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     tooltip.style.left = `${event.clientX + TOOLTIP_OFFSET_PX}px`;
     tooltip.style.top = `${event.clientY + TOOLTIP_OFFSET_PX}px`;
   }
-  _onPointerUp() {
-    this._isPanning = false;
-    this._panStart = null;
+  _onPointerUp(event) {
+    this._activePointers.delete(event.pointerId);
+    if (this._activePointers.size < 2) {
+      this._pinchStartDistance = null;
+      this._pinchStartScale = null;
+    }
+    if (this._activePointers.size === 0) {
+      this._isPanning = false;
+      this._panStart = null;
+    }
   }
   _onClick(event, tooltip) {
     if (this._isControlTarget(event.target)) {

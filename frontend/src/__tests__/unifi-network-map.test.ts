@@ -359,6 +359,58 @@ describe("unifi-network-map card", () => {
     expect(card._viewTransform.scale).toBe(0.5);
   });
 
+  it("handles pinch-to-zoom gesture", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as {
+      _onPointerDown: (event: {
+        pointerId: number;
+        clientX: number;
+        clientY: number;
+        target: Element;
+        currentTarget: HTMLElement;
+      }) => void;
+      _onPointerMove: (
+        event: { pointerId: number; clientX: number; clientY: number; target: Element },
+        svg: SVGElement,
+        tooltip: HTMLElement,
+      ) => void;
+      _viewTransform: { x: number; y: number; scale: number };
+      _activePointers: Map<number, { x: number; y: number }>;
+      _pinchStartDistance: number | null;
+      _pinchStartScale: number | null;
+    };
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    const tooltip = document.createElement("div");
+    const viewport = document.createElement("div");
+    viewport.setPointerCapture = jest.fn();
+
+    // Start with two fingers at distance 100
+    card._onPointerDown({
+      pointerId: 1,
+      clientX: 0,
+      clientY: 0,
+      target: viewport,
+      currentTarget: viewport,
+    });
+    card._onPointerDown({
+      pointerId: 2,
+      clientX: 100,
+      clientY: 0,
+      target: viewport,
+      currentTarget: viewport,
+    });
+
+    expect(card._activePointers.size).toBe(2);
+    expect(card._pinchStartDistance).toBe(100);
+    expect(card._pinchStartScale).toBe(1);
+
+    // Move fingers apart to distance 200 (2x zoom)
+    card._onPointerMove({ pointerId: 1, clientX: 0, clientY: 0, target: viewport }, svg, tooltip);
+    card._onPointerMove({ pointerId: 2, clientX: 200, clientY: 0, target: viewport }, svg, tooltip);
+
+    expect(card._viewTransform.scale).toBe(2);
+  });
+
   it("updates pan state on pointer move", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     const card = element as unknown as {
@@ -830,15 +882,18 @@ describe("unifi-network-map card", () => {
   it("handles pointer up reset state", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     const card = element as unknown as {
-      _onPointerUp: () => void;
+      _onPointerUp: (event: { pointerId: number }) => void;
       _isPanning: boolean;
       _panStart: object | null;
+      _activePointers: Map<number, { x: number; y: number }>;
     };
     card._isPanning = true;
     card._panStart = { x: 1, y: 1 };
-    card._onPointerUp();
+    card._activePointers = new Map([[1, { x: 10, y: 20 }]]);
+    card._onPointerUp({ pointerId: 1 });
     expect(card._isPanning).toBe(false);
     expect(card._panStart).toBeNull();
+    expect(card._activePointers.size).toBe(0);
   });
 
   it("resolves node name from text element in event path", () => {

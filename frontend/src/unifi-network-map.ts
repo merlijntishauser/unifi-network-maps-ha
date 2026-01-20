@@ -1017,6 +1017,9 @@ class UnifiNetworkMapCard extends HTMLElement {
   private _isPanning = false;
   private _panStart: Point | null = null;
   private _panMoved = false;
+  private _activePointers: Map<number, Point> = new Map();
+  private _pinchStartDistance: number | null = null;
+  private _pinchStartScale: number | null = null;
   private _selectedNode?: string;
   private _hoveredNode?: string;
   private _hoveredEdge?: Edge;
@@ -1609,7 +1612,8 @@ class UnifiNetworkMapCard extends HTMLElement {
     viewport.onwheel = (event) => this._onWheel(event, svg);
     viewport.onpointerdown = (event) => this._onPointerDown(event);
     viewport.onpointermove = (event) => this._onPointerMove(event, svg, tooltip);
-    viewport.onpointerup = () => this._onPointerUp();
+    viewport.onpointerup = (event) => this._onPointerUp(event);
+    viewport.onpointercancel = (event) => this._onPointerUp(event);
     viewport.onpointerleave = () => {
       this._hoveredNode = undefined;
       this._hoveredEdge = undefined;
@@ -2214,16 +2218,66 @@ class UnifiNetworkMapCard extends HTMLElement {
     if (this._isControlTarget(event.target as Element | null)) {
       return;
     }
-    this._isPanning = true;
-    this._panMoved = false;
-    this._panStart = {
-      x: event.clientX - this._viewTransform.x,
-      y: event.clientY - this._viewTransform.y,
-    };
+    this._activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+
+    if (this._activePointers.size === 2) {
+      // Start pinch gesture
+      const [p1, p2] = Array.from(this._activePointers.values());
+      this._pinchStartDistance = this._getDistance(p1, p2);
+      this._pinchStartScale = this._viewTransform.scale;
+      this._isPanning = false;
+      this._panStart = null;
+    } else if (this._activePointers.size === 1) {
+      // Single finger pan
+      this._isPanning = true;
+      this._panMoved = false;
+      this._panStart = {
+        x: event.clientX - this._viewTransform.x,
+        y: event.clientY - this._viewTransform.y,
+      };
+    }
+  }
+
+  private _getDistance(p1: Point, p2: Point): number {
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  private _getMidpoint(p1: Point, p2: Point): Point {
+    return {
+      x: (p1.x + p2.x) / 2,
+      y: (p1.y + p2.y) / 2,
+    };
   }
 
   private _onPointerMove(event: PointerEvent, svg: SVGElement, tooltip: HTMLElement) {
+    // Update pointer position in tracking map
+    if (this._activePointers.has(event.pointerId)) {
+      this._activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    }
+
+    // Handle pinch-to-zoom with two fingers
+    if (
+      this._activePointers.size === 2 &&
+      this._pinchStartDistance !== null &&
+      this._pinchStartScale !== null
+    ) {
+      const [p1, p2] = Array.from(this._activePointers.values());
+      const currentDistance = this._getDistance(p1, p2);
+      const scaleFactor = currentDistance / this._pinchStartDistance;
+      const newScale = Math.min(
+        MAX_ZOOM_SCALE,
+        Math.max(MIN_ZOOM_SCALE, this._pinchStartScale * scaleFactor),
+      );
+      this._viewTransform.scale = Number(newScale.toFixed(2));
+      this._panMoved = true;
+      this._applyTransform(svg);
+      return;
+    }
+
+    // Handle single finger pan
     if (this._isPanning && this._panStart) {
       const nextX = event.clientX - this._panStart.x;
       const nextY = event.clientY - this._panStart.y;
@@ -2238,6 +2292,8 @@ class UnifiNetworkMapCard extends HTMLElement {
       this._applyTransform(svg);
       return;
     }
+
+    // Handle hover tooltips (only when not actively panning/pinching)
     const edge = this._findEdgeFromTarget(event.target as Element);
     if (edge) {
       this._hoveredEdge = edge;
@@ -2266,9 +2322,20 @@ class UnifiNetworkMapCard extends HTMLElement {
     tooltip.style.top = `${event.clientY + TOOLTIP_OFFSET_PX}px`;
   }
 
-  private _onPointerUp() {
-    this._isPanning = false;
-    this._panStart = null;
+  private _onPointerUp(event: PointerEvent) {
+    this._activePointers.delete(event.pointerId);
+
+    // Reset pinch state when we drop below 2 pointers
+    if (this._activePointers.size < 2) {
+      this._pinchStartDistance = null;
+      this._pinchStartScale = null;
+    }
+
+    // Reset pan state when all pointers are released
+    if (this._activePointers.size === 0) {
+      this._isPanning = false;
+      this._panStart = null;
+    }
   }
 
   private _onClick(event: MouseEvent, tooltip: HTMLElement) {
