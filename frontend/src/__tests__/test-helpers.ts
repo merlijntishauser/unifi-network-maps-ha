@@ -58,6 +58,6 @@ export const resetTestDom = () => {
 
 if (!("CSS" in globalThis)) {
   (globalThis as { CSS?: { escape: (value: string) => string } }).CSS = {
-    escape: (value: string) => value.replace(/"/g, '\\"'),
+    escape: (value: string) => value.replace(/\\/g, "\\\\").replace(/"/g, '\\"'),
   };
 }
