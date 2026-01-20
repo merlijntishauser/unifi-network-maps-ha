@@ -295,11 +295,13 @@ async def _retry_lovelace_resource(hass: HomeAssistant, delay_seconds: int) -> N
 
 def _schedule_lovelace_resource_retry(hass: HomeAssistant) -> None:
     data = hass.data.setdefault(DOMAIN, {})
-    attempts = data.get("lovelace_resource_attempts", 0)
-    if attempts >= 6:
+    # Increment first to avoid race condition where multiple concurrent calls
+    # could all read the same value before any of them increments
+    attempts = data.get("lovelace_resource_attempts", 0) + 1
+    data["lovelace_resource_attempts"] = attempts
+    if attempts > 6:
         _log_lovelace_registration_failure(hass, attempts)
         return
-    data["lovelace_resource_attempts"] = attempts + 1
     hass.async_create_task(_retry_lovelace_resource(hass, 10))
 
 

@@ -4,7 +4,6 @@
 - No current issues known
 
 ## P2 - Bugs & Correctness (High Impact)
-- **Race condition in Lovelace retry** (`__init__.py`) - Non-atomic counter increment can exceed 6-attempt limit
 - **Diagnostics timestamp** - Add timestamp to show data freshness
 - **Diagnostics include clients list** (anonymized) - Include counts + sample names
 
@@ -95,3 +94,8 @@ Methods to break down for readability:
 - **Bandwidth usage trends** - Daily/weekly graphs per device
 - **Connection quality metrics** - Signal strength, retry rates for wireless
 
+
+## Recently Completed
+- Race condition fix in Lovelace retry (atomic counter increment)
+
+See [CHANGELOG.md](CHANGELOG.md) for full history.
