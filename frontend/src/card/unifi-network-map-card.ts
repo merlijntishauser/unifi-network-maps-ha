@@ -1,5 +1,4 @@
 import {
-  DOMAIN,
   MAX_ZOOM_SCALE,
   MIN_PAN_MOVEMENT_THRESHOLD,
   MIN_ZOOM_SCALE,
@@ -22,6 +21,7 @@ import { parseContextMenuAction, renderContextMenu } from "./context-menu";
 import { fetchWithAuth } from "./auth";
 import { showToast } from "./feedback";
 import { loadPayload, loadSvg } from "./data";
+import { normalizeConfig, startPolling, stopPolling } from "./state";
 import {
   applyTransform,
   applyZoom,
@@ -51,22 +51,8 @@ export class UnifiNetworkMapCard extends HTMLElement {
   }
 
   setConfig(config: CardConfig) {
-    this._config = this._normalizeConfig(config);
+    this._config = normalizeConfig(config);
     this._render();
-  }
-
-  private _normalizeConfig(config: CardConfig): CardConfig {
-    if (config.entry_id) {
-      const theme = config.theme ?? "dark";
-      const themeSuffix = `?theme=${theme}`;
-      return {
-        entry_id: config.entry_id,
-        theme,
-        svg_url: `/api/${DOMAIN}/${config.entry_id}/svg${themeSuffix}`,
-        data_url: `/api/${DOMAIN}/${config.entry_id}/payload`,
-      };
-    }
-    return config;
   }
 
   set hass(hass: Hass) {
@@ -86,17 +72,13 @@ export class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _startStatusPolling() {
-    this._stopStatusPolling();
-    this._statusPollInterval = window.setInterval(() => {
+    this._statusPollInterval = startPolling(this._statusPollInterval, 30000, () => {
       this._refreshPayload();
-    }, 30000);
+    });
   }
 
   private _stopStatusPolling() {
-    if (this._statusPollInterval !== undefined) {
-      window.clearInterval(this._statusPollInterval);
-      this._statusPollInterval = undefined;
-    }
+    this._statusPollInterval = stopPolling(this._statusPollInterval);
   }
 
   private _refreshPayload() {
