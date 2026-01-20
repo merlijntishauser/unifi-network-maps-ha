@@ -21,6 +21,7 @@ import { renderPanelContent, renderTabContent } from "./panel";
 import { parseContextMenuAction, renderContextMenu } from "./context-menu";
 import { fetchWithAuth } from "./auth";
 import { showToast } from "./feedback";
+import { loadPayload, loadSvg } from "./data";
 import {
   applyTransform,
   applyZoom,
@@ -253,8 +254,10 @@ export class UnifiNetworkMapCard extends HTMLElement {
     const currentUrl = this._config.svg_url;
 
     this._loading = true;
-    const result = await this._fetchWithAuth(currentUrl, this._svgAbortController.signal, (r) =>
-      r.text(),
+    const result = await loadSvg(
+      this._fetchWithAuth.bind(this),
+      currentUrl,
+      this._svgAbortController.signal,
     );
 
     if ("aborted" in result) {
@@ -287,10 +290,10 @@ export class UnifiNetworkMapCard extends HTMLElement {
     const currentUrl = this._config.data_url;
 
     this._dataLoading = true;
-    const result = await this._fetchWithAuth<MapPayload>(
+    const result = await loadPayload<MapPayload>(
+      this._fetchWithAuth.bind(this),
       currentUrl,
       this._payloadAbortController.signal,
-      (r) => r.json(),
     );
 
     if ("aborted" in result) {
