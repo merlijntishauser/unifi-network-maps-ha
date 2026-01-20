@@ -18,6 +18,7 @@ import {
 } from "./node";
 import { renderEntityModal } from "./entity-modal";
 import { renderPanelContent, renderTabContent } from "./panel";
+import { parseContextMenuAction, renderContextMenu } from "./context-menu";
 import { CARD_STYLES, GLOBAL_STYLES } from "./styles";
 import type {
   CardConfig,
@@ -581,64 +582,12 @@ export class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _renderContextMenu(nodeName: string): string {
-    const safeName = escapeHtml(nodeName);
-    const nodeType = this._payload?.node_types?.[nodeName] ?? "unknown";
-    const typeIcon = this._getNodeTypeIcon(nodeType);
-    const mac = this._payload?.client_macs?.[nodeName] ?? this._payload?.device_macs?.[nodeName];
-    const entityId =
-      this._payload?.node_entities?.[nodeName] ??
-      this._payload?.client_entities?.[nodeName] ??
-      this._payload?.device_entities?.[nodeName];
-    const isDevice = nodeType !== "client";
-    const theme = this._config?.theme ?? "dark";
-
-    const items: string[] = [];
-
-    items.push(`
-      <button type="button" class="context-menu__item" data-context-action="select">
-        <span class="context-menu__icon">👆</span>
-        <span>Select</span>
-      </button>
-    `);
-
-    if (entityId) {
-      items.push(`
-        <button type="button" class="context-menu__item" data-context-action="details">
-          <span class="context-menu__icon">📊</span>
-          <span>View Details</span>
-        </button>
-      `);
-    }
-
-    if (mac) {
-      items.push(`
-        <button type="button" class="context-menu__item" data-context-action="copy-mac" data-mac="${escapeHtml(mac)}">
-          <span class="context-menu__icon">📋</span>
-          <span>Copy MAC Address</span>
-        </button>
-      `);
-    }
-
-    items.push('<div class="context-menu__divider"></div>');
-
-    if (isDevice) {
-      items.push(`
-        <button type="button" class="context-menu__item" data-context-action="restart" ${!entityId ? "disabled" : ""}>
-          <span class="context-menu__icon">🔄</span>
-          <span>Restart Device</span>
-        </button>
-      `);
-    }
-
-    return `
-      <div class="context-menu" data-theme="${escapeHtml(theme)}" data-context-node="${safeName}">
-        <div class="context-menu__header">
-          <div class="context-menu__title">${typeIcon} ${safeName}</div>
-          <div class="context-menu__type">${escapeHtml(nodeType)}</div>
-        </div>
-        ${items.join("")}
-      </div>
-    `;
+    return renderContextMenu({
+      nodeName,
+      payload: this._payload,
+      theme: this._config?.theme ?? "dark",
+      getNodeTypeIcon: (nodeType: string) => this._getNodeTypeIcon(nodeType),
+    });
   }
 
   private _positionContextMenu(menu: HTMLElement, x: number, y: number): void {
@@ -674,16 +623,12 @@ export class UnifiNetworkMapCard extends HTMLElement {
   private _wireContextMenuEvents(menu: HTMLElement): void {
     const handleClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      const actionButton = target.closest("[data-context-action]") as HTMLButtonElement | null;
+      const result = parseContextMenuAction(target);
 
-      if (actionButton && !actionButton.disabled) {
+      if (result && this._contextMenu) {
         event.preventDefault();
         event.stopPropagation();
-        const action = actionButton.getAttribute("data-context-action");
-        const mac = actionButton.getAttribute("data-mac");
-        if (action && this._contextMenu) {
-          this._handleContextMenuAction(action, this._contextMenu.nodeName, mac);
-        }
+        this._handleContextMenuAction(result.action, this._contextMenu.nodeName, result.mac);
       }
     };
 
