@@ -7,7 +7,7 @@ import {
   ZOOM_INCREMENT,
 } from "./constants";
 import { escapeHtml, sanitizeHtml, sanitizeSvg } from "./sanitize";
-import { annotateEdges, findEdgeFromTarget, renderEdgeTooltip } from "./svg";
+import { annotateEdges, renderEdgeTooltip } from "./svg";
 import {
   clearNodeSelection,
   findNodeElement,
@@ -19,16 +19,20 @@ import {
 import { renderEntityModal } from "./entity-modal";
 import { renderPanelContent, renderTabContent } from "./panel";
 import { parseContextMenuAction, renderContextMenu } from "./context-menu";
+import {
+  applyTransform,
+  applyZoom,
+  bindViewportInteractions,
+  createDefaultViewportHandlers,
+  createDefaultViewportState,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
+  onWheel,
+  resetPan,
+} from "./viewport";
 import { CARD_STYLES, GLOBAL_STYLES } from "./styles";
-import type {
-  CardConfig,
-  ContextMenuState,
-  Edge,
-  Hass,
-  MapPayload,
-  Point,
-  ViewTransform,
-} from "./types";
+import type { CardConfig, ContextMenuState, Edge, Hass, MapPayload } from "./types";
 
 export class UnifiNetworkMapCard extends HTMLElement {
   static getLayoutOptions() {
@@ -106,13 +110,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
   private _error?: string;
   private _loading = false;
   private _dataLoading = false;
-  private _viewTransform: ViewTransform = { x: 0, y: 0, scale: 1 };
-  private _isPanning = false;
-  private _panStart: Point | null = null;
-  private _panMoved = false;
-  private _activePointers: Map<number, Point> = new Map();
-  private _pinchStartDistance: number | null = null;
-  private _pinchStartScale: number | null = null;
+  private _viewportState = createDefaultViewportState();
   private _selectedNode?: string;
   private _hoveredNode?: string;
   private _hoveredEdge?: Edge;
@@ -123,6 +121,61 @@ export class UnifiNetworkMapCard extends HTMLElement {
   private _entityModalOverlay?: HTMLElement;
   private _contextMenu?: ContextMenuState;
   private _contextMenuElement?: HTMLElement;
+  get _viewTransform() {
+    return this._viewportState.viewTransform;
+  }
+
+  set _viewTransform(value: { x: number; y: number; scale: number }) {
+    this._viewportState.viewTransform = value;
+  }
+
+  get _isPanning() {
+    return this._viewportState.isPanning;
+  }
+
+  set _isPanning(value: boolean) {
+    this._viewportState.isPanning = value;
+  }
+
+  get _panStart() {
+    return this._viewportState.panStart;
+  }
+
+  set _panStart(value: { x: number; y: number } | null) {
+    this._viewportState.panStart = value;
+  }
+
+  get _panMoved() {
+    return this._viewportState.panMoved;
+  }
+
+  set _panMoved(value: boolean) {
+    this._viewportState.panMoved = value;
+  }
+
+  get _activePointers() {
+    return this._viewportState.activePointers;
+  }
+
+  set _activePointers(value: Map<number, { x: number; y: number }>) {
+    this._viewportState.activePointers = value;
+  }
+
+  get _pinchStartDistance() {
+    return this._viewportState.pinchStartDistance;
+  }
+
+  set _pinchStartDistance(value: number | null) {
+    this._viewportState.pinchStartDistance = value;
+  }
+
+  get _pinchStartScale() {
+    return this._viewportState.pinchStartScale;
+  }
+
+  set _pinchStartScale(value: number | null) {
+    this._viewportState.pinchStartScale = value;
+  }
 
   private _getAuthToken(): string | undefined {
     return this._hass?.auth?.data?.access_token;
@@ -396,23 +449,25 @@ export class UnifiNetworkMapCard extends HTMLElement {
       return;
     }
     this._ensureStyles();
-    this._applyTransform(svg);
+    const options = this._viewportOptions();
+    const callbacks = this._viewportCallbacks();
+    applyTransform(svg, this._viewportState.viewTransform, this._viewportState.isPanning);
     this._highlightSelectedNode(svg);
     this._annotateEdges(svg);
     this._wireControls(svg);
 
-    viewport.onwheel = (event) => this._onWheel(event, svg);
-    viewport.onpointerdown = (event) => this._onPointerDown(event);
-    viewport.onpointermove = (event) => this._onPointerMove(event, svg, tooltip);
-    viewport.onpointerup = (event) => this._onPointerUp(event);
-    viewport.onpointercancel = (event) => this._onPointerUp(event);
-    viewport.onpointerleave = () => {
-      this._hoveredNode = undefined;
-      this._hoveredEdge = undefined;
-      this._hideTooltip(tooltip);
-    };
-    viewport.onclick = (event) => this._onClick(event, tooltip);
-    viewport.oncontextmenu = (event) => this._onContextMenu(event);
+    bindViewportInteractions({
+      viewport,
+      svg,
+      state: this._viewportState,
+      options,
+      handlers: createDefaultViewportHandlers(this._payload?.edges),
+      callbacks,
+      bindings: {
+        tooltip,
+        controls: viewport.querySelector(".unifi-network-map__controls") as HTMLElement | null,
+      },
+    });
 
     if (panel) {
       panel.onclick = (event) => this._onPanelClick(event);
@@ -552,17 +607,6 @@ export class UnifiNetworkMapCard extends HTMLElement {
       this._entityModalOverlay.remove();
       this._entityModalOverlay = undefined;
     }
-  }
-
-  private _onContextMenu(event: MouseEvent): void {
-    const nodeName = this._resolveNodeName(event) ?? this._hoveredNode;
-    if (!nodeName) {
-      return;
-    }
-    event.preventDefault();
-    this._removeContextMenu();
-    this._contextMenu = { nodeName, x: event.clientX, y: event.clientY };
-    this._showContextMenu();
   }
 
   private _showContextMenu(): void {
@@ -788,164 +832,109 @@ export class UnifiNetworkMapCard extends HTMLElement {
     const zoomIn = this.querySelector('[data-action="zoom-in"]') as HTMLButtonElement | null;
     const zoomOut = this.querySelector('[data-action="zoom-out"]') as HTMLButtonElement | null;
     const reset = this.querySelector('[data-action="reset"]') as HTMLButtonElement | null;
+    const options = this._viewportOptions();
+    const callbacks = this._viewportCallbacks();
     if (zoomIn) {
       zoomIn.onclick = (event) => {
         event.preventDefault();
-        this._applyZoom(ZOOM_INCREMENT, svg);
+        applyZoom(svg, ZOOM_INCREMENT, this._viewportState, options, callbacks);
       };
     }
     if (zoomOut) {
       zoomOut.onclick = (event) => {
         event.preventDefault();
-        this._applyZoom(-ZOOM_INCREMENT, svg);
+        applyZoom(svg, -ZOOM_INCREMENT, this._viewportState, options, callbacks);
       };
     }
     if (reset) {
       reset.onclick = (event) => {
         event.preventDefault();
-        this._resetPan(svg);
+        resetPan(svg, this._viewportState, callbacks);
+        this._selectedNode = undefined;
+        this._render();
       };
     }
   }
 
-  private _onWheel(event: WheelEvent, svg: SVGElement) {
-    event.preventDefault();
-    const delta = event.deltaY > 0 ? -ZOOM_INCREMENT : ZOOM_INCREMENT;
-    this._applyZoom(delta, svg);
-  }
-
-  private _onPointerDown(event: PointerEvent) {
-    if (this._isControlTarget(event.target as Element | null)) {
-      return;
-    }
-    this._activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
-    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
-
-    if (this._activePointers.size === 2) {
-      // Start pinch gesture
-      const [p1, p2] = Array.from(this._activePointers.values());
-      this._pinchStartDistance = this._getDistance(p1, p2);
-      this._pinchStartScale = this._viewTransform.scale;
-      this._isPanning = false;
-      this._panStart = null;
-    } else if (this._activePointers.size === 1) {
-      // Single finger pan
-      this._isPanning = true;
-      this._panMoved = false;
-      this._panStart = {
-        x: event.clientX - this._viewTransform.x,
-        y: event.clientY - this._viewTransform.y,
-      };
-    }
-  }
-
-  private _getDistance(p1: Point, p2: Point): number {
-    const dx = p2.x - p1.x;
-    const dy = p2.y - p1.y;
-    return Math.sqrt(dx * dx + dy * dy);
-  }
-
-  private _getMidpoint(p1: Point, p2: Point): Point {
+  private _viewportOptions() {
     return {
-      x: (p1.x + p2.x) / 2,
-      y: (p1.y + p2.y) / 2,
+      minPanMovementThreshold: MIN_PAN_MOVEMENT_THRESHOLD,
+      zoomIncrement: ZOOM_INCREMENT,
+      minZoomScale: MIN_ZOOM_SCALE,
+      maxZoomScale: MAX_ZOOM_SCALE,
+      tooltipOffsetPx: TOOLTIP_OFFSET_PX,
     };
   }
 
+  private _viewportCallbacks() {
+    return {
+      onNodeSelected: (nodeName: string) => {
+        this._selectedNode = nodeName;
+        this._render();
+      },
+      onHoverEdge: (edge: Edge | null) => {
+        this._hoveredEdge = edge ?? undefined;
+      },
+      onHoverNode: (nodeName: string | null) => {
+        this._hoveredNode = nodeName ?? undefined;
+      },
+      onOpenContextMenu: (x: number, y: number, nodeName: string) => {
+        this._removeContextMenu();
+        this._contextMenu = { nodeName, x, y };
+        this._showContextMenu();
+      },
+      onUpdateTransform: (transform: { x: number; y: number; scale: number }) => {
+        this._viewportState.viewTransform = transform;
+      },
+    };
+  }
+
+  private _applyTransform(svg: SVGElement) {
+    applyTransform(svg, this._viewportState.viewTransform, this._viewportState.isPanning);
+  }
+
+  private _applyZoom(delta: number, svg: SVGElement) {
+    applyZoom(svg, delta, this._viewportState, this._viewportOptions(), this._viewportCallbacks());
+  }
+
+  private _onWheel(event: WheelEvent, svg: SVGElement) {
+    onWheel(event, svg, this._viewportState, this._viewportOptions(), this._viewportCallbacks());
+  }
+
+  private _onPointerDown(event: PointerEvent) {
+    const controls = this.querySelector(".unifi-network-map__controls") as HTMLElement | null;
+    onPointerDown(event, this._viewportState, controls);
+  }
+
   private _onPointerMove(event: PointerEvent, svg: SVGElement, tooltip: HTMLElement) {
-    // Update pointer position in tracking map
-    if (this._activePointers.has(event.pointerId)) {
-      this._activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
-    }
-
-    // Handle pinch-to-zoom with two fingers
-    if (
-      this._activePointers.size === 2 &&
-      this._pinchStartDistance !== null &&
-      this._pinchStartScale !== null
-    ) {
-      const [p1, p2] = Array.from(this._activePointers.values());
-      const currentDistance = this._getDistance(p1, p2);
-      const scaleFactor = currentDistance / this._pinchStartDistance;
-      const newScale = Math.min(
-        MAX_ZOOM_SCALE,
-        Math.max(MIN_ZOOM_SCALE, this._pinchStartScale * scaleFactor),
-      );
-      this._viewTransform.scale = Number(newScale.toFixed(2));
-      this._panMoved = true;
-      this._applyTransform(svg);
-      return;
-    }
-
-    // Handle single finger pan
-    if (this._isPanning && this._panStart) {
-      const nextX = event.clientX - this._panStart.x;
-      const nextY = event.clientY - this._panStart.y;
-      if (
-        Math.abs(nextX - this._viewTransform.x) > MIN_PAN_MOVEMENT_THRESHOLD ||
-        Math.abs(nextY - this._viewTransform.y) > MIN_PAN_MOVEMENT_THRESHOLD
-      ) {
-        this._panMoved = true;
-      }
-      this._viewTransform.x = nextX;
-      this._viewTransform.y = nextY;
-      this._applyTransform(svg);
-      return;
-    }
-
-    // Handle hover tooltips (only when not actively panning/pinching)
-    const edge = this._findEdgeFromTarget(event.target as Element);
-    if (edge) {
-      this._hoveredEdge = edge;
-      this._hoveredNode = undefined;
-      tooltip.hidden = false;
-      tooltip.classList.add("unifi-network-map__tooltip--edge");
-      tooltip.innerHTML = this._renderEdgeTooltip(edge);
-      tooltip.style.transform = "none";
-      tooltip.style.left = `${event.clientX + TOOLTIP_OFFSET_PX}px`;
-      tooltip.style.top = `${event.clientY + TOOLTIP_OFFSET_PX}px`;
-      return;
-    }
-    this._hoveredEdge = undefined;
-    const label = this._resolveNodeName(event);
-    if (!label) {
-      this._hoveredNode = undefined;
-      this._hideTooltip(tooltip);
-      return;
-    }
-    this._hoveredNode = label;
-    tooltip.hidden = false;
-    tooltip.classList.remove("unifi-network-map__tooltip--edge");
-    tooltip.textContent = label;
-    tooltip.style.transform = "none";
-    tooltip.style.left = `${event.clientX + TOOLTIP_OFFSET_PX}px`;
-    tooltip.style.top = `${event.clientY + TOOLTIP_OFFSET_PX}px`;
+    onPointerMove(
+      event,
+      svg,
+      this._viewportState,
+      this._viewportOptions(),
+      createDefaultViewportHandlers(this._payload?.edges),
+      this._viewportCallbacks(),
+      tooltip,
+    );
   }
 
   private _onPointerUp(event: PointerEvent) {
-    this._activePointers.delete(event.pointerId);
+    onPointerUp(event, this._viewportState);
+  }
 
-    // Reset pinch state when we drop below 2 pointers
-    if (this._activePointers.size < 2) {
-      this._pinchStartDistance = null;
-      this._pinchStartScale = null;
-    }
-
-    // Reset pan state when all pointers are released
-    if (this._activePointers.size === 0) {
-      this._isPanning = false;
-      this._panStart = null;
-    }
+  private _hideTooltip(tooltip: HTMLElement) {
+    tooltip.hidden = true;
+    tooltip.classList.remove("unifi-network-map__tooltip--edge");
   }
 
   private _onClick(event: MouseEvent, tooltip: HTMLElement) {
     if (this._isControlTarget(event.target as Element | null)) {
       return;
     }
-    if (this._panMoved) {
+    if (this._viewportState.panMoved) {
       return;
     }
-    const label = this._resolveNodeName(event) ?? this._hoveredNode;
+    const label = resolveNodeName(event) ?? this._hoveredNode;
     if (!label) {
       return;
     }
@@ -954,58 +943,16 @@ export class UnifiNetworkMapCard extends HTMLElement {
     this._render();
   }
 
-  private _hideTooltip(tooltip: HTMLElement) {
-    tooltip.hidden = true;
-    tooltip.classList.remove("unifi-network-map__tooltip--edge");
-  }
-
-  private _annotateEdges(svg: SVGElement): void {
-    if (!this._payload?.edges) return;
-    annotateEdges(svg, this._payload.edges);
-  }
-
-  private _findEdgeFromTarget(target: Element | null): Edge | null {
-    if (!this._payload?.edges) return null;
-    return findEdgeFromTarget(target, this._payload.edges);
-  }
-
-  private _renderEdgeTooltip(edge: Edge): string {
-    return renderEdgeTooltip(edge);
-  }
-
-  private _applyTransform(svg: SVGElement) {
-    const { x, y, scale } = this._viewTransform;
-    svg.style.transformOrigin = "0 0";
-    svg.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
-    svg.style.cursor = this._isPanning ? "grabbing" : "grab";
-  }
-
   private _resolveNodeName(event: MouseEvent | PointerEvent): string | null {
     return resolveNodeName(event);
   }
 
-  private _isControlTarget(target: Element | null): boolean {
-    return Boolean(target?.closest(".unifi-network-map__controls"));
-  }
-
-  private _applyZoom(delta: number, svg: SVGElement) {
-    const nextScale = Math.min(
-      MAX_ZOOM_SCALE,
-      Math.max(MIN_ZOOM_SCALE, this._viewTransform.scale + delta),
-    );
-    this._viewTransform.scale = Number(nextScale.toFixed(2));
-    this._applyTransform(svg);
-  }
-
-  private _resetPan(svg: SVGElement) {
-    this._viewTransform = { x: 0, y: 0, scale: 1 };
-    this._selectedNode = undefined;
-    this._applyTransform(svg);
-    this._render();
-  }
-
   private _inferNodeName(target: Element | null): string | null {
     return inferNodeName(target);
+  }
+
+  private _findNodeElement(svg: SVGElement, nodeName: string): Element | null {
+    return findNodeElement(svg, nodeName);
   }
 
   private _highlightSelectedNode(svg: SVGElement) {
@@ -1016,11 +963,20 @@ export class UnifiNetworkMapCard extends HTMLElement {
     clearNodeSelection(svg);
   }
 
-  private _findNodeElement(svg: SVGElement, nodeName: string): Element | null {
-    return findNodeElement(svg, nodeName);
-  }
-
   private _markNodeSelected(element: Element) {
     markNodeSelected(element);
+  }
+
+  private _annotateEdges(svg: SVGElement): void {
+    if (!this._payload?.edges) return;
+    annotateEdges(svg, this._payload.edges);
+  }
+
+  private _renderEdgeTooltip(edge: Edge): string {
+    return renderEdgeTooltip(edge);
+  }
+
+  private _isControlTarget(target: Element | null): boolean {
+    return Boolean(target?.closest(".unifi-network-map__controls"));
   }
 }
