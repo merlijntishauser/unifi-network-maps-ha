@@ -234,9 +234,12 @@ describe("unifi-network-map card", () => {
 
   it("renders node panel fallback when payload is missing", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as { _svgContent?: string; _selectedNode?: string };
+    const card = element as unknown as {
+      _svgContent?: string;
+      _selection?: { selectedNode?: string };
+    };
     card._svgContent = makeSvg("Node A");
-    card._selectedNode = "Node A";
+    card._selection = { selectedNode: "Node A" };
     element.setConfig({ svg_url: "/map.svg" });
     expect(element.innerHTML).toContain("No data available");
   });
@@ -246,7 +249,7 @@ describe("unifi-network-map card", () => {
     const card = element as unknown as {
       _svgContent?: string;
       _payload?: unknown;
-      _selectedNode?: string;
+      _selection?: { selectedNode?: string };
     };
     card._svgContent = makeSvg("Gateway");
     card._payload = {
@@ -254,7 +257,7 @@ describe("unifi-network-map card", () => {
       node_types: { Gateway: "gateway" },
       node_status: { Gateway: { entity_id: "sensor.gateway", state: "offline" } },
     };
-    card._selectedNode = "Gateway";
+    card._selection = { selectedNode: "Gateway" };
     element.setConfig({ svg_url: "/map.svg" });
     expect(element.innerHTML).toContain("Offline");
   });
@@ -264,7 +267,7 @@ describe("unifi-network-map card", () => {
     const card = element as unknown as {
       _svgContent?: string;
       _payload?: unknown;
-      _selectedNode?: string;
+      _selection?: { selectedNode?: string };
       _activeTab?: string;
     };
     card._svgContent = makeSvg("Gateway");
@@ -280,7 +283,7 @@ describe("unifi-network-map card", () => {
       },
       device_macs: { Gateway: "aa:bb:cc:dd:ee:ff" },
     };
-    card._selectedNode = "Gateway";
+    card._selection = { selectedNode: "Gateway" };
     card._activeTab = "stats";
     element.setConfig({ svg_url: "/map.svg" });
     expect(element.innerHTML).toContain("Live Status");
@@ -292,7 +295,7 @@ describe("unifi-network-map card", () => {
     const card = element as unknown as {
       _svgContent?: string;
       _payload?: unknown;
-      _selectedNode?: string;
+      _selection?: { selectedNode?: string };
       _activeTab?: string;
     };
     card._svgContent = makeSvg("Gateway");
@@ -302,7 +305,7 @@ describe("unifi-network-map card", () => {
       node_status: {},
       device_macs: { Gateway: "aa:bb:cc:dd:ee:ff" },
     };
-    card._selectedNode = "Gateway";
+    card._selection = { selectedNode: "Gateway" };
     card._activeTab = "stats";
     element.setConfig({ svg_url: "/map.svg" });
     expect(element.innerHTML).not.toContain("Live Status</div>");
@@ -313,12 +316,12 @@ describe("unifi-network-map card", () => {
     const card = element as unknown as {
       _svgContent?: string;
       _payload?: unknown;
-      _selectedNode?: string;
+      _selection?: { selectedNode?: string };
       _activeTab?: string;
     };
     card._svgContent = makeSvg("Node A");
     card._payload = { edges: [], node_types: { "Node A": "client" } };
-    card._selectedNode = "Node A";
+    card._selection = { selectedNode: "Node A" };
     card._activeTab = "actions";
     element.setConfig({ svg_url: "/map.svg" });
     expect(element.innerHTML).toContain("No Home Assistant entity linked");
@@ -329,7 +332,7 @@ describe("unifi-network-map card", () => {
     const card = element as unknown as {
       _svgContent?: string;
       _payload?: unknown;
-      _selectedNode?: string;
+      _selection?: { selectedNode?: string };
       _activeTab?: string;
     };
     card._svgContent = makeSvg("Gateway");
@@ -338,7 +341,7 @@ describe("unifi-network-map card", () => {
       node_types: { Gateway: "gateway", AP: "ap" },
       node_status: {},
     };
-    card._selectedNode = "Gateway";
+    card._selection = { selectedNode: "Gateway" };
     card._activeTab = "overview";
     element.setConfig({ svg_url: "/map.svg" });
     expect(element.innerHTML).toContain("WiFi");
@@ -555,13 +558,13 @@ describe("unifi-network-map card", () => {
     const card = element as unknown as {
       _payload?: unknown;
       _svgContent?: string;
-      _selectedNode?: string;
+      _selection?: { selectedNode?: string };
       _activeTab?: string;
       _onPanelClick: (event: MouseEvent) => void;
     };
     card._payload = samplePayload();
     card._svgContent = makeSvg("Node A");
-    card._selectedNode = "Node A";
+    card._selection = { selectedNode: "Node A" };
     card._activeTab = "actions";
     element.setConfig({ svg_url: "/map.svg" });
     const copyButton = element.querySelector('[data-action="copy"]') as HTMLElement;
@@ -607,13 +610,13 @@ describe("unifi-network-map card", () => {
     const card = element as unknown as {
       _svgContent?: string;
       _payload?: unknown;
-      _selectedNode?: string;
+      _selection?: { selectedNode?: string };
       _activeTab?: string;
       _onPanelClick: (event: MouseEvent) => void;
     };
     card._svgContent = makeSvg("Gateway");
     card._payload = samplePayload();
-    card._selectedNode = "Gateway";
+    card._selection = { selectedNode: "Gateway" };
     card._activeTab = "overview";
     element.setConfig({ svg_url: "/map.svg" });
     const statsTab = element.querySelector('[data-tab="stats"]') as HTMLElement;
@@ -629,19 +632,19 @@ describe("unifi-network-map card", () => {
     const card = element as unknown as {
       _svgContent?: string;
       _payload?: unknown;
-      _selectedNode?: string;
+      _selection?: { selectedNode?: string };
       _onPanelClick: (event: MouseEvent) => void;
     };
     card._svgContent = makeSvg("Gateway");
     card._payload = samplePayload();
-    card._selectedNode = "Gateway";
+    card._selection = { selectedNode: "Gateway" };
     element.setConfig({ svg_url: "/map.svg" });
     const backButton = element.querySelector('[data-action="back"]') as HTMLElement;
     card._onPanelClick({
       target: backButton,
       preventDefault: () => undefined,
     } as unknown as MouseEvent);
-    expect((card as { _selectedNode?: string })._selectedNode).toBeUndefined();
+    expect(card._selection?.selectedNode).toBeUndefined();
     expect(element.innerHTML).toContain("Network Overview");
   });
 
@@ -651,7 +654,7 @@ describe("unifi-network-map card", () => {
     const card = element as unknown as {
       _svgContent?: string;
       _payload?: unknown;
-      _selectedNode?: string;
+      _selection?: { selectedNode?: string };
       _activeTab?: string;
       _onPanelClick: (event: MouseEvent) => void;
     };
@@ -663,7 +666,7 @@ describe("unifi-network-map card", () => {
         Gateway: [{ entity_id: "sensor.gateway", domain: "sensor", state: "on" }],
       },
     };
-    card._selectedNode = "Gateway";
+    card._selection = { selectedNode: "Gateway" };
     card._activeTab = "actions";
     element.setConfig({ svg_url: "/map.svg" });
 
@@ -697,7 +700,7 @@ describe("unifi-network-map card", () => {
     const card = element as unknown as {
       _svgContent?: string;
       _payload?: unknown;
-      _selectedNode?: string;
+      _selection?: { selectedNode?: string };
       _activeTab?: string;
       _showEntityModal: (nodeName: string) => void;
     };
@@ -709,7 +712,7 @@ describe("unifi-network-map card", () => {
         Gateway: [{ entity_id: "sensor.gateway", domain: "sensor", state: "on" }],
       },
     };
-    card._selectedNode = "Gateway";
+    card._selection = { selectedNode: "Gateway" };
     card._activeTab = "actions";
     element.setConfig({ svg_url: "/map.svg" });
 
@@ -781,7 +784,7 @@ describe("unifi-network-map card", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     const card = element as unknown as {
       _onClick: (event: MouseEvent, tooltip: HTMLElement) => void;
-      _selectedNode?: string;
+      _selection?: { selectedNode?: string };
     };
     const tooltip = document.createElement("div");
     const originalElementFromPoint = document.elementFromPoint;
@@ -791,7 +794,7 @@ describe("unifi-network-map card", () => {
       tooltip,
     );
     document.elementFromPoint = originalElementFromPoint;
-    expect(card._selectedNode).toBeUndefined();
+    expect(card._selection?.selectedNode).toBeUndefined();
   });
 
   it("marks selected elements for non-g tags", () => {
@@ -1103,12 +1106,12 @@ describe("unifi-network-map card", () => {
     const card = element as unknown as {
       _svgContent?: string;
       _payload?: unknown;
-      _selectedNode?: string;
+      _selection?: { selectedNode?: string };
       _activeTab?: string;
     };
     card._svgContent = makeSvg("Gateway");
     card._payload = { edges: [], node_types: { Gateway: "gateway" } };
-    card._selectedNode = "Gateway";
+    card._selection = { selectedNode: "Gateway" };
     card._activeTab = "overview";
     element.setConfig({ svg_url: "/map.svg" });
     expect(element.innerHTML).toContain("No connections");
@@ -1133,13 +1136,13 @@ describe("unifi-network-map card", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     const card = element as unknown as {
       _highlightSelectedNode: (svg: SVGElement) => void;
-      _selectedNode?: string;
+      _selection?: { selectedNode?: string };
     };
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     const node = document.createElementNS("http://www.w3.org/2000/svg", "g");
     node.setAttribute("data-node-id", "Node A");
     svg.appendChild(node);
-    card._selectedNode = "Node A";
+    card._selection = { selectedNode: "Node A" };
     card._highlightSelectedNode(svg);
     expect(node.getAttribute("data-selected")).toBe("true");
   });
@@ -1184,7 +1187,7 @@ describe("unifi-network-map card", () => {
     const card = element as unknown as {
       _onClick: (event: MouseEvent, tooltip: HTMLElement) => void;
       _panMoved: boolean;
-      _selectedNode?: string;
+      _selection?: { selectedNode?: string };
     };
     const tooltip = document.createElement("div");
     const controls = document.createElement("div");
@@ -1196,14 +1199,17 @@ describe("unifi-network-map card", () => {
     );
     card._panMoved = false;
     card._onClick({ target: controls, composedPath: () => [] } as unknown as MouseEvent, tooltip);
-    expect(card._selectedNode).toBeUndefined();
+    expect(card._selection?.selectedNode).toBeUndefined();
   });
 
   it("wires zoom and reset controls", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as { _svgContent?: string; _selectedNode?: string };
+    const card = element as unknown as {
+      _svgContent?: string;
+      _selection?: { selectedNode?: string };
+    };
     card._svgContent = makeSvg("Gateway");
-    card._selectedNode = "Gateway";
+    card._selection = { selectedNode: "Gateway" };
     element.setConfig({ svg_url: "/map.svg" });
     const zoomIn = element.querySelector('[data-action="zoom-in"]') as HTMLButtonElement;
     const zoomOut = element.querySelector('[data-action="zoom-out"]') as HTMLButtonElement;
@@ -1213,7 +1219,7 @@ describe("unifi-network-map card", () => {
     zoomOut.click();
     reset.click();
     expect(svg.style.transform).toContain("scale");
-    expect((card as { _selectedNode?: string })._selectedNode).toBeUndefined();
+    expect(card._selection?.selectedNode).toBeUndefined();
   });
 
   it("applies cursor styles based on pan state", () => {

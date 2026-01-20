@@ -23,6 +23,14 @@ import { showToast } from "./feedback";
 import { loadPayload, loadSvg } from "./data";
 import { normalizeConfig, startPolling, stopPolling } from "./state";
 import {
+  clearSelectedNode,
+  createSelectionState,
+  handleMapClick,
+  selectNode,
+  setHoveredEdge,
+  setHoveredNode,
+} from "./selection";
+import {
   applyTransform,
   applyZoom,
   bindViewportInteractions,
@@ -96,9 +104,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
   private _loading = false;
   private _dataLoading = false;
   private _viewportState = createDefaultViewportState();
-  private _selectedNode?: string;
-  private _hoveredNode?: string;
-  private _hoveredEdge?: Edge;
+  private _selection = createSelectionState();
   private _svgAbortController?: AbortController;
   private _payloadAbortController?: AbortController;
   private _activeTab: "overview" | "stats" | "actions" = "overview";
@@ -316,7 +322,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
     return renderPanelContent(
       {
         payload: this._payload,
-        selectedNode: this._selectedNode,
+        selectedNode: this._selection.selectedNode,
         activeTab: this._activeTab,
       },
       this._panelHelpers(),
@@ -327,7 +333,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
     return renderTabContent(
       {
         payload: this._payload,
-        selectedNode: this._selectedNode,
+        selectedNode: this._selection.selectedNode,
         activeTab: this._activeTab,
       },
       name,
@@ -469,7 +475,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
     if (!backButton) return false;
 
     event.preventDefault();
-    this._selectedNode = undefined;
+    clearSelectedNode(this._selection);
     this._activeTab = "overview";
     this._render();
     return true;
@@ -501,8 +507,8 @@ export class UnifiNetworkMapCard extends HTMLElement {
     if (!entityButton) return false;
 
     event.preventDefault();
-    if (this._selectedNode) {
-      this._showEntityModal(this._selectedNode);
+    if (this._selection.selectedNode) {
+      this._showEntityModal(this._selection.selectedNode);
     }
     return true;
   }
@@ -670,7 +676,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
   private _handleContextMenuAction(action: string, nodeName: string, mac: string | null): void {
     switch (action) {
       case "select":
-        this._selectedNode = nodeName;
+        selectNode(this._selection, nodeName);
         this._removeContextMenu();
         this._render();
         break;
@@ -770,7 +776,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
       reset.onclick = (event) => {
         event.preventDefault();
         resetPan(svg, this._viewportState, callbacks);
-        this._selectedNode = undefined;
+        clearSelectedNode(this._selection);
         this._render();
       };
     }
@@ -789,14 +795,14 @@ export class UnifiNetworkMapCard extends HTMLElement {
   private _viewportCallbacks() {
     return {
       onNodeSelected: (nodeName: string) => {
-        this._selectedNode = nodeName;
+        selectNode(this._selection, nodeName);
         this._render();
       },
       onHoverEdge: (edge: Edge | null) => {
-        this._hoveredEdge = edge ?? undefined;
+        setHoveredEdge(this._selection, edge);
       },
       onHoverNode: (nodeName: string | null) => {
-        this._hoveredNode = nodeName ?? undefined;
+        setHoveredNode(this._selection, nodeName);
       },
       onOpenContextMenu: (x: number, y: number, nodeName: string) => {
         this._removeContextMenu();
@@ -848,17 +854,16 @@ export class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _onClick(event: MouseEvent, tooltip: HTMLElement) {
-    if (this._isControlTarget(event.target as Element | null)) {
+    const selected = handleMapClick({
+      event,
+      state: this._selection,
+      panMoved: this._viewportState.panMoved,
+      isControlTarget: (target) => this._isControlTarget(target),
+      resolveNodeName: (evt) => resolveNodeName(evt),
+    });
+    if (!selected) {
       return;
     }
-    if (this._viewportState.panMoved) {
-      return;
-    }
-    const label = resolveNodeName(event) ?? this._hoveredNode;
-    if (!label) {
-      return;
-    }
-    this._selectedNode = label;
     this._hideTooltip(tooltip);
     this._render();
   }
@@ -876,7 +881,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _highlightSelectedNode(svg: SVGElement) {
-    highlightSelectedNode(svg, this._selectedNode);
+    highlightSelectedNode(svg, this._selection.selectedNode);
   }
 
   private _clearNodeSelection(svg: SVGElement) {
