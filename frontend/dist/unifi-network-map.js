@@ -1,4 +1,4 @@
-// src/card/constants.ts
+// src/card/shared/constants.ts
 var DOMAIN = "unifi_network_map";
 var MIN_PAN_MOVEMENT_THRESHOLD = 2;
 var ZOOM_INCREMENT = 0.1;
@@ -1025,7 +1025,7 @@ function createDOMPurify() {
 }
 var purify = createDOMPurify();
 
-// src/card/sanitize.ts
+// src/card/data/sanitize.ts
 function escapeHtml(text2) {
   return text2.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
@@ -1074,7 +1074,7 @@ function sanitizeSvg(svg2) {
   return svgElement.outerHTML;
 }
 
-// src/card/svg.ts
+// src/card/data/svg.ts
 function annotateEdges(svg2, edges) {
   const edgesByKey = buildEdgeLookup(edges);
   const paths = svg2.querySelectorAll("path[data-edge-left][data-edge-right]");
@@ -1178,7 +1178,7 @@ function channelBand(channel) {
   return null;
 }
 
-// src/card/node.ts
+// src/card/interaction/node.ts
 function resolveNodeName(event) {
   const path = event.composedPath();
   for (const item of path) {
@@ -1286,7 +1286,7 @@ function findByTitleElement(svg2, nodeName) {
   return null;
 }
 
-// src/card/entity-modal.ts
+// src/card/ui/entity-modal.ts
 function renderEntityModal(context) {
   const safeName = escapeHtml(context.nodeName);
   const mac = context.payload?.client_macs?.[context.nodeName] ?? context.payload?.device_macs?.[context.nodeName];
@@ -1415,7 +1415,7 @@ function getStateBadgeClass(state) {
   return "entity-modal__state-badge--default";
 }
 
-// src/card/panel.ts
+// src/card/ui/panel.ts
 function renderPanelContent(context, helpers) {
   if (!context.selectedNode) {
     return renderMapOverview(context);
@@ -1696,7 +1696,7 @@ function countNodeStatus(nodeStatus) {
   };
 }
 
-// src/card/context-menu.ts
+// src/card/ui/context-menu.ts
 function renderContextMenu(options) {
   const safeName = escapeHtml(options.nodeName);
   const nodeType = options.payload?.node_types?.[options.nodeName] ?? "unknown";
@@ -1762,7 +1762,7 @@ function isContextMenuAction(action) {
   return action === "select" || action === "details" || action === "copy-mac" || action === "restart";
 }
 
-// src/card/auth.ts
+// src/card/data/auth.ts
 async function fetchWithAuth(url, token, signal, parseResponse) {
   if (!token) {
     return { error: "Missing auth token" };
@@ -1785,7 +1785,7 @@ async function fetchWithAuth(url, token, signal, parseResponse) {
   }
 }
 
-// src/card/feedback.ts
+// src/card/shared/feedback.ts
 var TOAST_STYLES = {
   success: "rgba(34, 197, 94, 0.9)",
   info: "rgba(59, 130, 246, 0.9)",
@@ -1811,7 +1811,7 @@ function showToast(message, variant) {
   setTimeout(() => feedback.remove(), 2e3);
 }
 
-// src/card/data.ts
+// src/card/data/data.ts
 async function loadSvg(fetchWithAuth2, url, signal) {
   return fetchWithAuth2(url, signal, (response) => response.text());
 }
@@ -1819,7 +1819,7 @@ async function loadPayload(fetchWithAuth2, url, signal) {
   return fetchWithAuth2(url, signal, (response) => response.json());
 }
 
-// src/card/state.ts
+// src/card/core/state.ts
 function normalizeConfig(config) {
   if (config.entry_id) {
     const theme = config.theme ?? "dark";
@@ -1846,7 +1846,7 @@ function stopPolling(currentId) {
   return void 0;
 }
 
-// src/card/context-menu-state.ts
+// src/card/interaction/context-menu-state.ts
 function createContextMenuController() {
   return {};
 }
@@ -1931,7 +1931,7 @@ function wireContextMenuEvents(menu, onClose, onAction) {
   };
 }
 
-// src/card/selection.ts
+// src/card/interaction/selection.ts
 function createSelectionState() {
   return {};
 }
@@ -1962,7 +1962,7 @@ function handleMapClick(params) {
   return label;
 }
 
-// src/card/viewport.ts
+// src/card/interaction/viewport.ts
 function bindViewportInteractions(params) {
   const { viewport, svg: svg2, state, options, handlers, callbacks, bindings } = params;
   viewport.onwheel = (event) => onWheel(event, svg2, state, options, callbacks);
@@ -2147,7 +2147,7 @@ function createDefaultViewportHandlers(edges) {
   };
 }
 
-// src/card/styles.ts
+// src/card/ui/styles.ts
 var CARD_STYLES = `
   unifi-network-map { display: block; height: 100%; }
   unifi-network-map ha-card { display: flex; flex-direction: column; height: 100%; box-sizing: border-box; }
@@ -2904,7 +2904,7 @@ var GLOBAL_STYLES = `
   }
 `;
 
-// src/card/unifi-network-map-card.ts
+// src/card/core/unifi-network-map-card.ts
 var UnifiNetworkMapCard = class extends HTMLElement {
   constructor() {
     super(...arguments);
@@ -3563,7 +3563,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   }
 };
 
-// src/card/editor-helpers.ts
+// src/card/shared/editor-helpers.ts
 function buildFormSchema(entries2) {
   const entryOptions = entries2.map((entry) => ({
     label: entry.title,
@@ -3595,7 +3595,7 @@ function normalizeTheme(value) {
   return value === "light" ? "light" : "dark";
 }
 
-// src/card/unifi-network-map-editor.ts
+// src/card/core/unifi-network-map-editor.ts
 var UnifiNetworkMapEditor = class extends HTMLElement {
   constructor() {
     super(...arguments);
