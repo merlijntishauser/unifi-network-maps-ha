@@ -19,6 +19,7 @@ import {
 import { renderEntityModal } from "./entity-modal";
 import { renderPanelContent, renderTabContent } from "./panel";
 import { parseContextMenuAction, renderContextMenu } from "./context-menu";
+import { fetchWithAuth } from "./auth";
 import {
   applyTransform,
   applyZoom,
@@ -186,26 +187,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
     signal: AbortSignal,
     parseResponse: (response: Response) => Promise<T>,
   ): Promise<{ data: T } | { error: string } | { aborted: true }> {
-    const token = this._getAuthToken();
-    if (!token) {
-      return { error: "Missing auth token" };
-    }
-    try {
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-        signal,
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      return { data: await parseResponse(response) };
-    } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") {
-        return { aborted: true };
-      }
-      const message = err instanceof Error ? err.message : String(err);
-      return { error: message };
-    }
+    return fetchWithAuth(url, this._getAuthToken(), signal, parseResponse);
   }
 
   private _render() {
