@@ -1846,6 +1846,37 @@ function stopPolling(currentId) {
   return void 0;
 }
 
+// src/card/selection.ts
+function createSelectionState() {
+  return {};
+}
+function selectNode(state, nodeName) {
+  state.selectedNode = nodeName;
+}
+function clearSelectedNode(state) {
+  state.selectedNode = void 0;
+}
+function setHoveredNode(state, nodeName) {
+  state.hoveredNode = nodeName ?? void 0;
+}
+function setHoveredEdge(state, edge) {
+  state.hoveredEdge = edge ?? void 0;
+}
+function handleMapClick(params) {
+  if (params.isControlTarget(params.event.target)) {
+    return null;
+  }
+  if (params.panMoved) {
+    return null;
+  }
+  const label = params.resolveNodeName(params.event) ?? params.state.hoveredNode;
+  if (!label) {
+    return null;
+  }
+  params.state.selectedNode = label;
+  return label;
+}
+
 // src/card/viewport.ts
 function bindViewportInteractions(params) {
   const { viewport, svg: svg2, state, options, handlers, callbacks, bindings } = params;
@@ -2795,6 +2826,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._loading = false;
     this._dataLoading = false;
     this._viewportState = createDefaultViewportState();
+    this._selection = createSelectionState();
     this._activeTab = "overview";
   }
   static getLayoutOptions() {
@@ -3005,7 +3037,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     return renderPanelContent(
       {
         payload: this._payload,
-        selectedNode: this._selectedNode,
+        selectedNode: this._selection.selectedNode,
         activeTab: this._activeTab
       },
       this._panelHelpers()
@@ -3015,7 +3047,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     return renderTabContent(
       {
         payload: this._payload,
-        selectedNode: this._selectedNode,
+        selectedNode: this._selection.selectedNode,
         activeTab: this._activeTab
       },
       name,
@@ -3141,7 +3173,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     const backButton = target.closest('[data-action="back"]');
     if (!backButton) return false;
     event.preventDefault();
-    this._selectedNode = void 0;
+    clearSelectedNode(this._selection);
     this._activeTab = "overview";
     this._render();
     return true;
@@ -3169,8 +3201,8 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     const entityButton = target.closest("[data-entity-id]");
     if (!entityButton) return false;
     event.preventDefault();
-    if (this._selectedNode) {
-      this._showEntityModal(this._selectedNode);
+    if (this._selection.selectedNode) {
+      this._showEntityModal(this._selection.selectedNode);
     }
     return true;
   }
@@ -3312,7 +3344,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   _handleContextMenuAction(action, nodeName, mac) {
     switch (action) {
       case "select":
-        this._selectedNode = nodeName;
+        selectNode(this._selection, nodeName);
         this._removeContextMenu();
         this._render();
         break;
@@ -3397,7 +3429,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       reset.onclick = (event) => {
         event.preventDefault();
         resetPan(svg2, this._viewportState, callbacks);
-        this._selectedNode = void 0;
+        clearSelectedNode(this._selection);
         this._render();
       };
     }
@@ -3414,14 +3446,14 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   _viewportCallbacks() {
     return {
       onNodeSelected: (nodeName) => {
-        this._selectedNode = nodeName;
+        selectNode(this._selection, nodeName);
         this._render();
       },
       onHoverEdge: (edge) => {
-        this._hoveredEdge = edge ?? void 0;
+        setHoveredEdge(this._selection, edge);
       },
       onHoverNode: (nodeName) => {
-        this._hoveredNode = nodeName ?? void 0;
+        setHoveredNode(this._selection, nodeName);
       },
       onOpenContextMenu: (x, y, nodeName) => {
         this._removeContextMenu();
@@ -3465,17 +3497,16 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     tooltip.classList.remove("unifi-network-map__tooltip--edge");
   }
   _onClick(event, tooltip) {
-    if (this._isControlTarget(event.target)) {
+    const selected = handleMapClick({
+      event,
+      state: this._selection,
+      panMoved: this._viewportState.panMoved,
+      isControlTarget: (target) => this._isControlTarget(target),
+      resolveNodeName: (evt) => resolveNodeName(evt)
+    });
+    if (!selected) {
       return;
     }
-    if (this._viewportState.panMoved) {
-      return;
-    }
-    const label = resolveNodeName(event) ?? this._hoveredNode;
-    if (!label) {
-      return;
-    }
-    this._selectedNode = label;
     this._hideTooltip(tooltip);
     this._render();
   }
@@ -3489,7 +3520,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     return findNodeElement(svg2, nodeName);
   }
   _highlightSelectedNode(svg2) {
-    highlightSelectedNode(svg2, this._selectedNode);
+    highlightSelectedNode(svg2, this._selection.selectedNode);
   }
   _clearNodeSelection(svg2) {
     clearNodeSelection(svg2);
