@@ -15,6 +15,7 @@
 - **Separate reset vs clear selection** - Reset view shouldn't clear panel
 - **Loading state + retry** - Show spinner during payload fetches with retry button
 - **Card availability after install** - Warn users to hard-refresh when card isn't listed after install
+- **Reduce log chatter** - Move log - messages from info to debug
 
 ### Medium Effort
 - **Search/filter in detail panel** - Find clients/devices quickly
@@ -97,5 +98,6 @@ Methods to break down for readability:
 ## Recently Completed
 - Race condition fix in Lovelace retry (atomic counter increment)
 - Implemented mobile friendly touch gestures
+- Refactored the lovelace card into different modules for improved maintainability
 
 See [CHANGELOG.md](CHANGELOG.md) for full history.
