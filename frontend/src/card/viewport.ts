@@ -1,5 +1,5 @@
 import type { Edge, Point, ViewTransform } from "./types";
-import { findEdgeFromTarget, renderEdgeTooltip } from "./svg";
+import { findEdgeFromTarget, renderEdgeTooltip } from "./data/svg";
 import { resolveNodeName } from "./node";
 
 export type ViewportState = {

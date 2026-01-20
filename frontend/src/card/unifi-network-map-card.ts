@@ -4,9 +4,9 @@ import {
   MIN_ZOOM_SCALE,
   TOOLTIP_OFFSET_PX,
   ZOOM_INCREMENT,
-} from "./constants";
-import { escapeHtml, sanitizeHtml, sanitizeSvg } from "./sanitize";
-import { annotateEdges, renderEdgeTooltip } from "./svg";
+} from "./shared/constants";
+import { escapeHtml, sanitizeHtml, sanitizeSvg } from "./data/sanitize";
+import { annotateEdges, renderEdgeTooltip } from "./data/svg";
 import {
   clearNodeSelection,
   findNodeElement,
@@ -18,9 +18,9 @@ import {
 import { renderEntityModal } from "./entity-modal";
 import { renderPanelContent, renderTabContent } from "./panel";
 import { renderContextMenu } from "./context-menu";
-import { fetchWithAuth } from "./auth";
-import { showToast } from "./feedback";
-import { loadPayload, loadSvg } from "./data";
+import { fetchWithAuth } from "./data/auth";
+import { showToast } from "./shared/feedback";
+import { loadPayload, loadSvg } from "./data/data";
 import { normalizeConfig, startPolling, stopPolling } from "./state";
 import {
   closeContextMenu,

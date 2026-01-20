@@ -1,5 +1,5 @@
 import { escapeHtml } from "./sanitize";
-import type { Edge } from "./types";
+import type { Edge } from "../types";
 
 export function annotateEdges(svg: SVGElement, edges: Edge[]): void {
   const edgesByKey = buildEdgeLookup(edges);

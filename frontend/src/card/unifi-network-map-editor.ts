@@ -1,5 +1,5 @@
-import { DOMAIN } from "./constants";
-import { buildFormSchema, normalizeTheme } from "./editor-helpers";
+import { DOMAIN } from "./shared/constants";
+import { buildFormSchema, normalizeTheme } from "./shared/editor-helpers";
 import type { CardConfig, ConfigEntry, FormSchemaEntry, Hass } from "./types";
 
 export class UnifiNetworkMapEditor extends HTMLElement {

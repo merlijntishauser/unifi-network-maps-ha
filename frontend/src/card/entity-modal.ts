@@ -1,4 +1,4 @@
-import { escapeHtml } from "./sanitize";
+import { escapeHtml } from "./data/sanitize";
 import type { MapPayload, RelatedEntity } from "./types";
 
 export type EntityModalContext = {
