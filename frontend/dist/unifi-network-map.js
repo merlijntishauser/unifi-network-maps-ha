@@ -1415,6 +1415,59 @@ function getStateBadgeClass(state) {
   return "entity-modal__state-badge--default";
 }
 
+// src/card/interaction/entity-modal-state.ts
+function createEntityModalController() {
+  return {};
+}
+function openEntityModal(params) {
+  closeEntityModal(params.controller);
+  const modalHtml = renderEntityModal({
+    nodeName: params.nodeName,
+    payload: params.payload,
+    theme: params.theme,
+    getNodeTypeIcon: params.getNodeTypeIcon,
+    formatLastChanged: params.formatLastChanged
+  });
+  const container = document.createElement("div");
+  container.innerHTML = modalHtml;
+  const overlay = container.firstElementChild;
+  if (!overlay) {
+    return;
+  }
+  document.body.appendChild(overlay);
+  params.controller.overlay = overlay;
+  wireEntityModalEvents(overlay, () => closeEntityModal(params.controller), params.onEntityDetails);
+}
+function closeEntityModal(controller) {
+  if (controller.overlay) {
+    controller.overlay.remove();
+    controller.overlay = void 0;
+  }
+}
+function wireEntityModalEvents(overlay, onClose, onEntityDetails) {
+  overlay.addEventListener("click", (event) => {
+    const target = event.target;
+    if (target.hasAttribute("data-modal-overlay")) {
+      onClose();
+      return;
+    }
+    const closeButton = target.closest('[data-action="close-modal"]');
+    if (closeButton) {
+      onClose();
+      return;
+    }
+    const entityItem = target.closest("[data-modal-entity-id]");
+    if (entityItem) {
+      event.preventDefault();
+      event.stopPropagation();
+      const entityId = entityItem.getAttribute("data-modal-entity-id");
+      if (entityId) {
+        onEntityDetails(entityId);
+      }
+    }
+  });
+}
+
 // src/card/ui/panel.ts
 function renderPanelContent(context, helpers) {
   if (!context.selectedNode) {
@@ -2913,6 +2966,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._viewportState = createDefaultViewportState();
     this._selection = createSelectionState();
     this._activeTab = "overview";
+    this._entityModal = createEntityModalController();
     this._contextMenu = createContextMenuController();
   }
   static getLayoutOptions() {
@@ -3293,46 +3347,14 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     return true;
   }
   _showEntityModal(nodeName) {
-    this._removeEntityModal();
-    const modalHtml = this._renderEntityModal(nodeName);
-    const container = document.createElement("div");
-    container.innerHTML = modalHtml;
-    const overlay = container.firstElementChild;
-    if (!overlay) return;
-    document.body.appendChild(overlay);
-    this._entityModalOverlay = overlay;
-    this._wireEntityModalEvents(overlay);
-  }
-  _renderEntityModal(nodeName) {
-    return renderEntityModal({
+    openEntityModal({
+      controller: this._entityModal,
       nodeName,
       payload: this._payload,
       theme: this._config?.theme ?? "dark",
       getNodeTypeIcon: (nodeType) => this._getNodeTypeIcon(nodeType),
-      formatLastChanged: (value) => this._formatLastChanged(value)
-    });
-  }
-  _wireEntityModalEvents(overlay) {
-    overlay.addEventListener("click", (event) => {
-      const target = event.target;
-      if (target.hasAttribute("data-modal-overlay")) {
-        this._removeEntityModal();
-        return;
-      }
-      const closeButton = target.closest('[data-action="close-modal"]');
-      if (closeButton) {
-        this._removeEntityModal();
-        return;
-      }
-      const entityItem = target.closest("[data-modal-entity-id]");
-      if (entityItem) {
-        event.preventDefault();
-        event.stopPropagation();
-        const entityId = entityItem.getAttribute("data-modal-entity-id");
-        if (entityId) {
-          this._openEntityDetails(entityId);
-        }
-      }
+      formatLastChanged: (value) => this._formatLastChanged(value),
+      onEntityDetails: (entityId) => this._openEntityDetails(entityId)
     });
   }
   _openEntityDetails(entityId) {
@@ -3348,10 +3370,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     }, 0);
   }
   _removeEntityModal() {
-    if (this._entityModalOverlay) {
-      this._entityModalOverlay.remove();
-      this._entityModalOverlay = void 0;
-    }
+    closeEntityModal(this._entityModal);
   }
   _showContextMenu() {
     if (!this._contextMenu.menu) {
