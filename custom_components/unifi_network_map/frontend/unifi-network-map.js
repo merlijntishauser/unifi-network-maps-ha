@@ -1762,6 +1762,240 @@ function isContextMenuAction(action) {
   return action === "select" || action === "details" || action === "copy-mac" || action === "restart";
 }
 
+// src/card/auth.ts
+async function fetchWithAuth(url, token, signal, parseResponse) {
+  if (!token) {
+    return { error: "Missing auth token" };
+  }
+  try {
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    return { data: await parseResponse(response) };
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      return { aborted: true };
+    }
+    const message = err instanceof Error ? err.message : String(err);
+    return { error: message };
+  }
+}
+
+// src/card/feedback.ts
+var TOAST_STYLES = {
+  success: "rgba(34, 197, 94, 0.9)",
+  info: "rgba(59, 130, 246, 0.9)",
+  error: "rgba(239, 68, 68, 0.9)"
+};
+function showToast(message, variant) {
+  const feedback = document.createElement("div");
+  feedback.textContent = message;
+  feedback.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: ${TOAST_STYLES[variant]};
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    z-index: 1002;
+    animation: fadeInOut 2s ease forwards;
+  `;
+  document.body.appendChild(feedback);
+  setTimeout(() => feedback.remove(), 2e3);
+}
+
+// src/card/viewport.ts
+function bindViewportInteractions(params) {
+  const { viewport, svg: svg2, state, options, handlers, callbacks, bindings } = params;
+  viewport.onwheel = (event) => onWheel(event, svg2, state, options, callbacks);
+  viewport.onpointerdown = (event) => onPointerDown(event, state, bindings.controls);
+  viewport.onpointermove = (event) => onPointerMove(event, svg2, state, options, handlers, callbacks, bindings.tooltip);
+  viewport.onpointerup = (event) => onPointerUp(event, state);
+  viewport.onpointercancel = (event) => onPointerUp(event, state);
+  viewport.onpointerleave = () => {
+    callbacks.onHoverEdge(null);
+    callbacks.onHoverNode(null);
+    hideTooltip(bindings.tooltip);
+  };
+  viewport.onclick = (event) => onClick(event, state, handlers, callbacks, bindings.tooltip);
+  viewport.oncontextmenu = (event) => onContextMenu(event, state, handlers, callbacks);
+}
+function applyTransform(svg2, transform, isPanning) {
+  svg2.style.transformOrigin = "0 0";
+  svg2.style.transform = `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`;
+  svg2.style.cursor = isPanning ? "grabbing" : "grab";
+}
+function applyZoom(svg2, delta, state, options, callbacks) {
+  const nextScale = Math.min(
+    options.maxZoomScale,
+    Math.max(options.minZoomScale, state.viewTransform.scale + delta)
+  );
+  state.viewTransform.scale = Number(nextScale.toFixed(2));
+  callbacks.onUpdateTransform(state.viewTransform);
+  applyTransform(svg2, state.viewTransform, state.isPanning);
+}
+function resetPan(svg2, state, callbacks) {
+  state.viewTransform = { x: 0, y: 0, scale: 1 };
+  callbacks.onUpdateTransform(state.viewTransform);
+  applyTransform(svg2, state.viewTransform, state.isPanning);
+}
+function onWheel(event, svg2, state, options, callbacks) {
+  event.preventDefault();
+  const delta = event.deltaY > 0 ? -options.zoomIncrement : options.zoomIncrement;
+  applyZoom(svg2, delta, state, options, callbacks);
+}
+function onPointerDown(event, state, controls) {
+  if (isControlTarget(event.target, controls)) {
+    return;
+  }
+  state.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  event.currentTarget.setPointerCapture(event.pointerId);
+  if (state.activePointers.size === 2) {
+    const [p1, p2] = Array.from(state.activePointers.values());
+    state.pinchStartDistance = getDistance(p1, p2);
+    state.pinchStartScale = state.viewTransform.scale;
+    state.isPanning = false;
+    state.panStart = null;
+  } else if (state.activePointers.size === 1) {
+    state.isPanning = true;
+    state.panMoved = false;
+    state.panStart = {
+      x: event.clientX - state.viewTransform.x,
+      y: event.clientY - state.viewTransform.y
+    };
+  }
+}
+function onPointerMove(event, svg2, state, options, handlers, callbacks, tooltip) {
+  if (state.activePointers.has(event.pointerId)) {
+    state.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  }
+  if (state.activePointers.size === 2 && state.pinchStartDistance !== null && state.pinchStartScale !== null) {
+    const [p1, p2] = Array.from(state.activePointers.values());
+    const currentDistance = getDistance(p1, p2);
+    const scaleFactor = currentDistance / state.pinchStartDistance;
+    const newScale = Math.min(
+      options.maxZoomScale,
+      Math.max(options.minZoomScale, state.pinchStartScale * scaleFactor)
+    );
+    state.viewTransform.scale = Number(newScale.toFixed(2));
+    state.panMoved = true;
+    callbacks.onUpdateTransform(state.viewTransform);
+    applyTransform(svg2, state.viewTransform, state.isPanning);
+    return;
+  }
+  if (state.isPanning && state.panStart) {
+    const nextX = event.clientX - state.panStart.x;
+    const nextY = event.clientY - state.panStart.y;
+    if (Math.abs(nextX - state.viewTransform.x) > options.minPanMovementThreshold || Math.abs(nextY - state.viewTransform.y) > options.minPanMovementThreshold) {
+      state.panMoved = true;
+    }
+    state.viewTransform.x = nextX;
+    state.viewTransform.y = nextY;
+    callbacks.onUpdateTransform(state.viewTransform);
+    applyTransform(svg2, state.viewTransform, state.isPanning);
+    return;
+  }
+  const edge = handlers.findEdge(event.target);
+  if (edge) {
+    callbacks.onHoverEdge(edge);
+    callbacks.onHoverNode(null);
+    tooltip.hidden = false;
+    tooltip.classList.add("unifi-network-map__tooltip--edge");
+    tooltip.innerHTML = handlers.renderEdgeTooltip(edge);
+    tooltip.style.transform = "none";
+    tooltip.style.left = `${event.clientX + options.tooltipOffsetPx}px`;
+    tooltip.style.top = `${event.clientY + options.tooltipOffsetPx}px`;
+    return;
+  }
+  callbacks.onHoverEdge(null);
+  const label = handlers.resolveNodeName(event);
+  if (!label) {
+    callbacks.onHoverNode(null);
+    hideTooltip(tooltip);
+    return;
+  }
+  callbacks.onHoverNode(label);
+  tooltip.hidden = false;
+  tooltip.classList.remove("unifi-network-map__tooltip--edge");
+  tooltip.textContent = label;
+  tooltip.style.transform = "none";
+  tooltip.style.left = `${event.clientX + options.tooltipOffsetPx}px`;
+  tooltip.style.top = `${event.clientY + options.tooltipOffsetPx}px`;
+}
+function onPointerUp(event, state) {
+  state.activePointers.delete(event.pointerId);
+  if (state.activePointers.size < 2) {
+    state.pinchStartDistance = null;
+    state.pinchStartScale = null;
+  }
+  if (state.activePointers.size === 0) {
+    state.isPanning = false;
+    state.panStart = null;
+  }
+}
+function onClick(event, state, handlers, callbacks, tooltip) {
+  if (isControlTarget(event.target, null)) {
+    return;
+  }
+  if (state.panMoved) {
+    return;
+  }
+  const label = handlers.resolveNodeName(event);
+  if (!label) {
+    return;
+  }
+  callbacks.onNodeSelected(label);
+  hideTooltip(tooltip);
+}
+function onContextMenu(event, state, handlers, callbacks) {
+  const nodeName = handlers.resolveNodeName(event);
+  if (!nodeName) {
+    return;
+  }
+  event.preventDefault();
+  callbacks.onOpenContextMenu(event.clientX, event.clientY, nodeName);
+}
+function hideTooltip(tooltip) {
+  tooltip.hidden = true;
+  tooltip.classList.remove("unifi-network-map__tooltip--edge");
+}
+function isControlTarget(target, controls) {
+  if (!controls) {
+    return Boolean(target?.closest(".unifi-network-map__controls"));
+  }
+  return controls.contains(target) || Boolean(target?.closest(".unifi-network-map__controls"));
+}
+function getDistance(p1, p2) {
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+function createDefaultViewportState() {
+  return {
+    viewTransform: { x: 0, y: 0, scale: 1 },
+    isPanning: false,
+    panStart: null,
+    panMoved: false,
+    activePointers: /* @__PURE__ */ new Map(),
+    pinchStartDistance: null,
+    pinchStartScale: null
+  };
+}
+function createDefaultViewportHandlers(edges) {
+  return {
+    resolveNodeName: (event) => resolveNodeName(event),
+    findEdge: (target) => edges ? findEdgeFromTarget(target, edges) : null,
+    renderEdgeTooltip: (edge) => renderEdgeTooltip(edge)
+  };
+}
+
 // src/card/styles.ts
 var CARD_STYLES = `
   unifi-network-map { display: block; height: 100%; }
@@ -2525,13 +2759,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     super(...arguments);
     this._loading = false;
     this._dataLoading = false;
-    this._viewTransform = { x: 0, y: 0, scale: 1 };
-    this._isPanning = false;
-    this._panStart = null;
-    this._panMoved = false;
-    this._activePointers = /* @__PURE__ */ new Map();
-    this._pinchStartDistance = null;
-    this._pinchStartScale = null;
+    this._viewportState = createDefaultViewportState();
     this._activeTab = "overview";
   }
   static getLayoutOptions() {
@@ -2589,30 +2817,53 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._lastDataUrl = void 0;
     this._loadPayload();
   }
+  get _viewTransform() {
+    return this._viewportState.viewTransform;
+  }
+  set _viewTransform(value) {
+    this._viewportState.viewTransform = value;
+  }
+  get _isPanning() {
+    return this._viewportState.isPanning;
+  }
+  set _isPanning(value) {
+    this._viewportState.isPanning = value;
+  }
+  get _panStart() {
+    return this._viewportState.panStart;
+  }
+  set _panStart(value) {
+    this._viewportState.panStart = value;
+  }
+  get _panMoved() {
+    return this._viewportState.panMoved;
+  }
+  set _panMoved(value) {
+    this._viewportState.panMoved = value;
+  }
+  get _activePointers() {
+    return this._viewportState.activePointers;
+  }
+  set _activePointers(value) {
+    this._viewportState.activePointers = value;
+  }
+  get _pinchStartDistance() {
+    return this._viewportState.pinchStartDistance;
+  }
+  set _pinchStartDistance(value) {
+    this._viewportState.pinchStartDistance = value;
+  }
+  get _pinchStartScale() {
+    return this._viewportState.pinchStartScale;
+  }
+  set _pinchStartScale(value) {
+    this._viewportState.pinchStartScale = value;
+  }
   _getAuthToken() {
     return this._hass?.auth?.data?.access_token;
   }
   async _fetchWithAuth(url, signal, parseResponse) {
-    const token = this._getAuthToken();
-    if (!token) {
-      return { error: "Missing auth token" };
-    }
-    try {
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-        signal
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      return { data: await parseResponse(response) };
-    } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") {
-        return { aborted: true };
-      }
-      const message = err instanceof Error ? err.message : String(err);
-      return { error: message };
-    }
+    return fetchWithAuth(url, this._getAuthToken(), signal, parseResponse);
   }
   _render() {
     const theme = this._config?.theme ?? "dark";
@@ -2828,22 +3079,24 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       return;
     }
     this._ensureStyles();
-    this._applyTransform(svg2);
+    const options = this._viewportOptions();
+    const callbacks = this._viewportCallbacks();
+    applyTransform(svg2, this._viewportState.viewTransform, this._viewportState.isPanning);
     this._highlightSelectedNode(svg2);
     this._annotateEdges(svg2);
     this._wireControls(svg2);
-    viewport.onwheel = (event) => this._onWheel(event, svg2);
-    viewport.onpointerdown = (event) => this._onPointerDown(event);
-    viewport.onpointermove = (event) => this._onPointerMove(event, svg2, tooltip);
-    viewport.onpointerup = (event) => this._onPointerUp(event);
-    viewport.onpointercancel = (event) => this._onPointerUp(event);
-    viewport.onpointerleave = () => {
-      this._hoveredNode = void 0;
-      this._hoveredEdge = void 0;
-      this._hideTooltip(tooltip);
-    };
-    viewport.onclick = (event) => this._onClick(event, tooltip);
-    viewport.oncontextmenu = (event) => this._onContextMenu(event);
+    bindViewportInteractions({
+      viewport,
+      svg: svg2,
+      state: this._viewportState,
+      options,
+      handlers: createDefaultViewportHandlers(this._payload?.edges),
+      callbacks,
+      bindings: {
+        tooltip,
+        controls: viewport.querySelector(".unifi-network-map__controls")
+      }
+    });
     if (panel) {
       panel.onclick = (event) => this._onPanelClick(event);
     }
@@ -2964,16 +3217,6 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       this._entityModalOverlay = void 0;
     }
   }
-  _onContextMenu(event) {
-    const nodeName = this._resolveNodeName(event) ?? this._hoveredNode;
-    if (!nodeName) {
-      return;
-    }
-    event.preventDefault();
-    this._removeContextMenu();
-    this._contextMenu = { nodeName, x: event.clientX, y: event.clientY };
-    this._showContextMenu();
-  }
   _showContextMenu() {
     if (!this._contextMenu) return;
     const menuHtml = this._renderContextMenu(this._contextMenu.nodeName);
@@ -3076,23 +3319,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     }
   }
   _showCopyFeedback() {
-    const feedback = document.createElement("div");
-    feedback.textContent = "MAC address copied!";
-    feedback.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(34, 197, 94, 0.9);
-      color: white;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-size: 14px;
-      z-index: 1002;
-      animation: fadeInOut 2s ease forwards;
-    `;
-    document.body.appendChild(feedback);
-    setTimeout(() => feedback.remove(), 2e3);
+    showToast("MAC address copied!", "success");
   }
   _handleRestartDevice(nodeName) {
     const entityId = this._payload?.node_entities?.[nodeName] ?? this._payload?.device_entities?.[nodeName];
@@ -3114,42 +3341,10 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._showActionFeedback("Restart command sent");
   }
   _showActionFeedback(message) {
-    const feedback = document.createElement("div");
-    feedback.textContent = message;
-    feedback.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(59, 130, 246, 0.9);
-      color: white;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-size: 14px;
-      z-index: 1002;
-      animation: fadeInOut 2s ease forwards;
-    `;
-    document.body.appendChild(feedback);
-    setTimeout(() => feedback.remove(), 2e3);
+    showToast(message, "info");
   }
   _showActionError(message) {
-    const feedback = document.createElement("div");
-    feedback.textContent = message;
-    feedback.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(239, 68, 68, 0.9);
-      color: white;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-size: 14px;
-      z-index: 1002;
-      animation: fadeInOut 2s ease forwards;
-    `;
-    document.body.appendChild(feedback);
-    setTimeout(() => feedback.remove(), 2e3);
+    showToast(message, "error");
   }
   _removeContextMenu() {
     if (this._contextMenuElement) {
@@ -3166,136 +3361,99 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     const zoomIn = this.querySelector('[data-action="zoom-in"]');
     const zoomOut = this.querySelector('[data-action="zoom-out"]');
     const reset = this.querySelector('[data-action="reset"]');
+    const options = this._viewportOptions();
+    const callbacks = this._viewportCallbacks();
     if (zoomIn) {
       zoomIn.onclick = (event) => {
         event.preventDefault();
-        this._applyZoom(ZOOM_INCREMENT, svg2);
+        applyZoom(svg2, ZOOM_INCREMENT, this._viewportState, options, callbacks);
       };
     }
     if (zoomOut) {
       zoomOut.onclick = (event) => {
         event.preventDefault();
-        this._applyZoom(-ZOOM_INCREMENT, svg2);
+        applyZoom(svg2, -ZOOM_INCREMENT, this._viewportState, options, callbacks);
       };
     }
     if (reset) {
       reset.onclick = (event) => {
         event.preventDefault();
-        this._resetPan(svg2);
+        resetPan(svg2, this._viewportState, callbacks);
+        this._selectedNode = void 0;
+        this._render();
       };
     }
   }
-  _onWheel(event, svg2) {
-    event.preventDefault();
-    const delta = event.deltaY > 0 ? -ZOOM_INCREMENT : ZOOM_INCREMENT;
-    this._applyZoom(delta, svg2);
-  }
-  _onPointerDown(event) {
-    if (this._isControlTarget(event.target)) {
-      return;
-    }
-    this._activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
-    event.currentTarget.setPointerCapture(event.pointerId);
-    if (this._activePointers.size === 2) {
-      const [p1, p2] = Array.from(this._activePointers.values());
-      this._pinchStartDistance = this._getDistance(p1, p2);
-      this._pinchStartScale = this._viewTransform.scale;
-      this._isPanning = false;
-      this._panStart = null;
-    } else if (this._activePointers.size === 1) {
-      this._isPanning = true;
-      this._panMoved = false;
-      this._panStart = {
-        x: event.clientX - this._viewTransform.x,
-        y: event.clientY - this._viewTransform.y
-      };
-    }
-  }
-  _getDistance(p1, p2) {
-    const dx = p2.x - p1.x;
-    const dy = p2.y - p1.y;
-    return Math.sqrt(dx * dx + dy * dy);
-  }
-  _getMidpoint(p1, p2) {
+  _viewportOptions() {
     return {
-      x: (p1.x + p2.x) / 2,
-      y: (p1.y + p2.y) / 2
+      minPanMovementThreshold: MIN_PAN_MOVEMENT_THRESHOLD,
+      zoomIncrement: ZOOM_INCREMENT,
+      minZoomScale: MIN_ZOOM_SCALE,
+      maxZoomScale: MAX_ZOOM_SCALE,
+      tooltipOffsetPx: TOOLTIP_OFFSET_PX
     };
   }
-  _onPointerMove(event, svg2, tooltip) {
-    if (this._activePointers.has(event.pointerId)) {
-      this._activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
-    }
-    if (this._activePointers.size === 2 && this._pinchStartDistance !== null && this._pinchStartScale !== null) {
-      const [p1, p2] = Array.from(this._activePointers.values());
-      const currentDistance = this._getDistance(p1, p2);
-      const scaleFactor = currentDistance / this._pinchStartDistance;
-      const newScale = Math.min(
-        MAX_ZOOM_SCALE,
-        Math.max(MIN_ZOOM_SCALE, this._pinchStartScale * scaleFactor)
-      );
-      this._viewTransform.scale = Number(newScale.toFixed(2));
-      this._panMoved = true;
-      this._applyTransform(svg2);
-      return;
-    }
-    if (this._isPanning && this._panStart) {
-      const nextX = event.clientX - this._panStart.x;
-      const nextY = event.clientY - this._panStart.y;
-      if (Math.abs(nextX - this._viewTransform.x) > MIN_PAN_MOVEMENT_THRESHOLD || Math.abs(nextY - this._viewTransform.y) > MIN_PAN_MOVEMENT_THRESHOLD) {
-        this._panMoved = true;
+  _viewportCallbacks() {
+    return {
+      onNodeSelected: (nodeName) => {
+        this._selectedNode = nodeName;
+        this._render();
+      },
+      onHoverEdge: (edge) => {
+        this._hoveredEdge = edge ?? void 0;
+      },
+      onHoverNode: (nodeName) => {
+        this._hoveredNode = nodeName ?? void 0;
+      },
+      onOpenContextMenu: (x, y, nodeName) => {
+        this._removeContextMenu();
+        this._contextMenu = { nodeName, x, y };
+        this._showContextMenu();
+      },
+      onUpdateTransform: (transform) => {
+        this._viewportState.viewTransform = transform;
       }
-      this._viewTransform.x = nextX;
-      this._viewTransform.y = nextY;
-      this._applyTransform(svg2);
-      return;
-    }
-    const edge = this._findEdgeFromTarget(event.target);
-    if (edge) {
-      this._hoveredEdge = edge;
-      this._hoveredNode = void 0;
-      tooltip.hidden = false;
-      tooltip.classList.add("unifi-network-map__tooltip--edge");
-      tooltip.innerHTML = this._renderEdgeTooltip(edge);
-      tooltip.style.transform = "none";
-      tooltip.style.left = `${event.clientX + TOOLTIP_OFFSET_PX}px`;
-      tooltip.style.top = `${event.clientY + TOOLTIP_OFFSET_PX}px`;
-      return;
-    }
-    this._hoveredEdge = void 0;
-    const label = this._resolveNodeName(event);
-    if (!label) {
-      this._hoveredNode = void 0;
-      this._hideTooltip(tooltip);
-      return;
-    }
-    this._hoveredNode = label;
-    tooltip.hidden = false;
-    tooltip.classList.remove("unifi-network-map__tooltip--edge");
-    tooltip.textContent = label;
-    tooltip.style.transform = "none";
-    tooltip.style.left = `${event.clientX + TOOLTIP_OFFSET_PX}px`;
-    tooltip.style.top = `${event.clientY + TOOLTIP_OFFSET_PX}px`;
+    };
+  }
+  _applyTransform(svg2) {
+    applyTransform(svg2, this._viewportState.viewTransform, this._viewportState.isPanning);
+  }
+  _applyZoom(delta, svg2) {
+    applyZoom(svg2, delta, this._viewportState, this._viewportOptions(), this._viewportCallbacks());
+  }
+  _onWheel(event, svg2) {
+    onWheel(event, svg2, this._viewportState, this._viewportOptions(), this._viewportCallbacks());
+  }
+  _onPointerDown(event) {
+    const controls = this.querySelector(".unifi-network-map__controls");
+    onPointerDown(event, this._viewportState, controls);
+  }
+  _onPointerMove(event, svg2, tooltip) {
+    onPointerMove(
+      event,
+      svg2,
+      this._viewportState,
+      this._viewportOptions(),
+      createDefaultViewportHandlers(this._payload?.edges),
+      this._viewportCallbacks(),
+      tooltip
+    );
   }
   _onPointerUp(event) {
-    this._activePointers.delete(event.pointerId);
-    if (this._activePointers.size < 2) {
-      this._pinchStartDistance = null;
-      this._pinchStartScale = null;
-    }
-    if (this._activePointers.size === 0) {
-      this._isPanning = false;
-      this._panStart = null;
-    }
+    onPointerUp(event, this._viewportState);
+  }
+  _hideTooltip(tooltip) {
+    tooltip.hidden = true;
+    tooltip.classList.remove("unifi-network-map__tooltip--edge");
   }
   _onClick(event, tooltip) {
     if (this._isControlTarget(event.target)) {
       return;
     }
-    if (this._panMoved) {
+    if (this._viewportState.panMoved) {
       return;
     }
-    const label = this._resolveNodeName(event) ?? this._hoveredNode;
+    const label = resolveNodeName(event) ?? this._hoveredNode;
     if (!label) {
       return;
     }
@@ -3303,49 +3461,14 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._hideTooltip(tooltip);
     this._render();
   }
-  _hideTooltip(tooltip) {
-    tooltip.hidden = true;
-    tooltip.classList.remove("unifi-network-map__tooltip--edge");
-  }
-  _annotateEdges(svg2) {
-    if (!this._payload?.edges) return;
-    annotateEdges(svg2, this._payload.edges);
-  }
-  _findEdgeFromTarget(target) {
-    if (!this._payload?.edges) return null;
-    return findEdgeFromTarget(target, this._payload.edges);
-  }
-  _renderEdgeTooltip(edge) {
-    return renderEdgeTooltip(edge);
-  }
-  _applyTransform(svg2) {
-    const { x, y, scale } = this._viewTransform;
-    svg2.style.transformOrigin = "0 0";
-    svg2.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
-    svg2.style.cursor = this._isPanning ? "grabbing" : "grab";
-  }
   _resolveNodeName(event) {
     return resolveNodeName(event);
   }
-  _isControlTarget(target) {
-    return Boolean(target?.closest(".unifi-network-map__controls"));
-  }
-  _applyZoom(delta, svg2) {
-    const nextScale = Math.min(
-      MAX_ZOOM_SCALE,
-      Math.max(MIN_ZOOM_SCALE, this._viewTransform.scale + delta)
-    );
-    this._viewTransform.scale = Number(nextScale.toFixed(2));
-    this._applyTransform(svg2);
-  }
-  _resetPan(svg2) {
-    this._viewTransform = { x: 0, y: 0, scale: 1 };
-    this._selectedNode = void 0;
-    this._applyTransform(svg2);
-    this._render();
-  }
   _inferNodeName(target) {
     return inferNodeName(target);
+  }
+  _findNodeElement(svg2, nodeName) {
+    return findNodeElement(svg2, nodeName);
   }
   _highlightSelectedNode(svg2) {
     highlightSelectedNode(svg2, this._selectedNode);
@@ -3353,11 +3476,18 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   _clearNodeSelection(svg2) {
     clearNodeSelection(svg2);
   }
-  _findNodeElement(svg2, nodeName) {
-    return findNodeElement(svg2, nodeName);
-  }
   _markNodeSelected(element) {
     markNodeSelected(element);
+  }
+  _annotateEdges(svg2) {
+    if (!this._payload?.edges) return;
+    annotateEdges(svg2, this._payload.edges);
+  }
+  _renderEdgeTooltip(edge) {
+    return renderEdgeTooltip(edge);
+  }
+  _isControlTarget(target) {
+    return Boolean(target?.closest(".unifi-network-map__controls"));
   }
 };
 
