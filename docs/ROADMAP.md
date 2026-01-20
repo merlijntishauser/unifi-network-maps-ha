@@ -96,8 +96,6 @@ Methods to break down for readability:
 
 
 ## Recently Completed
-- Race condition fix in Lovelace retry (atomic counter increment)
-- Implemented mobile friendly touch gestures
-- Refactored the lovelace card into different modules for improved maintainability
+
 
 See [CHANGELOG.md](CHANGELOG.md) for full history.

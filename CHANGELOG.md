@@ -7,7 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.3]
+## [0.1.4] - 2026-01-20
+### Added
+- Implemented mobile friendly touch gestures
+
+### Fixed
+- Race condition fix in Lovelace retry (atomic counter increment)
+
+### Changed
+- Refactored the lovelace card into different modules for improved maintainability
+
+## [0.1.3] - 2026-01-19
 ### Added
 - Custom entity modal with related entities overview.
 - Edge hover tooltip showing connection details.
@@ -41,7 +51,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2026-01-17
 - Initial public release.
 
-[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.1.4
 [0.1.3]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.1.3
 [0.1.2]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.1.2
 [0.1.1]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.1.1
