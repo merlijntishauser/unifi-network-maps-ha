@@ -369,7 +369,7 @@ def authenticated_page(
     }
 
     page.add_init_script(
-        """(tokens) => {
+        script="""(tokens) => {
             const now = Date.now();
             const expiresIn = Number(tokens.expires_in || 0) * 1000;
             localStorage.setItem('hassTokens', JSON.stringify({
@@ -380,7 +380,7 @@ def authenticated_page(
                 expires: now + expiresIn
             }));
         }""",
-        token_payload,
+        arg=token_payload,
     )
 
     page.goto(HA_URL, wait_until="networkidle")
