@@ -69,7 +69,7 @@ def test_frontend_bundle_served(ha_client: httpx.Client, entry_id: str) -> None:
     )
 
 
-@SKIP_BROWSER_IN_CI
+@SKIP_BROWSER_IN_CI  # type: ignore[misc]
 def test_lovelace_resource_registered(
     ha_client: httpx.Client, entry_id: str, authenticated_page: Page
 ) -> None:

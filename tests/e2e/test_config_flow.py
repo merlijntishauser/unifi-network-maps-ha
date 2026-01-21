@@ -49,7 +49,7 @@ def test_integration_appears_in_add_dialog(
     ha_client.delete(f"/api/config/config_entries/flow/{flow_data['flow_id']}")
 
 
-@SKIP_BROWSER_IN_CI
+@SKIP_BROWSER_IN_CI  # type: ignore[misc]
 def test_integration_entry_visible_on_integrations_page(
     authenticated_page: Page,
     entry_id: str,
