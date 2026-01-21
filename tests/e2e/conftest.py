@@ -213,15 +213,41 @@ def docker_services() -> Generator[None, None, None]:
     _ensure_auth_provider_credentials(storage_dir)
     _reset_ha_storage(storage_dir)
 
+    # Debug: show resolved docker-compose config
+    print("\n=== Docker compose environment ===")
+    print(f"HA_CONFIG_DIR={os.environ.get('HA_CONFIG_DIR', 'not set')}")
+    print(f"CUSTOM_COMPONENTS_DIR={os.environ.get('CUSTOM_COMPONENTS_DIR', 'not set')}")
+
+    # Verify paths exist
+    custom_components = Path(os.environ.get("CUSTOM_COMPONENTS_DIR", ""))
+    if custom_components.exists():
+        print(f"custom_components path exists: {custom_components}")
+        integration_dir = custom_components / "unifi_network_map"
+        if integration_dir.exists():
+            print(f"Integration dir contents: {list(integration_dir.iterdir())[:10]}")
+            manifest_path = integration_dir / "manifest.json"
+            if manifest_path.exists():
+                print(f"manifest.json found: {manifest_path.read_text()[:200]}")
+        else:
+            print(f"WARNING: Integration dir does not exist: {integration_dir}")
+    else:
+        print(f"WARNING: custom_components path does not exist: {custom_components}")
+
     # Start services fresh
-    subprocess.run(
+    result = subprocess.run(
         ["docker", "compose", "-f", str(compose_file), "up", "-d", "--build", "--wait"],
-        check=True,
         capture_output=True,
+        text=True,
     )
+    if result.returncode != 0:
+        print(f"Docker compose up failed:\n{result.stdout}\n{result.stderr}")
+        raise RuntimeError(f"Docker compose up failed: {result.stderr}")
 
     # Wait for HA to be fully ready
     _wait_for_ha_ready()
+
+    # Wait for our integration to be loaded
+    _wait_for_integration_loaded()
 
     yield
 
@@ -248,6 +274,121 @@ def _wait_for_ha_ready(timeout: int = 120) -> None:
             pass
         time.sleep(2)
     raise TimeoutError(f"Home Assistant not ready after {timeout}s")
+
+
+def _wait_for_integration_loaded(timeout: int = 90) -> None:
+    """Wait for our custom integration to be loaded by HA."""
+    # First get an auth token
+    with httpx.Client(base_url=HA_URL, timeout=30) as client:
+        flow_id = _start_login_flow(client, f"{HA_URL}/")
+        auth_result = _submit_login_flow(client, flow_id)
+        token_response = client.post(
+            "/auth/token",
+            data={
+                "grant_type": "authorization_code",
+                "code": auth_result["result"],
+                "client_id": f"{HA_URL}/",
+            },
+        )
+        token_response.raise_for_status()
+        token = token_response.json()["access_token"]
+
+    headers = {"Authorization": f"Bearer {token}"}
+    start = time.time()
+    last_handlers: list[str] = []
+
+    while time.time() - start < timeout:
+        try:
+            response = httpx.get(
+                f"{HA_URL}/api/config/config_entries/flow_handlers",
+                headers=headers,
+                timeout=10,
+            )
+            if response.status_code == 200:
+                handlers = response.json()
+                last_handlers = handlers
+                if "unifi_network_map" in handlers:
+                    print(f"Integration loaded successfully after {time.time() - start:.1f}s")
+                    return
+        except httpx.RequestError:
+            pass
+        time.sleep(3)
+
+    # Debug: show what's in the container
+    _debug_container_state()
+    raise TimeoutError(
+        f"Integration unifi_network_map not loaded after {timeout}s. "
+        f"Available handlers: {last_handlers[:20]}..."
+    )
+
+
+def _debug_container_state() -> None:
+    """Print debug info about the container state."""
+    compose_file = E2E_DIR / "docker-compose.yml"
+    print("\n=== DEBUG: Container state ===")
+
+    # Show custom_components contents in container
+    result = subprocess.run(
+        [
+            "docker",
+            "compose",
+            "-f",
+            str(compose_file),
+            "exec",
+            "-T",
+            "homeassistant",
+            "ls",
+            "-la",
+            "/config/custom_components/",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    print(f"custom_components dir:\n{result.stdout}\n{result.stderr}")
+
+    # Show unifi_network_map contents
+    result = subprocess.run(
+        [
+            "docker",
+            "compose",
+            "-f",
+            str(compose_file),
+            "exec",
+            "-T",
+            "homeassistant",
+            "ls",
+            "-la",
+            "/config/custom_components/unifi_network_map/",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    print(f"unifi_network_map dir:\n{result.stdout}\n{result.stderr}")
+
+    # Show HA logs for integration loading errors
+    result = subprocess.run(
+        [
+            "docker",
+            "compose",
+            "-f",
+            str(compose_file),
+            "logs",
+            "homeassistant",
+            "--tail=100",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    # Filter for relevant logs
+    relevant_lines = [
+        line
+        for line in result.stdout.split("\n")
+        if "unifi" in line.lower()
+        or "custom_component" in line.lower()
+        or "error" in line.lower()
+        or "exception" in line.lower()
+    ]
+    print("Relevant HA logs:\n" + "\n".join(relevant_lines[-30:]))
 
 
 @typed_fixture(scope="session")
