@@ -55,6 +55,9 @@ def typed_fixture(*args: Any, **kwargs: Any) -> Callable[[F], F]:
 
 def _reset_ha_storage(storage_dir: Path) -> None:
     """Reset HA storage to clean state before tests."""
+    # Completely clear storage dir to avoid stale files from different HA versions
+    if storage_dir.exists():
+        shutil.rmtree(storage_dir)
     storage_dir.mkdir(parents=True, exist_ok=True)
 
     # Reset config entries
@@ -219,8 +222,8 @@ def docker_services() -> Generator[None, None, None]:
 
     # Set up storage before starting services
     _config_dir, storage_dir = _ensure_writable_config_dir()
-    _ensure_auth_provider_credentials(storage_dir)
-    _reset_ha_storage(storage_dir)
+    _reset_ha_storage(storage_dir)  # Clear old storage first
+    _ensure_auth_provider_credentials(storage_dir)  # Then create auth provider
 
     # Debug: show resolved docker-compose config
     print("\n=== Docker compose environment ===")
