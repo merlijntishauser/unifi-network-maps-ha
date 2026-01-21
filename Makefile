@@ -119,7 +119,7 @@ ci: pre-commit-run
 
 version: version-bump
 
-release: ci version-bump
+release: ci test-e2e version-bump
 	@version=$$(cat $(VERSION_FILE)); \
 	if ! echo "$$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$$'; then \
 		echo "Invalid semver in $(VERSION_FILE): $$version"; exit 1; \
