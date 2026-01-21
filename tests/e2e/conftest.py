@@ -42,14 +42,65 @@ def typed_fixture(*args: Any, **kwargs: Any) -> Callable[[F], F]:
 
 def _reset_ha_storage(storage_dir: Path) -> None:
     """Reset HA storage to clean state before tests."""
+    storage_dir.mkdir(parents=True, exist_ok=True)
+
+    # Reset config entries
     config_entries_path = storage_dir / "core.config_entries"
-    if config_entries_path.exists():
-        config_entries_path.write_text("""{
+    config_entries_path.write_text("""{
   "version": 1,
   "minor_version": 4,
   "key": "core.config_entries",
   "data": {
     "entries": []
+  }
+}
+""")
+
+    # Ensure onboarding is marked complete
+    onboarding_path = storage_dir / "onboarding"
+    onboarding_path.write_text("""{
+  "version": 4,
+  "minor_version": 1,
+  "key": "onboarding",
+  "data": {
+    "done": ["user", "core_config", "analytics", "integration"]
+  }
+}
+""")
+
+    # Ensure auth storage has the test user
+    auth_path = storage_dir / "auth"
+    auth_path.write_text("""{
+  "version": 1,
+  "minor_version": 1,
+  "key": "auth",
+  "data": {
+    "users": [
+      {
+        "id": "e2e_test_user_id",
+        "group_ids": ["system-admin"],
+        "is_owner": true,
+        "is_active": true,
+        "name": "E2E Test User",
+        "system_generated": false,
+        "local_only": false
+      }
+    ],
+    "groups": [
+      {"id": "system-admin", "name": "Administrators"},
+      {"id": "system-users", "name": "Users"},
+      {"id": "system-read-only", "name": "Read Only"}
+    ],
+    "credentials": [
+      {
+        "id": "e2e_test_credential_id",
+        "user_id": "e2e_test_user_id",
+        "auth_provider_type": "homeassistant",
+        "auth_provider_id": null,
+        "data": {"username": "admin"}
+      }
+    ],
+    "refresh_tokens": []
   }
 }
 """)
@@ -111,9 +162,9 @@ def _make_tree_readable(src: Path) -> None:
 
 def _ensure_auth_provider_credentials(storage_dir: Path) -> None:
     """Ensure HA has the expected username/password in auth provider storage."""
+    storage_dir.mkdir(parents=True, exist_ok=True)
     auth_provider_path = storage_dir / "auth_provider.homeassistant"
     if not auth_provider_path.exists():
-        HA_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
         payload = {
             "version": 1,
             "minor_version": 1,
