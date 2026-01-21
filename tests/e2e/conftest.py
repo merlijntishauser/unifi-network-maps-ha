@@ -367,21 +367,20 @@ def authenticated_page(
         "expires_in": ha_tokens.get("expires_in"),
         "token_type": ha_tokens.get("token_type", "Bearer"),
     }
-
-    page.add_init_script(
-        script="""(tokens) => {
-            const now = Date.now();
-            const expiresIn = Number(tokens.expires_in || 0) * 1000;
-            localStorage.setItem('hassTokens', JSON.stringify({
-                access_token: tokens.access_token,
-                refresh_token: tokens.refresh_token,
-                expires_in: tokens.expires_in,
-                token_type: tokens.token_type || 'Bearer',
-                expires: now + expiresIn
-            }));
-        }""",
-        arg=token_payload,
-    )
+    payload = json.dumps(token_payload)
+    script = f"""
+        const tokens = {payload};
+        const now = Date.now();
+        const expiresIn = Number(tokens.expires_in || 0) * 1000;
+        localStorage.setItem('hassTokens', JSON.stringify({{
+            access_token: tokens.access_token,
+            refresh_token: tokens.refresh_token,
+            expires_in: tokens.expires_in,
+            token_type: tokens.token_type || 'Bearer',
+            expires: now + expiresIn
+        }}));
+    """
+    page.add_init_script(script=script)
 
     page.goto(HA_URL, wait_until="networkidle")
 
