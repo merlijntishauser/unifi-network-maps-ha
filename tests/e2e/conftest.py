@@ -187,18 +187,17 @@ def _wait_for_ha_ready(timeout: int = 120) -> None:
 
 
 @typed_fixture(scope="session")
-def ha_auth_token(docker_services: None) -> str:
-    """Get an auth token from Home Assistant."""
+def ha_tokens(docker_services: None) -> dict[str, object]:
+    """Get auth tokens from Home Assistant."""
     # HA uses OAuth2-like flow, so we need to:
     # 1. Initiate login flow
     # 2. Submit credentials
-    # 3. Exchange code for token
+    # 3. Exchange code for tokens
 
     with httpx.Client(base_url=HA_URL, timeout=30) as client:
         flow_id = _start_login_flow(client, f"{HA_URL}/")
         auth_result = _submit_login_flow(client, flow_id)
 
-        # Exchange code for token
         token_response = client.post(
             "/auth/token",
             data={
@@ -208,9 +207,16 @@ def ha_auth_token(docker_services: None) -> str:
             },
         )
         token_response.raise_for_status()
-        token_data = token_response.json()
+        return token_response.json()
 
-        return token_data["access_token"]
+
+@typed_fixture(scope="session")
+def ha_auth_token(ha_tokens: dict[str, object]) -> str:
+    """Get an access token from Home Assistant."""
+    access_token = ha_tokens.get("access_token")
+    if not isinstance(access_token, str):
+        raise RuntimeError(f"Invalid token response: {ha_tokens}")
+    return access_token
 
 
 def _start_login_flow(client: httpx.Client, redirect_uri: str) -> str:
@@ -352,7 +358,7 @@ def browser_context_args(browser_context_args: dict[str, Any]) -> dict[str, Any]
 @typed_fixture
 def authenticated_page(
     page: Page,
-    ha_auth_token: str,
+    ha_tokens: dict[str, object],
 ) -> Page:
     """Return a Playwright page authenticated with HA."""
     # First navigate to HA - this may redirect to auth page
@@ -363,17 +369,27 @@ def authenticated_page(
 
     # Inject auth token into localStorage
     # This should work even on the auth page
+    token_payload = {
+        "access_token": ha_tokens.get("access_token"),
+        "refresh_token": ha_tokens.get("refresh_token"),
+        "expires_in": ha_tokens.get("expires_in"),
+        "token_type": ha_tokens.get("token_type", "Bearer"),
+        "hassUrl": HA_URL,
+    }
     page.evaluate(
-        """(token) => {
+        """(tokens) => {
+            const now = Date.now();
+            const expiresIn = Number(tokens.expires_in || 0) * 1000;
             localStorage.setItem('hassTokens', JSON.stringify({
-                access_token: token,
-                token_type: 'Bearer',
-                hassUrl: '"""
-        + HA_URL
-        + """'
+                access_token: tokens.access_token,
+                refresh_token: tokens.refresh_token,
+                expires_in: tokens.expires_in,
+                token_type: tokens.token_type || 'Bearer',
+                expires: now + expiresIn,
+                hassUrl: tokens.hassUrl
             }));
         }""",
-        ha_auth_token,
+        token_payload,
     )
 
     # Navigate to the main page again - now with auth
