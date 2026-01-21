@@ -8,9 +8,28 @@ on:
   workflow_dispatch:
 
 jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      versions: ${{ steps.matrix.outputs.versions }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install matrix dependencies
+        run: python -m pip install pyyaml
+      - name: Build matrix
+        id: matrix
+        run: |
+          versions=$(python tests/e2e/scripts/ha_matrix.py --github)
+          echo "versions=$versions" >> "$GITHUB_OUTPUT"
+
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    needs: matrix
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.matrix.outputs.versions) }}
+    name: e2e (${{ matrix.name }})
 
     steps:
       - uses: actions/checkout@v4
@@ -42,6 +61,9 @@ jobs:
         run: |
           docker compose -f tests/e2e/docker-compose.yml up -d --build --wait
         timeout-minutes: 10
+        env:
+          HA_IMAGE_TAG: ${{ matrix.image_tag }}
+          HA_CONFIG_DIR: ./tests/e2e/${{ matrix.config_dir }}
 
       - name: Wait for Home Assistant
         run: |
@@ -54,6 +76,8 @@ jobs:
         env:
           HA_URL: http://localhost:28123
           MOCK_UNIFI_URL: http://localhost:18443
+          HA_IMAGE_TAG: ${{ matrix.image_tag }}
+          HA_CONFIG_DIR: ./tests/e2e/${{ matrix.config_dir }}
 
       - name: Upload test artifacts
         if: failure()
@@ -72,8 +96,14 @@ jobs:
           echo ""
           echo "=== Mock UniFi logs ==="
           docker compose -f tests/e2e/docker-compose.yml logs mock-unifi --tail=100
+        env:
+          HA_IMAGE_TAG: ${{ matrix.image_tag }}
+          HA_CONFIG_DIR: ./tests/e2e/${{ matrix.config_dir }}
 
       - name: Stop Docker services
         if: always()
         run: |
           docker compose -f tests/e2e/docker-compose.yml down -v
+        env:
+          HA_IMAGE_TAG: ${{ matrix.image_tag }}
+          HA_CONFIG_DIR: ./tests/e2e/${{ matrix.config_dir }}

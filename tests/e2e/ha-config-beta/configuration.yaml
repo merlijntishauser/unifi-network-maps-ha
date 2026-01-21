@@ -1,0 +1,21 @@
+# Home Assistant E2E Test Configuration
+default_config:
+
+logger:
+  default: info
+  logs:
+    custom_components.unifi_network_map: debug
+    homeassistant.config_entries: debug
+
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 127.0.0.1
+    - 172.16.0.0/12
+
+# Enable frontend for card testing
+frontend:
+  themes: {}
+
+lovelace:
+  mode: storage
