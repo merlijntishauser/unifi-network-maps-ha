@@ -195,6 +195,7 @@ playwright-report/
 tests/e2e/ha-config/home-assistant.log*
 tests/e2e/ha-config/home-assistant_v2.db*
 tests/e2e/ha-config/tts/
+tests/e2e/ha-config/.ha_run.lock
 tests/e2e/ha-config/.storage/core.restore_state*
 tests/e2e/ha-config/.storage/lovelace*
 
