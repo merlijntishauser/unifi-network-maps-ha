@@ -65,11 +65,31 @@ def _ensure_writable_config_dir() -> tuple[Path, Path]:
         return HA_CONFIG_DIR, HA_STORAGE_DIR
 
     temp_dir = Path(tempfile.mkdtemp(prefix="ha-config-"))
-    shutil.copytree(HA_CONFIG_DIR, temp_dir, dirs_exist_ok=True)
+    try:
+        shutil.copytree(HA_CONFIG_DIR, temp_dir, dirs_exist_ok=True)
+    except shutil.Error:
+        _copytree_readable(HA_CONFIG_DIR, temp_dir)
     config_dir = temp_dir
     storage_dir = config_dir / ".storage"
     os.environ["HA_CONFIG_DIR"] = str(config_dir)
     return config_dir, storage_dir
+
+
+def _copytree_readable(src: Path, dst: Path) -> None:
+    """Copy only readable files to avoid permission errors in CI."""
+    for root, _dirs, files in os.walk(src):
+        root_path = Path(root)
+        rel_root = root_path.relative_to(src)
+        target_root = dst / rel_root
+        target_root.mkdir(parents=True, exist_ok=True)
+        for name in files:
+            src_path = root_path / name
+            if not os.access(src_path, os.R_OK):
+                continue
+            try:
+                shutil.copy2(src_path, target_root / name)
+            except OSError:
+                continue
 
 
 def _ensure_auth_provider_credentials(storage_dir: Path) -> None:
