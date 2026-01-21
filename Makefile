@@ -1,4 +1,4 @@
-.PHONY: help venv install install-dev test test-unit test-integration test-contract test-e2e test-e2e-debug format frontend-install frontend-build frontend-test frontend-typecheck frontend-lint frontend-format pre-commit-install pre-commit-run ci version-bump version release release-hotfix clean
+.PHONY: help venv install install-dev test test-unit test-integration test-contract test-e2e test-e2e-debug test-e2e-all format frontend-install frontend-build frontend-test frontend-typecheck frontend-lint frontend-format pre-commit-install pre-commit-run ci version-bump version release release-hotfix clean
 
 VENV_DIR := .venv
 PYTHON_BIN := $(shell command -v python3.13 >/dev/null 2>&1 && echo python3.13 || echo python3)
@@ -18,6 +18,7 @@ help:
 	@echo "  test-contract   Run contract tests"
 	@echo "  test-e2e        Run E2E tests with Docker (requires Docker)"
 	@echo "  test-e2e-debug  Run E2E tests with visible browser"
+	@echo "  test-e2e-all    Run E2E tests for all HA versions in tests/e2e/ha-matrix.yaml"
 	@echo "  format          Run ruff format on the repo"
 	@echo "  frontend-install Install frontend deps (requires Node.js)"
 	@echo "  frontend-build  Run frontend build (requires Node.js)"
@@ -83,6 +84,8 @@ test-e2e-debug: frontend-build
 	@echo "Stopping Docker services..."
 	docker compose -f tests/e2e/docker-compose.yml down -v
 
+test-e2e-all: frontend-build
+	@python tests/e2e/scripts/run_e2e_matrix.py
 format: install-dev
 	$(VENV_DIR)/bin/ruff format .
 
