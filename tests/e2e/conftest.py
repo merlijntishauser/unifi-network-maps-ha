@@ -57,7 +57,14 @@ def _ensure_auth_provider_credentials() -> None:
     """Ensure HA has the expected username/password in auth provider storage."""
     auth_provider_path = HA_STORAGE_DIR / "auth_provider.homeassistant"
     if not auth_provider_path.exists():
-        raise FileNotFoundError(f"Missing auth provider storage at {auth_provider_path}")
+        HA_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "version": 1,
+            "minor_version": 1,
+            "key": "auth_provider.homeassistant",
+            "data": {"users": []},
+        }
+        auth_provider_path.write_text(json.dumps(payload, indent=2))
     payload = json.loads(auth_provider_path.read_text())
 
     users = payload.get("data", {}).get("users", [])
