@@ -4,10 +4,33 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import json
+import os
+import time
+from pathlib import Path
+
 import pytest
 
 if TYPE_CHECKING:
     import httpx
+    from playwright.sync_api import Page
+
+E2E_DIR = Path(__file__).resolve().parent
+HA_STORAGE_DIR = E2E_DIR / "ha-config" / ".storage"
+HA_URL = os.environ.get("HA_URL", "http://localhost:28123")
+
+
+def _read_lovelace_resources_from_storage(timeout: int = 10) -> list[dict[str, object]]:
+    """Read Lovelace resources from storage, waiting for them to appear."""
+    storage_path = HA_STORAGE_DIR / "lovelace_resources"
+    start = time.time()
+    while time.time() - start < timeout:
+        if storage_path.exists():
+            data = json.loads(storage_path.read_text())
+            return data.get("data", {}).get("items", [])
+        time.sleep(0.5)
+    return []
+
 
 pytestmark = pytest.mark.usefixtures("docker_services")
 
@@ -41,23 +64,34 @@ def test_frontend_bundle_served(ha_client: httpx.Client, entry_id: str) -> None:
     )
 
 
-def test_lovelace_resource_registered(ha_client: httpx.Client, entry_id: str) -> None:
+def test_lovelace_resource_registered(
+    ha_client: httpx.Client, entry_id: str, authenticated_page: Page
+) -> None:
     """Verify Lovelace resource is auto-registered.
 
     Note: The Lovelace resource is registered when a config entry is created,
     so this test requires the entry_id fixture.
     """
     response = ha_client.get("/api/lovelace/resources")
-
-    # Note: This may return 404 if no resources configured yet
+    resources: list[dict[str, object]]
     if response.status_code == 404:
-        pytest.skip("Lovelace resources not available (no dashboard configured)")
+        # Force Lovelace frontend to initialize, then retry
+        authenticated_page.goto(f"{HA_URL}/lovelace/e2e-test")
+        authenticated_page.wait_for_load_state("networkidle")
+        response = ha_client.get("/api/lovelace/resources")
 
-    response.raise_for_status()
-    resources = response.json()
+    if response.status_code == 404:
+        resources = _read_lovelace_resources_from_storage()
+    else:
+        response.raise_for_status()
+        resources = response.json()
 
     # Look for our resource
-    resource_urls = [r.get("url", "") for r in resources]
+    resource_urls: list[str] = []
+    for resource in resources:
+        url = resource.get("url")
+        if isinstance(url, str):
+            resource_urls.append(url)
     matching = [url for url in resource_urls if "unifi-network-map" in url]
 
     assert matching, f"Lovelace resource not found. Available: {resource_urls}"

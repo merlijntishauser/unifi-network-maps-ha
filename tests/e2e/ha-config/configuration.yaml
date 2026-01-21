@@ -16,3 +16,6 @@ http:
 # Enable frontend for card testing
 frontend:
   themes: {}
+
+lovelace:
+  mode: storage
