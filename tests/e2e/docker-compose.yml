@@ -1,0 +1,28 @@
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    volumes:
+      - ./ha-config:/config
+      - ../../custom_components:/config/custom_components:ro
+    ports:
+      - "28123:8123"
+    environment:
+      - TZ=UTC
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -o /dev/null -w '%{http_code}' http://localhost:8123/api/ | grep -qE '^(200|401)$'"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 30s
+    depends_on:
+      mock-unifi:
+        condition: service_healthy
+
+  mock-unifi:
+    build: ./mock-unifi
+    ports:
+      - "18443:8443"
+    environment:
+      - UNIFI_USERNAME=admin
+      - UNIFI_PASSWORD=test123
+      - UNIFI_SITE=default
