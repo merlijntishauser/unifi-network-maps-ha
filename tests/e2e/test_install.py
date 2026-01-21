@@ -16,7 +16,8 @@ if TYPE_CHECKING:
     from playwright.sync_api import Page
 
 E2E_DIR = Path(__file__).resolve().parent
-HA_STORAGE_DIR = E2E_DIR / "ha-config" / ".storage"
+HA_CONFIG_DIR = Path(os.environ.get("HA_CONFIG_DIR", E2E_DIR / "ha-config-2026.1.2"))
+HA_STORAGE_DIR = HA_CONFIG_DIR / ".storage"
 HA_URL = os.environ.get("HA_URL", "http://localhost:28123")
 
 

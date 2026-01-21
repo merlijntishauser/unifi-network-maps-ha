@@ -6,6 +6,8 @@ PYTHON := $(VENV_DIR)/bin/python
 PIP := $(VENV_DIR)/bin/pip
 PIP_CACHE_DIR := $(CURDIR)/.venv/.pip-cache
 VERSION_FILE := VERSION
+HA_IMAGE_TAG ?= stable
+HA_CONFIG_DIR ?= $(CURDIR)/tests/e2e/ha-config-stable
 
 help:
 	@echo "Targets:"
@@ -61,38 +63,38 @@ test-e2e: frontend-build
 	$(PIP) install -r tests/e2e/requirements.txt
 	$(VENV_DIR)/bin/playwright install chromium
 	@echo "Starting Docker services..."
-	docker compose -f tests/e2e/docker-compose.yml up -d --build --wait
+	HA_IMAGE_TAG=$(HA_IMAGE_TAG) HA_CONFIG_DIR=$(HA_CONFIG_DIR) docker compose -f tests/e2e/docker-compose.yml up -d --build --wait
 	@echo "Waiting for Home Assistant..."
 	@timeout 120 bash -c 'until curl -sf http://localhost:28123/api/ 2>/dev/null; do sleep 2; done' || true
 	@sleep 10
 	@echo "Running E2E tests..."
-	$(VENV_DIR)/bin/pytest tests/e2e -v --browser chromium || (docker compose -f tests/e2e/docker-compose.yml logs && exit 1)
+	HA_IMAGE_TAG=$(HA_IMAGE_TAG) HA_CONFIG_DIR=$(HA_CONFIG_DIR) $(VENV_DIR)/bin/pytest tests/e2e -v --browser chromium || (HA_IMAGE_TAG=$(HA_IMAGE_TAG) HA_CONFIG_DIR=$(HA_CONFIG_DIR) docker compose -f tests/e2e/docker-compose.yml logs && exit 1)
 	@echo "Stopping Docker services..."
-	docker compose -f tests/e2e/docker-compose.yml down -v
+	HA_IMAGE_TAG=$(HA_IMAGE_TAG) HA_CONFIG_DIR=$(HA_CONFIG_DIR) docker compose -f tests/e2e/docker-compose.yml down -v
 
 test-e2e-debug: frontend-build
 	@echo "Installing E2E test dependencies..."
 	$(PIP) install -r tests/e2e/requirements.txt
 	$(VENV_DIR)/bin/playwright install chromium
 	@echo "Starting Docker services..."
-	docker compose -f tests/e2e/docker-compose.yml up -d --build --wait
+	HA_IMAGE_TAG=$(HA_IMAGE_TAG) HA_CONFIG_DIR=$(HA_CONFIG_DIR) docker compose -f tests/e2e/docker-compose.yml up -d --build --wait
 	@echo "Waiting for Home Assistant..."
 	@timeout 120 bash -c 'until curl -sf http://localhost:28123/api/ 2>/dev/null; do sleep 2; done' || true
 	@sleep 10
 	@echo "Running E2E tests with visible browser..."
-	$(VENV_DIR)/bin/pytest tests/e2e -v --browser chromium --headed --slowmo 500 || true
+	HA_IMAGE_TAG=$(HA_IMAGE_TAG) HA_CONFIG_DIR=$(HA_CONFIG_DIR) $(VENV_DIR)/bin/pytest tests/e2e -v --browser chromium --headed --slowmo 500 || true
 	@echo "Stopping Docker services..."
-	docker compose -f tests/e2e/docker-compose.yml down -v
+	HA_IMAGE_TAG=$(HA_IMAGE_TAG) HA_CONFIG_DIR=$(HA_CONFIG_DIR) docker compose -f tests/e2e/docker-compose.yml down -v
 
-test-e2e-all: frontend-build
-	@python tests/e2e/scripts/run_e2e_matrix.py
+test-e2e-all: install-dev frontend-build
+	@$(PYTHON) tests/e2e/scripts/run_e2e_matrix.py
 format: install-dev
 	$(VENV_DIR)/bin/ruff format .
 
 frontend-install:
 	cd frontend && npm install
 
-frontend-build:
+frontend-build: frontend-install
 	cd frontend && npm run build
 	@mkdir -p custom_components/unifi_network_map/frontend
 	@cp frontend/dist/unifi-network-map.js custom_components/unifi_network_map/frontend/unifi-network-map.js

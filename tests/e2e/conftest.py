@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import base64
+import json
 import os
 import subprocess
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Generator, TypeVar, cast
 
+import bcrypt
 import httpx
 import pytest
 
@@ -22,8 +25,8 @@ HA_STORAGE_DIR = HA_CONFIG_DIR / ".storage"
 STORAGE_TEMPLATE_DIR = E2E_DIR / "ha-config-template" / ".storage"
 
 HA_URL = os.environ.get("HA_URL", "http://localhost:28123")
-HA_USERNAME = "admin"
-HA_PASSWORD = "admin123"
+HA_USERNAME = os.environ.get("HA_USERNAME", "admin")
+HA_PASSWORD = os.environ.get("HA_PASSWORD", "admin123")
 
 MOCK_UNIFI_URL = os.environ.get("MOCK_UNIFI_URL", "http://localhost:18443")
 
@@ -50,12 +53,38 @@ def _reset_ha_storage() -> None:
 """)
 
 
+def _ensure_auth_provider_credentials() -> None:
+    """Ensure HA has the expected username/password in auth provider storage."""
+    auth_provider_path = HA_STORAGE_DIR / "auth_provider.homeassistant"
+    if not auth_provider_path.exists():
+        raise FileNotFoundError(f"Missing auth provider storage at {auth_provider_path}")
+    payload = json.loads(auth_provider_path.read_text())
+
+    users = payload.get("data", {}).get("users", [])
+    if not isinstance(users, list):
+        raise RuntimeError("Invalid auth provider storage format")
+
+    password_hash = bcrypt.hashpw(HA_PASSWORD.encode(), bcrypt.gensalt(rounds=12)).decode()
+    encoded = base64.b64encode(password_hash.encode()).decode()
+
+    updated = False
+    for user in users:
+        if user.get("username") == HA_USERNAME:
+            user["password"] = encoded
+            updated = True
+    if not updated:
+        users.append({"username": HA_USERNAME, "password": encoded})
+    payload["data"]["users"] = users
+    auth_provider_path.write_text(json.dumps(payload, indent=2))
+
+
 @typed_fixture(scope="session")
 def docker_services() -> Generator[None, None, None]:
     """Start and stop Docker Compose stack for the test session."""
     compose_file = E2E_DIR / "docker-compose.yml"
 
     # Start services
+    _ensure_auth_provider_credentials()
     _reset_ha_storage()
     subprocess.run(
         ["docker", "compose", "-f", str(compose_file), "up", "-d", "--build", "--wait"],
@@ -102,30 +131,8 @@ def ha_auth_token(docker_services: None) -> str:
     # 3. Exchange code for token
 
     with httpx.Client(base_url=HA_URL, timeout=30) as client:
-        # Initiate auth flow - requires redirect_uri
-        flow_response = client.post(
-            "/auth/login_flow",
-            json={
-                "client_id": f"{HA_URL}/",
-                "handler": ["homeassistant", None],
-                "redirect_uri": f"{HA_URL}/",
-            },
-        )
-        flow_response.raise_for_status()
-        flow_data = flow_response.json()
-        flow_id = flow_data["flow_id"]
-
-        # Submit credentials - also requires client_id
-        auth_response = client.post(
-            f"/auth/login_flow/{flow_id}",
-            json={
-                "client_id": f"{HA_URL}/",
-                "username": HA_USERNAME,
-                "password": HA_PASSWORD,
-            },
-        )
-        auth_response.raise_for_status()
-        auth_result = auth_response.json()
+        flow_id = _start_login_flow(client, f"{HA_URL}/")
+        auth_result = _submit_login_flow(client, flow_id)
 
         # Exchange code for token
         token_response = client.post(
@@ -140,6 +147,74 @@ def ha_auth_token(docker_services: None) -> str:
         token_data = token_response.json()
 
         return token_data["access_token"]
+
+
+def _start_login_flow(client: httpx.Client, redirect_uri: str) -> str:
+    """Start a login flow and return the flow id, with fallbacks."""
+    payloads: list[dict[str, object]] = [
+        {
+            "client_id": f"{HA_URL}/",
+            "handler": ["homeassistant", None],
+            "redirect_uri": redirect_uri,
+        },
+        {
+            "client_id": f"{HA_URL}/",
+            "handler": "homeassistant",
+            "redirect_uri": redirect_uri,
+        },
+    ]
+    last_error: Exception | None = None
+    for payload in payloads:
+        response = client.post("/auth/login_flow", json=payload)
+        if response.status_code != 200:
+            last_error = httpx.HTTPStatusError(
+                f"Login flow start failed: {response.text}",
+                request=response.request,
+                response=response,
+            )
+            continue
+        data = response.json()
+        flow_id = data.get("flow_id")
+        if not flow_id:
+            last_error = RuntimeError(f"Missing flow_id in response: {data}")
+            continue
+        return str(flow_id)
+    raise RuntimeError(f"Unable to start login flow. {last_error}")
+
+
+def _submit_login_flow(client: httpx.Client, flow_id: str) -> dict[str, object]:
+    """Submit credentials for a login flow, with fallbacks."""
+    payloads: list[dict[str, object]] = [
+        {
+            "client_id": f"{HA_URL}/",
+            "redirect_uri": f"{HA_URL}/",
+            "username": HA_USERNAME,
+            "password": HA_PASSWORD,
+        },
+        {
+            "client_id": f"{HA_URL}/",
+            "username": HA_USERNAME,
+            "password": HA_PASSWORD,
+        },
+    ]
+    last_error: Exception | None = None
+    for payload in payloads:
+        response = client.post(f"/auth/login_flow/{flow_id}", json=payload)
+        if response.status_code != 200:
+            last_error = httpx.HTTPStatusError(
+                f"Login flow submit failed: {response.text}",
+                request=response.request,
+                response=response,
+            )
+            continue
+        data = response.json()
+        if "result" not in data:
+            last_error = RuntimeError(
+                f"Unexpected login flow response: {data}. Check HA_USERNAME/HA_PASSWORD."
+            )
+            continue
+        return data
+    raise RuntimeError(f"Unable to submit login flow. {last_error}")
 
 
 @typed_fixture

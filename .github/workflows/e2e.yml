@@ -71,7 +71,7 @@ jobs:
         timeout-minutes: 10
         env:
           HA_IMAGE_TAG: ${{ matrix.image_tag }}
-          HA_CONFIG_DIR: ./tests/e2e/${{ matrix.config_dir }}
+          HA_CONFIG_DIR: ${{ github.workspace }}/tests/e2e/${{ matrix.config_dir }}
 
       - name: Wait for Home Assistant
         run: |
@@ -85,7 +85,7 @@ jobs:
           HA_URL: http://localhost:28123
           MOCK_UNIFI_URL: http://localhost:18443
           HA_IMAGE_TAG: ${{ matrix.image_tag }}
-          HA_CONFIG_DIR: ./tests/e2e/${{ matrix.config_dir }}
+          HA_CONFIG_DIR: ${{ github.workspace }}/tests/e2e/${{ matrix.config_dir }}
 
       - name: Upload test artifacts
         if: failure()
@@ -106,7 +106,7 @@ jobs:
           docker compose -f tests/e2e/docker-compose.yml logs mock-unifi --tail=100
         env:
           HA_IMAGE_TAG: ${{ matrix.image_tag }}
-          HA_CONFIG_DIR: ./tests/e2e/${{ matrix.config_dir }}
+          HA_CONFIG_DIR: ${{ github.workspace }}/tests/e2e/${{ matrix.config_dir }}
 
       - name: Stop Docker services
         if: always()
@@ -152,7 +152,7 @@ jobs:
         timeout-minutes: 10
         env:
           HA_IMAGE_TAG: stable
-          HA_CONFIG_DIR: ./tests/e2e/ha-config-stable
+          HA_CONFIG_DIR: ${{ github.workspace }}/tests/e2e/ha-config-stable
 
       - name: Wait for Home Assistant
         run: |
@@ -166,7 +166,7 @@ jobs:
           HA_URL: http://localhost:28123
           MOCK_UNIFI_URL: http://localhost:18443
           HA_IMAGE_TAG: stable
-          HA_CONFIG_DIR: ./tests/e2e/ha-config-stable
+          HA_CONFIG_DIR: ${{ github.workspace }}/tests/e2e/ha-config-stable
 
       - name: Upload test artifacts
         if: failure()
@@ -187,7 +187,7 @@ jobs:
           docker compose -f tests/e2e/docker-compose.yml logs mock-unifi --tail=100
         env:
           HA_IMAGE_TAG: stable
-          HA_CONFIG_DIR: ./tests/e2e/ha-config-stable
+          HA_CONFIG_DIR: ${{ github.workspace }}/tests/e2e/ha-config-stable
 
       - name: Stop Docker services
         if: always()

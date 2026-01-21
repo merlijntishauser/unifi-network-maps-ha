@@ -3,13 +3,14 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 
 def main() -> None:
     matrix = subprocess.check_output(
         [
-            "python",
+            sys.executable,
             str(Path("tests/e2e/scripts/ha_matrix.py")),
             "--github",
         ],
@@ -28,8 +29,12 @@ def main() -> None:
             raise SystemExit(f"Invalid matrix entry: {entry}")
         env = os.environ.copy()
         env["HA_IMAGE_TAG"] = image_tag
-        env["HA_CONFIG_DIR"] = f"./tests/e2e/{config_dir}"
-        print(f"==> Running e2e for {name} ({image_tag})", flush=True)
+        config_path = (Path("tests/e2e") / config_dir).resolve()
+        env["HA_CONFIG_DIR"] = str(config_path)
+        print(
+            f"==> Running e2e for {name} ({image_tag}) using {config_path}",
+            flush=True,
+        )
         subprocess.run(["make", "test-e2e"], check=True, env=env)
 
 
