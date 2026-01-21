@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 IS_CI = os.environ.get("CI", "").lower() == "true"
 
 # Skip reason for browser tests in CI
-SKIP_BROWSER_IN_CI = pytest.mark.skipif(
+SKIP_BROWSER_IN_CI: pytest.MarkDecorator = pytest.mark.skipif(
     IS_CI,
     reason="Browser tests skipped in CI due to Chromium stability issues",
 )
