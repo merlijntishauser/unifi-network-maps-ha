@@ -3,7 +3,7 @@ services:
     image: ghcr.io/home-assistant/home-assistant:${HA_IMAGE_TAG:-stable}
     volumes:
       - ${HA_CONFIG_DIR:-./ha-config-2026.1.2}:/config
-      - ../../custom_components:/config/custom_components:ro
+      - ${CUSTOM_COMPONENTS_DIR:-../../custom_components}:/config/custom_components:ro
     ports:
       - "28123:8123"
     environment:

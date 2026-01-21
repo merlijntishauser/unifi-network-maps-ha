@@ -72,15 +72,17 @@ jobs:
         env:
           HA_IMAGE_TAG: ${{ matrix.image_tag }}
           HA_CONFIG_DIR: ${{ github.workspace }}/tests/e2e/${{ matrix.config_dir }}
+          CUSTOM_COMPONENTS_DIR: ${{ github.workspace }}/custom_components
 
       - name: Run E2E tests
         run: |
-          pytest tests/e2e -v --browser chromium --tracing retain-on-failure
+          pytest tests/e2e -v --browser chromium --tracing retain-on-failure -x
         env:
           HA_URL: http://localhost:28123
           MOCK_UNIFI_URL: http://localhost:18443
           HA_IMAGE_TAG: ${{ matrix.image_tag }}
           HA_CONFIG_DIR: ${{ github.workspace }}/tests/e2e/${{ matrix.config_dir }}
+          CUSTOM_COMPONENTS_DIR: ${{ github.workspace }}/custom_components
 
       - name: Upload test artifacts
         if: failure()
@@ -102,6 +104,7 @@ jobs:
         env:
           HA_IMAGE_TAG: ${{ matrix.image_tag }}
           HA_CONFIG_DIR: ${{ github.workspace }}/tests/e2e/${{ matrix.config_dir }}
+          CUSTOM_COMPONENTS_DIR: ${{ github.workspace }}/custom_components
 
       - name: Stop Docker services
         if: always()
@@ -110,6 +113,7 @@ jobs:
         env:
           HA_IMAGE_TAG: ${{ matrix.image_tag }}
           HA_CONFIG_DIR: ./tests/e2e/${{ matrix.config_dir }}
+          CUSTOM_COMPONENTS_DIR: ${{ github.workspace }}/custom_components
 
   e2e-pr:
     runs-on: ubuntu-latest
@@ -148,15 +152,17 @@ jobs:
         env:
           HA_IMAGE_TAG: stable
           HA_CONFIG_DIR: ${{ github.workspace }}/tests/e2e/ha-config-stable
+          CUSTOM_COMPONENTS_DIR: ${{ github.workspace }}/custom_components
 
       - name: Run E2E tests
         run: |
-          pytest tests/e2e -v --browser chromium --tracing retain-on-failure
+          pytest tests/e2e -v --browser chromium --tracing retain-on-failure -x
         env:
           HA_URL: http://localhost:28123
           MOCK_UNIFI_URL: http://localhost:18443
           HA_IMAGE_TAG: stable
           HA_CONFIG_DIR: ${{ github.workspace }}/tests/e2e/ha-config-stable
+          CUSTOM_COMPONENTS_DIR: ${{ github.workspace }}/custom_components
 
       - name: Upload test artifacts
         if: failure()
@@ -178,6 +184,7 @@ jobs:
         env:
           HA_IMAGE_TAG: stable
           HA_CONFIG_DIR: ${{ github.workspace }}/tests/e2e/ha-config-stable
+          CUSTOM_COMPONENTS_DIR: ${{ github.workspace }}/custom_components
 
       - name: Stop Docker services
         if: always()
@@ -186,3 +193,4 @@ jobs:
         env:
           HA_IMAGE_TAG: stable
           HA_CONFIG_DIR: ./tests/e2e/ha-config-stable
+          CUSTOM_COMPONENTS_DIR: ${{ github.workspace }}/custom_components

@@ -26,6 +26,10 @@ HA_CONFIG_DIR = Path(os.environ.get("HA_CONFIG_DIR", E2E_DIR / "ha-config-2026.1
 HA_STORAGE_DIR = HA_CONFIG_DIR / ".storage"
 STORAGE_TEMPLATE_DIR = E2E_DIR / "ha-config-template" / ".storage"
 
+# Ensure CUSTOM_COMPONENTS_DIR is set for docker-compose
+if "CUSTOM_COMPONENTS_DIR" not in os.environ:
+    os.environ["CUSTOM_COMPONENTS_DIR"] = str(E2E_DIR.parent.parent / "custom_components")
+
 HA_URL = os.environ.get("HA_URL", "http://localhost:28123")
 HA_USERNAME = os.environ.get("HA_USERNAME", "admin")
 HA_PASSWORD = os.environ.get("HA_PASSWORD", "admin123")
