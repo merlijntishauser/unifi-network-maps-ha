@@ -44,7 +44,9 @@ def test_integration_appears_in_add_dialog(authenticated_page: Page) -> None:
     integration_item.wait_for(state="visible", timeout=10000)
 
     # Test passed - integration is discoverable in the UI
-    assert integration_item.is_visible(), "UniFi Network Map should appear in Add Integration dialog"
+    assert integration_item.is_visible(), (
+        "UniFi Network Map should appear in Add Integration dialog"
+    )
 
 
 def test_integration_entry_visible_on_integrations_page(

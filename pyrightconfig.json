@@ -1,6 +1,6 @@
 {
   "include": ["custom_components", "tests"],
-  "exclude": [".venv", "frontend", "brand_assets", "tests/e2e"],
+  "exclude": [".venv", "frontend", "brand_assets"],
   "typeCheckingMode": "strict",
   "reportMissingImports": false,
   "reportMissingTypeStubs": false,

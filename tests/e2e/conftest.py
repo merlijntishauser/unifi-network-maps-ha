@@ -6,7 +6,7 @@ import os
 import subprocess
 import time
 from pathlib import Path
-from typing import TYPE_CHECKING, Generator
+from typing import TYPE_CHECKING, Any, Callable, Generator, TypeVar, cast
 
 import httpx
 import pytest
@@ -27,6 +27,13 @@ HA_PASSWORD = "admin123"
 
 MOCK_UNIFI_URL = os.environ.get("MOCK_UNIFI_URL", "http://localhost:18443")
 
+F = TypeVar("F", bound=Callable[..., Any])
+
+
+def typed_fixture(*args: Any, **kwargs: Any) -> Callable[[F], F]:
+    """Provide a typed wrapper around pytest.fixture for pyright."""
+    return cast(Callable[[F], F], pytest.fixture(*args, **kwargs))
+
 
 def _reset_ha_storage() -> None:
     """Reset HA storage to clean state before tests."""
@@ -43,12 +50,13 @@ def _reset_ha_storage() -> None:
 """)
 
 
-@pytest.fixture(scope="session")
+@typed_fixture(scope="session")
 def docker_services() -> Generator[None, None, None]:
     """Start and stop Docker Compose stack for the test session."""
     compose_file = E2E_DIR / "docker-compose.yml"
 
     # Start services
+    _reset_ha_storage()
     subprocess.run(
         ["docker", "compose", "-f", str(compose_file), "up", "-d", "--build", "--wait"],
         check=True,
@@ -85,7 +93,7 @@ def _wait_for_ha_ready(timeout: int = 120) -> None:
     raise TimeoutError(f"Home Assistant not ready after {timeout}s")
 
 
-@pytest.fixture(scope="session")
+@typed_fixture(scope="session")
 def ha_auth_token(docker_services: None) -> str:
     """Get an auth token from Home Assistant."""
     # HA uses OAuth2-like flow, so we need to:
@@ -134,7 +142,7 @@ def ha_auth_token(docker_services: None) -> str:
         return token_data["access_token"]
 
 
-@pytest.fixture
+@typed_fixture
 def ha_client(ha_auth_token: str) -> Generator[httpx.Client, None, None]:
     """Create an authenticated HTTP client for Home Assistant API."""
     with httpx.Client(
@@ -145,7 +153,7 @@ def ha_client(ha_auth_token: str) -> Generator[httpx.Client, None, None]:
         yield client
 
 
-@pytest.fixture
+@typed_fixture
 async def ha_async_client(
     ha_auth_token: str,
 ) -> AsyncGenerator[httpx.AsyncClient, None]:
@@ -158,14 +166,14 @@ async def ha_async_client(
         yield client
 
 
-@pytest.fixture
+@typed_fixture
 def mock_unifi_url() -> str:
     """Return the mock UniFi controller URL accessible from HA container."""
     # Inside Docker network, HA reaches mock-unifi via service name
     return "http://mock-unifi:8443"
 
 
-@pytest.fixture
+@typed_fixture
 def mock_unifi_credentials() -> dict[str, str]:
     """Return credentials for the mock UniFi controller."""
     return {
@@ -176,7 +184,7 @@ def mock_unifi_credentials() -> dict[str, str]:
     }
 
 
-@pytest.fixture(autouse=True)
+@typed_fixture(autouse=True)
 def cleanup_config_entries(ha_client: httpx.Client) -> Generator[None, None, None]:
     """Clean up any config entries created during tests."""
     yield
@@ -192,8 +200,8 @@ def cleanup_config_entries(ha_client: httpx.Client) -> Generator[None, None, Non
             ha_client.delete(f"/api/config/config_entries/entry/{entry['entry_id']}")
 
 
-@pytest.fixture
-def browser_context_args(browser_context_args: dict) -> dict:
+@typed_fixture
+def browser_context_args(browser_context_args: dict[str, Any]) -> dict[str, Any]:
     """Configure browser context for E2E tests."""
     return {
         **browser_context_args,
@@ -202,7 +210,7 @@ def browser_context_args(browser_context_args: dict) -> dict:
     }
 
 
-@pytest.fixture
+@typed_fixture
 def authenticated_page(
     page: Page,
     ha_auth_token: str,
@@ -221,7 +229,9 @@ def authenticated_page(
             localStorage.setItem('hassTokens', JSON.stringify({
                 access_token: token,
                 token_type: 'Bearer',
-                hassUrl: '""" + HA_URL + """'
+                hassUrl: '"""
+        + HA_URL
+        + """'
             }));
         }""",
         ha_auth_token,
@@ -243,8 +253,8 @@ def authenticated_page(
     return page
 
 
-@pytest.fixture
-def entry_id(ha_client: httpx.Client, mock_unifi_credentials: dict) -> str:
+@typed_fixture
+def entry_id(ha_client: httpx.Client, mock_unifi_credentials: dict[str, str]) -> str:
     """Create a config entry and return its ID."""
     # Initialize config flow
     response = ha_client.post(

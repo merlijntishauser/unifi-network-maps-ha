@@ -6,7 +6,7 @@ import json
 import os
 import secrets
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from aiohttp import web
 
@@ -21,7 +21,7 @@ SITE = os.environ.get("UNIFI_SITE", "default")
 sessions: dict[str, bool] = {}
 
 
-def load_fixture(name: str) -> dict:
+def load_fixture(name: str) -> dict[str, Any]:
     """Load a JSON fixture file."""
     path = FIXTURES_DIR / f"{name}.json"
     if path.exists():
