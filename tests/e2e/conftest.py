@@ -66,6 +66,7 @@ def _ensure_writable_config_dir() -> tuple[Path, Path]:
 
     temp_dir = Path(tempfile.mkdtemp(prefix="ha-config-"))
     try:
+        _make_tree_readable(HA_CONFIG_DIR)
         shutil.copytree(HA_CONFIG_DIR, temp_dir, dirs_exist_ok=True)
     except shutil.Error:
         _copytree_readable(HA_CONFIG_DIR, temp_dir)
@@ -88,6 +89,22 @@ def _copytree_readable(src: Path, dst: Path) -> None:
                 continue
             try:
                 shutil.copy2(src_path, target_root / name)
+            except OSError:
+                continue
+
+
+def _make_tree_readable(src: Path) -> None:
+    """Best-effort chmod to make files readable before copying."""
+    for root, dirs, files in os.walk(src):
+        root_path = Path(root)
+        for name in dirs:
+            try:
+                os.chmod(root_path / name, 0o755)
+            except OSError:
+                continue
+        for name in files:
+            try:
+                os.chmod(root_path / name, 0o644)
             except OSError:
                 continue
 
