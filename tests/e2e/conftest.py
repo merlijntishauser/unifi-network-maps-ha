@@ -550,6 +550,26 @@ def cleanup_config_entries(ha_client: httpx.Client) -> Generator[None, None, Non
             ha_client.delete(f"/api/config/config_entries/entry/{entry['entry_id']}")
 
 
+@typed_fixture(scope="session")
+def browser_type_launch_args(browser_type_launch_args: dict[str, Any]) -> dict[str, Any]:
+    """Configure browser launch args for CI stability."""
+    # These args help prevent "Page crashed" errors in CI environments
+    args = browser_type_launch_args.get("args", [])
+    args.extend(
+        [
+            "--disable-dev-shm-usage",  # Overcome limited /dev/shm in CI
+            "--no-sandbox",  # Required for running as root in containers
+            "--disable-gpu",  # Disable GPU hardware acceleration
+            "--disable-setuid-sandbox",
+            "--disable-software-rasterizer",
+        ]
+    )
+    return {
+        **browser_type_launch_args,
+        "args": args,
+    }
+
+
 @typed_fixture
 def browser_context_args(browser_context_args: dict[str, Any]) -> dict[str, Any]:
     """Configure browser context for E2E tests."""
