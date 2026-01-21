@@ -65,18 +65,13 @@ jobs:
           pip install -r tests/e2e/requirements.txt
           playwright install chromium --with-deps
 
-      - name: Start Docker services
+      - name: Build Docker images
         run: |
-          docker compose -f tests/e2e/docker-compose.yml up -d --build --wait
+          docker compose -f tests/e2e/docker-compose.yml build
         timeout-minutes: 10
         env:
           HA_IMAGE_TAG: ${{ matrix.image_tag }}
           HA_CONFIG_DIR: ${{ github.workspace }}/tests/e2e/${{ matrix.config_dir }}
-
-      - name: Wait for Home Assistant
-        run: |
-          timeout 120 bash -c 'until curl -sf http://localhost:28123/api/ 2>/dev/null | grep -q "API running" || curl -sf http://localhost:28123/api/ 2>/dev/null; do sleep 2; done' || true
-          sleep 10  # Extra time for full initialization
 
       - name: Run E2E tests
         run: |
@@ -146,18 +141,13 @@ jobs:
           pip install -r tests/e2e/requirements.txt
           playwright install chromium --with-deps
 
-      - name: Start Docker services
+      - name: Build Docker images
         run: |
-          docker compose -f tests/e2e/docker-compose.yml up -d --build --wait
+          docker compose -f tests/e2e/docker-compose.yml build
         timeout-minutes: 10
         env:
           HA_IMAGE_TAG: stable
           HA_CONFIG_DIR: ${{ github.workspace }}/tests/e2e/ha-config-stable
-
-      - name: Wait for Home Assistant
-        run: |
-          timeout 120 bash -c 'until curl -sf http://localhost:28123/api/ 2>/dev/null | grep -q "API running" || curl -sf http://localhost:28123/api/ 2>/dev/null; do sleep 2; done' || true
-          sleep 10
 
       - name: Run E2E tests
         run: |

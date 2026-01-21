@@ -146,10 +146,19 @@ def docker_services() -> Generator[None, None, None]:
     """Start and stop Docker Compose stack for the test session."""
     compose_file = E2E_DIR / "docker-compose.yml"
 
-    # Start services
+    # Stop any existing containers first to ensure clean state
+    # This handles CI where workflow may have pre-started Docker
+    subprocess.run(
+        ["docker", "compose", "-f", str(compose_file), "down", "-v"],
+        capture_output=True,
+    )
+
+    # Set up storage before starting services
     _config_dir, storage_dir = _ensure_writable_config_dir()
     _ensure_auth_provider_credentials(storage_dir)
     _reset_ha_storage(storage_dir)
+
+    # Start services fresh
     subprocess.run(
         ["docker", "compose", "-f", str(compose_file), "up", "-d", "--build", "--wait"],
         check=True,
