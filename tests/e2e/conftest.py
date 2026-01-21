@@ -392,18 +392,18 @@ def authenticated_page(
         token_payload,
     )
 
+    # Activate session and verify auth
+    page.goto(f"{HA_URL}/api/", wait_until="domcontentloaded")
+    page.wait_for_function(
+        "() => localStorage.getItem('hassTokens') !== null",
+        timeout=10000,
+    )
+    response = page.request.get(f"{HA_URL}/api/config")
+    if response.status != 200:
+        raise RuntimeError(f"Failed to authenticate in browser (status {response.status})")
+
     # Navigate to the main page again - now with auth
     page.goto(HA_URL, wait_until="networkidle")
-
-    # Wait for HA to load and check we're authenticated
-    # If still on auth page, try a few more times
-    retries = 3
-    while retries > 0:
-        if "/auth/" not in page.url:
-            break
-        page.reload()
-        page.wait_for_timeout(2000)
-        retries -= 1
 
     return page
 
