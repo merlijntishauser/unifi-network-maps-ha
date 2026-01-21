@@ -403,7 +403,13 @@ def authenticated_page(
     page.wait_for_timeout(1500)
     page.goto(f"{HA_URL}/config", wait_until="networkidle")
 
-    response = page.request.get(f"{HA_URL}/api/config")
+    # Verify auth by making API request with explicit Authorization header
+    # (page.request doesn't use localStorage tokens automatically)
+    access_token = ha_tokens.get("access_token")
+    response = page.request.get(
+        f"{HA_URL}/api/config",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
     if response.status != 200:
         raise RuntimeError(f"Failed to authenticate in browser (status {response.status})")
 
