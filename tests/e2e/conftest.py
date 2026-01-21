@@ -5,7 +5,9 @@ from __future__ import annotations
 import base64
 import json
 import os
+import shutil
 import subprocess
+import tempfile
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Generator, TypeVar, cast
@@ -38,9 +40,9 @@ def typed_fixture(*args: Any, **kwargs: Any) -> Callable[[F], F]:
     return cast(Callable[[F], F], pytest.fixture(*args, **kwargs))
 
 
-def _reset_ha_storage() -> None:
+def _reset_ha_storage(storage_dir: Path) -> None:
     """Reset HA storage to clean state before tests."""
-    config_entries_path = HA_STORAGE_DIR / "core.config_entries"
+    config_entries_path = storage_dir / "core.config_entries"
     if config_entries_path.exists():
         config_entries_path.write_text("""{
   "version": 1,
@@ -53,9 +55,26 @@ def _reset_ha_storage() -> None:
 """)
 
 
-def _ensure_auth_provider_credentials() -> None:
+def _ensure_writable_config_dir() -> tuple[Path, Path]:
+    """Ensure HA config directory is writable, copying to temp if needed."""
+    storage_path = HA_STORAGE_DIR
+    writable = os.access(HA_CONFIG_DIR, os.W_OK)
+    if storage_path.exists():
+        writable = writable and os.access(storage_path, os.W_OK)
+    if writable:
+        return HA_CONFIG_DIR, HA_STORAGE_DIR
+
+    temp_dir = Path(tempfile.mkdtemp(prefix="ha-config-"))
+    shutil.copytree(HA_CONFIG_DIR, temp_dir, dirs_exist_ok=True)
+    config_dir = temp_dir
+    storage_dir = config_dir / ".storage"
+    os.environ["HA_CONFIG_DIR"] = str(config_dir)
+    return config_dir, storage_dir
+
+
+def _ensure_auth_provider_credentials(storage_dir: Path) -> None:
     """Ensure HA has the expected username/password in auth provider storage."""
-    auth_provider_path = HA_STORAGE_DIR / "auth_provider.homeassistant"
+    auth_provider_path = storage_dir / "auth_provider.homeassistant"
     if not auth_provider_path.exists():
         HA_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
         payload = {
@@ -91,8 +110,9 @@ def docker_services() -> Generator[None, None, None]:
     compose_file = E2E_DIR / "docker-compose.yml"
 
     # Start services
-    _ensure_auth_provider_credentials()
-    _reset_ha_storage()
+    _config_dir, storage_dir = _ensure_writable_config_dir()
+    _ensure_auth_provider_credentials(storage_dir)
+    _reset_ha_storage(storage_dir)
     subprocess.run(
         ["docker", "compose", "-f", str(compose_file), "up", "-d", "--build", "--wait"],
         check=True,

@@ -16,14 +16,17 @@ if TYPE_CHECKING:
     from playwright.sync_api import Page
 
 E2E_DIR = Path(__file__).resolve().parent
-HA_CONFIG_DIR = Path(os.environ.get("HA_CONFIG_DIR", E2E_DIR / "ha-config-2026.1.2"))
-HA_STORAGE_DIR = HA_CONFIG_DIR / ".storage"
 HA_URL = os.environ.get("HA_URL", "http://localhost:28123")
+
+
+def _storage_dir() -> Path:
+    config_dir = Path(os.environ.get("HA_CONFIG_DIR", E2E_DIR / "ha-config-2026.1.2"))
+    return config_dir / ".storage"
 
 
 def _read_lovelace_resources_from_storage(timeout: int = 10) -> list[dict[str, object]]:
     """Read Lovelace resources from storage, waiting for them to appear."""
-    storage_path = HA_STORAGE_DIR / "lovelace_resources"
+    storage_path = _storage_dir() / "lovelace_resources"
     start = time.time()
     while time.time() - start < timeout:
         if storage_path.exists():
