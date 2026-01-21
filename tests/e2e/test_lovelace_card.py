@@ -7,12 +7,18 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from conftest import SKIP_BROWSER_IN_CI
+
 if TYPE_CHECKING:
     from playwright.sync_api import Page
 
 HA_URL = os.environ.get("HA_URL", "http://localhost:28123")
 
-pytestmark = pytest.mark.usefixtures("docker_services")
+# All tests in this module use Playwright browser - skip in CI
+pytestmark = [
+    pytest.mark.usefixtures("docker_services"),
+    SKIP_BROWSER_IN_CI,
+]
 
 
 def _create_test_card(page: Page, entry_id: str, auth_token: str) -> None:

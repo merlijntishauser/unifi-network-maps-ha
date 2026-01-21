@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import json
 import os
 import time
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
+
+from conftest import SKIP_BROWSER_IN_CI
 
 if TYPE_CHECKING:
     import httpx
@@ -68,6 +69,7 @@ def test_frontend_bundle_served(ha_client: httpx.Client, entry_id: str) -> None:
     )
 
 
+@SKIP_BROWSER_IN_CI
 def test_lovelace_resource_registered(
     ha_client: httpx.Client, entry_id: str, authenticated_page: Page
 ) -> None:

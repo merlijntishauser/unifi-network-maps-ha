@@ -21,6 +21,15 @@ if TYPE_CHECKING:
 
     from playwright.sync_api import Page
 
+# Detect CI environment (GitHub Actions sets CI=true)
+IS_CI = os.environ.get("CI", "").lower() == "true"
+
+# Skip reason for browser tests in CI
+SKIP_BROWSER_IN_CI = pytest.mark.skipif(
+    IS_CI,
+    reason="Browser tests skipped in CI due to Chromium stability issues",
+)
+
 E2E_DIR = Path(__file__).parent
 HA_CONFIG_DIR = Path(os.environ.get("HA_CONFIG_DIR", E2E_DIR / "ha-config-2026.1.2"))
 HA_STORAGE_DIR = HA_CONFIG_DIR / ".storage"

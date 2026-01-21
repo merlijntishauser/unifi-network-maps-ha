@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from conftest import SKIP_BROWSER_IN_CI
+
 if TYPE_CHECKING:
     import httpx
     from playwright.sync_api import Page
@@ -47,6 +49,7 @@ def test_integration_appears_in_add_dialog(
     ha_client.delete(f"/api/config/config_entries/flow/{flow_data['flow_id']}")
 
 
+@SKIP_BROWSER_IN_CI
 def test_integration_entry_visible_on_integrations_page(
     authenticated_page: Page,
     entry_id: str,
