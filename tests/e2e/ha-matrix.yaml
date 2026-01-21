@@ -1,8 +1,8 @@
 versions:
   - name: stable
     image_tag: "stable"
-    config_dir: "ha-config-2026.1.2"
-  - name: stable-2026.1.2
+    config_dir: "ha-config-stable"
+  - name: 2026.1.2
     image_tag: "2026.1.2"
     config_dir: "ha-config-2026.1.2"
   - name: beta
