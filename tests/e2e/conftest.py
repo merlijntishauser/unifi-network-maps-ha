@@ -361,22 +361,14 @@ def authenticated_page(
     ha_tokens: dict[str, object],
 ) -> Page:
     """Return a Playwright page authenticated with HA."""
-    # First navigate to HA - this may redirect to auth page
-    page.goto(HA_URL, wait_until="domcontentloaded")
-
-    # Wait for any initial redirect to complete
-    page.wait_for_timeout(1000)
-
-    # Inject auth token into localStorage
-    # This should work even on the auth page
     token_payload = {
         "access_token": ha_tokens.get("access_token"),
         "refresh_token": ha_tokens.get("refresh_token"),
         "expires_in": ha_tokens.get("expires_in"),
         "token_type": ha_tokens.get("token_type", "Bearer"),
-        "hassUrl": HA_URL,
     }
-    page.evaluate(
+
+    page.add_init_script(
         """(tokens) => {
             const now = Date.now();
             const expiresIn = Number(tokens.expires_in || 0) * 1000;
@@ -385,25 +377,17 @@ def authenticated_page(
                 refresh_token: tokens.refresh_token,
                 expires_in: tokens.expires_in,
                 token_type: tokens.token_type || 'Bearer',
-                expires: now + expiresIn,
-                hassUrl: tokens.hassUrl
+                expires: now + expiresIn
             }));
         }""",
         token_payload,
     )
 
-    # Activate session and verify auth
-    page.goto(f"{HA_URL}/api/", wait_until="domcontentloaded")
-    page.wait_for_function(
-        "() => localStorage.getItem('hassTokens') !== null",
-        timeout=10000,
-    )
+    page.goto(HA_URL, wait_until="networkidle")
+
     response = page.request.get(f"{HA_URL}/api/config")
     if response.status != 200:
         raise RuntimeError(f"Failed to authenticate in browser (status {response.status})")
-
-    # Navigate to the main page again - now with auth
-    page.goto(HA_URL, wait_until="networkidle")
 
     return page
 
