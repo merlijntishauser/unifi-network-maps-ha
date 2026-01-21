@@ -189,5 +189,14 @@ __pycache__/
 .pytest_cache/
 .coverage
 
+### E2E test artifacts
+test-results/
+playwright-report/
+tests/e2e/ha-config/home-assistant.log*
+tests/e2e/ha-config/home-assistant_v2.db*
+tests/e2e/ha-config/tts/
+tests/e2e/ha-config/.storage/core.restore_state*
+tests/e2e/ha-config/.storage/lovelace*
+
 # HA configuration for smoke/exploratory testing
 /configuration.yaml

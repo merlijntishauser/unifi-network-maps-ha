@@ -1,4 +1,4 @@
-.PHONY: help venv install install-dev test test-unit test-integration test-contract format frontend-install frontend-build frontend-test frontend-typecheck frontend-lint frontend-format pre-commit-install pre-commit-run ci version-bump version release release-hotfix clean
+.PHONY: help venv install install-dev test test-unit test-integration test-contract test-e2e test-e2e-debug format frontend-install frontend-build frontend-test frontend-typecheck frontend-lint frontend-format pre-commit-install pre-commit-run ci version-bump version release release-hotfix clean
 
 VENV_DIR := .venv
 PYTHON_BIN := $(shell command -v python3.13 >/dev/null 2>&1 && echo python3.13 || echo python3)
@@ -16,6 +16,8 @@ help:
 	@echo "  test-unit       Run unit tests"
 	@echo "  test-integration Run integration tests"
 	@echo "  test-contract   Run contract tests"
+	@echo "  test-e2e        Run E2E tests with Docker (requires Docker)"
+	@echo "  test-e2e-debug  Run E2E tests with visible browser"
 	@echo "  format          Run ruff format on the repo"
 	@echo "  frontend-install Install frontend deps (requires Node.js)"
 	@echo "  frontend-build  Run frontend build (requires Node.js)"
@@ -52,6 +54,34 @@ test-integration: install-dev
 
 test-contract: install-dev
 	$(VENV_DIR)/bin/pytest -v tests/contract
+
+test-e2e: frontend-build
+	@echo "Installing E2E test dependencies..."
+	$(PIP) install -r tests/e2e/requirements.txt
+	$(VENV_DIR)/bin/playwright install chromium
+	@echo "Starting Docker services..."
+	docker compose -f tests/e2e/docker-compose.yml up -d --build --wait
+	@echo "Waiting for Home Assistant..."
+	@timeout 120 bash -c 'until curl -sf http://localhost:28123/api/ 2>/dev/null; do sleep 2; done' || true
+	@sleep 10
+	@echo "Running E2E tests..."
+	$(VENV_DIR)/bin/pytest tests/e2e -v --browser chromium || (docker compose -f tests/e2e/docker-compose.yml logs && exit 1)
+	@echo "Stopping Docker services..."
+	docker compose -f tests/e2e/docker-compose.yml down -v
+
+test-e2e-debug: frontend-build
+	@echo "Installing E2E test dependencies..."
+	$(PIP) install -r tests/e2e/requirements.txt
+	$(VENV_DIR)/bin/playwright install chromium
+	@echo "Starting Docker services..."
+	docker compose -f tests/e2e/docker-compose.yml up -d --build --wait
+	@echo "Waiting for Home Assistant..."
+	@timeout 120 bash -c 'until curl -sf http://localhost:28123/api/ 2>/dev/null; do sleep 2; done' || true
+	@sleep 10
+	@echo "Running E2E tests with visible browser..."
+	$(VENV_DIR)/bin/pytest tests/e2e -v --browser chromium --headed --slowmo 500 || true
+	@echo "Stopping Docker services..."
+	docker compose -f tests/e2e/docker-compose.yml down -v
 
 format: install-dev
 	$(VENV_DIR)/bin/ruff format .

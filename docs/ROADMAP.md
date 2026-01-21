@@ -1,7 +1,7 @@
 # Roadmap (Prioritized)
 
 ## P1 - Security & Stability (Critical)
-- No current issues known
+- Config option "only show unifi devices" isn't working
 
 ## P2 - Bugs & Correctness (High Impact)
 - **Diagnostics timestamp** - Add timestamp to show data freshness
