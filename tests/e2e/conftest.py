@@ -372,17 +372,36 @@ def authenticated_page(
         const tokens = {payload};
         const now = Date.now();
         const expiresIn = Number(tokens.expires_in || 0) * 1000;
-        localStorage.setItem('hassTokens', JSON.stringify({{
+        const tokenData = {{
             access_token: tokens.access_token,
             refresh_token: tokens.refresh_token,
             expires_in: tokens.expires_in,
             token_type: tokens.token_type || 'Bearer',
             expires: now + expiresIn
+        }};
+        localStorage.setItem('hassTokens', JSON.stringify({{
+            access_token: tokenData.access_token,
+            refresh_token: tokenData.refresh_token,
+            expires_in: tokenData.expires_in,
+            token_type: tokenData.token_type,
+            expires: tokenData.expires,
+            hassUrl: window.location.origin
+        }}));
+        localStorage.setItem('hassToken', tokenData.access_token || '');
+        sessionStorage.setItem('hassTokens', JSON.stringify({{
+            access_token: tokenData.access_token,
+            refresh_token: tokenData.refresh_token,
+            expires_in: tokenData.expires_in,
+            token_type: tokenData.token_type,
+            expires: tokenData.expires,
+            hassUrl: window.location.origin
         }}));
     """
     page.add_init_script(script=script)
 
-    page.goto(HA_URL, wait_until="networkidle")
+    page.goto(HA_URL, wait_until="domcontentloaded")
+    page.wait_for_timeout(1500)
+    page.goto(f"{HA_URL}/config", wait_until="networkidle")
 
     response = page.request.get(f"{HA_URL}/api/config")
     if response.status != 200:
