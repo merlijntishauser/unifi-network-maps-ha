@@ -245,7 +245,22 @@ export function onClick(
   if (state.panMoved) {
     return;
   }
-  const label = handlers.resolveNodeName(event);
+
+  // First try normal resolution via composedPath
+  let label = handlers.resolveNodeName(event);
+
+  // If that fails (e.g., due to shadow DOM or slotted content issues),
+  // manually find the SVG element at the click coordinates
+  if (!label) {
+    const viewport =
+      (event.currentTarget as HTMLElement) ||
+      (event.target as HTMLElement)?.closest(".unifi-network-map__viewport");
+    const svg = viewport?.querySelector("svg");
+    if (svg) {
+      label = findNodeAtPoint(svg, event.clientX, event.clientY);
+    }
+  }
+
   if (!label) {
     return;
   }
@@ -259,12 +274,41 @@ function onContextMenu(
   handlers: ViewportHandlers,
   callbacks: ViewportCallbacks,
 ): void {
-  const nodeName = handlers.resolveNodeName(event);
+  // First try normal resolution via composedPath
+  let nodeName = handlers.resolveNodeName(event);
+
+  // If that fails, manually find the SVG element at the click coordinates
+  if (!nodeName) {
+    const viewport =
+      (event.currentTarget as HTMLElement) ||
+      (event.target as HTMLElement)?.closest(".unifi-network-map__viewport");
+    const svg = viewport?.querySelector("svg");
+    if (svg) {
+      nodeName = findNodeAtPoint(svg, event.clientX, event.clientY);
+    }
+  }
+
   if (!nodeName) {
     return;
   }
   event.preventDefault();
   callbacks.onOpenContextMenu(event.clientX, event.clientY, nodeName);
+}
+
+function findNodeAtPoint(svg: SVGElement, clientX: number, clientY: number): string | null {
+  const nodes = svg.querySelectorAll("[data-node-id]");
+  for (const node of nodes) {
+    const rect = node.getBoundingClientRect();
+    if (
+      clientX >= rect.left &&
+      clientX <= rect.right &&
+      clientY >= rect.top &&
+      clientY <= rect.bottom
+    ) {
+      return node.getAttribute("data-node-id");
+    }
+  }
+  return null;
 }
 
 function hideTooltip(tooltip: HTMLElement): void {

@@ -2184,7 +2184,14 @@ function onClick(event, state, handlers, callbacks, tooltip) {
   if (state.panMoved) {
     return;
   }
-  const label = handlers.resolveNodeName(event);
+  let label = handlers.resolveNodeName(event);
+  if (!label) {
+    const viewport = event.currentTarget || event.target?.closest(".unifi-network-map__viewport");
+    const svg2 = viewport?.querySelector("svg");
+    if (svg2) {
+      label = findNodeAtPoint(svg2, event.clientX, event.clientY);
+    }
+  }
   if (!label) {
     return;
   }
@@ -2192,12 +2199,29 @@ function onClick(event, state, handlers, callbacks, tooltip) {
   hideTooltip(tooltip);
 }
 function onContextMenu(event, state, handlers, callbacks) {
-  const nodeName = handlers.resolveNodeName(event);
+  let nodeName = handlers.resolveNodeName(event);
+  if (!nodeName) {
+    const viewport = event.currentTarget || event.target?.closest(".unifi-network-map__viewport");
+    const svg2 = viewport?.querySelector("svg");
+    if (svg2) {
+      nodeName = findNodeAtPoint(svg2, event.clientX, event.clientY);
+    }
+  }
   if (!nodeName) {
     return;
   }
   event.preventDefault();
   callbacks.onOpenContextMenu(event.clientX, event.clientY, nodeName);
+}
+function findNodeAtPoint(svg2, clientX, clientY) {
+  const nodes = svg2.querySelectorAll("[data-node-id]");
+  for (const node of nodes) {
+    const rect = node.getBoundingClientRect();
+    if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
+      return node.getAttribute("data-node-id");
+    }
+  }
+  return null;
 }
 function hideTooltip(tooltip) {
   tooltip.hidden = true;
@@ -2239,7 +2263,8 @@ var CARD_STYLES = `
   unifi-network-map ha-card { display: flex; flex-direction: column; height: 100%; box-sizing: border-box; }
   .unifi-network-map__layout { display: grid; grid-template-columns: minmax(0, 2.5fr) minmax(280px, 1fr); gap: 12px; flex: 1; padding: 12px; }
   .unifi-network-map__viewport { position: relative; overflow: hidden; min-height: 300px; background: linear-gradient(135deg, #0b1016 0%, #111827 100%); border-radius: 12px; touch-action: none; }
-  .unifi-network-map__viewport svg { width: 100%; height: auto; display: block; }
+  .unifi-network-map__viewport svg { width: 100%; height: auto; display: block; position: relative; z-index: 0; }
+  .unifi-network-map__viewport svg, .unifi-network-map__viewport svg * { pointer-events: bounding-box !important; }
   .unifi-network-map__controls { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; z-index: 3; }
   .unifi-network-map__controls button { background: rgba(15, 23, 42, 0.9); color: #e5e7eb; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 6px 10px; font-size: 12px; cursor: pointer; backdrop-filter: blur(8px); transition: all 0.15s ease; }
   .unifi-network-map__controls button:hover { background: rgba(59, 130, 246, 0.3); border-color: rgba(59, 130, 246, 0.5); }
@@ -3074,8 +3099,13 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._render();
   }
   set hass(hass) {
+    const hadHass = this._hass !== void 0;
+    const prevToken = this._hass?.auth?.data?.access_token;
+    const newToken = hass?.auth?.data?.access_token;
     this._hass = hass;
-    this._render();
+    if (!hadHass || prevToken !== newToken) {
+      this._render();
+    }
   }
   connectedCallback() {
     this._render();

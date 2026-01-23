@@ -74,8 +74,18 @@ export class UnifiNetworkMapCard extends HTMLElement {
   }
 
   set hass(hass: Hass) {
+    const hadHass = this._hass !== undefined;
+    const prevToken = this._hass?.auth?.data?.access_token;
+    const newToken = hass?.auth?.data?.access_token;
     this._hass = hass;
-    this._render();
+
+    // Only re-render when:
+    // 1. hass is set for the first time (allows _loadSvg to check auth)
+    // 2. auth token actually changed (e.g., undefined -> valid, or token refresh)
+    // This prevents DOM replacement on every HA state update
+    if (!hadHass || prevToken !== newToken) {
+      this._render();
+    }
   }
 
   connectedCallback() {

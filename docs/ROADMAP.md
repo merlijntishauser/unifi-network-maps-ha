@@ -22,6 +22,9 @@
 - **Add picture to custom card chooser** - Show preview in Lovelace card picker
 - **Export current view as PNG** - Download button for documentation/sharing
 - **Dashboard layout guidance** - Recommend sections view or 4-column layout for wide cards
+- Unifi ui theme
+- "infinite" background plane...(make way larger...)
+- clients not only horizonatally, but multiple rows to keep SVG more square
 
 ### Larger Scope
 - **Multi-site support** - Allow site selection from the UI

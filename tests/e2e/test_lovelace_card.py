@@ -54,6 +54,59 @@ def _create_test_card(page: Page, entry_id: str, auth_token: str) -> None:
     page.wait_for_timeout(1000)  # Extra time for payload to load
 
 
+def _create_test_card_in_ha_card(page: Page, entry_id: str, auth_token: str) -> None:
+    """Create test card wrapped in ha-card to simulate real HA DOM structure.
+
+    In production, cards are slotted inside ha-card's shadow DOM:
+    hui-card > ha-card (shadow: slot) > unifi-network-map
+
+    This nesting can cause pointer events to not properly propagate through
+    the shadow DOM boundary, which is why we need to test in this structure.
+    """
+    page.evaluate(
+        """([entryId, token]) => {
+        // Create ha-card wrapper (simulates HA's card container)
+        const haCard = document.createElement("ha-card");
+        haCard.id = "test-ha-card";
+        haCard.style.cssText = `
+            width: 600px;
+            height: 500px;
+            display: block;
+            position: fixed;
+            top: 50px;
+            left: 50px;
+            z-index: 9999;
+        `;
+
+        // Create our custom card
+        const card = document.createElement("unifi-network-map");
+        card.id = "test-card";
+        card.style.cssText = `
+            width: 100%;
+            height: 100%;
+            display: block;
+        `;
+
+        // Slot the card into ha-card (this is how HA does it)
+        haCard.appendChild(card);
+        document.body.appendChild(haCard);
+
+        card.setConfig({
+            svg_url: `/api/unifi_network_map/${entryId}/svg`,
+            data_url: `/api/unifi_network_map/${entryId}/payload`,
+            theme: "dark"
+        });
+        card.hass = {
+            auth: { data: { access_token: token } }
+        };
+    }""",
+        [entry_id, auth_token],
+    )
+    # Wait for SVG to load
+    page.wait_for_selector("#test-card svg", timeout=10000)
+    page.wait_for_timeout(1000)  # Extra time for payload to load
+
+
 def test_custom_card_element_registered(
     authenticated_page: Page,
     entry_id: str,
@@ -331,3 +384,88 @@ def test_context_menu_select_action(
     assert result["menuClosed"], "Context menu should be closed after action"
     assert result["selectedCount"] == 1, "One node should be selected"
     assert result["selectedId"] == "Living Room AP", "Living Room AP should be selected"
+
+
+def test_node_click_works_inside_ha_card(
+    authenticated_page: Page,
+    entry_id: str,
+    ha_auth_token: str,
+) -> None:
+    """Test that clicking on a node works when card is slotted inside ha-card.
+
+    This test catches shadow DOM pointer event issues that don't manifest when
+    the card is directly attached to document.body. In production, cards are
+    inside ha-card which uses shadow DOM with slots, which can break event
+    propagation if not handled correctly.
+    """
+    page = authenticated_page
+
+    page.goto(f"{HA_URL}/lovelace/e2e-test")
+    page.wait_for_load_state("networkidle")
+    page.wait_for_function(
+        "customElements.get('unifi-network-map') !== undefined",
+        timeout=10000,
+    )
+
+    _create_test_card_in_ha_card(page, entry_id, ha_auth_token)
+
+    # Find a node and click on it
+    node = page.locator('#test-card g[data-node-id="Office Switch"]')
+    node.click()
+    page.wait_for_timeout(500)
+
+    # Verify selection
+    result = page.evaluate("""() => {
+        const card = document.getElementById("test-card");
+        const selected = card.querySelectorAll('[data-selected="true"]');
+        const panel = card.querySelector(".unifi-network-map__panel");
+        return {
+            selectedCount: selected.length,
+            selectedId: selected[0]?.getAttribute("data-node-id"),
+            panelContainsNodeName: panel?.innerHTML.includes("Office Switch")
+        };
+    }""")
+
+    assert result["selectedCount"] == 1, "One node should be selected inside ha-card"
+    assert result["selectedId"] == "Office Switch", "Office Switch should be selected"
+    assert result["panelContainsNodeName"], "Panel should show selected node name"
+
+
+def test_context_menu_works_inside_ha_card(
+    authenticated_page: Page,
+    entry_id: str,
+    ha_auth_token: str,
+) -> None:
+    """Test that right-click context menu works when card is inside ha-card.
+
+    This test ensures context menu works through the shadow DOM boundary.
+    """
+    page = authenticated_page
+
+    page.goto(f"{HA_URL}/lovelace/e2e-test")
+    page.wait_for_load_state("networkidle")
+    page.wait_for_function(
+        "customElements.get('unifi-network-map') !== undefined",
+        timeout=10000,
+    )
+
+    _create_test_card_in_ha_card(page, entry_id, ha_auth_token)
+
+    # Right-click on a node
+    node = page.locator('#test-card g[data-node-id="UDM Pro"]')
+    node.click(button="right")
+    page.wait_for_timeout(500)
+
+    # Verify context menu appears
+    result = page.evaluate("""() => {
+        const menu = document.querySelector(".context-menu");
+        return {
+            menuExists: !!menu,
+            menuVisible: menu ? getComputedStyle(menu).display !== "none" : false,
+            menuNode: menu?.getAttribute("data-context-node")
+        };
+    }""")
+
+    assert result["menuExists"], "Context menu should exist inside ha-card"
+    assert result["menuVisible"], "Context menu should be visible inside ha-card"
+    assert result["menuNode"] == "UDM Pro", "Context menu should be for UDM Pro"
