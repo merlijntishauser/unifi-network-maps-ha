@@ -5,5 +5,5 @@ pyright==1.1.408
 voluptuous==0.16.0
 pytest-cov==7.0.0
 yarl==1.22.0
-ruff==0.14.13
+ruff==0.14.14
 types-requests==2.32.4.20260107
