@@ -13,7 +13,6 @@
 - **Tooltip boundary detection** - Prevent off-screen tooltips
 - **Copy-to-clipboard for MAC/IP** - One-click copy in detail panel
 - **Separate reset vs clear selection** - Reset view shouldn't clear panel
-- **Loading state + retry** - Show spinner during payload fetches with retry button
 - **Card availability after install** - Warn users to hard-refresh when card isn't listed after install
 - **Reduce log chatter** - Move log - messages from info to debug
 
@@ -96,6 +95,6 @@ Methods to break down for readability:
 
 
 ## Recently Completed
-
+- **Loading state + retry** - Show spinner during payload fetches with retry button
 
 See [CHANGELOG.md](CHANGELOG.md) for full history.

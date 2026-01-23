@@ -2290,6 +2290,64 @@ var CARD_STYLES = `
   /* Status Layer */
   .unifi-network-map__status-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
 
+  /* Loading + Error */
+  .unifi-network-map__loading,
+  .unifi-network-map__error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 32px 16px;
+    text-align: center;
+    color: #e2e8f0;
+  }
+  .unifi-network-map__loading-text,
+  .unifi-network-map__error-text {
+    font-size: 13px;
+    color: #cbd5e1;
+  }
+  .unifi-network-map__spinner {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    border: 3px solid rgba(148, 163, 184, 0.3);
+    border-top-color: #60a5fa;
+    animation: unifi-spin 0.8s linear infinite;
+  }
+  .unifi-network-map__retry {
+    background: rgba(59, 130, 246, 0.2);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    color: #e2e8f0;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .unifi-network-map__retry:hover {
+    background: rgba(59, 130, 246, 0.35);
+  }
+  .unifi-network-map__loading-overlay {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    color: #cbd5e1;
+    z-index: 2;
+    pointer-events: none;
+    font-size: 12px;
+  }
+  @keyframes unifi-spin {
+    to { transform: rotate(360deg); }
+  }
+
   /* Info Row */
   .info-row { display: flex; flex-direction: column; gap: 4px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; }
   .info-row__label { font-size: 11px; color: #64748b; }
@@ -3072,12 +3130,13 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     if (token && this._error === "Missing auth token") {
       this._error = void 0;
     }
-    const body = this._error ? `<div style="padding:16px;color:#b00020;">${escapeHtml(this._error)}</div>` : this._svgContent ? this._renderLayout() : `<div style="padding:16px;">Loading map...</div>`;
+    const body = this._error ? this._renderError() : this._svgContent ? this._renderLayout() : this._renderLoading();
     this._setCardBody(body, theme);
     if (!token && this._error === "Missing auth token") {
       return;
     }
     this._ensureStyles();
+    this._wireRetry();
     this._loadSvg();
     this._loadPayload();
     this._wireInteractions();
@@ -3104,6 +3163,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._svgAbortController = new AbortController();
     const currentUrl = this._config.svg_url;
     this._loading = true;
+    this._render();
     const result = await loadSvg(
       this._fetchWithAuth.bind(this),
       currentUrl,
@@ -3136,6 +3196,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._payloadAbortController = new AbortController();
     const currentUrl = this._config.data_url;
     this._dataLoading = true;
+    this._render();
     const result = await loadPayload(
       this._fetchWithAuth.bind(this),
       currentUrl,
@@ -3153,6 +3214,22 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._dataLoading = false;
     this._render();
   }
+  _renderLoading() {
+    return `
+      <div class="unifi-network-map__loading">
+        <div class="unifi-network-map__spinner" role="progressbar" aria-label="Loading"></div>
+        <div class="unifi-network-map__loading-text">Loading map...</div>
+      </div>
+    `;
+  }
+  _renderError() {
+    return `
+      <div class="unifi-network-map__error">
+        <div class="unifi-network-map__error-text">${escapeHtml(this._error ?? "Unknown error")}</div>
+        <button type="button" class="unifi-network-map__retry" data-action="retry">Retry</button>
+      </div>
+    `;
+  }
   _renderLayout() {
     const safeSvg = this._svgContent ? sanitizeSvg(this._svgContent) : "";
     return `
@@ -3163,6 +3240,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
             <button type="button" data-action="zoom-out" title="Zoom out">-</button>
             <button type="button" data-action="reset" title="Reset view">Reset</button>
           </div>
+          ${this._renderLoadingOverlay()}
           ${safeSvg}
           <div class="unifi-network-map__status-layer"></div>
           <div class="unifi-network-map__tooltip" hidden></div>
@@ -3172,6 +3250,38 @@ var UnifiNetworkMapCard = class extends HTMLElement {
         </div>
       </div>
     `;
+  }
+  _renderLoadingOverlay() {
+    if (!this._isLoading()) {
+      return "";
+    }
+    return `
+      <div class="unifi-network-map__loading-overlay">
+        <div class="unifi-network-map__spinner"></div>
+        <div class="unifi-network-map__loading-text">Refreshing data...</div>
+      </div>
+    `;
+  }
+  _isLoading() {
+    return this._loading || this._dataLoading;
+  }
+  _wireRetry() {
+    const retryButton = this.querySelector('[data-action="retry"]');
+    if (!retryButton) return;
+    retryButton.onclick = (event) => {
+      event.preventDefault();
+      this._retryLoad();
+    };
+  }
+  _retryLoad() {
+    this._error = void 0;
+    this._lastSvgUrl = void 0;
+    this._lastDataUrl = void 0;
+    this._svgAbortController?.abort();
+    this._payloadAbortController?.abort();
+    this._loadSvg();
+    this._loadPayload();
+    this._render();
   }
   _renderPanelContent() {
     return renderPanelContent(

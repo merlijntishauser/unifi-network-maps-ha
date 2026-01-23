@@ -14,18 +14,17 @@ describe("unifi-network-map card panel", () => {
   });
 
   it("renders overview stats when payload loads", async () => {
-    const fetchMock = jest
-      .fn()
-      .mockResolvedValueOnce({
+    const fetchMock = jest.fn().mockImplementation((url: string) =>
+      Promise.resolve({
         ok: true,
         status: 200,
-        text: () => Promise.resolve(makeSvg("Gateway")),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
+        text: () =>
+          Promise.resolve(
+            url.includes(".json") ? JSON.stringify(samplePayload()) : makeSvg("Gateway"),
+          ),
         json: () => Promise.resolve(samplePayload()),
-      });
+      }),
+    );
     (globalThis as { fetch?: typeof fetch }).fetch = fetchMock;
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     element.hass = { auth: { data: { access_token: "token" } } };

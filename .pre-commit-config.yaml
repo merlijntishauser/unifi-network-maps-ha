@@ -4,7 +4,7 @@ repos:
       - id: hassfest
         name: hassfest (docker)
         entry: >-
-          bash -c 'docker run --rm -v "$PWD":/github/workspace ghcr.io/home-assistant/hassfest:latest'
+          bash -c 'docker info >/dev/null 2>&1 || { echo "Skipping hassfest: Docker not available"; exit 0; }; docker run --rm -v "$PWD":/github/workspace ghcr.io/home-assistant/hassfest:latest'
         language: system
         pass_filenames: false
       - id: pytest-unit

@@ -209,10 +209,10 @@ export class UnifiNetworkMapCard extends HTMLElement {
     }
 
     const body = this._error
-      ? `<div style="padding:16px;color:#b00020;">${escapeHtml(this._error)}</div>`
+      ? this._renderError()
       : this._svgContent
         ? this._renderLayout()
-        : `<div style="padding:16px;">Loading map...</div>`;
+        : this._renderLoading();
 
     this._setCardBody(body, theme);
 
@@ -220,6 +220,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
       return;
     }
     this._ensureStyles();
+    this._wireRetry();
     this._loadSvg();
     this._loadPayload();
     this._wireInteractions();
@@ -250,6 +251,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
     const currentUrl = this._config.svg_url;
 
     this._loading = true;
+    this._render();
     const result = await loadSvg(
       this._fetchWithAuth.bind(this),
       currentUrl,
@@ -286,6 +288,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
     const currentUrl = this._config.data_url;
 
     this._dataLoading = true;
+    this._render();
     const result = await loadPayload<MapPayload>(
       this._fetchWithAuth.bind(this),
       currentUrl,
@@ -305,6 +308,24 @@ export class UnifiNetworkMapCard extends HTMLElement {
     this._render();
   }
 
+  private _renderLoading(): string {
+    return `
+      <div class="unifi-network-map__loading">
+        <div class="unifi-network-map__spinner" role="progressbar" aria-label="Loading"></div>
+        <div class="unifi-network-map__loading-text">Loading map...</div>
+      </div>
+    `;
+  }
+
+  private _renderError(): string {
+    return `
+      <div class="unifi-network-map__error">
+        <div class="unifi-network-map__error-text">${escapeHtml(this._error ?? "Unknown error")}</div>
+        <button type="button" class="unifi-network-map__retry" data-action="retry">Retry</button>
+      </div>
+    `;
+  }
+
   private _renderLayout(): string {
     const safeSvg = this._svgContent ? sanitizeSvg(this._svgContent) : "";
     return `
@@ -315,6 +336,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
             <button type="button" data-action="zoom-out" title="Zoom out">-</button>
             <button type="button" data-action="reset" title="Reset view">Reset</button>
           </div>
+          ${this._renderLoadingOverlay()}
           ${safeSvg}
           <div class="unifi-network-map__status-layer"></div>
           <div class="unifi-network-map__tooltip" hidden></div>
@@ -324,6 +346,42 @@ export class UnifiNetworkMapCard extends HTMLElement {
         </div>
       </div>
     `;
+  }
+
+  private _renderLoadingOverlay(): string {
+    if (!this._isLoading()) {
+      return "";
+    }
+    return `
+      <div class="unifi-network-map__loading-overlay">
+        <div class="unifi-network-map__spinner"></div>
+        <div class="unifi-network-map__loading-text">Refreshing data...</div>
+      </div>
+    `;
+  }
+
+  private _isLoading(): boolean {
+    return this._loading || this._dataLoading;
+  }
+
+  private _wireRetry() {
+    const retryButton = this.querySelector('[data-action="retry"]') as HTMLButtonElement | null;
+    if (!retryButton) return;
+    retryButton.onclick = (event) => {
+      event.preventDefault();
+      this._retryLoad();
+    };
+  }
+
+  private _retryLoad() {
+    this._error = undefined;
+    this._lastSvgUrl = undefined;
+    this._lastDataUrl = undefined;
+    this._svgAbortController?.abort();
+    this._payloadAbortController?.abort();
+    this._loadSvg();
+    this._loadPayload();
+    this._render();
   }
 
   private _renderPanelContent(): string {

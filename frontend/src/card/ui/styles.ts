@@ -87,6 +87,64 @@ export const CARD_STYLES = `
   /* Status Layer */
   .unifi-network-map__status-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
 
+  /* Loading + Error */
+  .unifi-network-map__loading,
+  .unifi-network-map__error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 32px 16px;
+    text-align: center;
+    color: #e2e8f0;
+  }
+  .unifi-network-map__loading-text,
+  .unifi-network-map__error-text {
+    font-size: 13px;
+    color: #cbd5e1;
+  }
+  .unifi-network-map__spinner {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    border: 3px solid rgba(148, 163, 184, 0.3);
+    border-top-color: #60a5fa;
+    animation: unifi-spin 0.8s linear infinite;
+  }
+  .unifi-network-map__retry {
+    background: rgba(59, 130, 246, 0.2);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    color: #e2e8f0;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .unifi-network-map__retry:hover {
+    background: rgba(59, 130, 246, 0.35);
+  }
+  .unifi-network-map__loading-overlay {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    color: #cbd5e1;
+    z-index: 2;
+    pointer-events: none;
+    font-size: 12px;
+  }
+  @keyframes unifi-spin {
+    to { transform: rotate(360deg); }
+  }
+
   /* Info Row */
   .info-row { display: flex; flex-direction: column; gap: 4px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; }
   .info-row__label { font-size: 11px; color: #64748b; }
