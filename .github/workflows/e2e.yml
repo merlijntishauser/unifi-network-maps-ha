@@ -12,6 +12,10 @@ on:
         description: "Run full HA version matrix"
         type: boolean
         default: false
+      target_name:
+        description: "HA version name from tests/e2e/ha-matrix.yaml (used when run_matrix=false)"
+        type: string
+        default: "stable"
 
 jobs:
   matrix:
@@ -119,6 +123,105 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     if: github.event_name == 'pull_request'
+  e2e-single:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name == 'workflow_dispatch' && !inputs.run_matrix
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve target version
+        id: target
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import yaml
+          from pathlib import Path
+
+          data = yaml.safe_load(Path("tests/e2e/ha-matrix.yaml").read_text())
+          target = "${{ inputs.target_name }}".strip()
+          versions = data.get("versions", [])
+          match = next((v for v in versions if v.get("name") == target), None)
+          if not match:
+              raise SystemExit(
+                  f"Unknown target_name '{target}'. Available: {[v.get('name') for v in versions]}"
+              )
+          print(f"HA_IMAGE_TAG={match['image_tag']}")
+          print(f"HA_CONFIG_DIR={(Path('tests/e2e') / match['config_dir']).resolve()}")
+          PY
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Build frontend
+        run: |
+          cd frontend && npm ci && npm run build
+          mkdir -p ../custom_components/unifi_network_map/frontend
+          cp dist/unifi-network-map.js ../custom_components/unifi_network_map/frontend/
+
+      - name: Install E2E test dependencies
+        run: |
+          pip install -r tests/e2e/requirements.txt
+          playwright install chromium --with-deps
+
+      - name: Start Docker services
+        run: |
+          docker compose -f tests/e2e/docker-compose.yml up -d --build --wait
+        timeout-minutes: 10
+        env:
+          HA_IMAGE_TAG: ${{ steps.target.outputs.HA_IMAGE_TAG }}
+          HA_CONFIG_DIR: ${{ steps.target.outputs.HA_CONFIG_DIR }}
+
+      - name: Wait for Home Assistant
+        run: |
+          timeout 120 bash -c 'until curl -sf http://localhost:28123/api/ 2>/dev/null | grep -q "API running" || curl -sf http://localhost:28123/api/ 2>/dev/null; do sleep 2; done' || true
+          sleep 10
+
+      - name: Run E2E tests
+        run: |
+          pytest tests/e2e -v --browser chromium --tracing retain-on-failure
+        env:
+          HA_URL: http://localhost:28123
+          MOCK_UNIFI_URL: http://localhost:18443
+          HA_IMAGE_TAG: ${{ steps.target.outputs.HA_IMAGE_TAG }}
+          HA_CONFIG_DIR: ${{ steps.target.outputs.HA_CONFIG_DIR }}
+
+      - name: Upload test artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results-single-${{ inputs.target_name }}
+          path: |
+            test-results/
+            playwright-report/
+
+      - name: Show logs on failure
+        if: failure()
+        run: |
+          echo "=== Home Assistant logs ==="
+          docker compose -f tests/e2e/docker-compose.yml logs homeassistant --tail=200
+          echo ""
+          echo "=== Mock UniFi logs ==="
+          docker compose -f tests/e2e/docker-compose.yml logs mock-unifi --tail=100
+        env:
+          HA_IMAGE_TAG: ${{ steps.target.outputs.HA_IMAGE_TAG }}
+          HA_CONFIG_DIR: ${{ steps.target.outputs.HA_CONFIG_DIR }}
+
+      - name: Stop Docker services
+        if: always()
+        run: |
+          docker compose -f tests/e2e/docker-compose.yml down -v
+        env:
+          HA_IMAGE_TAG: ${{ steps.target.outputs.HA_IMAGE_TAG }}
+          HA_CONFIG_DIR: ${{ steps.target.outputs.HA_CONFIG_DIR }}
     steps:
       - uses: actions/checkout@v6
 
