@@ -161,6 +161,48 @@ def test_node_click_selects_node(
     assert result["panelContainsNodeName"], "Panel should show selected node name"
 
 
+def test_node_click_selects_node_with_small_drag(
+    authenticated_page: Page,
+    entry_id: str,
+    ha_auth_token: str,
+) -> None:
+    """Test that a small pointer jitter does not prevent selection."""
+    page = authenticated_page
+
+    page.goto(f"{HA_URL}/lovelace/e2e-test")
+    page.wait_for_load_state("networkidle")
+    page.wait_for_function(
+        "customElements.get('unifi-network-map') !== undefined",
+        timeout=10000,
+    )
+
+    _create_test_card(page, entry_id, ha_auth_token)
+
+    node = page.locator('#test-card g[data-node-id="Office Switch"]')
+    box = node.bounding_box()
+    assert box is not None, "Node bounding box not found"
+    cx = box["x"] + box["width"] / 2
+    cy = box["y"] + box["height"] / 2
+
+    page.mouse.move(cx, cy)
+    page.mouse.down()
+    page.mouse.move(cx + 4, cy + 4)
+    page.mouse.up()
+    page.wait_for_timeout(500)
+
+    result = page.evaluate("""() => {
+        const card = document.getElementById("test-card");
+        const selected = card.querySelectorAll('[data-selected="true"]');
+        return {
+            selectedCount: selected.length,
+            selectedId: selected[0]?.getAttribute("data-node-id")
+        };
+    }""")
+
+    assert result["selectedCount"] == 1, "Node should be selected after small drag"
+    assert result["selectedId"] == "Office Switch", "Office Switch should be selected"
+
+
 def test_context_menu_opens_on_right_click(
     authenticated_page: Page,
     entry_id: str,
@@ -200,6 +242,49 @@ def test_context_menu_opens_on_right_click(
     assert result["menuNode"] == "UDM Pro", "Context menu should be for UDM Pro"
     assert result["hasSelectAction"], "Context menu should have select action"
     assert result["hasCopyMacAction"], "Context menu should have copy MAC action"
+
+
+def test_context_menu_opens_with_small_drag(
+    authenticated_page: Page,
+    entry_id: str,
+    ha_auth_token: str,
+) -> None:
+    """Test that a small pointer jitter does not block context menu."""
+    page = authenticated_page
+
+    page.goto(f"{HA_URL}/lovelace/e2e-test")
+    page.wait_for_load_state("networkidle")
+    page.wait_for_function(
+        "customElements.get('unifi-network-map') !== undefined",
+        timeout=10000,
+    )
+
+    _create_test_card(page, entry_id, ha_auth_token)
+
+    node = page.locator('#test-card g[data-node-id="UDM Pro"]')
+    box = node.bounding_box()
+    assert box is not None, "Node bounding box not found"
+    cx = box["x"] + box["width"] / 2
+    cy = box["y"] + box["height"] / 2
+
+    page.mouse.move(cx, cy)
+    page.mouse.down(button="right")
+    page.mouse.move(cx + 4, cy + 4)
+    page.mouse.up(button="right")
+    page.wait_for_timeout(500)
+
+    result = page.evaluate("""() => {
+        const menu = document.querySelector(".context-menu");
+        return {
+            menuExists: !!menu,
+            menuVisible: menu ? getComputedStyle(menu).display !== "none" : false,
+            menuNode: menu?.getAttribute("data-context-node")
+        };
+    }""")
+
+    assert result["menuExists"], "Context menu should exist"
+    assert result["menuVisible"], "Context menu should be visible"
+    assert result["menuNode"] == "UDM Pro", "Context menu should be for UDM Pro"
 
 
 def test_context_menu_select_action(

@@ -91,6 +91,42 @@ export function markNodeSelected(element: Element): void {
   }
 }
 
+export function annotateNodeIds(svg: SVGElement, nodeNames: string[]): void {
+  if (!nodeNames.length) {
+    return;
+  }
+  const textMap = buildTextMap(svg, "text");
+  const titleMap = buildTextMap(svg, "title");
+
+  for (const name of nodeNames) {
+    if (!name) continue;
+    if (svg.querySelector(`[data-node-id="${CSS.escape(name)}"]`)) {
+      continue;
+    }
+    const ariaMatch = svg.querySelector(`[aria-label="${CSS.escape(name)}"]`);
+    const textMatch = textMap.get(name)?.[0] ?? null;
+    const titleMatch = titleMap.get(name)?.[0] ?? null;
+    const target = (ariaMatch ?? textMatch ?? titleMatch) as Element | null;
+    if (!target) {
+      continue;
+    }
+    const holder = target.closest("g") ?? target;
+    holder.setAttribute("data-node-id", name);
+  }
+}
+
+function buildTextMap(svg: SVGElement, selector: "text" | "title"): Map<string, Element[]> {
+  const map = new Map<string, Element[]>();
+  for (const el of svg.querySelectorAll(selector)) {
+    const text = el.textContent?.trim();
+    if (!text) continue;
+    const list = map.get(text) ?? [];
+    list.push(el);
+    map.set(text, list);
+  }
+  return map;
+}
+
 function findByDataNodeId(svg: SVGElement, nodeName: string): Element | null {
   const el = svg.querySelector(`[data-node-id="${CSS.escape(nodeName)}"]`);
   return el ? (el.closest("g") ?? el) : null;

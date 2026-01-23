@@ -96,5 +96,6 @@ Methods to break down for readability:
 
 ## Recently Completed
 - **Loading state + retry** - Show spinner during payload fetches with retry button
+- fixed regression on node selection and context menu
 
 See [CHANGELOG.md](CHANGELOG.md) for full history.

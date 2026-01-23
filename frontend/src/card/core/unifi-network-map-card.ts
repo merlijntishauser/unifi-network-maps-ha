@@ -8,6 +8,7 @@ import {
 import { escapeHtml, sanitizeHtml, sanitizeSvg } from "../data/sanitize";
 import { annotateEdges, renderEdgeTooltip } from "../data/svg";
 import {
+  annotateNodeIds,
   clearNodeSelection,
   findNodeElement,
   highlightSelectedNode,
@@ -492,6 +493,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
     const options = this._viewportOptions();
     const callbacks = this._viewportCallbacks();
     applyTransform(svg, this._viewportState.viewTransform, this._viewportState.isPanning);
+    annotateNodeIds(svg, Object.keys(this._payload?.node_types ?? {}));
     this._highlightSelectedNode(svg);
     this._annotateEdges(svg);
     this._wireControls(svg);

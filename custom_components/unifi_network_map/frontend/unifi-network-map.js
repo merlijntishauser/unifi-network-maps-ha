@@ -1,6 +1,6 @@
 // src/card/shared/constants.ts
 var DOMAIN = "unifi_network_map";
-var MIN_PAN_MOVEMENT_THRESHOLD = 2;
+var MIN_PAN_MOVEMENT_THRESHOLD = 6;
 var ZOOM_INCREMENT = 0.1;
 var MIN_ZOOM_SCALE = 0.5;
 var MAX_ZOOM_SCALE = 4;
@@ -1260,6 +1260,39 @@ function markNodeSelected(element) {
   } else {
     element.classList.add("node--selected");
   }
+}
+function annotateNodeIds(svg2, nodeNames) {
+  if (!nodeNames.length) {
+    return;
+  }
+  const textMap = buildTextMap(svg2, "text");
+  const titleMap = buildTextMap(svg2, "title");
+  for (const name of nodeNames) {
+    if (!name) continue;
+    if (svg2.querySelector(`[data-node-id="${CSS.escape(name)}"]`)) {
+      continue;
+    }
+    const ariaMatch = svg2.querySelector(`[aria-label="${CSS.escape(name)}"]`);
+    const textMatch = textMap.get(name)?.[0] ?? null;
+    const titleMatch = titleMap.get(name)?.[0] ?? null;
+    const target = ariaMatch ?? textMatch ?? titleMatch;
+    if (!target) {
+      continue;
+    }
+    const holder = target.closest("g") ?? target;
+    holder.setAttribute("data-node-id", name);
+  }
+}
+function buildTextMap(svg2, selector) {
+  const map = /* @__PURE__ */ new Map();
+  for (const el of svg2.querySelectorAll(selector)) {
+    const text2 = el.textContent?.trim();
+    if (!text2) continue;
+    const list = map.get(text2) ?? [];
+    list.push(el);
+    map.set(text2, list);
+  }
+  return map;
 }
 function findByDataNodeId(svg2, nodeName) {
   const el = svg2.querySelector(`[data-node-id="${CSS.escape(nodeName)}"]`);
@@ -3382,6 +3415,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     const options = this._viewportOptions();
     const callbacks = this._viewportCallbacks();
     applyTransform(svg2, this._viewportState.viewTransform, this._viewportState.isPanning);
+    annotateNodeIds(svg2, Object.keys(this._payload?.node_types ?? {}));
     this._highlightSelectedNode(svg2);
     this._annotateEdges(svg2);
     this._wireControls(svg2);
