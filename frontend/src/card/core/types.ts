@@ -123,6 +123,11 @@ export type PortModalState = {
   ports: PortInfo[];
 };
 
+export type VlanInfo = {
+  id: number;
+  name: string;
+};
+
 export type MapPayload = {
   schema_version?: string;
   edges: Edge[];
@@ -137,4 +142,6 @@ export type MapPayload = {
   client_ips?: Record<string, string>;
   device_ips?: Record<string, string>;
   related_entities?: Record<string, RelatedEntity[]>;
+  node_vlans?: Record<string, number | null>;
+  vlan_info?: Record<number, VlanInfo>;
 };

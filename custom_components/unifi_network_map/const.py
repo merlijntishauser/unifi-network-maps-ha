@@ -5,7 +5,7 @@ import logging
 
 DOMAIN = "unifi_network_map"
 PLATFORMS = ["sensor"]
-PAYLOAD_SCHEMA_VERSION = "1.3"
+PAYLOAD_SCHEMA_VERSION = "1.4"
 
 SERVICE_REFRESH = "refresh"
 ATTR_ENTRY_ID = "entry_id"

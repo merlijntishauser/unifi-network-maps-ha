@@ -164,6 +164,8 @@ def _build_payload(
         "device_macs": _build_device_mac_index(devices),
         "client_ips": _build_client_ip_index(clients),
         "device_ips": _build_device_ip_index(devices),
+        "node_vlans": _build_node_vlan_index(clients),
+        "vlan_info": _build_vlan_info(clients),
     }
 
 
@@ -247,3 +249,63 @@ def _client_field(client: ClientData, name: str) -> object | None:
     if isinstance(client, Mapping):
         return client.get(name)
     return getattr(client, name, None)
+
+
+def _client_vlan(client: ClientData) -> int | None:
+    """Extract VLAN ID from client data.
+
+    Checks 'vlan' field first, falls back to 'network_id'.
+    """
+    vlan = _client_field(client, "vlan")
+    if isinstance(vlan, int):
+        return vlan
+    if isinstance(vlan, str) and vlan.isdigit():
+        return int(vlan)
+    network_id = _client_field(client, "network_id")
+    if isinstance(network_id, int):
+        return network_id
+    if isinstance(network_id, str) and network_id.isdigit():
+        return int(network_id)
+    return None
+
+
+def _client_network_name(client: ClientData) -> str | None:
+    """Extract network/SSID name from client data."""
+    for key in ("network", "essid", "network_name"):
+        value = _client_field(client, key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return None
+
+
+def _build_node_vlan_index(clients: list[ClientData] | None) -> dict[str, int | None]:
+    """Map node names to their VLAN IDs."""
+    if not clients:
+        return {}
+    node_vlans: dict[str, int | None] = {}
+    for client in clients:
+        name = _client_display_name(client)
+        if not name:
+            continue
+        vlan = _client_vlan(client)
+        node_vlans[name] = vlan
+    return node_vlans
+
+
+def _build_vlan_info(clients: list[ClientData] | None) -> dict[int, dict[str, Any]]:
+    """Build VLAN metadata (id, name) from client data."""
+    if not clients:
+        return {}
+    vlan_info: dict[int, dict[str, Any]] = {}
+    for client in clients:
+        vlan = _client_vlan(client)
+        if vlan is None:
+            continue
+        if vlan in vlan_info:
+            continue
+        network_name = _client_network_name(client)
+        vlan_info[vlan] = {
+            "id": vlan,
+            "name": network_name or f"VLAN {vlan}",
+        }
+    return vlan_info

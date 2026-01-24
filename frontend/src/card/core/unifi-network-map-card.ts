@@ -55,6 +55,7 @@ import {
   resetPan,
 } from "../interaction/viewport";
 import { CARD_STYLES, GLOBAL_STYLES } from "../ui/styles";
+import { assignVlanColors, generateVlanStyles } from "../ui/vlan-colors";
 import type { CardConfig, Edge, Hass, MapPayload } from "./types";
 import type { IconName } from "../ui/icons";
 
@@ -590,6 +591,34 @@ export class UnifiNetworkMapCard extends HTMLElement {
     document.head.appendChild(style);
   }
 
+  private _applyVlanColors(): void {
+    this._removeVlanStyles();
+
+    if (!this._payload?.node_vlans || !this._payload?.vlan_info) {
+      return;
+    }
+
+    const theme = this._config?.theme ?? "dark";
+    const colorMap = assignVlanColors(this._payload.vlan_info, theme);
+    const css = generateVlanStyles(this._payload.node_vlans, colorMap);
+
+    if (!css) {
+      return;
+    }
+
+    const style = document.createElement("style");
+    style.dataset.unifiNetworkMapVlan = "true";
+    style.textContent = css;
+    this.appendChild(style);
+  }
+
+  private _removeVlanStyles(): void {
+    const existing = this.querySelector("style[data-unifi-network-map-vlan]");
+    if (existing) {
+      existing.remove();
+    }
+  }
+
   private _wireInteractions() {
     const viewport = this.querySelector(".unifi-network-map__viewport") as HTMLElement | null;
     const svg = viewport?.querySelector("svg") as SVGElement | null;
@@ -619,6 +648,8 @@ export class UnifiNetworkMapCard extends HTMLElement {
         controls: viewport.querySelector(".unifi-network-map__controls") as HTMLElement | null,
       },
     });
+
+    this._applyVlanColors();
 
     if (panel) {
       panel.onclick = (event) => this._onPanelClick(event);

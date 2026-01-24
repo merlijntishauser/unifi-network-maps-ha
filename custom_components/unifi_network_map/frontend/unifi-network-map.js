@@ -1881,12 +1881,35 @@ function renderOverviewTab(context, name, helpers) {
         `
   ).join("") : '<div class="panel-empty__text">No connections</div>';
   const relatedEntitiesSection = renderRelatedEntitiesSection(context, name, helpers);
+  const vlanSection = renderVlanSection(context, name, helpers);
   return `
+    ${vlanSection}
     <div class="panel-section">
       <div class="panel-section__title">Connected Devices</div>
       <div class="neighbor-list">${neighborList}</div>
     </div>
     ${relatedEntitiesSection}
+  `;
+}
+function renderVlanSection(context, name, helpers) {
+  const vlanInfo = getNodeVlanInfo(name, context.payload);
+  if (!vlanInfo) {
+    return "";
+  }
+  return `
+    <div class="panel-section">
+      <div class="panel-section__title">Network</div>
+      <div class="stats-list">
+        <div class="stats-row">
+          <span class="stats-row__label">VLAN</span>
+          <span class="stats-row__value">${helpers.escapeHtml(vlanInfo.name)}</span>
+        </div>
+        <div class="stats-row">
+          <span class="stats-row__label">VLAN ID</span>
+          <span class="stats-row__value">${vlanInfo.id}</span>
+        </div>
+      </div>
+    </div>
   `;
 }
 function renderRelatedEntitiesSection(context, name, helpers) {
@@ -1954,9 +1977,11 @@ function renderStatsTab(context, name, helpers) {
   const mac = context.payload?.client_macs?.[name] ?? context.payload?.device_macs?.[name] ?? null;
   const ip = context.payload?.client_ips?.[name] ?? context.payload?.device_ips?.[name] ?? context.payload?.related_entities?.[name]?.find((e) => e.ip)?.ip ?? null;
   const status = context.payload?.node_status?.[name];
+  const vlanInfo = getNodeVlanInfo(name, context.payload);
   return `
     ${renderStatsLiveStatus(status, helpers)}
     ${renderStatsConnectionSection(nodeEdges)}
+    ${renderStatsNetworkInfo(vlanInfo, helpers)}
     ${renderStatsDeviceInfo(mac, ip, helpers)}
   `;
 }
@@ -2002,6 +2027,26 @@ function renderStatsConnectionSection(nodeEdges) {
           <span class="stats-row__value">${wirelessCount}</span>
         </div>
         ${poeRow}
+      </div>
+    </div>
+  `;
+}
+function renderStatsNetworkInfo(vlanInfo, helpers) {
+  if (!vlanInfo) {
+    return "";
+  }
+  return `
+    <div class="panel-section">
+      <div class="panel-section__title">Network Info</div>
+      <div class="stats-list">
+        <div class="stats-row">
+          <span class="stats-row__label">Network</span>
+          <span class="stats-row__value">${helpers.escapeHtml(vlanInfo.name)}</span>
+        </div>
+        <div class="stats-row">
+          <span class="stats-row__label">VLAN ID</span>
+          <span class="stats-row__value">${vlanInfo.id}</span>
+        </div>
       </div>
     </div>
   `;
@@ -2140,6 +2185,16 @@ function countNodeStatus(nodeStatus) {
     offline: values.filter((s) => s.state === "offline").length,
     hasStatus: values.length > 0
   };
+}
+function getNodeVlanInfo(name, payload) {
+  if (!payload?.node_vlans || !payload?.vlan_info) {
+    return null;
+  }
+  const vlanId = payload.node_vlans[name];
+  if (vlanId === null || vlanId === void 0) {
+    return null;
+  }
+  return payload.vlan_info[vlanId] ?? null;
 }
 
 // src/card/ui/context-menu.ts
@@ -3953,6 +4008,94 @@ var GLOBAL_STYLES = `
   .port-modal-overlay[data-theme="unifi-dark"] .port-row__empty { color: #9ca3af; }
 `;
 
+// src/card/ui/vlan-colors.ts
+var VLAN_PALETTE = {
+  dark: [
+    "#60a5fa",
+    // Blue
+    "#4ade80",
+    // Green
+    "#fbbf24",
+    // Amber
+    "#f87171",
+    // Red
+    "#a78bfa",
+    // Violet
+    "#f472b6",
+    // Pink
+    "#22d3ee",
+    // Cyan
+    "#a3e635",
+    // Lime
+    "#fb923c",
+    // Orange
+    "#818cf8"
+    // Indigo
+  ],
+  light: [
+    "#2563eb",
+    // Blue
+    "#16a34a",
+    // Green
+    "#d97706",
+    // Amber
+    "#dc2626",
+    // Red
+    "#7c3aed",
+    // Violet
+    "#db2777",
+    // Pink
+    "#0891b2",
+    // Cyan
+    "#65a30d",
+    // Lime
+    "#ea580c",
+    // Orange
+    "#4f46e5"
+    // Indigo
+  ]
+};
+function isLightTheme(theme) {
+  return theme === "light" || theme === "unifi";
+}
+function assignVlanColors(vlanInfo, theme) {
+  if (!vlanInfo) {
+    return {};
+  }
+  const palette = isLightTheme(theme) ? VLAN_PALETTE.light : VLAN_PALETTE.dark;
+  const vlanIds = Object.keys(vlanInfo).map(Number).sort((a, b) => a - b);
+  const colorMap = {};
+  for (let i = 0; i < vlanIds.length; i++) {
+    const vlanId = vlanIds[i];
+    colorMap[vlanId] = palette[i % palette.length];
+  }
+  return colorMap;
+}
+function generateVlanStyles(nodeVlans, colorMap) {
+  if (!nodeVlans || Object.keys(colorMap).length === 0) {
+    return "";
+  }
+  const rules = [];
+  for (const [nodeName, vlanId] of Object.entries(nodeVlans)) {
+    if (vlanId === null || !(vlanId in colorMap)) {
+      continue;
+    }
+    const color = colorMap[vlanId];
+    const escapedName = CSS.escape(nodeName);
+    rules.push(`
+      .unifi-network-map__viewport svg [data-node-id="${escapedName}"] > rect,
+      .unifi-network-map__viewport svg [data-node-id="${escapedName}"] > circle,
+      .unifi-network-map__viewport svg [data-node-id="${escapedName}"] > polygon,
+      .unifi-network-map__viewport svg [data-node-id="${escapedName}"] > ellipse,
+      .unifi-network-map__viewport svg [data-node-id="${escapedName}"] > path:not([data-edge]) {
+        stroke: ${color};
+        stroke-width: 2px;
+      }
+    `);
+  }
+  return rules.join("\n");
+}
+
 // src/card/core/unifi-network-map-card.ts
 function normalizeCardHeight(value) {
   if (value === void 0 || value === null) return null;
@@ -4398,6 +4541,28 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     style.textContent = GLOBAL_STYLES;
     document.head.appendChild(style);
   }
+  _applyVlanColors() {
+    this._removeVlanStyles();
+    if (!this._payload?.node_vlans || !this._payload?.vlan_info) {
+      return;
+    }
+    const theme = this._config?.theme ?? "dark";
+    const colorMap = assignVlanColors(this._payload.vlan_info, theme);
+    const css = generateVlanStyles(this._payload.node_vlans, colorMap);
+    if (!css) {
+      return;
+    }
+    const style = document.createElement("style");
+    style.dataset.unifiNetworkMapVlan = "true";
+    style.textContent = css;
+    this.appendChild(style);
+  }
+  _removeVlanStyles() {
+    const existing = this.querySelector("style[data-unifi-network-map-vlan]");
+    if (existing) {
+      existing.remove();
+    }
+  }
   _wireInteractions() {
     const viewport = this.querySelector(".unifi-network-map__viewport");
     const svg3 = viewport?.querySelector("svg");
@@ -4426,6 +4591,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
         controls: viewport.querySelector(".unifi-network-map__controls")
       }
     });
+    this._applyVlanColors();
     if (panel) {
       panel.onclick = (event) => this._onPanelClick(event);
     }

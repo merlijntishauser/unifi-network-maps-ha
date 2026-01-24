@@ -25,7 +25,6 @@
 - clients not only horizontally, but multiple rows to keep SVG more square
 
 ### Larger Scope
-- **Multi-site support** - Allow site selection from the UI
 - **Docs improvements** - Add more screenshots + example dashboards
 
 ## P4 - Code Quality & Refactoring (XP Alignment)
@@ -52,7 +51,6 @@ Methods to break down for readability:
 | Online/offline halos | Visual indicator around nodes based on status | S |
 | Bandwidth overlays | Show throughput on edges with thickness/color | M |
 | Animated data flow | Pulse animation on edges showing traffic direction | M |
-| VLAN visualization | Color-code nodes/edges by VLAN membership | M |
 | Guest network highlight | Distinguish guest network clients visually | S |
 | Firmware status badges | Show update-available indicator on nodes | S |
 
@@ -72,7 +70,6 @@ Methods to break down for readability:
 | Mini-graphs over time | Sparklines for bandwidth/signal history | L |
 | Quick actions | Restart device, block client, open controller | M |
 | Connection history | Show when client was last seen, connection duration | M |
-| Port utilization | Show which ports are in use on switches | S |
 
 ### Integration & Performance
 | Feature | Description | Effort |
@@ -94,9 +91,10 @@ Methods to break down for readability:
 
 
 ## Recently Completed
-- Copy-to-clipboard for MAC/IP - One-click copy in detail panel
-- Port utilization - Show which ports are in use on switches
-- fixed ip addresses not being displayed
+- Copy-to-clipboard for MAC/IP: One-click copy in detail panel
+- Port utilization: Show which ports are in use on switches
+- Fixed ip addresses not being displayed
 - Fixed issue with refresh overlay causing flickering
+- VLAN visualization: Color-code nodes/edges by VLAN membership 
 
 See [CHANGELOG.md](CHANGELOG.md) for full history.

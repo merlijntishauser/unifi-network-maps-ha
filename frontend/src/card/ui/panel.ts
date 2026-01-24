@@ -1,4 +1,11 @@
-import type { DeviceCounts, MapPayload, Neighbor, NodeStatus, StatusCounts } from "../core/types";
+import type {
+  DeviceCounts,
+  MapPayload,
+  Neighbor,
+  NodeStatus,
+  StatusCounts,
+  VlanInfo,
+} from "../core/types";
 import type { IconName } from "./icons";
 
 export type PanelContext = {
@@ -150,13 +157,38 @@ function renderOverviewTab(context: PanelContext, name: string, helpers: PanelHe
     : '<div class="panel-empty__text">No connections</div>';
 
   const relatedEntitiesSection = renderRelatedEntitiesSection(context, name, helpers);
+  const vlanSection = renderVlanSection(context, name, helpers);
 
   return `
+    ${vlanSection}
     <div class="panel-section">
       <div class="panel-section__title">Connected Devices</div>
       <div class="neighbor-list">${neighborList}</div>
     </div>
     ${relatedEntitiesSection}
+  `;
+}
+
+function renderVlanSection(context: PanelContext, name: string, helpers: PanelHelpers): string {
+  const vlanInfo = getNodeVlanInfo(name, context.payload);
+  if (!vlanInfo) {
+    return "";
+  }
+
+  return `
+    <div class="panel-section">
+      <div class="panel-section__title">Network</div>
+      <div class="stats-list">
+        <div class="stats-row">
+          <span class="stats-row__label">VLAN</span>
+          <span class="stats-row__value">${helpers.escapeHtml(vlanInfo.name)}</span>
+        </div>
+        <div class="stats-row">
+          <span class="stats-row__label">VLAN ID</span>
+          <span class="stats-row__value">${vlanInfo.id}</span>
+        </div>
+      </div>
+    </div>
   `;
 }
 
@@ -253,10 +285,12 @@ function renderStatsTab(context: PanelContext, name: string, helpers: PanelHelpe
     context.payload?.related_entities?.[name]?.find((e) => e.ip)?.ip ??
     null;
   const status = context.payload?.node_status?.[name];
+  const vlanInfo = getNodeVlanInfo(name, context.payload);
 
   return `
     ${renderStatsLiveStatus(status, helpers)}
     ${renderStatsConnectionSection(nodeEdges)}
+    ${renderStatsNetworkInfo(vlanInfo, helpers)}
     ${renderStatsDeviceInfo(mac, ip, helpers)}
   `;
 }
@@ -310,6 +344,27 @@ function renderStatsConnectionSection(
           <span class="stats-row__value">${wirelessCount}</span>
         </div>
         ${poeRow}
+      </div>
+    </div>
+  `;
+}
+
+function renderStatsNetworkInfo(vlanInfo: VlanInfo | null, helpers: PanelHelpers): string {
+  if (!vlanInfo) {
+    return "";
+  }
+  return `
+    <div class="panel-section">
+      <div class="panel-section__title">Network Info</div>
+      <div class="stats-list">
+        <div class="stats-row">
+          <span class="stats-row__label">Network</span>
+          <span class="stats-row__value">${helpers.escapeHtml(vlanInfo.name)}</span>
+        </div>
+        <div class="stats-row">
+          <span class="stats-row__label">VLAN ID</span>
+          <span class="stats-row__value">${vlanInfo.id}</span>
+        </div>
       </div>
     </div>
   `;
@@ -496,4 +551,15 @@ function countNodeStatus(nodeStatus: Record<string, NodeStatus>): StatusCounts {
     offline: values.filter((s) => s.state === "offline").length,
     hasStatus: values.length > 0,
   };
+}
+
+function getNodeVlanInfo(name: string, payload?: MapPayload): VlanInfo | null {
+  if (!payload?.node_vlans || !payload?.vlan_info) {
+    return null;
+  }
+  const vlanId = payload.node_vlans[name];
+  if (vlanId === null || vlanId === undefined) {
+    return null;
+  }
+  return payload.vlan_info[vlanId] ?? null;
 }
