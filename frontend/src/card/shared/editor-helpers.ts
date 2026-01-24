@@ -27,6 +27,16 @@ export function buildFormSchema(entries: ConfigEntry[]): FormSchemaEntry[] {
       },
       label: "Theme",
     },
+    {
+      name: "card_height",
+      selector: {
+        text: {
+          type: "text",
+          suffix: "px",
+        },
+      },
+      label: "Card height (optional)",
+    },
   ];
 }
 

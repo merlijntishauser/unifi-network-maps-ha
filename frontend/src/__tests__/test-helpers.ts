@@ -6,6 +6,7 @@ export type ConfigurableCard = HTMLElement & {
     data_url?: string;
     entry_id?: string;
     theme?: "dark" | "light" | "unifi" | "unifi-dark";
+    card_height?: string | number;
   }) => void;
   connectedCallback?: () => void;
   disconnectedCallback?: () => void;

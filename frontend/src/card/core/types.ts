@@ -13,6 +13,7 @@ export type CardConfig = {
   svg_url?: string;
   data_url?: string;
   theme?: "dark" | "light" | "unifi" | "unifi-dark";
+  card_height?: string | number;
 };
 
 export type ConfigEntry = {
@@ -80,9 +81,14 @@ export type FormSchemaEntry = {
   name: string;
   required?: boolean;
   selector: {
-    select: {
+    select?: {
       mode: string;
       options: Array<{ label: string; value: string }>;
+    };
+    text?: {
+      type?: string;
+      prefix?: string;
+      suffix?: string;
     };
   };
   label: string;

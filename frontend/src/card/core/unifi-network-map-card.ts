@@ -55,6 +55,16 @@ import {
 import { CARD_STYLES, GLOBAL_STYLES } from "../ui/styles";
 import type { CardConfig, Edge, Hass, MapPayload } from "./types";
 
+function normalizeCardHeight(value: CardConfig["card_height"]): string | null {
+  if (value === undefined || value === null) return null;
+  const raw = typeof value === "number" ? `${value}` : value.trim();
+  if (!raw) return null;
+  if (/^\d+(\.\d+)?$/.test(raw)) {
+    return `${raw}px`;
+  }
+  return raw;
+}
+
 export class UnifiNetworkMapCard extends HTMLElement {
   static getLayoutOptions() {
     return { grid_columns: 4, grid_rows: 3, grid_min_columns: 2, grid_min_rows: 2 };
@@ -240,8 +250,18 @@ export class UnifiNetworkMapCard extends HTMLElement {
   private _setCardBody(body: string, theme: string) {
     const card = document.createElement("ha-card");
     card.dataset.theme = theme;
+    this._applyCardHeight(card);
     card.innerHTML = sanitizeHtml(body);
     this.replaceChildren(card);
+  }
+
+  private _applyCardHeight(card: HTMLElement) {
+    const height = normalizeCardHeight(this._config?.card_height);
+    if (!height) {
+      card.style.removeProperty("height");
+      return;
+    }
+    card.style.height = height;
   }
 
   private async _loadSvg() {

@@ -55,6 +55,7 @@ export class UnifiNetworkMapEditor extends HTMLElement {
     this._form.data = {
       entry_id: this._config?.entry_id ?? "",
       theme: this._config?.theme ?? "dark",
+      card_height: this._config?.card_height ?? "",
     };
   }
 
@@ -90,14 +91,23 @@ export class UnifiNetworkMapEditor extends HTMLElement {
   }
 
   private _onChange(e: Event) {
-    const detail = (e as CustomEvent<{ value?: { entry_id?: string; theme?: string } }>).detail;
+    const detail = (
+      e as CustomEvent<{
+        value?: { entry_id?: string; theme?: string; card_height?: string | number };
+      }>
+    ).detail;
     const entryId = detail.value?.entry_id ?? this._config?.entry_id ?? "";
     const themeValue = detail.value?.theme ?? this._config?.theme ?? "dark";
+    const cardHeight = detail.value?.card_height ?? this._config?.card_height;
     const theme = normalizeTheme(themeValue);
-    if (this._config?.entry_id === entryId && this._config?.theme === theme) {
+    if (
+      this._config?.entry_id === entryId &&
+      this._config?.theme === theme &&
+      this._config?.card_height === cardHeight
+    ) {
       return;
     }
-    this._updateConfig({ entry_id: entryId, theme });
+    this._updateConfig({ entry_id: entryId, theme, card_height: cardHeight });
   }
 
   private _updateConfigEntry(entryId: string) {
@@ -108,12 +118,14 @@ export class UnifiNetworkMapEditor extends HTMLElement {
   private _updateConfig(update: {
     entry_id: string;
     theme: "dark" | "light" | "unifi" | "unifi-dark";
+    card_height?: string | number;
   }) {
     this._config = {
       ...this._config,
       type: "custom:unifi-network-map",
       entry_id: update.entry_id,
       theme: update.theme,
+      card_height: update.card_height,
     };
     this.dispatchEvent(
       new CustomEvent("config-changed", {

@@ -65,11 +65,47 @@ Then add the card to a dashboard (replace `<entry_id>`):
 type: custom:unifi-network-map
 svg_url: /api/unifi_network_map/<entry_id>/svg
 data_url: /api/unifi_network_map/<entry_id>/payload
+card_height: 600
 ```
 
 Find `<entry_id>` in **Developer Tools → States**:
 1) Select `sensor.unifi_network_map`.
 2) Copy the `entry_id` attribute.
+
+### Card height
+Use the built-in `card_height` option to size the card (number = px, or any CSS length):
+
+```yaml
+type: custom:unifi-network-map
+entry_id: <entry_id>
+card_height: 600
+```
+
+Alternative sizing approaches:
+
+1) Per-card CSS:
+
+```yaml
+type: custom:unifi-network-map
+entry_id: <entry_id>
+style: |
+  :host {
+    height: 600px;
+    display: block;
+  }
+```
+
+2) Control height via layout-card / grid row sizing:
+
+```yaml
+type: custom:layout-card
+layout_type: grid
+layout:
+  grid-template-rows: 2fr
+cards:
+  - type: custom:unifi-network-map
+    entry_id: <entry_id>
+```
 
 ## Troubleshooting
 - If the card says missing auth, log in to HA in the same browser session.

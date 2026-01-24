@@ -1914,7 +1914,8 @@ function normalizeConfig(config) {
       entry_id: config.entry_id,
       theme,
       svg_url: `/api/${DOMAIN}/${config.entry_id}/svg${themeSuffix}`,
-      data_url: `/api/${DOMAIN}/${config.entry_id}/payload`
+      data_url: `/api/${DOMAIN}/${config.entry_id}/payload`,
+      card_height: config.card_height
     };
   }
   return config;
@@ -2339,9 +2340,9 @@ function createDefaultViewportHandlers(edges) {
 var CARD_STYLES = `
   unifi-network-map { display: block; }
   unifi-network-map ha-card { display: flex; flex-direction: column; box-sizing: border-box; }
-  .unifi-network-map__layout { display: grid; grid-template-columns: minmax(0, 2.5fr) minmax(280px, 1fr); gap: 12px; padding: 12px; }
-  .unifi-network-map__viewport { position: relative; overflow: hidden; min-height: 300px; background: linear-gradient(135deg, #0b1016 0%, #111827 100%); border-radius: 12px; touch-action: none; contain: strict; isolation: isolate; }
-  .unifi-network-map__viewport svg { width: 100%; height: auto; display: block; position: absolute; top: 0; left: 0; z-index: 0; }
+  .unifi-network-map__layout { display: grid; grid-template-columns: minmax(0, 2.5fr) minmax(280px, 1fr); gap: 12px; padding: 12px; flex: 1; min-height: 0; height: 100%; }
+  .unifi-network-map__viewport { position: relative; overflow: hidden; min-height: 300px; background: linear-gradient(135deg, #0b1016 0%, #111827 100%); border-radius: 12px; touch-action: none; contain: strict; isolation: isolate; height: 100%; }
+  .unifi-network-map__viewport svg { width: 100%; height: 100%; display: block; position: absolute; top: 0; left: 0; z-index: 0; }
   .unifi-network-map__viewport svg, .unifi-network-map__viewport svg * { pointer-events: bounding-box !important; }
   .unifi-network-map__controls { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; z-index: 3; }
   .unifi-network-map__controls button { background: rgba(15, 23, 42, 0.9); color: #e5e7eb; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 6px 10px; font-size: 12px; cursor: pointer; backdrop-filter: blur(8px); transition: all 0.15s ease; }
@@ -2350,7 +2351,7 @@ var CARD_STYLES = `
   .unifi-network-map__viewport svg path[data-edge] { cursor: pointer; transition: stroke-width 0.15s ease, filter 0.15s ease; pointer-events: stroke; }
   .unifi-network-map__viewport svg path[data-edge-hitbox] { stroke: transparent; stroke-width: 14; fill: none; pointer-events: stroke; }
   .unifi-network-map__viewport svg path[data-edge]:hover { stroke-width: 4; filter: drop-shadow(0 0 4px currentColor); }
-  .unifi-network-map__panel { padding: 0; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); color: #e5e7eb; border-radius: 12px; font-size: 13px; overflow: hidden; display: flex; flex-direction: column; contain: strict; min-height: 0; }
+  .unifi-network-map__panel { padding: 0; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); color: #e5e7eb; border-radius: 12px; font-size: 13px; overflow: hidden; display: flex; flex-direction: column; contain: strict; min-height: 0; height: 100%; }
   .unifi-network-map__tooltip { position: fixed; z-index: 2; background: rgba(15, 23, 42, 0.95); color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 12px; pointer-events: none; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(8px); max-width: 280px; }
   .unifi-network-map__tooltip--edge { display: flex; flex-direction: column; gap: 4px; }
   .tooltip-edge__title { font-weight: 600; color: #f1f5f9; margin-bottom: 2px; }
@@ -3371,6 +3372,15 @@ var GLOBAL_STYLES = `
 `;
 
 // src/card/core/unifi-network-map-card.ts
+function normalizeCardHeight(value) {
+  if (value === void 0 || value === null) return null;
+  const raw = typeof value === "number" ? `${value}` : value.trim();
+  if (!raw) return null;
+  if (/^\d+(\.\d+)?$/.test(raw)) {
+    return `${raw}px`;
+  }
+  return raw;
+}
 var UnifiNetworkMapCard = class extends HTMLElement {
   constructor() {
     super(...arguments);
@@ -3504,8 +3514,17 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   _setCardBody(body, theme) {
     const card = document.createElement("ha-card");
     card.dataset.theme = theme;
+    this._applyCardHeight(card);
     card.innerHTML = sanitizeHtml(body);
     this.replaceChildren(card);
+  }
+  _applyCardHeight(card) {
+    const height = normalizeCardHeight(this._config?.card_height);
+    if (!height) {
+      card.style.removeProperty("height");
+      return;
+    }
+    card.style.height = height;
   }
   async _loadSvg() {
     if (!this._config?.svg_url || !this._hass) {
@@ -4091,6 +4110,16 @@ function buildFormSchema(entries2) {
         }
       },
       label: "Theme"
+    },
+    {
+      name: "card_height",
+      selector: {
+        text: {
+          type: "text",
+          suffix: "px"
+        }
+      },
+      label: "Card height (optional)"
     }
   ];
 }
@@ -4150,7 +4179,8 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
     this._form.schema = this._buildFormSchema();
     this._form.data = {
       entry_id: this._config?.entry_id ?? "",
-      theme: this._config?.theme ?? "dark"
+      theme: this._config?.theme ?? "dark",
+      card_height: this._config?.card_height ?? ""
     };
   }
   _renderNoEntries() {
@@ -4183,11 +4213,12 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
     const detail = e.detail;
     const entryId = detail.value?.entry_id ?? this._config?.entry_id ?? "";
     const themeValue = detail.value?.theme ?? this._config?.theme ?? "dark";
+    const cardHeight = detail.value?.card_height ?? this._config?.card_height;
     const theme = normalizeTheme(themeValue);
-    if (this._config?.entry_id === entryId && this._config?.theme === theme) {
+    if (this._config?.entry_id === entryId && this._config?.theme === theme && this._config?.card_height === cardHeight) {
       return;
     }
-    this._updateConfig({ entry_id: entryId, theme });
+    this._updateConfig({ entry_id: entryId, theme, card_height: cardHeight });
   }
   _updateConfigEntry(entryId) {
     const selectedTheme = this._config?.theme ?? "dark";
@@ -4198,7 +4229,8 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
       ...this._config,
       type: "custom:unifi-network-map",
       entry_id: update.entry_id,
-      theme: update.theme
+      theme: update.theme,
+      card_height: update.card_height
     };
     this.dispatchEvent(
       new CustomEvent("config-changed", {
