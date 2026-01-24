@@ -3649,6 +3649,10 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       panel.innerHTML = sanitizeHtml(this._renderPanelContent());
       panel.onclick = (event) => this._onPanelClick(event);
     }
+    const svg2 = this.querySelector(".unifi-network-map__viewport svg");
+    if (svg2) {
+      this._highlightSelectedNode(svg2);
+    }
   }
   _renderPanelContent() {
     return renderPanelContent(

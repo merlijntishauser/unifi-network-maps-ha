@@ -403,7 +403,10 @@ export class UnifiNetworkMapCard extends HTMLElement {
       panel.innerHTML = sanitizeHtml(this._renderPanelContent());
       panel.onclick = (event) => this._onPanelClick(event);
     }
-    // Note: Highlight disabled for testing - SVG is not touched at all
+    const svg = this.querySelector(".unifi-network-map__viewport svg") as SVGElement | null;
+    if (svg) {
+      this._highlightSelectedNode(svg);
+    }
   }
 
   private _renderPanelContent(): string {
