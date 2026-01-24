@@ -208,6 +208,21 @@ def _ensure_auth_provider_credentials(storage_dir: Path) -> None:
     auth_provider_path.write_text(json.dumps(payload, indent=2))
 
 
+def _dedupe_args(args: list[str]) -> list[str]:
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for arg in args:
+        if arg in seen:
+            continue
+        seen.add(arg)
+        deduped.append(arg)
+    return deduped
+
+
+def _remove_args(args: list[str], remove: set[str]) -> list[str]:
+    return [arg for arg in args if arg not in remove]
+
+
 @typed_fixture(scope="session")
 def docker_services() -> Generator[None, None, None]:
     """Start and stop Docker Compose stack for the test session."""
@@ -563,19 +578,32 @@ def cleanup_config_entries(ha_client: httpx.Client) -> Generator[None, None, Non
 
 
 @typed_fixture(scope="session")
+def _configure_browser_args(base_args: list[str]) -> list[str]:
+    ci_args = [
+        "--disable-dev-shm-usage",  # Overcome limited /dev/shm in CI
+        "--no-sandbox",  # Required for running as root in containers
+        "--disable-gpu",  # Disable GPU hardware acceleration
+        "--disable-setuid-sandbox",
+        "--disable-software-rasterizer",
+    ]
+    local_args = [
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-renderer-backgrounding",
+        "--enable-accelerated-2d-canvas",
+        "--enable-gpu-rasterization",
+    ]
+    args = base_args
+    if IS_CI:
+        args = args + ci_args
+    else:
+        args = _remove_args(args, set(ci_args)) + local_args
+    return _dedupe_args(args)
+
+
 def browser_type_launch_args(browser_type_launch_args: dict[str, Any]) -> dict[str, Any]:
-    """Configure browser launch args for CI stability."""
-    # These args help prevent "Page crashed" errors in CI environments
-    args = browser_type_launch_args.get("args", [])
-    args.extend(
-        [
-            "--disable-dev-shm-usage",  # Overcome limited /dev/shm in CI
-            "--no-sandbox",  # Required for running as root in containers
-            "--disable-gpu",  # Disable GPU hardware acceleration
-            "--disable-setuid-sandbox",
-            "--disable-software-rasterizer",
-        ]
-    )
+    """Configure browser launch args for local speed or CI stability."""
+    args = _configure_browser_args(list(browser_type_launch_args.get("args", [])))
     return {
         **browser_type_launch_args,
         "args": args,

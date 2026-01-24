@@ -10,7 +10,7 @@ import pytest
 from conftest import SKIP_BROWSER_IN_CI
 
 if TYPE_CHECKING:
-    from playwright.sync_api import Page
+    from playwright.sync_api import Locator, Page
 
 HA_URL = os.environ.get("HA_URL", "http://localhost:28123")
 
@@ -107,6 +107,12 @@ def _create_test_card_in_ha_card(page: Page, entry_id: str, auth_token: str) -> 
     page.wait_for_timeout(1000)  # Extra time for payload to load
 
 
+def _node_locator(page: Page, node_name: str) -> "Locator":
+    selector = f'#test-card [data-node-id="{node_name}"]'
+    page.wait_for_selector(selector, timeout=10000)
+    return page.locator(selector)
+
+
 def test_custom_card_element_registered(
     authenticated_page: Page,
     entry_id: str,
@@ -193,7 +199,7 @@ def test_node_click_selects_node(
     _create_test_card(page, entry_id, ha_auth_token)
 
     # Find a node and click on it
-    node = page.locator('#test-card g[data-node-id="Office Switch"]')
+    node = _node_locator(page, "Office Switch")
     node.click()
     page.wait_for_timeout(500)
 
@@ -231,7 +237,7 @@ def test_node_click_selects_node_with_small_drag(
 
     _create_test_card(page, entry_id, ha_auth_token)
 
-    node = page.locator('#test-card g[data-node-id="Office Switch"]')
+    node = _node_locator(page, "Office Switch")
     box = node.bounding_box()
     assert box is not None, "Node bounding box not found"
     cx = box["x"] + box["width"] / 2
@@ -274,7 +280,7 @@ def test_context_menu_opens_on_right_click(
     _create_test_card(page, entry_id, ha_auth_token)
 
     # Right-click on a node
-    node = page.locator('#test-card g[data-node-id="UDM Pro"]')
+    node = _node_locator(page, "UDM Pro")
     node.click(button="right")
     page.wait_for_timeout(500)
 
@@ -314,7 +320,7 @@ def test_context_menu_opens_with_small_drag(
 
     _create_test_card(page, entry_id, ha_auth_token)
 
-    node = page.locator('#test-card g[data-node-id="UDM Pro"]')
+    node = _node_locator(page, "UDM Pro")
     box = node.bounding_box()
     assert box is not None, "Node bounding box not found"
     cx = box["x"] + box["width"] / 2
@@ -358,7 +364,7 @@ def test_context_menu_select_action(
     _create_test_card(page, entry_id, ha_auth_token)
 
     # Right-click on a node to open context menu
-    node = page.locator('#test-card g[data-node-id="Living Room AP"]')
+    node = _node_locator(page, "Living Room AP")
     node.click(button="right")
     page.wait_for_timeout(500)
 
@@ -410,7 +416,7 @@ def test_node_click_works_inside_ha_card(
     _create_test_card_in_ha_card(page, entry_id, ha_auth_token)
 
     # Find a node and click on it
-    node = page.locator('#test-card g[data-node-id="Office Switch"]')
+    node = _node_locator(page, "Office Switch")
     node.click()
     page.wait_for_timeout(500)
 
@@ -452,7 +458,7 @@ def test_context_menu_works_inside_ha_card(
     _create_test_card_in_ha_card(page, entry_id, ha_auth_token)
 
     # Right-click on a node
-    node = page.locator('#test-card g[data-node-id="UDM Pro"]')
+    node = _node_locator(page, "UDM Pro")
     node.click(button="right")
     page.wait_for_timeout(500)
 
