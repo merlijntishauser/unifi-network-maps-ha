@@ -339,11 +339,11 @@ describe("unifi-network-map card panel", () => {
   it("returns node type icons for common types", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     const card = element as unknown as { _getNodeTypeIcon: (type: string) => string };
-    expect(card._getNodeTypeIcon("gateway")).toBe("🌐");
-    expect(card._getNodeTypeIcon("switch")).toBe("🔀");
-    expect(card._getNodeTypeIcon("ap")).toBe("📶");
-    expect(card._getNodeTypeIcon("client")).toBe("💻");
-    expect(card._getNodeTypeIcon("unknown")).toBe("📦");
+    expect(card._getNodeTypeIcon("gateway")).toContain("🌐");
+    expect(card._getNodeTypeIcon("switch")).toContain("🔀");
+    expect(card._getNodeTypeIcon("ap")).toContain("📶");
+    expect(card._getNodeTypeIcon("client")).toContain("💻");
+    expect(card._getNodeTypeIcon("unknown")).toContain("📦");
   });
 
   it("switches tabs and renders stats content", () => {

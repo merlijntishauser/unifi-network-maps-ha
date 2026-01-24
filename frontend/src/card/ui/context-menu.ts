@@ -6,6 +6,7 @@ export type ContextMenuRenderOptions = {
   payload?: MapPayload;
   theme: "dark" | "light" | "unifi" | "unifi-dark";
   getNodeTypeIcon: (nodeType: string) => string;
+  getIcon: (name: "menu-select" | "menu-details" | "menu-copy" | "menu-restart") => string;
 };
 
 export type ContextMenuAction = "select" | "details" | "copy-mac" | "restart" | "unknown";
@@ -32,7 +33,7 @@ export function renderContextMenu(options: ContextMenuRenderOptions): string {
 
   items.push(`
     <button type="button" class="context-menu__item" data-context-action="select">
-      <span class="context-menu__icon">👆</span>
+      <span class="context-menu__icon">${options.getIcon("menu-select")}</span>
       <span>Select</span>
     </button>
   `);
@@ -40,7 +41,7 @@ export function renderContextMenu(options: ContextMenuRenderOptions): string {
   if (entityId) {
     items.push(`
       <button type="button" class="context-menu__item" data-context-action="details">
-        <span class="context-menu__icon">📊</span>
+        <span class="context-menu__icon">${options.getIcon("menu-details")}</span>
         <span>View Details</span>
       </button>
     `);
@@ -49,7 +50,7 @@ export function renderContextMenu(options: ContextMenuRenderOptions): string {
   if (mac) {
     items.push(`
       <button type="button" class="context-menu__item" data-context-action="copy-mac" data-mac="${escapeHtml(mac)}">
-        <span class="context-menu__icon">📋</span>
+        <span class="context-menu__icon">${options.getIcon("menu-copy")}</span>
         <span>Copy MAC Address</span>
       </button>
     `);
@@ -60,7 +61,7 @@ export function renderContextMenu(options: ContextMenuRenderOptions): string {
   if (isDevice) {
     items.push(`
       <button type="button" class="context-menu__item" data-context-action="restart" ${!entityId ? "disabled" : ""}>
-        <span class="context-menu__icon">🔄</span>
+        <span class="context-menu__icon">${options.getIcon("menu-restart")}</span>
         <span>Restart Device</span>
       </button>
     `);

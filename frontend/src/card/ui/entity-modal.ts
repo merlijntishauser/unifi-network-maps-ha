@@ -1,4 +1,5 @@
 import { escapeHtml } from "../data/sanitize";
+import { domainIcon } from "./icons";
 import type { MapPayload, RelatedEntity } from "../core/types";
 
 export type EntityModalContext = {
@@ -67,7 +68,9 @@ export function renderEntityModal(context: EntityModalContext): string {
     </div>
   `);
 
-  const entityItems = relatedEntities.map((entity) => renderEntityItem(entity)).join("");
+  const entityItems = relatedEntities
+    .map((entity) => renderEntityItem(entity, context.theme))
+    .join("");
 
   return `
     <div class="entity-modal-overlay" data-modal-overlay data-theme="${escapeHtml(context.theme)}">
@@ -109,8 +112,11 @@ export function renderEntityModal(context: EntityModalContext): string {
   `;
 }
 
-function renderEntityItem(entity: RelatedEntity): string {
-  const domainIcon = getDomainIcon(entity.domain);
+function renderEntityItem(
+  entity: RelatedEntity,
+  theme: "dark" | "light" | "unifi" | "unifi-dark",
+): string {
+  const domainIconMarkup = domainIcon(entity.domain, theme);
   const displayName = entity.friendly_name ?? entity.entity_id;
   const safeDisplayName = escapeHtml(displayName);
   const safeEntityId = escapeHtml(entity.entity_id);
@@ -119,7 +125,7 @@ function renderEntityItem(entity: RelatedEntity): string {
 
   return `
     <div class="entity-modal__entity-item" data-modal-entity-id="${safeEntityId}">
-      <span class="entity-modal__domain-icon">${domainIcon}</span>
+      <span class="entity-modal__domain-icon">${domainIconMarkup}</span>
       <div class="entity-modal__entity-info">
         <span class="entity-modal__entity-name">${safeDisplayName}</span>
         <span class="entity-modal__entity-id">${safeEntityId}</span>
@@ -130,20 +136,6 @@ function renderEntityItem(entity: RelatedEntity): string {
       </div>
     </div>
   `;
-}
-
-function getDomainIcon(domain: string): string {
-  const icons: Record<string, string> = {
-    device_tracker: "📍",
-    switch: "🔘",
-    sensor: "📊",
-    binary_sensor: "⚡",
-    light: "💡",
-    button: "🔲",
-    update: "🔄",
-    image: "🖼️",
-  };
-  return icons[domain] ?? "📦";
 }
 
 function getStateBadgeClass(state: string): string {

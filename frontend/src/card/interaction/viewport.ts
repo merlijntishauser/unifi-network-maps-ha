@@ -1,4 +1,5 @@
 import type { Edge, Point, ViewBox, ViewTransform } from "../core/types";
+import type { IconName } from "../ui/icons";
 import { findEdgeFromTarget, renderEdgeTooltip } from "../data/svg";
 import { resolveNodeName } from "./node";
 
@@ -455,10 +456,13 @@ export function createDefaultViewportState(): ViewportState {
   };
 }
 
-export function createDefaultViewportHandlers(edges: Edge[] | undefined): ViewportHandlers {
+export function createDefaultViewportHandlers(
+  edges: Edge[] | undefined,
+  getIcon: (name: IconName) => string,
+): ViewportHandlers {
   return {
     resolveNodeName: (event) => resolveNodeName(event),
     findEdge: (target) => (edges ? findEdgeFromTarget(target, edges) : null),
-    renderEdgeTooltip: (edge) => renderEdgeTooltip(edge),
+    renderEdgeTooltip: (edge) => renderEdgeTooltip(edge, getIcon),
   };
 }

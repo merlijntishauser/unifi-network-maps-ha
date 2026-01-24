@@ -1050,9 +1050,9 @@ var DOMPURIFY_CONFIG = {
 function sanitizeHtml(markup) {
   return purify.sanitize(markup, DOMPURIFY_CONFIG);
 }
-function sanitizeSvg(svg2) {
+function sanitizeSvg(svg3) {
   const parser = new DOMParser();
-  const doc = parser.parseFromString(svg2, "image/svg+xml");
+  const doc = parser.parseFromString(svg3, "image/svg+xml");
   const svgElement = doc.querySelector("svg");
   if (!svgElement) {
     return "";
@@ -1075,9 +1075,9 @@ function sanitizeSvg(svg2) {
 }
 
 // src/card/data/svg.ts
-function annotateEdges(svg2, edges) {
+function annotateEdges(svg3, edges) {
   const edgesByKey = buildEdgeLookup(edges);
-  const paths = svg2.querySelectorAll("path[data-edge-left][data-edge-right]");
+  const paths = svg3.querySelectorAll("path[data-edge-left][data-edge-right]");
   paths.forEach((path) => {
     const left = path.getAttribute("data-edge-left");
     const right = path.getAttribute("data-edge-right");
@@ -1098,9 +1098,9 @@ function findEdgeFromTarget(target, edges) {
   const lookup = buildEdgeLookup(edges);
   return lookup.get(edgeKey(left, right)) ?? null;
 }
-function renderEdgeTooltip(edge) {
+function renderEdgeTooltip(edge, getIcon) {
   const connectionType = edge.wireless ? "Wireless" : "Wired";
-  const icon = edge.wireless ? "\u{1F4F6}" : "\u{1F517}";
+  const icon = edge.wireless ? getIcon("edge-wireless") : getIcon("edge-wired");
   const rows = [];
   rows.push(
     `<div class="tooltip-edge__title">${escapeHtml(edge.left)} \u2194 ${escapeHtml(edge.right)}</div>`
@@ -1110,22 +1110,22 @@ function renderEdgeTooltip(edge) {
   );
   if (edge.label) {
     rows.push(
-      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">\u{1F50C}</span><span class="tooltip-edge__label">${escapeHtml(edge.label)}</span></div>`
+      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">${getIcon("edge-port")}</span><span class="tooltip-edge__label">${escapeHtml(edge.label)}</span></div>`
     );
   }
   if (edge.poe) {
     rows.push(
-      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">\u26A1</span><span class="tooltip-edge__label">PoE Powered</span></div>`
+      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">${getIcon("edge-poe")}</span><span class="tooltip-edge__label">PoE Powered</span></div>`
     );
   }
   if (edge.speed) {
     rows.push(
-      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">\u{1F680}</span><span class="tooltip-edge__label">${formatSpeed(edge.speed)}</span></div>`
+      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">${getIcon("edge-speed")}</span><span class="tooltip-edge__label">${formatSpeed(edge.speed)}</span></div>`
     );
   }
   if (edge.channel) {
     rows.push(
-      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">\u{1F4E1}</span><span class="tooltip-edge__label">${formatChannel(edge.channel)}</span></div>`
+      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">${getIcon("edge-channel")}</span><span class="tooltip-edge__label">${formatChannel(edge.channel)}</span></div>`
     );
   }
   return rows.join("");
@@ -1233,24 +1233,24 @@ function inferNodeName(target) {
   }
   return null;
 }
-function findNodeElement(svg2, nodeName) {
-  return findByDataNodeId(svg2, nodeName) ?? findByAriaLabel(svg2, nodeName) ?? findByTextContent(svg2, nodeName) ?? findByTitleElement(svg2, nodeName);
+function findNodeElement(svg3, nodeName) {
+  return findByDataNodeId(svg3, nodeName) ?? findByAriaLabel(svg3, nodeName) ?? findByTextContent(svg3, nodeName) ?? findByTitleElement(svg3, nodeName);
 }
-function highlightSelectedNode(svg2, selectedNode) {
-  clearNodeSelection(svg2);
+function highlightSelectedNode(svg3, selectedNode) {
+  clearNodeSelection(svg3);
   if (!selectedNode) {
     return;
   }
-  const element = findNodeElement(svg2, selectedNode);
+  const element = findNodeElement(svg3, selectedNode);
   if (element) {
     markNodeSelected(element);
   }
 }
-function clearNodeSelection(svg2) {
-  svg2.querySelectorAll("[data-selected]").forEach((el) => {
+function clearNodeSelection(svg3) {
+  svg3.querySelectorAll("[data-selected]").forEach((el) => {
     el.removeAttribute("data-selected");
   });
-  svg2.querySelectorAll(".node--selected").forEach((el) => {
+  svg3.querySelectorAll(".node--selected").forEach((el) => {
     el.classList.remove("node--selected");
   });
 }
@@ -1261,18 +1261,18 @@ function markNodeSelected(element) {
     element.classList.add("node--selected");
   }
 }
-function annotateNodeIds(svg2, nodeNames) {
+function annotateNodeIds(svg3, nodeNames) {
   if (!nodeNames.length) {
     return;
   }
-  const textMap = buildTextMap(svg2, "text");
-  const titleMap = buildTextMap(svg2, "title");
+  const textMap = buildTextMap(svg3, "text");
+  const titleMap = buildTextMap(svg3, "title");
   for (const name of nodeNames) {
     if (!name) continue;
-    if (svg2.querySelector(`[data-node-id="${CSS.escape(name)}"]`)) {
+    if (svg3.querySelector(`[data-node-id="${CSS.escape(name)}"]`)) {
       continue;
     }
-    const ariaMatch = svg2.querySelector(`[aria-label="${CSS.escape(name)}"]`);
+    const ariaMatch = svg3.querySelector(`[aria-label="${CSS.escape(name)}"]`);
     const textMatch = textMap.get(name)?.[0] ?? null;
     const titleMatch = titleMap.get(name)?.[0] ?? null;
     const target = ariaMatch ?? textMatch ?? titleMatch;
@@ -1283,9 +1283,9 @@ function annotateNodeIds(svg2, nodeNames) {
     holder.setAttribute("data-node-id", name);
   }
 }
-function buildTextMap(svg2, selector) {
+function buildTextMap(svg3, selector) {
   const map = /* @__PURE__ */ new Map();
-  for (const el of svg2.querySelectorAll(selector)) {
+  for (const el of svg3.querySelectorAll(selector)) {
     const text2 = el.textContent?.trim();
     if (!text2) continue;
     const list = map.get(text2) ?? [];
@@ -1294,29 +1294,151 @@ function buildTextMap(svg2, selector) {
   }
   return map;
 }
-function findByDataNodeId(svg2, nodeName) {
-  const el = svg2.querySelector(`[data-node-id="${CSS.escape(nodeName)}"]`);
+function findByDataNodeId(svg3, nodeName) {
+  const el = svg3.querySelector(`[data-node-id="${CSS.escape(nodeName)}"]`);
   return el ? el.closest("g") ?? el : null;
 }
-function findByAriaLabel(svg2, nodeName) {
-  const el = svg2.querySelector(`[aria-label="${CSS.escape(nodeName)}"]`);
+function findByAriaLabel(svg3, nodeName) {
+  const el = svg3.querySelector(`[aria-label="${CSS.escape(nodeName)}"]`);
   return el ? el.closest("g") ?? el : null;
 }
-function findByTextContent(svg2, nodeName) {
-  for (const textEl of svg2.querySelectorAll("text")) {
+function findByTextContent(svg3, nodeName) {
+  for (const textEl of svg3.querySelectorAll("text")) {
     if (textEl.textContent?.trim() === nodeName) {
       return textEl.closest("g") ?? textEl;
     }
   }
   return null;
 }
-function findByTitleElement(svg2, nodeName) {
-  for (const titleEl of svg2.querySelectorAll("title")) {
+function findByTitleElement(svg3, nodeName) {
+  for (const titleEl of svg3.querySelectorAll("title")) {
     if (titleEl.textContent?.trim() === nodeName) {
       return titleEl.closest("g");
     }
   }
   return null;
+}
+
+// src/card/ui/icons.ts
+var EMOJI_ICONS = {
+  network: "\u{1F4E1}",
+  hint: "\u{1F4A1}",
+  "node-gateway": "\u{1F310}",
+  "node-switch": "\u{1F500}",
+  "node-ap": "\u{1F4F6}",
+  "node-client": "\u{1F4BB}",
+  "node-other": "\u{1F4E6}",
+  "action-details": "\u{1F4CA}",
+  "action-copy": "\u{1F4CB}",
+  "menu-select": "\u{1F446}",
+  "menu-details": "\u{1F4CA}",
+  "menu-copy": "\u{1F4CB}",
+  "menu-restart": "\u{1F504}",
+  "edge-wired": "\u{1F517}",
+  "edge-wireless": "\u{1F4F6}",
+  "edge-port": "\u{1F50C}",
+  "edge-poe": "\u26A1",
+  "edge-speed": "\u{1F680}",
+  "edge-channel": "\u{1F4E1}",
+  "domain-device_tracker": "\u{1F4CD}",
+  "domain-switch": "\u{1F518}",
+  "domain-sensor": "\u{1F4CA}",
+  "domain-binary_sensor": "\u26A1",
+  "domain-light": "\u{1F4A1}",
+  "domain-button": "\u{1F532}",
+  "domain-update": "\u{1F504}",
+  "domain-image": "\u{1F5BC}\uFE0F",
+  "domain-default": "\u{1F4E6}"
+};
+var HERO_SVGS = {
+  network: svg2(
+    ["M2.5 8.5a13 13 0 0119 0", "M5.5 11.5a9 9 0 0113 0", "M8.5 14.5a5 5 0 017 0"],
+    [{ cx: 12, cy: 18, r: 1 }]
+  ),
+  hint: svg2([
+    "M12 3a6 6 0 00-3.6 10.8c.4.3.6.8.6 1.3V17a1 1 0 001 1h4a1 1 0 001-1v-1.9c0-.5.2-1 .6-1.3A6 6 0 0012 3z",
+    "M9 20h6"
+  ]),
+  "node-gateway": svg2(
+    ["M3 12h18", "M12 3c-2.8 0-5 4-5 9s2.2 9 5 9 5-4 5-9-2.2-9-5-9z"],
+    [{ cx: 12, cy: 12, r: 9 }]
+  ),
+  "node-switch": svg2(["M7 7h10l-3-3m3 3-3 3", "M17 17H7l3-3m-3 3 3 3"]),
+  "node-ap": svg2(
+    ["M4 9a11 11 0 0116 0", "M7 12a7 7 0 0110 0", "M10 15a3 3 0 014 0"],
+    [{ cx: 12, cy: 18, r: 1 }]
+  ),
+  "node-client": svg2(["M4 6h16v9H4z", "M10 19h4", "M12 15v4"]),
+  "node-other": svg2(["M12 3 4 7 12 11 20 7 12 3z", "M4 7v10l8 4 8-4V7", "M12 11v10"]),
+  "action-details": svg2(["M4 4h16v16H4z", "M8 16v-4", "M12 16v-7", "M16 16v-2"]),
+  "action-copy": svg2(["M8 4h8v3H8z", "M6 7h12v13H6z"]),
+  "menu-select": svg2(["M4 4l8 16 2-6 6-2-16-8z"]),
+  "menu-details": svg2(["M4 4h16v16H4z", "M8 16v-4", "M12 16v-7", "M16 16v-2"]),
+  "menu-copy": svg2(["M8 4h8v3H8z", "M6 7h12v13H6z"]),
+  "menu-restart": svg2(["M3 12a9 9 0 0115-6l2-2v6h-6l2-2a6 6 0 10 1 8"]),
+  "edge-wired": svg2(["M8 12a3 3 0 013-3h2", "M16 12a3 3 0 01-3 3h-2", "M10 12h4"]),
+  "edge-wireless": svg2(
+    ["M4 9a11 11 0 0116 0", "M7 12a7 7 0 0110 0", "M10 15a3 3 0 014 0"],
+    [{ cx: 12, cy: 18, r: 1 }]
+  ),
+  "edge-port": svg2(["M9 7v4", "M15 7v4", "M7 11h10", "M12 11v7", "M9 18h6"]),
+  "edge-poe": svg2(["M13 2L6 14h5l-1 8 7-12h-5l1-8z"]),
+  "edge-speed": svg2(["M4 14l6-6 4 4 6-6", "M16 6h4v4"]),
+  "edge-channel": svg2(["M4 18v-2", "M8 18v-4", "M12 18v-6", "M16 18v-8", "M20 18v-10"]),
+  "domain-device_tracker": svg2(
+    ["M12 21c4-5 6-8 6-11a6 6 0 10-12 0c0 3 2 6 6 11z"],
+    [{ cx: 12, cy: 10, r: 2 }]
+  ),
+  "domain-switch": svg2(["M5 12h14", "M8 12a3 3 0 100-6", "M16 12a3 3 0 110 6"]),
+  "domain-sensor": svg2(["M4 16h4v-4H4z", "M10 16h4V8h-4z", "M16 16h4v-7h-4z"]),
+  "domain-binary_sensor": svg2(["M13 2L6 14h5l-1 8 7-12h-5l1-8z"]),
+  "domain-light": svg2([
+    "M12 3a6 6 0 00-3.6 10.8c.4.3.6.8.6 1.3V17a1 1 0 001 1h4a1 1 0 001-1v-1.9c0-.5.2-1 .6-1.3A6 6 0 0012 3z",
+    "M9 20h6"
+  ]),
+  "domain-button": svg2(["M6 6h12v12H6z"], [{ cx: 12, cy: 12, r: 2 }]),
+  "domain-update": svg2(["M3 12a9 9 0 0115-6l2-2v6h-6l2-2a6 6 0 10 1 8"]),
+  "domain-image": svg2(["M4 6h16v12H4z", "M8 14l3-3 3 3 3-4 3 4"], [{ cx: 9, cy: 10, r: 1.5 }]),
+  "domain-default": svg2(["M12 3 4 7 12 11 20 7 12 3z", "M4 7v10l8 4 8-4V7", "M12 11v10"])
+};
+function iconMarkup(name, theme) {
+  const isUnifi = theme === "unifi" || theme === "unifi-dark";
+  if (!isUnifi) {
+    return `<span class="unifi-icon unifi-icon--emoji" aria-hidden="true">${EMOJI_ICONS[name]}</span>`;
+  }
+  return `<span class="unifi-icon unifi-icon--hero" aria-hidden="true">${HERO_SVGS[name]}</span>`;
+}
+function nodeTypeIcon(nodeType, theme) {
+  switch (nodeType) {
+    case "gateway":
+      return iconMarkup("node-gateway", theme);
+    case "switch":
+      return iconMarkup("node-switch", theme);
+    case "ap":
+      return iconMarkup("node-ap", theme);
+    case "client":
+      return iconMarkup("node-client", theme);
+    default:
+      return iconMarkup("node-other", theme);
+  }
+}
+function domainIcon(domain, theme) {
+  const nameMap = {
+    device_tracker: "domain-device_tracker",
+    switch: "domain-switch",
+    sensor: "domain-sensor",
+    binary_sensor: "domain-binary_sensor",
+    light: "domain-light",
+    button: "domain-button",
+    update: "domain-update",
+    image: "domain-image"
+  };
+  return iconMarkup(nameMap[domain] ?? "domain-default", theme);
+}
+function svg2(paths, circles = []) {
+  const pathMarkup = paths.map((d) => `<path d="${d}"></path>`).join("");
+  const circleMarkup = circles.map((circle) => `<circle cx="${circle.cx}" cy="${circle.cy}" r="${circle.r}"></circle>`).join("");
+  return `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${pathMarkup}${circleMarkup}</svg>`;
 }
 
 // src/card/ui/entity-modal.ts
@@ -1368,7 +1490,7 @@ function renderEntityModal(context) {
       <span class="entity-modal__info-value">${escapeHtml(nodeType)}</span>
     </div>
   `);
-  const entityItems = relatedEntities.map((entity) => renderEntityItem(entity)).join("");
+  const entityItems = relatedEntities.map((entity) => renderEntityItem(entity, context.theme)).join("");
   return `
     <div class="entity-modal-overlay" data-modal-overlay data-theme="${escapeHtml(context.theme)}">
       <div class="entity-modal">
@@ -1404,8 +1526,8 @@ function renderEntityModal(context) {
     </div>
   `;
 }
-function renderEntityItem(entity) {
-  const domainIcon = getDomainIcon(entity.domain);
+function renderEntityItem(entity, theme) {
+  const domainIconMarkup = domainIcon(entity.domain, theme);
   const displayName = entity.friendly_name ?? entity.entity_id;
   const safeDisplayName = escapeHtml(displayName);
   const safeEntityId = escapeHtml(entity.entity_id);
@@ -1413,7 +1535,7 @@ function renderEntityItem(entity) {
   const stateClass = getStateBadgeClass(state);
   return `
     <div class="entity-modal__entity-item" data-modal-entity-id="${safeEntityId}">
-      <span class="entity-modal__domain-icon">${domainIcon}</span>
+      <span class="entity-modal__domain-icon">${domainIconMarkup}</span>
       <div class="entity-modal__entity-info">
         <span class="entity-modal__entity-name">${safeDisplayName}</span>
         <span class="entity-modal__entity-id">${safeEntityId}</span>
@@ -1424,19 +1546,6 @@ function renderEntityItem(entity) {
       </div>
     </div>
   `;
-}
-function getDomainIcon(domain) {
-  const icons = {
-    device_tracker: "\u{1F4CD}",
-    switch: "\u{1F518}",
-    sensor: "\u{1F4CA}",
-    binary_sensor: "\u26A1",
-    light: "\u{1F4A1}",
-    button: "\u{1F532}",
-    update: "\u{1F504}",
-    image: "\u{1F5BC}\uFE0F"
-  };
-  return icons[domain] ?? "\u{1F4E6}";
 }
 function getStateBadgeClass(state) {
   if (state === "home" || state === "on") {
@@ -1504,15 +1613,15 @@ function wireEntityModalEvents(overlay, onClose, onEntityDetails) {
 // src/card/ui/panel.ts
 function renderPanelContent(context, helpers) {
   if (!context.selectedNode) {
-    return renderMapOverview(context);
+    return renderMapOverview(context, helpers);
   }
   return renderNodePanel(context, context.selectedNode, helpers);
 }
-function renderMapOverview(context) {
+function renderMapOverview(context, helpers) {
   if (!context.payload) {
     return `
       <div class="panel-empty">
-        <div class="panel-empty__icon">\u{1F4E1}</div>
+        <div class="panel-empty__icon">${helpers.getIcon("network")}</div>
         <div class="panel-empty__text">Loading network data...</div>
       </div>
     `;
@@ -1529,9 +1638,9 @@ function renderMapOverview(context) {
     </div>
     ${renderOverviewStatsGrid(nodes.length, edges.length)}
     ${renderOverviewStatusSection(statusCounts)}
-    ${renderOverviewDeviceBreakdown(deviceCounts)}
+    ${renderOverviewDeviceBreakdown(deviceCounts, helpers)}
     <div class="panel-hint">
-      <span class="panel-hint__icon">\u{1F4A1}</span>
+      <span class="panel-hint__icon">${helpers.getIcon("hint")}</span>
       Click a node in the map to see details
     </div>
   `;
@@ -1698,13 +1807,13 @@ function renderActionsTab(context, name, helpers) {
       <div class="actions-list">
         ${entityId ? `
             <button type="button" class="action-button action-button--primary" data-entity-id="${safeEntityId}">
-              <span class="action-button__icon">\u{1F4CA}</span>
+              <span class="action-button__icon">${helpers.getIcon("action-details")}</span>
               <span class="action-button__text">View Entity Details</span>
             </button>
           ` : `<div class="panel-empty__text">No Home Assistant entity linked</div>`}
         ${mac ? `
             <button type="button" class="action-button" data-action="copy" data-copy-value="${safeMac}">
-              <span class="action-button__icon">\u{1F4CB}</span>
+              <span class="action-button__icon">${helpers.getIcon("action-copy")}</span>
               <span class="action-button__text">Copy MAC Address</span>
             </button>
           ` : ""}
@@ -1746,13 +1855,13 @@ function renderOverviewStatusSection(counts) {
     </div>
   `;
 }
-function renderOverviewDeviceBreakdown(counts) {
+function renderOverviewDeviceBreakdown(counts, helpers) {
   const items = [
-    { key: "gateways", icon: "\u{1F310}", label: "Gateways" },
-    { key: "switches", icon: "\u{1F500}", label: "Switches" },
-    { key: "aps", icon: "\u{1F4F6}", label: "Access Points" },
-    { key: "clients", icon: "\u{1F4BB}", label: "Clients" },
-    { key: "other", icon: "\u{1F4E6}", label: "Other" }
+    { key: "gateways", icon: helpers.getIcon("node-gateway"), label: "Gateways" },
+    { key: "switches", icon: helpers.getIcon("node-switch"), label: "Switches" },
+    { key: "aps", icon: helpers.getIcon("node-ap"), label: "Access Points" },
+    { key: "clients", icon: helpers.getIcon("node-client"), label: "Clients" },
+    { key: "other", icon: helpers.getIcon("node-other"), label: "Other" }
   ];
   const rows = items.filter((item) => counts[item.key] > 0).map(
     (item) => `<div class="device-row"><span class="device-row__icon">${item.icon}</span><span class="device-row__label">${item.label}</span><span class="device-row__count">${counts[item.key]}</span></div>`
@@ -1793,14 +1902,14 @@ function renderContextMenu(options) {
   const items = [];
   items.push(`
     <button type="button" class="context-menu__item" data-context-action="select">
-      <span class="context-menu__icon">\u{1F446}</span>
+      <span class="context-menu__icon">${options.getIcon("menu-select")}</span>
       <span>Select</span>
     </button>
   `);
   if (entityId) {
     items.push(`
       <button type="button" class="context-menu__item" data-context-action="details">
-        <span class="context-menu__icon">\u{1F4CA}</span>
+        <span class="context-menu__icon">${options.getIcon("menu-details")}</span>
         <span>View Details</span>
       </button>
     `);
@@ -1808,7 +1917,7 @@ function renderContextMenu(options) {
   if (mac) {
     items.push(`
       <button type="button" class="context-menu__item" data-context-action="copy-mac" data-mac="${escapeHtml(mac)}">
-        <span class="context-menu__icon">\u{1F4CB}</span>
+        <span class="context-menu__icon">${options.getIcon("menu-copy")}</span>
         <span>Copy MAC Address</span>
       </button>
     `);
@@ -1817,7 +1926,7 @@ function renderContextMenu(options) {
   if (isDevice) {
     items.push(`
       <button type="button" class="context-menu__item" data-context-action="restart" ${!entityId ? "disabled" : ""}>
-        <span class="context-menu__icon">\u{1F504}</span>
+        <span class="context-menu__icon">${options.getIcon("menu-restart")}</span>
         <span>Restart Device</span>
       </button>
     `);
@@ -2052,10 +2161,10 @@ function handleMapClick(params) {
 // src/card/interaction/viewport.ts
 var BASE_VIEWBOXES = /* @__PURE__ */ new WeakMap();
 function bindViewportInteractions(params) {
-  const { viewport, svg: svg2, state, options, handlers, callbacks, bindings } = params;
-  viewport.onwheel = (event) => onWheel(event, svg2, state, options, callbacks);
+  const { viewport, svg: svg3, state, options, handlers, callbacks, bindings } = params;
+  viewport.onwheel = (event) => onWheel(event, svg3, state, options, callbacks);
   viewport.onpointerdown = (event) => onPointerDown(event, state, bindings.controls);
-  viewport.onpointermove = (event) => onPointerMove(event, svg2, state, options, handlers, callbacks, bindings.tooltip);
+  viewport.onpointermove = (event) => onPointerMove(event, svg3, state, options, handlers, callbacks, bindings.tooltip);
   viewport.onpointerup = (event) => onPointerUp(event, state);
   viewport.onpointercancel = (event) => onPointerUp(event, state);
   viewport.onpointerleave = () => {
@@ -2066,35 +2175,35 @@ function bindViewportInteractions(params) {
   viewport.onclick = (event) => onClick(event, state, handlers, callbacks, bindings.tooltip);
   viewport.oncontextmenu = (event) => onContextMenu(event, state, handlers, callbacks);
 }
-function applyTransform(svg2, transform, isPanning) {
-  svg2.style.cursor = isPanning ? "grabbing" : "grab";
-  svg2.style.transform = "none";
-  const baseViewBox = getBaseViewBox(svg2);
+function applyTransform(svg3, transform, isPanning) {
+  svg3.style.cursor = isPanning ? "grabbing" : "grab";
+  svg3.style.transform = "none";
+  const baseViewBox = getBaseViewBox(svg3);
   if (!baseViewBox) {
     return;
   }
-  const viewportSize = getViewportSize(svg2);
+  const viewportSize = getViewportSize(svg3);
   const viewBox = computeViewBox(transform, baseViewBox, viewportSize);
-  setViewBox(svg2, viewBox);
+  setViewBox(svg3, viewBox);
 }
-function applyZoom(svg2, delta, state, options, callbacks) {
+function applyZoom(svg3, delta, state, options, callbacks) {
   const nextScale = Math.min(
     options.maxZoomScale,
     Math.max(options.minZoomScale, state.viewTransform.scale + delta)
   );
   state.viewTransform.scale = Number(nextScale.toFixed(2));
   callbacks.onUpdateTransform(state.viewTransform);
-  applyTransform(svg2, state.viewTransform, state.isPanning);
+  applyTransform(svg3, state.viewTransform, state.isPanning);
 }
-function resetPan(svg2, state, callbacks) {
+function resetPan(svg3, state, callbacks) {
   state.viewTransform = { x: 0, y: 0, scale: 1 };
   callbacks.onUpdateTransform(state.viewTransform);
-  applyTransform(svg2, state.viewTransform, state.isPanning);
+  applyTransform(svg3, state.viewTransform, state.isPanning);
 }
-function onWheel(event, svg2, state, options, callbacks) {
+function onWheel(event, svg3, state, options, callbacks) {
   event.preventDefault();
   const delta = event.deltaY > 0 ? -options.zoomIncrement : options.zoomIncrement;
-  applyZoom(svg2, delta, state, options, callbacks);
+  applyZoom(svg3, delta, state, options, callbacks);
 }
 function onPointerDown(event, state, controls) {
   if (isControlTarget(event.target, controls)) {
@@ -2117,7 +2226,7 @@ function onPointerDown(event, state, controls) {
     };
   }
 }
-function onPointerMove(event, svg2, state, options, handlers, callbacks, tooltip) {
+function onPointerMove(event, svg3, state, options, handlers, callbacks, tooltip) {
   if (state.activePointers.has(event.pointerId)) {
     state.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
   }
@@ -2132,7 +2241,7 @@ function onPointerMove(event, svg2, state, options, handlers, callbacks, tooltip
     state.viewTransform.scale = Number(newScale.toFixed(2));
     state.panMoved = true;
     callbacks.onUpdateTransform(state.viewTransform);
-    applyTransform(svg2, state.viewTransform, state.isPanning);
+    applyTransform(svg3, state.viewTransform, state.isPanning);
     return;
   }
   if (state.isPanning && state.panStart) {
@@ -2144,7 +2253,7 @@ function onPointerMove(event, svg2, state, options, handlers, callbacks, tooltip
     state.viewTransform.x = nextX;
     state.viewTransform.y = nextY;
     callbacks.onUpdateTransform(state.viewTransform);
-    applyTransform(svg2, state.viewTransform, state.isPanning);
+    applyTransform(svg3, state.viewTransform, state.isPanning);
     return;
   }
   const edge = handlers.findEdge(event.target);
@@ -2193,9 +2302,9 @@ function onClick(event, state, handlers, callbacks, tooltip) {
   let label = handlers.resolveNodeName(event);
   if (!label) {
     const viewport = event.currentTarget || event.target?.closest(".unifi-network-map__viewport");
-    const svg2 = viewport?.querySelector("svg");
-    if (svg2) {
-      label = findNodeAtPoint(svg2, event.clientX, event.clientY);
+    const svg3 = viewport?.querySelector("svg");
+    if (svg3) {
+      label = findNodeAtPoint(svg3, event.clientX, event.clientY);
     }
   }
   if (!label) {
@@ -2208,9 +2317,9 @@ function onContextMenu(event, state, handlers, callbacks) {
   let nodeName = handlers.resolveNodeName(event);
   if (!nodeName) {
     const viewport = event.currentTarget || event.target?.closest(".unifi-network-map__viewport");
-    const svg2 = viewport?.querySelector("svg");
-    if (svg2) {
-      nodeName = findNodeAtPoint(svg2, event.clientX, event.clientY);
+    const svg3 = viewport?.querySelector("svg");
+    if (svg3) {
+      nodeName = findNodeAtPoint(svg3, event.clientX, event.clientY);
     }
   }
   if (!nodeName) {
@@ -2219,8 +2328,8 @@ function onContextMenu(event, state, handlers, callbacks) {
   event.preventDefault();
   callbacks.onOpenContextMenu(event.clientX, event.clientY, nodeName);
 }
-function findNodeAtPoint(svg2, clientX, clientY) {
-  const nodes = svg2.querySelectorAll("[data-node-id]");
+function findNodeAtPoint(svg3, clientX, clientY) {
+  const nodes = svg3.querySelectorAll("[data-node-id]");
   for (const node of nodes) {
     const rect = node.getBoundingClientRect();
     if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
@@ -2255,15 +2364,15 @@ function getDistance(p1, p2) {
   const dy = p2.y - p1.y;
   return Math.sqrt(dx * dx + dy * dy);
 }
-function getBaseViewBox(svg2) {
-  const cached = BASE_VIEWBOXES.get(svg2);
+function getBaseViewBox(svg3) {
+  const cached = BASE_VIEWBOXES.get(svg3);
   if (cached) return cached;
-  const fromAttribute = parseViewBox(svg2.getAttribute("viewBox"));
-  const base = fromAttribute ?? buildFallbackViewBox(svg2);
+  const fromAttribute = parseViewBox(svg3.getAttribute("viewBox"));
+  const base = fromAttribute ?? buildFallbackViewBox(svg3);
   if (!base) return null;
-  BASE_VIEWBOXES.set(svg2, base);
+  BASE_VIEWBOXES.set(svg3, base);
   if (!fromAttribute) {
-    setViewBox(svg2, base);
+    setViewBox(svg3, base);
   }
   return base;
 }
@@ -2275,37 +2384,37 @@ function parseViewBox(value) {
   }
   return { x: parts[0], y: parts[1], width: parts[2], height: parts[3] };
 }
-function buildFallbackViewBox(svg2) {
-  return viewBoxFromSizeAttributes(svg2) ?? viewBoxFromBoundingBox(svg2) ?? viewBoxFromRect(svg2);
+function buildFallbackViewBox(svg3) {
+  return viewBoxFromSizeAttributes(svg3) ?? viewBoxFromBoundingBox(svg3) ?? viewBoxFromRect(svg3);
 }
-function viewBoxFromSizeAttributes(svg2) {
-  const width = readNumericAttribute(svg2, "width");
-  const height = readNumericAttribute(svg2, "height");
+function viewBoxFromSizeAttributes(svg3) {
+  const width = readNumericAttribute(svg3, "width");
+  const height = readNumericAttribute(svg3, "height");
   if (!width || !height) return null;
   return { x: 0, y: 0, width, height };
 }
-function readNumericAttribute(svg2, name) {
-  const value = svg2.getAttribute(name);
+function readNumericAttribute(svg3, name) {
+  const value = svg3.getAttribute(name);
   if (!value) return null;
   const parsed = Number.parseFloat(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
-function viewBoxFromBoundingBox(svg2) {
+function viewBoxFromBoundingBox(svg3) {
   try {
-    const bbox = svg2.getBBox();
+    const bbox = svg3.getBBox();
     if (!bbox.width || !bbox.height) return null;
     return { x: bbox.x, y: bbox.y, width: bbox.width, height: bbox.height };
   } catch {
     return null;
   }
 }
-function viewBoxFromRect(svg2) {
-  const rect = svg2.getBoundingClientRect();
+function viewBoxFromRect(svg3) {
+  const rect = svg3.getBoundingClientRect();
   if (!rect.width || !rect.height) return null;
   return { x: 0, y: 0, width: rect.width, height: rect.height };
 }
-function getViewportSize(svg2) {
-  const rect = svg2.getBoundingClientRect();
+function getViewportSize(svg3) {
+  const rect = svg3.getBoundingClientRect();
   return { width: rect.width, height: rect.height };
 }
 function computeViewBox(transform, base, viewportSize) {
@@ -2320,11 +2429,11 @@ function panOffset(panPx, baseSize, viewportSize, scale) {
   if (!viewportSize || !scale) return 0;
   return panPx * baseSize / (viewportSize * scale);
 }
-function setViewBox(svg2, viewBox) {
+function setViewBox(svg3, viewBox) {
   const values = [viewBox.x, viewBox.y, viewBox.width, viewBox.height].map(
     (value) => Number(value.toFixed(2))
   );
-  svg2.setAttribute("viewBox", values.join(" "));
+  svg3.setAttribute("viewBox", values.join(" "));
 }
 function createDefaultViewportState() {
   return {
@@ -2337,11 +2446,11 @@ function createDefaultViewportState() {
     pinchStartScale: null
   };
 }
-function createDefaultViewportHandlers(edges) {
+function createDefaultViewportHandlers(edges, getIcon) {
   return {
     resolveNodeName: (event) => resolveNodeName(event),
     findEdge: (target) => edges ? findEdgeFromTarget(target, edges) : null,
-    renderEdgeTooltip: (edge) => renderEdgeTooltip(edge)
+    renderEdgeTooltip: (edge) => renderEdgeTooltip(edge, getIcon)
   };
 }
 
@@ -2353,6 +2462,8 @@ var CARD_STYLES = `
   .unifi-network-map__viewport { position: relative; overflow: hidden; min-height: 300px; background: linear-gradient(135deg, #0b1016 0%, #111827 100%); border-radius: 12px; touch-action: none; contain: strict; isolation: isolate; height: 100%; }
   .unifi-network-map__viewport svg { width: 100%; height: 100%; display: block; position: absolute; top: 0; left: 0; z-index: 0; }
   .unifi-network-map__viewport svg, .unifi-network-map__viewport svg * { pointer-events: bounding-box !important; }
+  .unifi-icon { display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+  .unifi-icon svg { width: 1em; height: 1em; stroke: currentColor; fill: none; }
   .unifi-network-map__controls { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; z-index: 3; }
   .unifi-network-map__controls button { background: rgba(15, 23, 42, 0.9); color: #e5e7eb; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 6px 10px; font-size: 12px; cursor: pointer; backdrop-filter: blur(8px); transition: all 0.15s ease; }
   .unifi-network-map__controls button:hover { background: rgba(59, 130, 246, 0.3); border-color: rgba(59, 130, 246, 0.5); }
@@ -3022,6 +3133,9 @@ var CARD_STYLES = `
   .context-menu[data-theme="unifi-dark"] .context-menu__divider { background: #2a2a2a; }
 `;
 var GLOBAL_STYLES = `
+  .unifi-icon { display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+  .unifi-icon svg { width: 1em; height: 1em; stroke: currentColor; fill: none; }
+
   /* Entity Modal Styles (appended to document.body) */
   .entity-modal-overlay {
     position: fixed;
@@ -3677,9 +3791,9 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       panel.innerHTML = sanitizeHtml(this._renderPanelContent());
       panel.onclick = (event) => this._onPanelClick(event);
     }
-    const svg2 = this.querySelector(".unifi-network-map__viewport svg");
-    if (svg2) {
-      this._highlightSelectedNode(svg2);
+    const svg3 = this.querySelector(".unifi-network-map__viewport svg");
+    if (svg3) {
+      this._highlightSelectedNode(svg3);
     }
   }
   _renderPanelContent() {
@@ -3707,23 +3821,18 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     return {
       escapeHtml,
       getNodeTypeIcon: (nodeType) => this._getNodeTypeIcon(nodeType),
+      getIcon: (name) => this._getIcon(name),
       getStatusBadgeHtml: (state) => this._getStatusBadgeHtml(state),
       formatLastChanged: (value) => this._formatLastChanged(value)
     };
   }
   _getNodeTypeIcon(nodeType) {
-    switch (nodeType) {
-      case "gateway":
-        return "\u{1F310}";
-      case "switch":
-        return "\u{1F500}";
-      case "ap":
-        return "\u{1F4F6}";
-      case "client":
-        return "\u{1F4BB}";
-      default:
-        return "\u{1F4E6}";
-    }
+    const theme = this._config?.theme ?? "dark";
+    return nodeTypeIcon(nodeType, theme);
+  }
+  _getIcon(name) {
+    const theme = this._config?.theme ?? "dark";
+    return iconMarkup(name, theme);
   }
   _getStatusBadgeHtml(state) {
     const labels = {
@@ -3771,26 +3880,26 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   }
   _wireInteractions() {
     const viewport = this.querySelector(".unifi-network-map__viewport");
-    const svg2 = viewport?.querySelector("svg");
+    const svg3 = viewport?.querySelector("svg");
     const tooltip = viewport?.querySelector(".unifi-network-map__tooltip");
     const panel = this.querySelector(".unifi-network-map__panel");
-    if (!viewport || !svg2 || !tooltip) {
+    if (!viewport || !svg3 || !tooltip) {
       return;
     }
     this._ensureStyles();
     const options = this._viewportOptions();
     const callbacks = this._viewportCallbacks();
-    applyTransform(svg2, this._viewportState.viewTransform, this._viewportState.isPanning);
-    annotateNodeIds(svg2, Object.keys(this._payload?.node_types ?? {}));
-    this._highlightSelectedNode(svg2);
-    this._annotateEdges(svg2);
-    this._wireControls(svg2);
+    applyTransform(svg3, this._viewportState.viewTransform, this._viewportState.isPanning);
+    annotateNodeIds(svg3, Object.keys(this._payload?.node_types ?? {}));
+    this._highlightSelectedNode(svg3);
+    this._annotateEdges(svg3);
+    this._wireControls(svg3);
     bindViewportInteractions({
       viewport,
-      svg: svg2,
+      svg: svg3,
       state: this._viewportState,
       options,
-      handlers: createDefaultViewportHandlers(this._payload?.edges),
+      handlers: createDefaultViewportHandlers(this._payload?.edges, (name) => this._getIcon(name)),
       callbacks,
       bindings: {
         tooltip,
@@ -3898,7 +4007,8 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       nodeName,
       payload: this._payload,
       theme: this._config?.theme ?? "dark",
-      getNodeTypeIcon: (nodeType) => this._getNodeTypeIcon(nodeType)
+      getNodeTypeIcon: (nodeType) => this._getNodeTypeIcon(nodeType),
+      getIcon: (name) => this._getIcon(name)
     });
   }
   _handleContextMenuAction(action, nodeName, mac) {
@@ -3959,7 +4069,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   _removeContextMenu() {
     closeContextMenu(this._contextMenu);
   }
-  _wireControls(svg2) {
+  _wireControls(svg3) {
     const zoomIn = this.querySelector('[data-action="zoom-in"]');
     const zoomOut = this.querySelector('[data-action="zoom-out"]');
     const reset = this.querySelector('[data-action="reset"]');
@@ -3968,19 +4078,19 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     if (zoomIn) {
       zoomIn.onclick = (event) => {
         event.preventDefault();
-        applyZoom(svg2, ZOOM_INCREMENT, this._viewportState, options, callbacks);
+        applyZoom(svg3, ZOOM_INCREMENT, this._viewportState, options, callbacks);
       };
     }
     if (zoomOut) {
       zoomOut.onclick = (event) => {
         event.preventDefault();
-        applyZoom(svg2, -ZOOM_INCREMENT, this._viewportState, options, callbacks);
+        applyZoom(svg3, -ZOOM_INCREMENT, this._viewportState, options, callbacks);
       };
     }
     if (reset) {
       reset.onclick = (event) => {
         event.preventDefault();
-        resetPan(svg2, this._viewportState, callbacks);
+        resetPan(svg3, this._viewportState, callbacks);
         clearSelectedNode(this._selection);
         this._render();
       };
@@ -4017,26 +4127,26 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       }
     };
   }
-  _applyTransform(svg2) {
-    applyTransform(svg2, this._viewportState.viewTransform, this._viewportState.isPanning);
+  _applyTransform(svg3) {
+    applyTransform(svg3, this._viewportState.viewTransform, this._viewportState.isPanning);
   }
-  _applyZoom(delta, svg2) {
-    applyZoom(svg2, delta, this._viewportState, this._viewportOptions(), this._viewportCallbacks());
+  _applyZoom(delta, svg3) {
+    applyZoom(svg3, delta, this._viewportState, this._viewportOptions(), this._viewportCallbacks());
   }
-  _onWheel(event, svg2) {
-    onWheel(event, svg2, this._viewportState, this._viewportOptions(), this._viewportCallbacks());
+  _onWheel(event, svg3) {
+    onWheel(event, svg3, this._viewportState, this._viewportOptions(), this._viewportCallbacks());
   }
   _onPointerDown(event) {
     const controls = this.querySelector(".unifi-network-map__controls");
     onPointerDown(event, this._viewportState, controls);
   }
-  _onPointerMove(event, svg2, tooltip) {
+  _onPointerMove(event, svg3, tooltip) {
     onPointerMove(
       event,
-      svg2,
+      svg3,
       this._viewportState,
       this._viewportOptions(),
-      createDefaultViewportHandlers(this._payload?.edges),
+      createDefaultViewportHandlers(this._payload?.edges, (name) => this._getIcon(name)),
       this._viewportCallbacks(),
       tooltip
     );
@@ -4068,24 +4178,24 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   _inferNodeName(target) {
     return inferNodeName(target);
   }
-  _findNodeElement(svg2, nodeName) {
-    return findNodeElement(svg2, nodeName);
+  _findNodeElement(svg3, nodeName) {
+    return findNodeElement(svg3, nodeName);
   }
-  _highlightSelectedNode(svg2) {
-    highlightSelectedNode(svg2, this._selection.selectedNode);
+  _highlightSelectedNode(svg3) {
+    highlightSelectedNode(svg3, this._selection.selectedNode);
   }
-  _clearNodeSelection(svg2) {
-    clearNodeSelection(svg2);
+  _clearNodeSelection(svg3) {
+    clearNodeSelection(svg3);
   }
   _markNodeSelected(element) {
     markNodeSelected(element);
   }
-  _annotateEdges(svg2) {
+  _annotateEdges(svg3) {
     if (!this._payload?.edges) return;
-    annotateEdges(svg2, this._payload.edges);
+    annotateEdges(svg3, this._payload.edges);
   }
   _renderEdgeTooltip(edge) {
-    return renderEdgeTooltip(edge);
+    return renderEdgeTooltip(edge, (name) => this._getIcon(name));
   }
   _isControlTarget(target) {
     return Boolean(target?.closest(".unifi-network-map__controls"));

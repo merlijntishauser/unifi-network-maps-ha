@@ -1,5 +1,6 @@
 import { escapeHtml } from "./sanitize";
 import type { Edge } from "../core/types";
+import type { IconName } from "../ui/icons";
 
 export function annotateEdges(svg: SVGElement, edges: Edge[]): void {
   const edgesByKey = buildEdgeLookup(edges);
@@ -26,9 +27,9 @@ export function findEdgeFromTarget(target: Element | null, edges: Edge[]): Edge 
   return lookup.get(edgeKey(left, right)) ?? null;
 }
 
-export function renderEdgeTooltip(edge: Edge): string {
+export function renderEdgeTooltip(edge: Edge, getIcon: (name: IconName) => string): string {
   const connectionType = edge.wireless ? "Wireless" : "Wired";
-  const icon = edge.wireless ? "📶" : "🔗";
+  const icon = edge.wireless ? getIcon("edge-wireless") : getIcon("edge-wired");
   const rows: string[] = [];
   rows.push(
     `<div class="tooltip-edge__title">${escapeHtml(edge.left)} ↔ ${escapeHtml(edge.right)}</div>`,
@@ -38,22 +39,22 @@ export function renderEdgeTooltip(edge: Edge): string {
   );
   if (edge.label) {
     rows.push(
-      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">🔌</span><span class="tooltip-edge__label">${escapeHtml(edge.label)}</span></div>`,
+      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">${getIcon("edge-port")}</span><span class="tooltip-edge__label">${escapeHtml(edge.label)}</span></div>`,
     );
   }
   if (edge.poe) {
     rows.push(
-      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">⚡</span><span class="tooltip-edge__label">PoE Powered</span></div>`,
+      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">${getIcon("edge-poe")}</span><span class="tooltip-edge__label">PoE Powered</span></div>`,
     );
   }
   if (edge.speed) {
     rows.push(
-      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">🚀</span><span class="tooltip-edge__label">${formatSpeed(edge.speed)}</span></div>`,
+      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">${getIcon("edge-speed")}</span><span class="tooltip-edge__label">${formatSpeed(edge.speed)}</span></div>`,
     );
   }
   if (edge.channel) {
     rows.push(
-      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">📡</span><span class="tooltip-edge__label">${formatChannel(edge.channel)}</span></div>`,
+      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">${getIcon("edge-channel")}</span><span class="tooltip-edge__label">${formatChannel(edge.channel)}</span></div>`,
     );
   }
   return rows.join("");

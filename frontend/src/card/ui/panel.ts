@@ -1,4 +1,5 @@
 import type { DeviceCounts, MapPayload, Neighbor, NodeStatus, StatusCounts } from "../core/types";
+import type { IconName } from "./icons";
 
 export type PanelContext = {
   payload?: MapPayload;
@@ -11,20 +12,21 @@ export type PanelHelpers = {
   getNodeTypeIcon: (nodeType: string) => string;
   getStatusBadgeHtml: (state: "online" | "offline" | "unknown") => string;
   formatLastChanged: (value: string | null | undefined) => string;
+  getIcon: (name: IconName) => string;
 };
 
 export function renderPanelContent(context: PanelContext, helpers: PanelHelpers): string {
   if (!context.selectedNode) {
-    return renderMapOverview(context);
+    return renderMapOverview(context, helpers);
   }
   return renderNodePanel(context, context.selectedNode, helpers);
 }
 
-function renderMapOverview(context: PanelContext): string {
+function renderMapOverview(context: PanelContext, helpers: PanelHelpers): string {
   if (!context.payload) {
     return `
       <div class="panel-empty">
-        <div class="panel-empty__icon">📡</div>
+        <div class="panel-empty__icon">${helpers.getIcon("network")}</div>
         <div class="panel-empty__text">Loading network data...</div>
       </div>
     `;
@@ -43,9 +45,9 @@ function renderMapOverview(context: PanelContext): string {
     </div>
     ${renderOverviewStatsGrid(nodes.length, edges.length)}
     ${renderOverviewStatusSection(statusCounts)}
-    ${renderOverviewDeviceBreakdown(deviceCounts)}
+    ${renderOverviewDeviceBreakdown(deviceCounts, helpers)}
     <div class="panel-hint">
-      <span class="panel-hint__icon">💡</span>
+      <span class="panel-hint__icon">${helpers.getIcon("hint")}</span>
       Click a node in the map to see details
     </div>
   `;
@@ -247,7 +249,7 @@ function renderActionsTab(context: PanelContext, name: string, helpers: PanelHel
           entityId
             ? `
             <button type="button" class="action-button action-button--primary" data-entity-id="${safeEntityId}">
-              <span class="action-button__icon">📊</span>
+              <span class="action-button__icon">${helpers.getIcon("action-details")}</span>
               <span class="action-button__text">View Entity Details</span>
             </button>
           `
@@ -257,7 +259,7 @@ function renderActionsTab(context: PanelContext, name: string, helpers: PanelHel
           mac
             ? `
             <button type="button" class="action-button" data-action="copy" data-copy-value="${safeMac}">
-              <span class="action-button__icon">📋</span>
+              <span class="action-button__icon">${helpers.getIcon("action-copy")}</span>
               <span class="action-button__text">Copy MAC Address</span>
             </button>
           `
@@ -308,13 +310,13 @@ function renderOverviewStatusSection(counts: StatusCounts): string {
   `;
 }
 
-function renderOverviewDeviceBreakdown(counts: DeviceCounts): string {
+function renderOverviewDeviceBreakdown(counts: DeviceCounts, helpers: PanelHelpers): string {
   const items: Array<{ key: keyof DeviceCounts; icon: string; label: string }> = [
-    { key: "gateways", icon: "🌐", label: "Gateways" },
-    { key: "switches", icon: "🔀", label: "Switches" },
-    { key: "aps", icon: "📶", label: "Access Points" },
-    { key: "clients", icon: "💻", label: "Clients" },
-    { key: "other", icon: "📦", label: "Other" },
+    { key: "gateways", icon: helpers.getIcon("node-gateway"), label: "Gateways" },
+    { key: "switches", icon: helpers.getIcon("node-switch"), label: "Switches" },
+    { key: "aps", icon: helpers.getIcon("node-ap"), label: "Access Points" },
+    { key: "clients", icon: helpers.getIcon("node-client"), label: "Clients" },
+    { key: "other", icon: helpers.getIcon("node-other"), label: "Other" },
   ];
   const rows = items
     .filter((item) => counts[item.key] > 0)

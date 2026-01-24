@@ -5,6 +5,8 @@ export const CARD_STYLES = `
   .unifi-network-map__viewport { position: relative; overflow: hidden; min-height: 300px; background: linear-gradient(135deg, #0b1016 0%, #111827 100%); border-radius: 12px; touch-action: none; contain: strict; isolation: isolate; height: 100%; }
   .unifi-network-map__viewport svg { width: 100%; height: 100%; display: block; position: absolute; top: 0; left: 0; z-index: 0; }
   .unifi-network-map__viewport svg, .unifi-network-map__viewport svg * { pointer-events: bounding-box !important; }
+  .unifi-icon { display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+  .unifi-icon svg { width: 1em; height: 1em; stroke: currentColor; fill: none; }
   .unifi-network-map__controls { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; z-index: 3; }
   .unifi-network-map__controls button { background: rgba(15, 23, 42, 0.9); color: #e5e7eb; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 6px 10px; font-size: 12px; cursor: pointer; backdrop-filter: blur(8px); transition: all 0.15s ease; }
   .unifi-network-map__controls button:hover { background: rgba(59, 130, 246, 0.3); border-color: rgba(59, 130, 246, 0.5); }
@@ -675,6 +677,9 @@ export const CARD_STYLES = `
 `;
 
 export const GLOBAL_STYLES = `
+  .unifi-icon { display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+  .unifi-icon svg { width: 1em; height: 1em; stroke: currentColor; fill: none; }
+
   /* Entity Modal Styles (appended to document.body) */
   .entity-modal-overlay {
     position: fixed;

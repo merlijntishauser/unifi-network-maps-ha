@@ -21,6 +21,7 @@ import {
   createEntityModalController,
   openEntityModal,
 } from "../interaction/entity-modal-state";
+import { iconMarkup, nodeTypeIcon } from "../ui/icons";
 import { renderPanelContent, renderTabContent } from "../ui/panel";
 import { renderContextMenu } from "../ui/context-menu";
 import { fetchWithAuth } from "../data/auth";
@@ -54,6 +55,7 @@ import {
 } from "../interaction/viewport";
 import { CARD_STYLES, GLOBAL_STYLES } from "../ui/styles";
 import type { CardConfig, Edge, Hass, MapPayload } from "./types";
+import type { IconName } from "../ui/icons";
 
 function normalizeCardHeight(value: CardConfig["card_height"]): string | null {
   if (value === undefined || value === null) return null;
@@ -456,6 +458,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
     return {
       escapeHtml,
       getNodeTypeIcon: (nodeType: string) => this._getNodeTypeIcon(nodeType),
+      getIcon: (name: IconName) => this._getIcon(name),
       getStatusBadgeHtml: (state: "online" | "offline" | "unknown") =>
         this._getStatusBadgeHtml(state),
       formatLastChanged: (value: string | null | undefined) => this._formatLastChanged(value),
@@ -463,18 +466,13 @@ export class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _getNodeTypeIcon(nodeType: string): string {
-    switch (nodeType) {
-      case "gateway":
-        return "🌐";
-      case "switch":
-        return "🔀";
-      case "ap":
-        return "📶";
-      case "client":
-        return "💻";
-      default:
-        return "📦";
-    }
+    const theme = this._config?.theme ?? "dark";
+    return nodeTypeIcon(nodeType, theme);
+  }
+
+  private _getIcon(name: IconName): string {
+    const theme = this._config?.theme ?? "dark";
+    return iconMarkup(name, theme);
   }
 
   private _getStatusBadgeHtml(state: "online" | "offline" | "unknown"): string {
@@ -547,7 +545,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
       svg,
       state: this._viewportState,
       options,
-      handlers: createDefaultViewportHandlers(this._payload?.edges),
+      handlers: createDefaultViewportHandlers(this._payload?.edges, (name) => this._getIcon(name)),
       callbacks,
       bindings: {
         tooltip,
@@ -673,6 +671,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
       payload: this._payload,
       theme: this._config?.theme ?? "dark",
       getNodeTypeIcon: (nodeType: string) => this._getNodeTypeIcon(nodeType),
+      getIcon: (name) => this._getIcon(name),
     });
   }
 
@@ -832,7 +831,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
       svg,
       this._viewportState,
       this._viewportOptions(),
-      createDefaultViewportHandlers(this._payload?.edges),
+      createDefaultViewportHandlers(this._payload?.edges, (name) => this._getIcon(name)),
       this._viewportCallbacks(),
       tooltip,
     );
@@ -892,7 +891,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _renderEdgeTooltip(edge: Edge): string {
-    return renderEdgeTooltip(edge);
+    return renderEdgeTooltip(edge, (name) => this._getIcon(name));
   }
 
   private _isControlTarget(target: Element | null): boolean {
