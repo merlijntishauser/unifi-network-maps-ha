@@ -13,7 +13,7 @@ export const CARD_STYLES = `
   .unifi-network-map__viewport svg path[data-edge-hitbox] { stroke: transparent; stroke-width: 14; fill: none; pointer-events: stroke; }
   .unifi-network-map__viewport svg path[data-edge]:hover { stroke-width: 4; filter: drop-shadow(0 0 4px currentColor); }
   .unifi-network-map__panel { padding: 0; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); color: #e5e7eb; border-radius: 12px; font-size: 13px; overflow: hidden; display: flex; flex-direction: column; contain: strict; min-height: 0; height: 100%; }
-  .unifi-network-map__tooltip { position: fixed; z-index: 2; background: rgba(15, 23, 42, 0.95); color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 12px; pointer-events: none; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(8px); max-width: 280px; }
+  .unifi-network-map__tooltip { position: absolute; z-index: 2; background: rgba(15, 23, 42, 0.95); color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 12px; pointer-events: none; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(8px); max-width: 280px; }
   .unifi-network-map__tooltip--edge { display: flex; flex-direction: column; gap: 4px; }
   .tooltip-edge__title { font-weight: 600; color: #f1f5f9; margin-bottom: 2px; }
   .tooltip-edge__row { display: flex; align-items: center; gap: 6px; color: #94a3b8; }

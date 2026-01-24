@@ -2155,8 +2155,7 @@ function onPointerMove(event, svg2, state, options, handlers, callbacks, tooltip
     tooltip.classList.add("unifi-network-map__tooltip--edge");
     tooltip.innerHTML = handlers.renderEdgeTooltip(edge);
     tooltip.style.transform = "none";
-    tooltip.style.left = `${event.clientX + options.tooltipOffsetPx}px`;
-    tooltip.style.top = `${event.clientY + options.tooltipOffsetPx}px`;
+    positionTooltip(tooltip, event, options.tooltipOffsetPx);
     return;
   }
   callbacks.onHoverEdge(null);
@@ -2171,8 +2170,7 @@ function onPointerMove(event, svg2, state, options, handlers, callbacks, tooltip
   tooltip.classList.remove("unifi-network-map__tooltip--edge");
   tooltip.textContent = label;
   tooltip.style.transform = "none";
-  tooltip.style.left = `${event.clientX + options.tooltipOffsetPx}px`;
-  tooltip.style.top = `${event.clientY + options.tooltipOffsetPx}px`;
+  positionTooltip(tooltip, event, options.tooltipOffsetPx);
 }
 function onPointerUp(event, state) {
   state.activePointers.delete(event.pointerId);
@@ -2234,6 +2232,17 @@ function findNodeAtPoint(svg2, clientX, clientY) {
 function hideTooltip(tooltip) {
   tooltip.hidden = true;
   tooltip.classList.remove("unifi-network-map__tooltip--edge");
+}
+function positionTooltip(tooltip, event, offset) {
+  const viewport = event.currentTarget ?? tooltip.closest(".unifi-network-map__viewport");
+  const rect = viewport?.getBoundingClientRect();
+  if (!rect) {
+    tooltip.style.left = `${event.clientX + offset}px`;
+    tooltip.style.top = `${event.clientY + offset}px`;
+    return;
+  }
+  tooltip.style.left = `${event.clientX - rect.left + offset}px`;
+  tooltip.style.top = `${event.clientY - rect.top + offset}px`;
 }
 function isControlTarget(target, controls) {
   if (!controls) {
@@ -2352,7 +2361,7 @@ var CARD_STYLES = `
   .unifi-network-map__viewport svg path[data-edge-hitbox] { stroke: transparent; stroke-width: 14; fill: none; pointer-events: stroke; }
   .unifi-network-map__viewport svg path[data-edge]:hover { stroke-width: 4; filter: drop-shadow(0 0 4px currentColor); }
   .unifi-network-map__panel { padding: 0; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); color: #e5e7eb; border-radius: 12px; font-size: 13px; overflow: hidden; display: flex; flex-direction: column; contain: strict; min-height: 0; height: 100%; }
-  .unifi-network-map__tooltip { position: fixed; z-index: 2; background: rgba(15, 23, 42, 0.95); color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 12px; pointer-events: none; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(8px); max-width: 280px; }
+  .unifi-network-map__tooltip { position: absolute; z-index: 2; background: rgba(15, 23, 42, 0.95); color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 12px; pointer-events: none; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(8px); max-width: 280px; }
   .unifi-network-map__tooltip--edge { display: flex; flex-direction: column; gap: 4px; }
   .tooltip-edge__title { font-weight: 600; color: #f1f5f9; margin-bottom: 2px; }
   .tooltip-edge__row { display: flex; align-items: center; gap: 6px; color: #94a3b8; }

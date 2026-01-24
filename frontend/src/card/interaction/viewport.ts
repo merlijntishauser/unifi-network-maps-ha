@@ -206,8 +206,7 @@ export function onPointerMove(
     tooltip.classList.add("unifi-network-map__tooltip--edge");
     tooltip.innerHTML = handlers.renderEdgeTooltip(edge);
     tooltip.style.transform = "none";
-    tooltip.style.left = `${event.clientX + options.tooltipOffsetPx}px`;
-    tooltip.style.top = `${event.clientY + options.tooltipOffsetPx}px`;
+    positionTooltip(tooltip, event, options.tooltipOffsetPx);
     return;
   }
 
@@ -224,8 +223,7 @@ export function onPointerMove(
   tooltip.classList.remove("unifi-network-map__tooltip--edge");
   tooltip.textContent = label;
   tooltip.style.transform = "none";
-  tooltip.style.left = `${event.clientX + options.tooltipOffsetPx}px`;
-  tooltip.style.top = `${event.clientY + options.tooltipOffsetPx}px`;
+  positionTooltip(tooltip, event, options.tooltipOffsetPx);
 }
 
 export function onPointerUp(event: PointerEvent, state: ViewportState): void {
@@ -324,6 +322,19 @@ function findNodeAtPoint(svg: SVGElement, clientX: number, clientY: number): str
 function hideTooltip(tooltip: HTMLElement): void {
   tooltip.hidden = true;
   tooltip.classList.remove("unifi-network-map__tooltip--edge");
+}
+
+function positionTooltip(tooltip: HTMLElement, event: PointerEvent, offset: number): void {
+  const viewport =
+    (event.currentTarget as HTMLElement | null) ?? tooltip.closest(".unifi-network-map__viewport");
+  const rect = viewport?.getBoundingClientRect();
+  if (!rect) {
+    tooltip.style.left = `${event.clientX + offset}px`;
+    tooltip.style.top = `${event.clientY + offset}px`;
+    return;
+  }
+  tooltip.style.left = `${event.clientX - rect.left + offset}px`;
+  tooltip.style.top = `${event.clientY - rect.top + offset}px`;
 }
 
 function isControlTarget(target: Element | null, controls: HTMLElement | null): boolean {
