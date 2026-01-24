@@ -280,6 +280,57 @@ export const CARD_STYLES = `
   ha-card[data-theme="unifi"] .unifi-network-map__viewport svg [data-selected="true"] > :not(text):not(tspan):not(foreignObject),
   ha-card[data-theme="unifi"] .unifi-network-map__viewport svg .node--selected > :not(text):not(tspan):not(foreignObject) { filter: drop-shadow(0 0 6px #006fff) drop-shadow(0 0 12px rgba(0, 111, 255, 0.45)); }
 
+  /* UniFi Dark theme - dark mode version of UniFi style */
+  ha-card[data-theme="unifi-dark"] { background: #0d0d0d; }
+  ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport { background: #1a1a1a; border: 1px solid #2a2a2a; }
+  ha-card[data-theme="unifi-dark"] .unifi-network-map__controls button { background: #1a1a1a; color: #e5e5e5; border: 1px solid #2a2a2a; }
+  ha-card[data-theme="unifi-dark"] .unifi-network-map__controls button:hover { background: #252525; border-color: #006fff; color: #006fff; }
+  ha-card[data-theme="unifi-dark"] .unifi-network-map__panel { background: #1a1a1a; color: #e5e5e5; border: 1px solid #2a2a2a; }
+  ha-card[data-theme="unifi-dark"] .panel-header { background: #151515; border-bottom: 1px solid #2a2a2a; }
+  ha-card[data-theme="unifi-dark"] .panel-header__title { color: #ffffff; }
+  ha-card[data-theme="unifi-dark"] .panel-header__back { background: #1a1a1a; border-color: #2a2a2a; color: #9ca3af; }
+  ha-card[data-theme="unifi-dark"] .panel-header__back:hover { background: #252525; border-color: #006fff; color: #006fff; }
+  ha-card[data-theme="unifi-dark"] .panel-header__badge { background: rgba(0, 111, 255, 0.15); color: #3b9eff; }
+  ha-card[data-theme="unifi-dark"] .panel-tabs { background: #151515; border-bottom: 1px solid #2a2a2a; }
+  ha-card[data-theme="unifi-dark"] .panel-tab { color: #9ca3af; }
+  ha-card[data-theme="unifi-dark"] .panel-tab:hover { color: #e5e5e5; }
+  ha-card[data-theme="unifi-dark"] .panel-tab--active { color: #3b9eff; border-bottom-color: #006fff; }
+  ha-card[data-theme="unifi-dark"] .panel-section__title { color: #9ca3af; }
+  ha-card[data-theme="unifi-dark"] .stat-card { background: #151515; border: 1px solid #2a2a2a; }
+  ha-card[data-theme="unifi-dark"] .stat-card__value { color: #3b9eff; }
+  ha-card[data-theme="unifi-dark"] .stat-card__label { color: #9ca3af; }
+  ha-card[data-theme="unifi-dark"] .stats-row { background: #151515; border-radius: 8px; }
+  ha-card[data-theme="unifi-dark"] .stats-row__label { color: #9ca3af; }
+  ha-card[data-theme="unifi-dark"] .stats-row__value { color: #e5e5e5; }
+  ha-card[data-theme="unifi-dark"] .device-row { background: #151515; border: 1px solid #2a2a2a; }
+  ha-card[data-theme="unifi-dark"] .device-row__label { color: #e5e5e5; }
+  ha-card[data-theme="unifi-dark"] .device-row__count { color: #3b9eff; background: rgba(0, 111, 255, 0.15); }
+  ha-card[data-theme="unifi-dark"] .neighbor-item { background: #151515; border: 1px solid #2a2a2a; }
+  ha-card[data-theme="unifi-dark"] .neighbor-item:hover { background: #1f1f1f; border-color: #006fff; }
+  ha-card[data-theme="unifi-dark"] .neighbor-item__name { color: #e5e5e5; }
+  ha-card[data-theme="unifi-dark"] .info-row { background: #151515; border: 1px solid #2a2a2a; }
+  ha-card[data-theme="unifi-dark"] .info-row__label { color: #9ca3af; }
+  ha-card[data-theme="unifi-dark"] .info-row__value { color: #3b9eff; }
+  ha-card[data-theme="unifi-dark"] .action-button { background: #1a1a1a; border: 1px solid #2a2a2a; color: #e5e5e5; }
+  ha-card[data-theme="unifi-dark"] .action-button:hover { background: #252525; border-color: #006fff; color: #006fff; }
+  ha-card[data-theme="unifi-dark"] .action-button--primary { background: #006fff; border-color: #006fff; color: #ffffff; }
+  ha-card[data-theme="unifi-dark"] .action-button--primary:hover { background: #0058cc; }
+  ha-card[data-theme="unifi-dark"] .entity-id { background: #151515; color: #3b9eff; border: 1px solid #2a2a2a; }
+  ha-card[data-theme="unifi-dark"] .panel-empty__text { color: #9ca3af; }
+  ha-card[data-theme="unifi-dark"] .panel-hint { background: rgba(0, 111, 255, 0.1); color: #e5e5e5; border: 1px solid rgba(0, 111, 255, 0.2); }
+  ha-card[data-theme="unifi-dark"] .unifi-network-map__tooltip { background: #0d0d0d; border: 1px solid #2a2a2a; }
+  ha-card[data-theme="unifi-dark"] .status-badge--online { background: rgba(0, 168, 107, 0.15); color: #00d68f; }
+  ha-card[data-theme="unifi-dark"] .status-badge--offline { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+  ha-card[data-theme="unifi-dark"] .status-badge--unknown { background: rgba(156, 163, 175, 0.15); color: #9ca3af; }
+  ha-card[data-theme="unifi-dark"] .status-dot--online { background: #00d68f; box-shadow: 0 0 6px rgba(0, 214, 143, 0.5); }
+  ha-card[data-theme="unifi-dark"] .badge--wireless { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+  ha-card[data-theme="unifi-dark"] .badge--poe { background: rgba(0, 168, 107, 0.15); color: #00d68f; }
+  ha-card[data-theme="unifi-dark"] .badge--port { background: #1f1f1f; color: #9ca3af; border: 1px solid #2a2a2a; }
+  ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport svg [data-selected="true"] > *,
+  ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport svg .node--selected > * { stroke: #006fff !important; }
+  ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport svg [data-selected="true"] > :not(text):not(tspan):not(foreignObject),
+  ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport svg .node--selected > :not(text):not(tspan):not(foreignObject) { filter: drop-shadow(0 0 6px #006fff) drop-shadow(0 0 12px rgba(0, 111, 255, 0.45)); }
+
   /* Entity Modal Styles */
   .entity-modal-overlay {
     position: fixed;
@@ -594,6 +645,36 @@ export const CARD_STYLES = `
   .context-menu[data-theme="unifi"] .context-menu__item:hover { background: rgba(0, 111, 255, 0.1); color: #006fff; }
   .context-menu[data-theme="unifi"] .context-menu__item--danger:hover { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
   .context-menu[data-theme="unifi"] .context-menu__divider { background: #e5e7eb; }
+
+  /* UniFi Dark theme entity modal */
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal { background: #1a1a1a; border: 1px solid #2a2a2a; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__header { background: #151515; border-bottom: 1px solid #2a2a2a; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__title { color: #ffffff; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__close { color: #9ca3af; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__close:hover { background: #252525; color: #ffffff; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__section-title { color: #9ca3af; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__info-row { background: #151515; border: 1px solid #2a2a2a; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__info-label { color: #9ca3af; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__info-value { color: #e5e5e5; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__entity-item { background: #151515; border: 1px solid #2a2a2a; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__entity-item:hover { background: #1f1f1f; border-color: #006fff; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__entity-name { color: #e5e5e5; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__entity-id { color: #9ca3af; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__state-badge--home,
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__state-badge--on { background: rgba(0, 168, 107, 0.15); color: #00d68f; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__state-badge--not_home,
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__state-badge--off { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__state-badge--default { background: #1f1f1f; color: #9ca3af; }
+
+  /* UniFi Dark theme context menu */
+  .context-menu[data-theme="unifi-dark"] { background: #1a1a1a; border: 1px solid #2a2a2a; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); }
+  .context-menu[data-theme="unifi-dark"] .context-menu__header { border-bottom: 1px solid #2a2a2a; }
+  .context-menu[data-theme="unifi-dark"] .context-menu__title { color: #ffffff; }
+  .context-menu[data-theme="unifi-dark"] .context-menu__type { color: #9ca3af; }
+  .context-menu[data-theme="unifi-dark"] .context-menu__item { color: #e5e5e5; }
+  .context-menu[data-theme="unifi-dark"] .context-menu__item:hover { background: rgba(0, 111, 255, 0.15); color: #3b9eff; }
+  .context-menu[data-theme="unifi-dark"] .context-menu__item--danger:hover { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+  .context-menu[data-theme="unifi-dark"] .context-menu__divider { background: #2a2a2a; }
 `;
 
 export const GLOBAL_STYLES = `
@@ -915,6 +996,36 @@ export const GLOBAL_STYLES = `
   .context-menu[data-theme="unifi"] .context-menu__item:hover { background: rgba(0, 111, 255, 0.1); color: #006fff; }
   .context-menu[data-theme="unifi"] .context-menu__item--danger:hover { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
   .context-menu[data-theme="unifi"] .context-menu__divider { background: #e5e7eb; }
+
+  /* UniFi Dark theme entity modal (global) */
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal { background: #1a1a1a; border: 1px solid #2a2a2a; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__header { background: #151515; border-bottom: 1px solid #2a2a2a; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__title { color: #ffffff; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__close { color: #9ca3af; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__close:hover { background: #252525; color: #ffffff; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__section-title { color: #9ca3af; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__info-row { background: #151515; border: 1px solid #2a2a2a; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__info-label { color: #9ca3af; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__info-value { color: #e5e5e5; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__entity-item { background: #151515; border: 1px solid #2a2a2a; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__entity-item:hover { background: #1f1f1f; border-color: #006fff; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__entity-name { color: #e5e5e5; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__entity-id { color: #9ca3af; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__state-badge--home,
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__state-badge--on { background: rgba(0, 168, 107, 0.15); color: #00d68f; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__state-badge--not_home,
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__state-badge--off { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__state-badge--default { background: #1f1f1f; color: #9ca3af; }
+
+  /* UniFi Dark theme context menu (global) */
+  .context-menu[data-theme="unifi-dark"] { background: #1a1a1a; border: 1px solid #2a2a2a; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); }
+  .context-menu[data-theme="unifi-dark"] .context-menu__header { border-bottom: 1px solid #2a2a2a; }
+  .context-menu[data-theme="unifi-dark"] .context-menu__title { color: #ffffff; }
+  .context-menu[data-theme="unifi-dark"] .context-menu__type { color: #9ca3af; }
+  .context-menu[data-theme="unifi-dark"] .context-menu__item { color: #e5e5e5; }
+  .context-menu[data-theme="unifi-dark"] .context-menu__item:hover { background: rgba(0, 111, 255, 0.15); color: #3b9eff; }
+  .context-menu[data-theme="unifi-dark"] .context-menu__item--danger:hover { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+  .context-menu[data-theme="unifi-dark"] .context-menu__divider { background: #2a2a2a; }
 
   /* Toast feedback animation */
   @keyframes fadeInOut {

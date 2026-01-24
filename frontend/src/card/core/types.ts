@@ -12,7 +12,7 @@ export type CardConfig = {
   entry_id?: string;
   svg_url?: string;
   data_url?: string;
-  theme?: "dark" | "light" | "unifi";
+  theme?: "dark" | "light" | "unifi" | "unifi-dark";
 };
 
 export type ConfigEntry = {

@@ -13,7 +13,7 @@ export function openEntityModal(params: {
   controller: EntityModalController;
   nodeName: string;
   payload?: MapPayload;
-  theme: "dark" | "light" | "unifi";
+  theme: "dark" | "light" | "unifi" | "unifi-dark";
   getNodeTypeIcon: (nodeType: string) => string;
   formatLastChanged: (value: string | null | undefined) => string;
   onEntityDetails: (entityId: string) => void;
