@@ -175,7 +175,7 @@ function renderRelatedEntitiesSection(
       const icon = helpers.getDomainIcon(entity.domain);
       const displayName = entity.friendly_name ?? entity.entity_id;
       const stateClass = getEntityStateClass(entity.state);
-      const stateLabel = entity.state ?? "unknown";
+      const stateLabel = normalizeStateLabel(entity.state, entity.domain);
 
       return `
         <div class="entity-item" data-entity-id="${helpers.escapeHtml(entity.entity_id)}">
@@ -196,6 +196,20 @@ function renderRelatedEntitiesSection(
       <div class="entity-list">${entityItems}</div>
     </div>
   `;
+}
+
+function normalizeStateLabel(state: string | null, domain: string): string {
+  if (!state) return "Unknown";
+  const lower = state.toLowerCase();
+
+  // Normalize device_tracker states to Online/Offline
+  if (domain === "device_tracker") {
+    if (lower === "home" || lower === "connected") return "Online";
+    if (lower === "not_home" || lower === "disconnected") return "Offline";
+  }
+
+  // Capitalize first letter for other states
+  return state.charAt(0).toUpperCase() + state.slice(1).replace(/_/g, " ");
 }
 
 function getEntityStateClass(state: string | null): string {
@@ -359,7 +373,7 @@ function renderActionsTab(context: PanelContext, name: string, helpers: PanelHel
         ${
           entityId
             ? `
-            <button type="button" class="action-button action-button--primary" data-entity-id="${safeEntityId}">
+            <button type="button" class="action-button" data-entity-id="${safeEntityId}">
               <span class="action-button__icon">${helpers.getIcon("action-details")}</span>
               <span class="action-button__text">View Entity Details</span>
             </button>

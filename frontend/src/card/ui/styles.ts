@@ -163,7 +163,8 @@ export const CARD_STYLES = `
   }
 
   /* Info Row */
-  .info-row { display: flex; flex-direction: column; gap: 4px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; }
+  .info-row { display: flex; flex-direction: column; gap: 4px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; margin-bottom: 8px; }
+  .info-row:last-child { margin-bottom: 0; }
   .info-row__label { font-size: 11px; color: #64748b; }
   .info-row__value { font-family: ui-monospace, monospace; font-size: 12px; color: #60a5fa; word-break: break-all; }
 

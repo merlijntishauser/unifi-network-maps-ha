@@ -160,6 +160,8 @@ export class UnifiNetworkMapCard extends HTMLElement {
   private _error?: string;
   private _loading = false;
   private _dataLoading = false;
+  private _showLoadingOverlay = false;
+  private _loadingOverlayTimeout?: ReturnType<typeof setTimeout>;
   private _viewportState = createDefaultViewportState();
   private _selection = createSelectionState();
   private _svgAbortController?: AbortController;
@@ -315,7 +317,13 @@ export class UnifiNetworkMapCard extends HTMLElement {
     const currentUrl = this._config.svg_url;
 
     this._loading = true;
-    this._render();
+    const isRefresh = !!this._svgContent;
+    if (!isRefresh) {
+      this._showLoadingOverlay = true;
+      this._render();
+    } else {
+      this._scheduleLoadingOverlay();
+    }
     const result = await loadSvg(
       this._fetchWithAuth.bind(this),
       currentUrl,
@@ -333,6 +341,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
     }
     this._lastSvgUrl = currentUrl;
     this._loading = false;
+    this._clearLoadingOverlay();
     this._render();
   }
 
@@ -352,7 +361,10 @@ export class UnifiNetworkMapCard extends HTMLElement {
     const currentUrl = this._config.data_url;
 
     this._dataLoading = true;
-    this._render();
+    const isRefresh = !!this._payload;
+    if (!isRefresh) {
+      this._scheduleLoadingOverlay();
+    }
     const result = await loadPayload<MapPayload>(
       this._fetchWithAuth.bind(this),
       currentUrl,
@@ -369,7 +381,28 @@ export class UnifiNetworkMapCard extends HTMLElement {
     }
     this._lastDataUrl = currentUrl;
     this._dataLoading = false;
+    this._clearLoadingOverlay();
     this._render();
+  }
+
+  private _scheduleLoadingOverlay(): void {
+    if (this._loadingOverlayTimeout) return;
+    this._loadingOverlayTimeout = setTimeout(() => {
+      if (this._isLoading()) {
+        this._showLoadingOverlay = true;
+        this._render();
+      }
+    }, 2000);
+  }
+
+  private _clearLoadingOverlay(): void {
+    if (this._loadingOverlayTimeout) {
+      clearTimeout(this._loadingOverlayTimeout);
+      this._loadingOverlayTimeout = undefined;
+    }
+    if (!this._isLoading()) {
+      this._showLoadingOverlay = false;
+    }
   }
 
   private _renderLoading(): string {
@@ -413,7 +446,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _renderLoadingOverlay(): string {
-    if (!this._isLoading()) {
+    if (!this._showLoadingOverlay || !this._isLoading()) {
       return "";
     }
     return `
@@ -443,6 +476,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
     this._lastDataUrl = undefined;
     this._svgAbortController?.abort();
     this._payloadAbortController?.abort();
+    this._showLoadingOverlay = true;
     this._loadSvg();
     this._loadPayload();
     this._render();

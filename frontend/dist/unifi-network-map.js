@@ -1898,7 +1898,7 @@ function renderRelatedEntitiesSection(context, name, helpers) {
     const icon = helpers.getDomainIcon(entity.domain);
     const displayName = entity.friendly_name ?? entity.entity_id;
     const stateClass = getEntityStateClass(entity.state);
-    const stateLabel = entity.state ?? "unknown";
+    const stateLabel = normalizeStateLabel(entity.state, entity.domain);
     return `
         <div class="entity-item" data-entity-id="${helpers.escapeHtml(entity.entity_id)}">
           <span class="entity-item__icon">${icon}</span>
@@ -1916,6 +1916,15 @@ function renderRelatedEntitiesSection(context, name, helpers) {
       <div class="entity-list">${entityItems}</div>
     </div>
   `;
+}
+function normalizeStateLabel(state, domain) {
+  if (!state) return "Unknown";
+  const lower = state.toLowerCase();
+  if (domain === "device_tracker") {
+    if (lower === "home" || lower === "connected") return "Online";
+    if (lower === "not_home" || lower === "disconnected") return "Offline";
+  }
+  return state.charAt(0).toUpperCase() + state.slice(1).replace(/_/g, " ");
 }
 function getEntityStateClass(state) {
   if (!state) return "entity-item__state--unknown";
@@ -2036,7 +2045,7 @@ function renderActionsTab(context, name, helpers) {
       <div class="panel-section__title">Quick Actions</div>
       <div class="actions-list">
         ${entityId ? `
-            <button type="button" class="action-button action-button--primary" data-entity-id="${safeEntityId}">
+            <button type="button" class="action-button" data-entity-id="${safeEntityId}">
               <span class="action-button__icon">${helpers.getIcon("action-details")}</span>
               <span class="action-button__text">View Entity Details</span>
             </button>
@@ -2878,7 +2887,8 @@ var CARD_STYLES = `
   }
 
   /* Info Row */
-  .info-row { display: flex; flex-direction: column; gap: 4px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; }
+  .info-row { display: flex; flex-direction: column; gap: 4px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; margin-bottom: 8px; }
+  .info-row:last-child { margin-bottom: 0; }
   .info-row__label { font-size: 11px; color: #64748b; }
   .info-row__value { font-family: ui-monospace, monospace; font-size: 12px; color: #60a5fa; word-break: break-all; }
 
@@ -3966,6 +3976,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     super(...arguments);
     this._loading = false;
     this._dataLoading = false;
+    this._showLoadingOverlay = false;
     this._viewportState = createDefaultViewportState();
     this._selection = createSelectionState();
     this._activeTab = "overview";
@@ -4136,7 +4147,13 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._svgAbortController = new AbortController();
     const currentUrl = this._config.svg_url;
     this._loading = true;
-    this._render();
+    const isRefresh = !!this._svgContent;
+    if (!isRefresh) {
+      this._showLoadingOverlay = true;
+      this._render();
+    } else {
+      this._scheduleLoadingOverlay();
+    }
     const result = await loadSvg(
       this._fetchWithAuth.bind(this),
       currentUrl,
@@ -4153,6 +4170,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     }
     this._lastSvgUrl = currentUrl;
     this._loading = false;
+    this._clearLoadingOverlay();
     this._render();
   }
   async _loadPayload() {
@@ -4169,7 +4187,10 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._payloadAbortController = new AbortController();
     const currentUrl = this._config.data_url;
     this._dataLoading = true;
-    this._render();
+    const isRefresh = !!this._payload;
+    if (!isRefresh) {
+      this._scheduleLoadingOverlay();
+    }
     const result = await loadPayload(
       this._fetchWithAuth.bind(this),
       currentUrl,
@@ -4185,7 +4206,26 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     }
     this._lastDataUrl = currentUrl;
     this._dataLoading = false;
+    this._clearLoadingOverlay();
     this._render();
+  }
+  _scheduleLoadingOverlay() {
+    if (this._loadingOverlayTimeout) return;
+    this._loadingOverlayTimeout = setTimeout(() => {
+      if (this._isLoading()) {
+        this._showLoadingOverlay = true;
+        this._render();
+      }
+    }, 2e3);
+  }
+  _clearLoadingOverlay() {
+    if (this._loadingOverlayTimeout) {
+      clearTimeout(this._loadingOverlayTimeout);
+      this._loadingOverlayTimeout = void 0;
+    }
+    if (!this._isLoading()) {
+      this._showLoadingOverlay = false;
+    }
   }
   _renderLoading() {
     return `
@@ -4225,7 +4265,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     `;
   }
   _renderLoadingOverlay() {
-    if (!this._isLoading()) {
+    if (!this._showLoadingOverlay || !this._isLoading()) {
       return "";
     }
     return `
@@ -4252,6 +4292,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._lastDataUrl = void 0;
     this._svgAbortController?.abort();
     this._payloadAbortController?.abort();
+    this._showLoadingOverlay = true;
     this._loadSvg();
     this._loadPayload();
     this._render();

@@ -94,8 +94,9 @@ Methods to break down for readability:
 
 
 ## Recently Completed
-- **Copy-to-clipboard for MAC/IP** - One-click copy in detail panel
--  Port utilization - Show which ports are in use on switches
+- Copy-to-clipboard for MAC/IP - One-click copy in detail panel
+- Port utilization - Show which ports are in use on switches
 - fixed ip addresses not being displayed
+- Fixed issue with refresh overlay causing flickering
 
 See [CHANGELOG.md](CHANGELOG.md) for full history.
