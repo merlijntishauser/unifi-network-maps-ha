@@ -21,7 +21,7 @@ import {
   createEntityModalController,
   openEntityModal,
 } from "../interaction/entity-modal-state";
-import { iconMarkup, nodeTypeIcon } from "../ui/icons";
+import { domainIcon, iconMarkup, nodeTypeIcon } from "../ui/icons";
 import { renderPanelContent, renderTabContent } from "../ui/panel";
 import { renderContextMenu } from "../ui/context-menu";
 import { fetchWithAuth } from "../data/auth";
@@ -483,10 +483,12 @@ export class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _panelHelpers() {
+    const theme = this._config?.theme ?? "dark";
     return {
       escapeHtml,
       getNodeTypeIcon: (nodeType: string) => this._getNodeTypeIcon(nodeType),
       getIcon: (name: IconName) => this._getIcon(name),
+      getDomainIcon: (domain: string) => domainIcon(domain, theme),
       getStatusBadgeHtml: (state: "online" | "offline" | "unknown") =>
         this._getStatusBadgeHtml(state),
       formatLastChanged: (value: string | null | undefined) => this._formatLastChanged(value),

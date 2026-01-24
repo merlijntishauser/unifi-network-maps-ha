@@ -13,6 +13,7 @@ export type PanelHelpers = {
   getStatusBadgeHtml: (state: "online" | "offline" | "unknown") => string;
   formatLastChanged: (value: string | null | undefined) => string;
   getIcon: (name: IconName) => string;
+  getDomainIcon: (domain: string) => string;
 };
 
 export function renderPanelContent(context: PanelContext, helpers: PanelHelpers): string {
@@ -148,12 +149,62 @@ function renderOverviewTab(context: PanelContext, name: string, helpers: PanelHe
         .join("")
     : '<div class="panel-empty__text">No connections</div>';
 
+  const relatedEntitiesSection = renderRelatedEntitiesSection(context, name, helpers);
+
   return `
     <div class="panel-section">
       <div class="panel-section__title">Connected Devices</div>
       <div class="neighbor-list">${neighborList}</div>
     </div>
+    ${relatedEntitiesSection}
   `;
+}
+
+function renderRelatedEntitiesSection(
+  context: PanelContext,
+  name: string,
+  helpers: PanelHelpers,
+): string {
+  const relatedEntities = context.payload?.related_entities?.[name] ?? [];
+  if (relatedEntities.length === 0) {
+    return "";
+  }
+
+  const entityItems = relatedEntities
+    .map((entity) => {
+      const icon = helpers.getDomainIcon(entity.domain);
+      const displayName = entity.friendly_name ?? entity.entity_id;
+      const stateClass = getEntityStateClass(entity.state);
+      const stateLabel = entity.state ?? "unknown";
+
+      return `
+        <div class="entity-item" data-entity-id="${helpers.escapeHtml(entity.entity_id)}">
+          <span class="entity-item__icon">${icon}</span>
+          <div class="entity-item__info">
+            <span class="entity-item__name">${helpers.escapeHtml(displayName)}</span>
+            <span class="entity-item__id">${helpers.escapeHtml(entity.entity_id)}</span>
+          </div>
+          <span class="entity-item__state ${stateClass}">${helpers.escapeHtml(stateLabel)}</span>
+        </div>
+      `;
+    })
+    .join("");
+
+  return `
+    <div class="panel-section">
+      <div class="panel-section__title">Home Assistant Entities</div>
+      <div class="entity-list">${entityItems}</div>
+    </div>
+  `;
+}
+
+function getEntityStateClass(state: string | null): string {
+  if (!state) return "entity-item__state--unknown";
+  const onStates = ["on", "home", "connected", "online", "true"];
+  const offStates = ["off", "not_home", "disconnected", "offline", "false", "unavailable"];
+  if (onStates.includes(state.toLowerCase())) return "entity-item__state--on";
+  if (offStates.includes(state.toLowerCase())) return "entity-item__state--off";
+  return "entity-item__state--neutral";
 }
 
 function extractPortInfo(label: string | null | undefined, isLeft: boolean): string | null {
