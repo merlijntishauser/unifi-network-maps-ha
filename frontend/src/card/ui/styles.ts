@@ -63,10 +63,10 @@ export const CARD_STYLES = `
 
   /* Neighbor List */
   .neighbor-list { display: flex; flex-direction: column; gap: 6px; }
-  .neighbor-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; background: rgba(255,255,255,0.03); border-radius: 8px; transition: background 0.15s ease; }
+  .neighbor-item { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: rgba(255,255,255,0.03); border-radius: 8px; transition: background 0.15s ease; }
   .neighbor-item:hover { background: rgba(255,255,255,0.06); }
-  .neighbor-item__name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #e2e8f0; font-size: 12px; }
-  .neighbor-item__badges { display: flex; gap: 4px; flex-shrink: 0; }
+  .neighbor-item__name { color: #e2e8f0; font-size: 13px; font-weight: 500; word-break: break-word; }
+  .neighbor-item__badges { display: flex; flex-wrap: wrap; gap: 4px; }
 
   /* Badges */
   .badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; }

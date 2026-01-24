@@ -115,12 +115,18 @@ function renderOverviewTab(context: PanelContext, name: string, helpers: PanelHe
   const edges = context.payload?.edges ?? [];
   const neighbors: Neighbor[] = edges
     .filter((edge) => edge.left === name || edge.right === name)
-    .map((edge) => ({
-      name: edge.left === name ? edge.right : edge.left,
-      label: edge.label,
-      wireless: edge.wireless,
-      poe: edge.poe,
-    }));
+    .map((edge) => {
+      const isLeft = edge.left === name;
+      const neighborName = isLeft ? edge.right : edge.left;
+      // Extract just the port number from the label (e.g., "Port 4" from "Switch: Port 4 <-> Device")
+      const portInfo = extractPortInfo(edge.label, isLeft);
+      return {
+        name: neighborName,
+        label: portInfo,
+        wireless: edge.wireless,
+        poe: edge.poe,
+      };
+    });
   const uniqueNeighbors: Neighbor[] = Array.from(
     new Map(neighbors.map((n) => [n.name, n])).values(),
   );
@@ -132,8 +138,8 @@ function renderOverviewTab(context: PanelContext, name: string, helpers: PanelHe
           <div class="neighbor-item">
             <span class="neighbor-item__name">${helpers.escapeHtml(n.name)}</span>
             <span class="neighbor-item__badges">
-              ${n.wireless ? '<span class="badge badge--wireless">WiFi</span>' : ""}
               ${n.poe ? '<span class="badge badge--poe">PoE</span>' : ""}
+              ${n.wireless ? '<span class="badge badge--wireless">WiFi</span>' : ""}
               ${n.label ? `<span class="badge badge--port">${helpers.escapeHtml(n.label)}</span>` : ""}
             </span>
           </div>
@@ -148,6 +154,28 @@ function renderOverviewTab(context: PanelContext, name: string, helpers: PanelHe
       <div class="neighbor-list">${neighborList}</div>
     </div>
   `;
+}
+
+function extractPortInfo(label: string | null | undefined, isLeft: boolean): string | null {
+  if (!label) return null;
+
+  // Check if it's a complex label with " <-> " separator
+  const parts = label.split(" <-> ");
+  if (parts.length === 2) {
+    const side = isLeft ? parts[0] : parts[1];
+    // Extract just "Port X" from "DeviceName: Port X"
+    const portMatch = side.match(/Port\s*\d+/i);
+    return portMatch ? portMatch[0] : null;
+  }
+
+  // Simple label - just return as-is if it looks like a port
+  if (label.match(/^Port\s*\d+$/i)) {
+    return label;
+  }
+
+  // Try to extract port info from any format
+  const portMatch = label.match(/Port\s*\d+/i);
+  return portMatch ? portMatch[0] : label;
 }
 
 function renderStatsTab(context: PanelContext, name: string, helpers: PanelHelpers): string {

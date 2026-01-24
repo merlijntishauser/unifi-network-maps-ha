@@ -1698,12 +1698,17 @@ function renderTabContent(context, name, helpers) {
 }
 function renderOverviewTab(context, name, helpers) {
   const edges = context.payload?.edges ?? [];
-  const neighbors = edges.filter((edge) => edge.left === name || edge.right === name).map((edge) => ({
-    name: edge.left === name ? edge.right : edge.left,
-    label: edge.label,
-    wireless: edge.wireless,
-    poe: edge.poe
-  }));
+  const neighbors = edges.filter((edge) => edge.left === name || edge.right === name).map((edge) => {
+    const isLeft = edge.left === name;
+    const neighborName = isLeft ? edge.right : edge.left;
+    const portInfo = extractPortInfo(edge.label, isLeft);
+    return {
+      name: neighborName,
+      label: portInfo,
+      wireless: edge.wireless,
+      poe: edge.poe
+    };
+  });
   const uniqueNeighbors = Array.from(
     new Map(neighbors.map((n) => [n.name, n])).values()
   );
@@ -1712,8 +1717,8 @@ function renderOverviewTab(context, name, helpers) {
           <div class="neighbor-item">
             <span class="neighbor-item__name">${helpers.escapeHtml(n.name)}</span>
             <span class="neighbor-item__badges">
-              ${n.wireless ? '<span class="badge badge--wireless">WiFi</span>' : ""}
               ${n.poe ? '<span class="badge badge--poe">PoE</span>' : ""}
+              ${n.wireless ? '<span class="badge badge--wireless">WiFi</span>' : ""}
               ${n.label ? `<span class="badge badge--port">${helpers.escapeHtml(n.label)}</span>` : ""}
             </span>
           </div>
@@ -1725,6 +1730,20 @@ function renderOverviewTab(context, name, helpers) {
       <div class="neighbor-list">${neighborList}</div>
     </div>
   `;
+}
+function extractPortInfo(label, isLeft) {
+  if (!label) return null;
+  const parts = label.split(" <-> ");
+  if (parts.length === 2) {
+    const side = isLeft ? parts[0] : parts[1];
+    const portMatch2 = side.match(/Port\s*\d+/i);
+    return portMatch2 ? portMatch2[0] : null;
+  }
+  if (label.match(/^Port\s*\d+$/i)) {
+    return label;
+  }
+  const portMatch = label.match(/Port\s*\d+/i);
+  return portMatch ? portMatch[0] : label;
 }
 function renderStatsTab(context, name, helpers) {
   const edges = context.payload?.edges ?? [];
@@ -2528,10 +2547,10 @@ var CARD_STYLES = `
 
   /* Neighbor List */
   .neighbor-list { display: flex; flex-direction: column; gap: 6px; }
-  .neighbor-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; background: rgba(255,255,255,0.03); border-radius: 8px; transition: background 0.15s ease; }
+  .neighbor-item { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: rgba(255,255,255,0.03); border-radius: 8px; transition: background 0.15s ease; }
   .neighbor-item:hover { background: rgba(255,255,255,0.06); }
-  .neighbor-item__name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #e2e8f0; font-size: 12px; }
-  .neighbor-item__badges { display: flex; gap: 4px; flex-shrink: 0; }
+  .neighbor-item__name { color: #e2e8f0; font-size: 13px; font-weight: 500; word-break: break-word; }
+  .neighbor-item__badges { display: flex; flex-wrap: wrap; gap: 4px; }
 
   /* Badges */
   .badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; }
