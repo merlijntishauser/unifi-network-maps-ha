@@ -67,9 +67,32 @@ function normalizeCardHeight(value: CardConfig["card_height"]): string | null {
   return raw;
 }
 
+function parseCardHeightPx(value: CardConfig["card_height"]): number | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value === "number") return value;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const match = trimmed.match(/^(\d+(?:\.\d+)?)px$/);
+  if (match) {
+    return Number.parseFloat(match[1]);
+  }
+  if (/^\d+(\.\d+)?$/.test(trimmed)) {
+    return Number.parseFloat(trimmed);
+  }
+  return null;
+}
+
 export class UnifiNetworkMapCard extends HTMLElement {
   static getLayoutOptions() {
     return { grid_columns: 4, grid_rows: 3, grid_min_columns: 2, grid_min_rows: 2 };
+  }
+
+  getCardSize() {
+    const heightPx = parseCardHeightPx(this._config?.card_height);
+    if (heightPx) {
+      return Math.max(1, Math.ceil(heightPx / 50));
+    }
+    return 4;
   }
 
   static getConfigElement() {
@@ -258,6 +281,11 @@ export class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _applyCardHeight(card: HTMLElement) {
+    if (this.closest("hui-card-edit-mode")) {
+      this.style.height = "100%";
+      card.style.height = "100%";
+      return;
+    }
     const height = normalizeCardHeight(this._config?.card_height);
     if (!height) {
       card.style.removeProperty("height");
