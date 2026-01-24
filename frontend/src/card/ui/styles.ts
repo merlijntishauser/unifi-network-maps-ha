@@ -229,6 +229,57 @@ export const CARD_STYLES = `
     .unifi-network-map__layout { grid-template-columns: 1fr; }
   }
 
+  /* UniFi theme - matches official UniFi Network application style */
+  ha-card[data-theme="unifi"] { background: #f7f8fa; }
+  ha-card[data-theme="unifi"] .unifi-network-map__viewport { background: #ffffff; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); }
+  ha-card[data-theme="unifi"] .unifi-network-map__controls button { background: #ffffff; color: #374151; border: 1px solid #e5e7eb; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); }
+  ha-card[data-theme="unifi"] .unifi-network-map__controls button:hover { background: #f3f4f6; border-color: #006fff; color: #006fff; }
+  ha-card[data-theme="unifi"] .unifi-network-map__panel { background: #ffffff; color: #1a1a1a; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); }
+  ha-card[data-theme="unifi"] .panel-header { background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+  ha-card[data-theme="unifi"] .panel-header__title { color: #1a1a1a; }
+  ha-card[data-theme="unifi"] .panel-header__back { background: #ffffff; border-color: #e5e7eb; color: #6b7280; }
+  ha-card[data-theme="unifi"] .panel-header__back:hover { background: #f3f4f6; border-color: #006fff; color: #006fff; }
+  ha-card[data-theme="unifi"] .panel-header__badge { background: rgba(0, 111, 255, 0.1); color: #006fff; }
+  ha-card[data-theme="unifi"] .panel-tabs { background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+  ha-card[data-theme="unifi"] .panel-tab { color: #6b7280; }
+  ha-card[data-theme="unifi"] .panel-tab:hover { color: #374151; }
+  ha-card[data-theme="unifi"] .panel-tab--active { color: #006fff; border-bottom-color: #006fff; }
+  ha-card[data-theme="unifi"] .panel-section__title { color: #6b7280; }
+  ha-card[data-theme="unifi"] .stat-card { background: #f9fafb; border-color: #e5e7eb; }
+  ha-card[data-theme="unifi"] .stat-card__value { color: #006fff; }
+  ha-card[data-theme="unifi"] .stat-card__label { color: #6b7280; }
+  ha-card[data-theme="unifi"] .stats-row { background: #f9fafb; border-radius: 8px; }
+  ha-card[data-theme="unifi"] .stats-row__label { color: #6b7280; }
+  ha-card[data-theme="unifi"] .stats-row__value { color: #1a1a1a; }
+  ha-card[data-theme="unifi"] .device-row { background: #f9fafb; border: 1px solid #e5e7eb; }
+  ha-card[data-theme="unifi"] .device-row__label { color: #1a1a1a; }
+  ha-card[data-theme="unifi"] .device-row__count { color: #006fff; background: rgba(0, 111, 255, 0.1); }
+  ha-card[data-theme="unifi"] .neighbor-item { background: #f9fafb; border: 1px solid #e5e7eb; }
+  ha-card[data-theme="unifi"] .neighbor-item:hover { background: #f3f4f6; border-color: #006fff; }
+  ha-card[data-theme="unifi"] .neighbor-item__name { color: #1a1a1a; }
+  ha-card[data-theme="unifi"] .info-row { background: #f9fafb; border: 1px solid #e5e7eb; }
+  ha-card[data-theme="unifi"] .info-row__label { color: #6b7280; }
+  ha-card[data-theme="unifi"] .info-row__value { color: #006fff; }
+  ha-card[data-theme="unifi"] .action-button { background: #ffffff; border: 1px solid #e5e7eb; color: #374151; }
+  ha-card[data-theme="unifi"] .action-button:hover { background: #f3f4f6; border-color: #006fff; color: #006fff; }
+  ha-card[data-theme="unifi"] .action-button--primary { background: #006fff; border-color: #006fff; color: #ffffff; }
+  ha-card[data-theme="unifi"] .action-button--primary:hover { background: #0058cc; }
+  ha-card[data-theme="unifi"] .entity-id { background: #f3f4f6; color: #006fff; border: 1px solid #e5e7eb; }
+  ha-card[data-theme="unifi"] .panel-empty__text { color: #6b7280; }
+  ha-card[data-theme="unifi"] .panel-hint { background: rgba(0, 111, 255, 0.05); color: #374151; border: 1px solid rgba(0, 111, 255, 0.2); }
+  ha-card[data-theme="unifi"] .unifi-network-map__tooltip { background: #1a1a1a; border: none; }
+  ha-card[data-theme="unifi"] .status-badge--online { background: rgba(0, 168, 107, 0.1); color: #00a86b; }
+  ha-card[data-theme="unifi"] .status-badge--offline { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+  ha-card[data-theme="unifi"] .status-badge--unknown { background: rgba(107, 114, 128, 0.1); color: #6b7280; }
+  ha-card[data-theme="unifi"] .status-dot--online { background: #00a86b; box-shadow: 0 0 6px rgba(0, 168, 107, 0.5); }
+  ha-card[data-theme="unifi"] .badge--wireless { background: rgba(168, 85, 247, 0.1); color: #9333ea; }
+  ha-card[data-theme="unifi"] .badge--poe { background: rgba(0, 168, 107, 0.1); color: #00a86b; }
+  ha-card[data-theme="unifi"] .badge--port { background: #f3f4f6; color: #6b7280; border: 1px solid #e5e7eb; }
+  ha-card[data-theme="unifi"] .unifi-network-map__viewport svg [data-selected="true"] > *,
+  ha-card[data-theme="unifi"] .unifi-network-map__viewport svg .node--selected > * { stroke: #006fff !important; }
+  ha-card[data-theme="unifi"] .unifi-network-map__viewport svg [data-selected="true"] > :not(text):not(tspan):not(foreignObject),
+  ha-card[data-theme="unifi"] .unifi-network-map__viewport svg .node--selected > :not(text):not(tspan):not(foreignObject) { filter: drop-shadow(0 0 6px #006fff) drop-shadow(0 0 12px rgba(0, 111, 255, 0.45)); }
+
   /* Entity Modal Styles */
   .entity-modal-overlay {
     position: fixed;
@@ -513,6 +564,36 @@ export const CARD_STYLES = `
   .context-menu[data-theme="light"] .context-menu__item:hover { background: rgba(59, 130, 246, 0.1); color: #1d4ed8; }
   .context-menu[data-theme="light"] .context-menu__item--danger:hover { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
   .context-menu[data-theme="light"] .context-menu__divider { background: rgba(148, 163, 184, 0.2); }
+
+  /* UniFi theme entity modal */
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal { background: #ffffff; border: 1px solid #e5e7eb; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__header { background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__title { color: #1a1a1a; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__close { color: #6b7280; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__close:hover { background: #f3f4f6; color: #1a1a1a; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__section-title { color: #6b7280; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__info-row { background: #f9fafb; border: 1px solid #e5e7eb; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__info-label { color: #6b7280; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__info-value { color: #1a1a1a; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__entity-item { background: #f9fafb; border: 1px solid #e5e7eb; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__entity-item:hover { background: #f3f4f6; border-color: #006fff; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__entity-name { color: #1a1a1a; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__entity-id { color: #6b7280; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__state-badge--home,
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__state-badge--on { background: rgba(0, 168, 107, 0.1); color: #00a86b; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__state-badge--not_home,
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__state-badge--off { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__state-badge--default { background: #f3f4f6; color: #6b7280; }
+
+  /* UniFi theme context menu */
+  .context-menu[data-theme="unifi"] { background: #ffffff; border: 1px solid #e5e7eb; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+  .context-menu[data-theme="unifi"] .context-menu__header { border-bottom: 1px solid #e5e7eb; }
+  .context-menu[data-theme="unifi"] .context-menu__title { color: #1a1a1a; }
+  .context-menu[data-theme="unifi"] .context-menu__type { color: #6b7280; }
+  .context-menu[data-theme="unifi"] .context-menu__item { color: #374151; }
+  .context-menu[data-theme="unifi"] .context-menu__item:hover { background: rgba(0, 111, 255, 0.1); color: #006fff; }
+  .context-menu[data-theme="unifi"] .context-menu__item--danger:hover { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+  .context-menu[data-theme="unifi"] .context-menu__divider { background: #e5e7eb; }
 `;
 
 export const GLOBAL_STYLES = `
@@ -804,6 +885,36 @@ export const GLOBAL_STYLES = `
   .context-menu[data-theme="light"] .context-menu__item:hover { background: rgba(59, 130, 246, 0.1); color: #1d4ed8; }
   .context-menu[data-theme="light"] .context-menu__item--danger:hover { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
   .context-menu[data-theme="light"] .context-menu__divider { background: rgba(148, 163, 184, 0.2); }
+
+  /* UniFi theme entity modal (global) */
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal { background: #ffffff; border: 1px solid #e5e7eb; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__header { background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__title { color: #1a1a1a; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__close { color: #6b7280; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__close:hover { background: #f3f4f6; color: #1a1a1a; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__section-title { color: #6b7280; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__info-row { background: #f9fafb; border: 1px solid #e5e7eb; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__info-label { color: #6b7280; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__info-value { color: #1a1a1a; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__entity-item { background: #f9fafb; border: 1px solid #e5e7eb; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__entity-item:hover { background: #f3f4f6; border-color: #006fff; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__entity-name { color: #1a1a1a; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__entity-id { color: #6b7280; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__state-badge--home,
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__state-badge--on { background: rgba(0, 168, 107, 0.1); color: #00a86b; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__state-badge--not_home,
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__state-badge--off { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__state-badge--default { background: #f3f4f6; color: #6b7280; }
+
+  /* UniFi theme context menu (global) */
+  .context-menu[data-theme="unifi"] { background: #ffffff; border: 1px solid #e5e7eb; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+  .context-menu[data-theme="unifi"] .context-menu__header { border-bottom: 1px solid #e5e7eb; }
+  .context-menu[data-theme="unifi"] .context-menu__title { color: #1a1a1a; }
+  .context-menu[data-theme="unifi"] .context-menu__type { color: #6b7280; }
+  .context-menu[data-theme="unifi"] .context-menu__item { color: #374151; }
+  .context-menu[data-theme="unifi"] .context-menu__item:hover { background: rgba(0, 111, 255, 0.1); color: #006fff; }
+  .context-menu[data-theme="unifi"] .context-menu__item--danger:hover { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+  .context-menu[data-theme="unifi"] .context-menu__divider { background: #e5e7eb; }
 
   /* Toast feedback animation */
   @keyframes fadeInOut {

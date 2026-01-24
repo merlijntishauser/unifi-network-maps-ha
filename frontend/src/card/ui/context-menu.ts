@@ -4,7 +4,7 @@ import type { MapPayload } from "../core/types";
 export type ContextMenuRenderOptions = {
   nodeName: string;
   payload?: MapPayload;
-  theme: "dark" | "light";
+  theme: "dark" | "light" | "unifi";
   getNodeTypeIcon: (nodeType: string) => string;
 };
 

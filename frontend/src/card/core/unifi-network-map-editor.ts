@@ -105,7 +105,7 @@ export class UnifiNetworkMapEditor extends HTMLElement {
     this._updateConfig({ entry_id: entryId, theme: selectedTheme });
   }
 
-  private _updateConfig(update: { entry_id: string; theme: "dark" | "light" }) {
+  private _updateConfig(update: { entry_id: string; theme: "dark" | "light" | "unifi" }) {
     this._config = {
       ...this._config,
       type: "custom:unifi-network-map",

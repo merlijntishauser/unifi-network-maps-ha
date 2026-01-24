@@ -5,7 +5,7 @@ export type ConfigurableCard = HTMLElement & {
     svg_url?: string;
     data_url?: string;
     entry_id?: string;
-    theme?: "dark" | "light";
+    theme?: "dark" | "light" | "unifi";
   }) => void;
   connectedCallback?: () => void;
   disconnectedCallback?: () => void;
@@ -28,7 +28,7 @@ export type EditorElement = HTMLElement & {
   hass?: {
     callWS?: <T>(msg: Record<string, unknown>) => Promise<T>;
   };
-  setConfig: (config: { entry_id?: string; theme?: "dark" | "light" }) => void;
+  setConfig: (config: { entry_id?: string; theme?: "dark" | "light" | "unifi" }) => void;
 };
 
 export const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0));

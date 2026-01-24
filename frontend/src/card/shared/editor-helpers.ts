@@ -20,6 +20,7 @@ export function buildFormSchema(entries: ConfigEntry[]): FormSchemaEntry[] {
           options: [
             { label: "Dark (default)", value: "dark" },
             { label: "Light", value: "light" },
+            { label: "UniFi", value: "unifi" },
           ],
         },
       },
@@ -28,6 +29,8 @@ export function buildFormSchema(entries: ConfigEntry[]): FormSchemaEntry[] {
   ];
 }
 
-export function normalizeTheme(value: string | undefined): "dark" | "light" {
-  return value === "light" ? "light" : "dark";
+export function normalizeTheme(value: string | undefined): "dark" | "light" | "unifi" {
+  if (value === "light") return "light";
+  if (value === "unifi") return "unifi";
+  return "dark";
 }
