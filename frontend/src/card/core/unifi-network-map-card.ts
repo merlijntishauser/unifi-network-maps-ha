@@ -395,6 +395,17 @@ export class UnifiNetworkMapCard extends HTMLElement {
     this._render();
   }
 
+  private _updateSelectionOnly(): void {
+    // Update panel content without replacing the entire DOM
+    const panel = this.querySelector(".unifi-network-map__panel") as HTMLElement | null;
+
+    if (panel) {
+      panel.innerHTML = sanitizeHtml(this._renderPanelContent());
+      panel.onclick = (event) => this._onPanelClick(event);
+    }
+    // Note: Highlight disabled for testing - SVG is not touched at all
+  }
+
   private _renderPanelContent(): string {
     return renderPanelContent(
       {
@@ -756,7 +767,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
     return {
       onNodeSelected: (nodeName: string) => {
         selectNode(this._selection, nodeName);
-        this._render();
+        this._updateSelectionOnly();
       },
       onHoverEdge: (edge: Edge | null) => {
         setHoveredEdge(this._selection, edge);

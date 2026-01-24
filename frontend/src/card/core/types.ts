@@ -48,6 +48,13 @@ export type ViewTransform = {
   scale: number;
 };
 
+export type ViewBox = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
 export type DeviceCounts = {
   gateways: number;
   switches: number;

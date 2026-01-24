@@ -37,7 +37,7 @@ export type EditorElement = HTMLElement & {
 export const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 export const makeSvg = (label = "Node A") =>
-  `<svg><g data-node-id="${label}"><text>${label}</text></g></svg>`;
+  `<svg viewBox="0 0 100 100" width="100" height="100"><g data-node-id="${label}"><text>${label}</text></g></svg>`;
 
 export const samplePayload = () => ({
   edges: [

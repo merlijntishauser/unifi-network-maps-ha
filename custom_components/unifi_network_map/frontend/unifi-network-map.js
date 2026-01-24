@@ -2049,6 +2049,7 @@ function handleMapClick(params) {
 }
 
 // src/card/interaction/viewport.ts
+var BASE_VIEWBOXES = /* @__PURE__ */ new WeakMap();
 function bindViewportInteractions(params) {
   const { viewport, svg: svg2, state, options, handlers, callbacks, bindings } = params;
   viewport.onwheel = (event) => onWheel(event, svg2, state, options, callbacks);
@@ -2065,9 +2066,15 @@ function bindViewportInteractions(params) {
   viewport.oncontextmenu = (event) => onContextMenu(event, state, handlers, callbacks);
 }
 function applyTransform(svg2, transform, isPanning) {
-  svg2.style.transformOrigin = "0 0";
-  svg2.style.transform = `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`;
   svg2.style.cursor = isPanning ? "grabbing" : "grab";
+  svg2.style.transform = "none";
+  const baseViewBox = getBaseViewBox(svg2);
+  if (!baseViewBox) {
+    return;
+  }
+  const viewportSize = getViewportSize(svg2);
+  const viewBox = computeViewBox(transform, baseViewBox, viewportSize);
+  setViewBox(svg2, viewBox);
 }
 function applyZoom(svg2, delta, state, options, callbacks) {
   const nextScale = Math.min(
@@ -2238,6 +2245,77 @@ function getDistance(p1, p2) {
   const dy = p2.y - p1.y;
   return Math.sqrt(dx * dx + dy * dy);
 }
+function getBaseViewBox(svg2) {
+  const cached = BASE_VIEWBOXES.get(svg2);
+  if (cached) return cached;
+  const fromAttribute = parseViewBox(svg2.getAttribute("viewBox"));
+  const base = fromAttribute ?? buildFallbackViewBox(svg2);
+  if (!base) return null;
+  BASE_VIEWBOXES.set(svg2, base);
+  if (!fromAttribute) {
+    setViewBox(svg2, base);
+  }
+  return base;
+}
+function parseViewBox(value) {
+  if (!value) return null;
+  const parts = value.trim().split(/[\s,]+/).map(Number);
+  if (parts.length !== 4 || parts.some((part) => Number.isNaN(part))) {
+    return null;
+  }
+  return { x: parts[0], y: parts[1], width: parts[2], height: parts[3] };
+}
+function buildFallbackViewBox(svg2) {
+  return viewBoxFromSizeAttributes(svg2) ?? viewBoxFromBoundingBox(svg2) ?? viewBoxFromRect(svg2);
+}
+function viewBoxFromSizeAttributes(svg2) {
+  const width = readNumericAttribute(svg2, "width");
+  const height = readNumericAttribute(svg2, "height");
+  if (!width || !height) return null;
+  return { x: 0, y: 0, width, height };
+}
+function readNumericAttribute(svg2, name) {
+  const value = svg2.getAttribute(name);
+  if (!value) return null;
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+function viewBoxFromBoundingBox(svg2) {
+  try {
+    const bbox = svg2.getBBox();
+    if (!bbox.width || !bbox.height) return null;
+    return { x: bbox.x, y: bbox.y, width: bbox.width, height: bbox.height };
+  } catch {
+    return null;
+  }
+}
+function viewBoxFromRect(svg2) {
+  const rect = svg2.getBoundingClientRect();
+  if (!rect.width || !rect.height) return null;
+  return { x: 0, y: 0, width: rect.width, height: rect.height };
+}
+function getViewportSize(svg2) {
+  const rect = svg2.getBoundingClientRect();
+  return { width: rect.width, height: rect.height };
+}
+function computeViewBox(transform, base, viewportSize) {
+  const scale = transform.scale || 1;
+  const width = base.width / scale;
+  const height = base.height / scale;
+  const xOffset = panOffset(transform.x, base.width, viewportSize.width, scale);
+  const yOffset = panOffset(transform.y, base.height, viewportSize.height, scale);
+  return { x: base.x - xOffset, y: base.y - yOffset, width, height };
+}
+function panOffset(panPx, baseSize, viewportSize, scale) {
+  if (!viewportSize || !scale) return 0;
+  return panPx * baseSize / (viewportSize * scale);
+}
+function setViewBox(svg2, viewBox) {
+  const values = [viewBox.x, viewBox.y, viewBox.width, viewBox.height].map(
+    (value) => Number(value.toFixed(2))
+  );
+  svg2.setAttribute("viewBox", values.join(" "));
+}
 function createDefaultViewportState() {
   return {
     viewTransform: { x: 0, y: 0, scale: 1 },
@@ -2261,9 +2339,9 @@ function createDefaultViewportHandlers(edges) {
 var CARD_STYLES = `
   unifi-network-map { display: block; height: 100%; }
   unifi-network-map ha-card { display: flex; flex-direction: column; height: 100%; box-sizing: border-box; }
-  .unifi-network-map__layout { display: grid; grid-template-columns: minmax(0, 2.5fr) minmax(280px, 1fr); gap: 12px; flex: 1; padding: 12px; }
-  .unifi-network-map__viewport { position: relative; overflow: hidden; min-height: 300px; background: linear-gradient(135deg, #0b1016 0%, #111827 100%); border-radius: 12px; touch-action: none; }
-  .unifi-network-map__viewport svg { width: 100%; height: auto; display: block; position: relative; z-index: 0; }
+  .unifi-network-map__layout { display: grid; grid-template-columns: minmax(0, 2.5fr) minmax(280px, 1fr); grid-template-rows: 1fr; gap: 12px; flex: 1; padding: 12px; }
+  .unifi-network-map__viewport { position: relative; overflow: hidden; min-height: 300px; background: linear-gradient(135deg, #0b1016 0%, #111827 100%); border-radius: 12px; touch-action: none; contain: strict; height: 100%; isolation: isolate; }
+  .unifi-network-map__viewport svg { width: 100%; height: auto; display: block; position: absolute; top: 0; left: 0; z-index: 0; }
   .unifi-network-map__viewport svg, .unifi-network-map__viewport svg * { pointer-events: bounding-box !important; }
   .unifi-network-map__controls { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; z-index: 3; }
   .unifi-network-map__controls button { background: rgba(15, 23, 42, 0.9); color: #e5e7eb; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 6px 10px; font-size: 12px; cursor: pointer; backdrop-filter: blur(8px); transition: all 0.15s ease; }
@@ -2272,7 +2350,7 @@ var CARD_STYLES = `
   .unifi-network-map__viewport svg path[data-edge] { cursor: pointer; transition: stroke-width 0.15s ease, filter 0.15s ease; pointer-events: stroke; }
   .unifi-network-map__viewport svg path[data-edge-hitbox] { stroke: transparent; stroke-width: 14; fill: none; pointer-events: stroke; }
   .unifi-network-map__viewport svg path[data-edge]:hover { stroke-width: 4; filter: drop-shadow(0 0 4px currentColor); }
-  .unifi-network-map__panel { padding: 0; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); color: #e5e7eb; border-radius: 12px; font-size: 13px; overflow: hidden; display: flex; flex-direction: column; }
+  .unifi-network-map__panel { padding: 0; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); color: #e5e7eb; border-radius: 12px; font-size: 13px; overflow: hidden; display: flex; flex-direction: column; contain: strict; height: 100%; min-height: 0; }
   .unifi-network-map__tooltip { position: fixed; z-index: 2; background: rgba(15, 23, 42, 0.95); color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 12px; pointer-events: none; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(8px); max-width: 280px; }
   .unifi-network-map__tooltip--edge { display: flex; flex-direction: column; gap: 4px; }
   .tooltip-edge__title { font-weight: 600; color: #f1f5f9; margin-bottom: 2px; }
@@ -2294,7 +2372,7 @@ var CARD_STYLES = `
   .panel-tab { flex: 1; padding: 10px 8px; background: none; border: none; border-bottom: 2px solid transparent; color: #64748b; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s ease; }
   .panel-tab:hover { color: #94a3b8; }
   .panel-tab--active { color: #60a5fa; border-bottom-color: #3b82f6; }
-  .panel-tab-content { flex: 1; overflow-y: auto; padding: 16px; }
+  .panel-tab-content { flex: 1; overflow-y: auto; padding: 16px; min-height: 0; }
 
   /* Sections */
   .panel-section { margin-bottom: 16px; padding: 0 16px; }
@@ -2440,17 +2518,14 @@ var CARD_STYLES = `
   .unifi-network-map__viewport svg [data-selected="true"] > *,
   .unifi-network-map__viewport svg .node--selected > * {
     stroke: #3b82f6 !important;
-    stroke-width: 2px;
+    stroke-width: 2.5px;
     stroke-linejoin: round;
     stroke-linecap: round;
-  }
-  .unifi-network-map__viewport svg [data-selected="true"] > :not(text):not(tspan):not(foreignObject),
-  .unifi-network-map__viewport svg .node--selected > :not(text):not(tspan):not(foreignObject) {
-    filter: drop-shadow(0 0 6px #3b82f6) drop-shadow(0 0 12px rgba(59, 130, 246, 0.45));
   }
   .unifi-network-map__viewport svg [data-selected="true"] text,
   .unifi-network-map__viewport svg .node--selected text {
     stroke: none !important;
+    fill: #3b82f6 !important;
   }
 
   /* Light theme overrides */
@@ -2537,8 +2612,8 @@ var CARD_STYLES = `
   ha-card[data-theme="unifi"] .badge--port { background: #f3f4f6; color: #6b7280; border: 1px solid #e5e7eb; }
   ha-card[data-theme="unifi"] .unifi-network-map__viewport svg [data-selected="true"] > *,
   ha-card[data-theme="unifi"] .unifi-network-map__viewport svg .node--selected > * { stroke: #006fff !important; }
-  ha-card[data-theme="unifi"] .unifi-network-map__viewport svg [data-selected="true"] > :not(text):not(tspan):not(foreignObject),
-  ha-card[data-theme="unifi"] .unifi-network-map__viewport svg .node--selected > :not(text):not(tspan):not(foreignObject) { filter: drop-shadow(0 0 6px #006fff) drop-shadow(0 0 12px rgba(0, 111, 255, 0.45)); }
+  ha-card[data-theme="unifi"] .unifi-network-map__viewport svg [data-selected="true"] text,
+  ha-card[data-theme="unifi"] .unifi-network-map__viewport svg .node--selected text { stroke: none !important; fill: #006fff !important; }
 
   /* UniFi Dark theme - dark mode version of UniFi style */
   ha-card[data-theme="unifi-dark"] { background: #0d0d0d; }
@@ -2588,8 +2663,8 @@ var CARD_STYLES = `
   ha-card[data-theme="unifi-dark"] .badge--port { background: #1f1f1f; color: #9ca3af; border: 1px solid #2a2a2a; }
   ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport svg [data-selected="true"] > *,
   ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport svg .node--selected > * { stroke: #006fff !important; }
-  ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport svg [data-selected="true"] > :not(text):not(tspan):not(foreignObject),
-  ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport svg .node--selected > :not(text):not(tspan):not(foreignObject) { filter: drop-shadow(0 0 6px #006fff) drop-shadow(0 0 12px rgba(0, 111, 255, 0.45)); }
+  ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport svg [data-selected="true"] text,
+  ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport svg .node--selected text { stroke: none !important; fill: #3b9eff !important; }
 
   /* Entity Modal Styles */
   .entity-modal-overlay {
@@ -3568,6 +3643,13 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._loadPayload();
     this._render();
   }
+  _updateSelectionOnly() {
+    const panel = this.querySelector(".unifi-network-map__panel");
+    if (panel) {
+      panel.innerHTML = sanitizeHtml(this._renderPanelContent());
+      panel.onclick = (event) => this._onPanelClick(event);
+    }
+  }
   _renderPanelContent() {
     return renderPanelContent(
       {
@@ -3885,7 +3967,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     return {
       onNodeSelected: (nodeName) => {
         selectNode(this._selection, nodeName);
-        this._render();
+        this._updateSelectionOnly();
       },
       onHoverEdge: (edge) => {
         setHoveredEdge(this._selection, edge);

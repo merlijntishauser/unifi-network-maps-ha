@@ -436,7 +436,7 @@ describe("unifi-network-map editor", () => {
     zoomIn.click();
     zoomOut.click();
     reset.click();
-    expect(svg.style.transform).toContain("scale");
+    expect(svg.getAttribute("viewBox")).toBe("0 0 100 100");
     expect(card._selection?.selectedNode).toBeUndefined();
   });
 

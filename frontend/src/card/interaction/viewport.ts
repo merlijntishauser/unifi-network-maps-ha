@@ -1,4 +1,4 @@
-import type { Edge, Point, ViewTransform } from "../core/types";
+import type { Edge, Point, ViewBox, ViewTransform } from "../core/types";
 import { findEdgeFromTarget, renderEdgeTooltip } from "../data/svg";
 import { resolveNodeName } from "./node";
 
@@ -39,6 +39,8 @@ export type ViewportBindings = {
   controls: HTMLElement | null;
 };
 
+const BASE_VIEWBOXES = new WeakMap<SVGElement, ViewBox>();
+
 export function bindViewportInteractions(params: {
   viewport: HTMLElement;
   svg: SVGElement;
@@ -70,9 +72,17 @@ export function applyTransform(
   transform: ViewTransform,
   isPanning: boolean,
 ): void {
-  svg.style.transformOrigin = "0 0";
-  svg.style.transform = `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`;
   svg.style.cursor = isPanning ? "grabbing" : "grab";
+  svg.style.transform = "none";
+
+  const baseViewBox = getBaseViewBox(svg);
+  if (!baseViewBox) {
+    return;
+  }
+
+  const viewportSize = getViewportSize(svg);
+  const viewBox = computeViewBox(transform, baseViewBox, viewportSize);
+  setViewBox(svg, viewBox);
 }
 
 export function applyZoom(
@@ -329,6 +339,97 @@ function getDistance(p1: Point, p2: Point): number {
   const dx = p2.x - p1.x;
   const dy = p2.y - p1.y;
   return Math.sqrt(dx * dx + dy * dy);
+}
+
+function getBaseViewBox(svg: SVGElement): ViewBox | null {
+  const cached = BASE_VIEWBOXES.get(svg);
+  if (cached) return cached;
+
+  const fromAttribute = parseViewBox(svg.getAttribute("viewBox"));
+  const base = fromAttribute ?? buildFallbackViewBox(svg);
+  if (!base) return null;
+
+  BASE_VIEWBOXES.set(svg, base);
+  if (!fromAttribute) {
+    setViewBox(svg, base);
+  }
+  return base;
+}
+
+function parseViewBox(value: string | null): ViewBox | null {
+  if (!value) return null;
+  const parts = value
+    .trim()
+    .split(/[\s,]+/)
+    .map(Number);
+  if (parts.length !== 4 || parts.some((part) => Number.isNaN(part))) {
+    return null;
+  }
+  return { x: parts[0], y: parts[1], width: parts[2], height: parts[3] };
+}
+
+function buildFallbackViewBox(svg: SVGElement): ViewBox | null {
+  return viewBoxFromSizeAttributes(svg) ?? viewBoxFromBoundingBox(svg) ?? viewBoxFromRect(svg);
+}
+
+function viewBoxFromSizeAttributes(svg: SVGElement): ViewBox | null {
+  const width = readNumericAttribute(svg, "width");
+  const height = readNumericAttribute(svg, "height");
+  if (!width || !height) return null;
+  return { x: 0, y: 0, width, height };
+}
+
+function readNumericAttribute(svg: SVGElement, name: string): number | null {
+  const value = svg.getAttribute(name);
+  if (!value) return null;
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function viewBoxFromBoundingBox(svg: SVGElement): ViewBox | null {
+  try {
+    const bbox = (svg as SVGGraphicsElement).getBBox();
+    if (!bbox.width || !bbox.height) return null;
+    return { x: bbox.x, y: bbox.y, width: bbox.width, height: bbox.height };
+  } catch {
+    return null;
+  }
+}
+
+function viewBoxFromRect(svg: SVGElement): ViewBox | null {
+  const rect = svg.getBoundingClientRect();
+  if (!rect.width || !rect.height) return null;
+  return { x: 0, y: 0, width: rect.width, height: rect.height };
+}
+
+function getViewportSize(svg: SVGElement): { width: number; height: number } {
+  const rect = svg.getBoundingClientRect();
+  return { width: rect.width, height: rect.height };
+}
+
+function computeViewBox(
+  transform: ViewTransform,
+  base: ViewBox,
+  viewportSize: { width: number; height: number },
+): ViewBox {
+  const scale = transform.scale || 1;
+  const width = base.width / scale;
+  const height = base.height / scale;
+  const xOffset = panOffset(transform.x, base.width, viewportSize.width, scale);
+  const yOffset = panOffset(transform.y, base.height, viewportSize.height, scale);
+  return { x: base.x - xOffset, y: base.y - yOffset, width, height };
+}
+
+function panOffset(panPx: number, baseSize: number, viewportSize: number, scale: number): number {
+  if (!viewportSize || !scale) return 0;
+  return (panPx * baseSize) / (viewportSize * scale);
+}
+
+function setViewBox(svg: SVGElement, viewBox: ViewBox): void {
+  const values = [viewBox.x, viewBox.y, viewBox.width, viewBox.height].map((value) =>
+    Number(value.toFixed(2)),
+  );
+  svg.setAttribute("viewBox", values.join(" "));
 }
 
 export function createDefaultViewportState(): ViewportState {

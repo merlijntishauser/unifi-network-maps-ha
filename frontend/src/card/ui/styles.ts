@@ -1,9 +1,9 @@
 export const CARD_STYLES = `
   unifi-network-map { display: block; height: 100%; }
   unifi-network-map ha-card { display: flex; flex-direction: column; height: 100%; box-sizing: border-box; }
-  .unifi-network-map__layout { display: grid; grid-template-columns: minmax(0, 2.5fr) minmax(280px, 1fr); gap: 12px; flex: 1; padding: 12px; }
-  .unifi-network-map__viewport { position: relative; overflow: hidden; min-height: 300px; background: linear-gradient(135deg, #0b1016 0%, #111827 100%); border-radius: 12px; touch-action: none; }
-  .unifi-network-map__viewport svg { width: 100%; height: auto; display: block; position: relative; z-index: 0; }
+  .unifi-network-map__layout { display: grid; grid-template-columns: minmax(0, 2.5fr) minmax(280px, 1fr); grid-template-rows: 1fr; gap: 12px; flex: 1; padding: 12px; }
+  .unifi-network-map__viewport { position: relative; overflow: hidden; min-height: 300px; background: linear-gradient(135deg, #0b1016 0%, #111827 100%); border-radius: 12px; touch-action: none; contain: strict; height: 100%; isolation: isolate; }
+  .unifi-network-map__viewport svg { width: 100%; height: auto; display: block; position: absolute; top: 0; left: 0; z-index: 0; }
   .unifi-network-map__viewport svg, .unifi-network-map__viewport svg * { pointer-events: bounding-box !important; }
   .unifi-network-map__controls { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; z-index: 3; }
   .unifi-network-map__controls button { background: rgba(15, 23, 42, 0.9); color: #e5e7eb; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 6px 10px; font-size: 12px; cursor: pointer; backdrop-filter: blur(8px); transition: all 0.15s ease; }
@@ -12,7 +12,7 @@ export const CARD_STYLES = `
   .unifi-network-map__viewport svg path[data-edge] { cursor: pointer; transition: stroke-width 0.15s ease, filter 0.15s ease; pointer-events: stroke; }
   .unifi-network-map__viewport svg path[data-edge-hitbox] { stroke: transparent; stroke-width: 14; fill: none; pointer-events: stroke; }
   .unifi-network-map__viewport svg path[data-edge]:hover { stroke-width: 4; filter: drop-shadow(0 0 4px currentColor); }
-  .unifi-network-map__panel { padding: 0; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); color: #e5e7eb; border-radius: 12px; font-size: 13px; overflow: hidden; display: flex; flex-direction: column; }
+  .unifi-network-map__panel { padding: 0; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); color: #e5e7eb; border-radius: 12px; font-size: 13px; overflow: hidden; display: flex; flex-direction: column; contain: strict; height: 100%; min-height: 0; }
   .unifi-network-map__tooltip { position: fixed; z-index: 2; background: rgba(15, 23, 42, 0.95); color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 12px; pointer-events: none; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(8px); max-width: 280px; }
   .unifi-network-map__tooltip--edge { display: flex; flex-direction: column; gap: 4px; }
   .tooltip-edge__title { font-weight: 600; color: #f1f5f9; margin-bottom: 2px; }
@@ -34,7 +34,7 @@ export const CARD_STYLES = `
   .panel-tab { flex: 1; padding: 10px 8px; background: none; border: none; border-bottom: 2px solid transparent; color: #64748b; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s ease; }
   .panel-tab:hover { color: #94a3b8; }
   .panel-tab--active { color: #60a5fa; border-bottom-color: #3b82f6; }
-  .panel-tab-content { flex: 1; overflow-y: auto; padding: 16px; }
+  .panel-tab-content { flex: 1; overflow-y: auto; padding: 16px; min-height: 0; }
 
   /* Sections */
   .panel-section { margin-bottom: 16px; padding: 0 16px; }
@@ -180,17 +180,14 @@ export const CARD_STYLES = `
   .unifi-network-map__viewport svg [data-selected="true"] > *,
   .unifi-network-map__viewport svg .node--selected > * {
     stroke: #3b82f6 !important;
-    stroke-width: 2px;
+    stroke-width: 2.5px;
     stroke-linejoin: round;
     stroke-linecap: round;
-  }
-  .unifi-network-map__viewport svg [data-selected="true"] > :not(text):not(tspan):not(foreignObject),
-  .unifi-network-map__viewport svg .node--selected > :not(text):not(tspan):not(foreignObject) {
-    filter: drop-shadow(0 0 6px #3b82f6) drop-shadow(0 0 12px rgba(59, 130, 246, 0.45));
   }
   .unifi-network-map__viewport svg [data-selected="true"] text,
   .unifi-network-map__viewport svg .node--selected text {
     stroke: none !important;
+    fill: #3b82f6 !important;
   }
 
   /* Light theme overrides */
@@ -277,8 +274,8 @@ export const CARD_STYLES = `
   ha-card[data-theme="unifi"] .badge--port { background: #f3f4f6; color: #6b7280; border: 1px solid #e5e7eb; }
   ha-card[data-theme="unifi"] .unifi-network-map__viewport svg [data-selected="true"] > *,
   ha-card[data-theme="unifi"] .unifi-network-map__viewport svg .node--selected > * { stroke: #006fff !important; }
-  ha-card[data-theme="unifi"] .unifi-network-map__viewport svg [data-selected="true"] > :not(text):not(tspan):not(foreignObject),
-  ha-card[data-theme="unifi"] .unifi-network-map__viewport svg .node--selected > :not(text):not(tspan):not(foreignObject) { filter: drop-shadow(0 0 6px #006fff) drop-shadow(0 0 12px rgba(0, 111, 255, 0.45)); }
+  ha-card[data-theme="unifi"] .unifi-network-map__viewport svg [data-selected="true"] text,
+  ha-card[data-theme="unifi"] .unifi-network-map__viewport svg .node--selected text { stroke: none !important; fill: #006fff !important; }
 
   /* UniFi Dark theme - dark mode version of UniFi style */
   ha-card[data-theme="unifi-dark"] { background: #0d0d0d; }
@@ -328,8 +325,8 @@ export const CARD_STYLES = `
   ha-card[data-theme="unifi-dark"] .badge--port { background: #1f1f1f; color: #9ca3af; border: 1px solid #2a2a2a; }
   ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport svg [data-selected="true"] > *,
   ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport svg .node--selected > * { stroke: #006fff !important; }
-  ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport svg [data-selected="true"] > :not(text):not(tspan):not(foreignObject),
-  ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport svg .node--selected > :not(text):not(tspan):not(foreignObject) { filter: drop-shadow(0 0 6px #006fff) drop-shadow(0 0 12px rgba(0, 111, 255, 0.45)); }
+  ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport svg [data-selected="true"] text,
+  ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport svg .node--selected text { stroke: none !important; fill: #3b9eff !important; }
 
   /* Entity Modal Styles */
   .entity-modal-overlay {
