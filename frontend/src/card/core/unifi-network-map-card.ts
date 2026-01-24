@@ -689,7 +689,8 @@ export class UnifiNetworkMapCard extends HTMLElement {
       controller: this._contextMenu,
       menu: this._contextMenu.menu,
       renderMenu: (nodeName) => this._renderContextMenu(nodeName),
-      onAction: (action, nodeName, mac) => this._handleContextMenuAction(action, nodeName, mac),
+      onAction: (action, nodeName, mac, ip) =>
+        this._handleContextMenuAction(action, nodeName, mac, ip),
     });
   }
 
@@ -703,14 +704,13 @@ export class UnifiNetworkMapCard extends HTMLElement {
     });
   }
 
-  private _handleContextMenuAction(action: string, nodeName: string, mac: string | null): void {
+  private _handleContextMenuAction(
+    action: string,
+    nodeName: string,
+    mac: string | null,
+    ip: string | null,
+  ): void {
     switch (action) {
-      case "select":
-        selectNode(this._selection, nodeName);
-        this._removeContextMenu();
-        this._render();
-        break;
-
       case "details":
         this._removeContextMenu();
         this._showEntityModal(nodeName);
@@ -719,7 +719,15 @@ export class UnifiNetworkMapCard extends HTMLElement {
       case "copy-mac":
         if (mac) {
           navigator.clipboard.writeText(mac).then(() => {
-            this._showCopyFeedback();
+            this._showCopyFeedback("MAC address copied!");
+          });
+        }
+        this._removeContextMenu();
+        break;
+      case "copy-ip":
+        if (ip) {
+          navigator.clipboard.writeText(ip).then(() => {
+            this._showCopyFeedback("IP address copied!");
           });
         }
         this._removeContextMenu();
@@ -735,8 +743,8 @@ export class UnifiNetworkMapCard extends HTMLElement {
     }
   }
 
-  private _showCopyFeedback(): void {
-    showToast("MAC address copied!", "success");
+  private _showCopyFeedback(message: string): void {
+    showToast(message, "success");
   }
 
   private _handleRestartDevice(nodeName: string): void {

@@ -287,20 +287,25 @@ def test_context_menu_opens_on_right_click(
     # Verify context menu appears
     result = page.evaluate("""() => {
         const menu = document.querySelector(".context-menu");
+        const card = document.getElementById("test-card");
+        const payload = card?._payload;
+        const hasIp = !!payload?.related_entities?.["UDM Pro"]?.some((entity) => entity.ip);
         return {
             menuExists: !!menu,
             menuVisible: menu ? getComputedStyle(menu).display !== "none" : false,
             menuNode: menu?.getAttribute("data-context-node"),
-            hasSelectAction: !!menu?.querySelector('[data-context-action="select"]'),
-            hasCopyMacAction: !!menu?.querySelector('[data-context-action="copy-mac"]')
+            hasCopyMacAction: !!menu?.querySelector('[data-context-action="copy-mac"]'),
+            hasCopyIpAction: !!menu?.querySelector('[data-context-action="copy-ip"]'),
+            expectsCopyIp: hasIp
         };
     }""")
 
     assert result["menuExists"], "Context menu should exist"
     assert result["menuVisible"], "Context menu should be visible"
     assert result["menuNode"] == "UDM Pro", "Context menu should be for UDM Pro"
-    assert result["hasSelectAction"], "Context menu should have select action"
     assert result["hasCopyMacAction"], "Context menu should have copy MAC action"
+    if result["expectsCopyIp"]:
+        assert result["hasCopyIpAction"], "Context menu should have copy IP action"
 
 
 def test_context_menu_opens_with_small_drag(
@@ -344,52 +349,6 @@ def test_context_menu_opens_with_small_drag(
     assert result["menuExists"], "Context menu should exist"
     assert result["menuVisible"], "Context menu should be visible"
     assert result["menuNode"] == "UDM Pro", "Context menu should be for UDM Pro"
-
-
-def test_context_menu_select_action(
-    authenticated_page: Page,
-    entry_id: str,
-    ha_auth_token: str,
-) -> None:
-    """Test that clicking Select in context menu selects the node."""
-    page = authenticated_page
-
-    page.goto(f"{HA_URL}/lovelace/e2e-test")
-    page.wait_for_load_state("networkidle")
-    page.wait_for_function(
-        "customElements.get('unifi-network-map') !== undefined",
-        timeout=10000,
-    )
-
-    _create_test_card(page, entry_id, ha_auth_token)
-
-    # Right-click on a node to open context menu
-    node = _node_locator(page, "Living Room AP")
-    node.click(button="right")
-    page.wait_for_timeout(500)
-
-    # Click Select action using JavaScript (context menu overlays viewport)
-    page.evaluate("""() => {
-        const btn = document.querySelector('[data-context-action="select"]');
-        if (btn) btn.click();
-    }""")
-    page.wait_for_timeout(1000)
-
-    # Verify node is selected and context menu is closed
-    result = page.evaluate("""() => {
-        const card = document.getElementById("test-card");
-        const selected = card.querySelectorAll('[data-selected="true"]');
-        const menu = document.querySelector(".context-menu");
-        return {
-            selectedCount: selected.length,
-            selectedId: selected[0]?.getAttribute("data-node-id"),
-            menuClosed: !menu
-        };
-    }""")
-
-    assert result["menuClosed"], "Context menu should be closed after action"
-    assert result["selectedCount"] == 1, "One node should be selected"
-    assert result["selectedId"] == "Living Room AP", "Living Room AP should be selected"
 
 
 def test_node_click_works_inside_ha_card(

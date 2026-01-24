@@ -6,14 +6,15 @@ export type ContextMenuRenderOptions = {
   payload?: MapPayload;
   theme: "dark" | "light" | "unifi" | "unifi-dark";
   getNodeTypeIcon: (nodeType: string) => string;
-  getIcon: (name: "menu-select" | "menu-details" | "menu-copy" | "menu-restart") => string;
+  getIcon: (name: "menu-details" | "menu-copy" | "menu-copy-ip" | "menu-restart") => string;
 };
 
-export type ContextMenuAction = "select" | "details" | "copy-mac" | "restart" | "unknown";
+export type ContextMenuAction = "details" | "copy-mac" | "copy-ip" | "restart" | "unknown";
 
 export type ContextMenuActionResult = {
   action: ContextMenuAction;
   mac: string | null;
+  ip: string | null;
 };
 
 export function renderContextMenu(options: ContextMenuRenderOptions): string {
@@ -28,15 +29,10 @@ export function renderContextMenu(options: ContextMenuRenderOptions): string {
     options.payload?.client_entities?.[options.nodeName] ??
     options.payload?.device_entities?.[options.nodeName];
   const isDevice = nodeType !== "client";
+  const ip =
+    options.payload?.related_entities?.[options.nodeName]?.find((entity) => entity.ip)?.ip ?? null;
 
   const items: string[] = [];
-
-  items.push(`
-    <button type="button" class="context-menu__item" data-context-action="select">
-      <span class="context-menu__icon">${options.getIcon("menu-select")}</span>
-      <span>Select</span>
-    </button>
-  `);
 
   if (entityId) {
     items.push(`
@@ -55,8 +51,18 @@ export function renderContextMenu(options: ContextMenuRenderOptions): string {
       </button>
     `);
   }
+  if (ip) {
+    items.push(`
+      <button type="button" class="context-menu__item" data-context-action="copy-ip" data-ip="${escapeHtml(ip)}">
+        <span class="context-menu__icon">${options.getIcon("menu-copy-ip")}</span>
+        <span>Copy IP Address</span>
+      </button>
+    `);
+  }
 
-  items.push('<div class="context-menu__divider"></div>');
+  if (items.length > 0) {
+    items.push('<div class="context-menu__divider"></div>');
+  }
 
   if (isDevice) {
     items.push(`
@@ -85,14 +91,16 @@ export function parseContextMenuAction(target: HTMLElement): ContextMenuActionRe
   }
   const action = actionButton.getAttribute("data-context-action") ?? "unknown";
   const mac = actionButton.getAttribute("data-mac");
+  const ip = actionButton.getAttribute("data-ip");
   return {
     action: isContextMenuAction(action) ? action : "unknown",
     mac,
+    ip,
   };
 }
 
 function isContextMenuAction(action: string): action is ContextMenuAction {
   return (
-    action === "select" || action === "details" || action === "copy-mac" || action === "restart"
+    action === "details" || action === "copy-mac" || action === "copy-ip" || action === "restart"
   );
 }

@@ -12,9 +12,9 @@ export type IconName =
   | "node-other"
   | "action-details"
   | "action-copy"
-  | "menu-select"
   | "menu-details"
   | "menu-copy"
+  | "menu-copy-ip"
   | "menu-restart"
   | "edge-wired"
   | "edge-wireless"
@@ -42,9 +42,9 @@ const EMOJI_ICONS: Record<IconName, string> = {
   "node-other": "📦",
   "action-details": "📊",
   "action-copy": "📋",
-  "menu-select": "👆",
   "menu-details": "📊",
   "menu-copy": "📋",
+  "menu-copy-ip": "📄",
   "menu-restart": "🔄",
   "edge-wired": "🔗",
   "edge-wireless": "📶",
@@ -85,9 +85,9 @@ const HERO_SVGS: Record<IconName, string> = {
   "node-other": svg(["M12 3 4 7 12 11 20 7 12 3z", "M4 7v10l8 4 8-4V7", "M12 11v10"]),
   "action-details": svg(["M4 4h16v16H4z", "M8 16v-4", "M12 16v-7", "M16 16v-2"]),
   "action-copy": svg(["M8 4h8v3H8z", "M6 7h12v13H6z"]),
-  "menu-select": svg(["M4 4l8 16 2-6 6-2-16-8z"]),
   "menu-details": svg(["M4 4h16v16H4z", "M8 16v-4", "M12 16v-7", "M16 16v-2"]),
   "menu-copy": svg(["M8 4h8v3H8z", "M6 7h12v13H6z"]),
+  "menu-copy-ip": svg(["M4 10h16", "M4 14h16", "M8 6h8", "M8 18h8"]),
   "menu-restart": svg(["M3 12a9 9 0 0115-6l2-2v6h-6l2-2a6 6 0 10 1 8"]),
   "edge-wired": svg(["M8 12a3 3 0 013-3h2", "M16 12a3 3 0 01-3 3h-2", "M10 12h4"]),
   "edge-wireless": svg(

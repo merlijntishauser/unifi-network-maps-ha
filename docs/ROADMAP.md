@@ -11,7 +11,6 @@
 
 ### Quick Wins (Low effort, high impact)
 - **Tooltip boundary detection** - Prevent off-screen tooltips
-- **Copy-to-clipboard for MAC/IP** - One-click copy in detail panel
 - **Separate reset vs clear selection** - Reset view shouldn't clear panel
 - **Card availability after install** - Warn users to hard-refresh when card isn't listed after install
 - **Reduce log chatter** - Move log - messages from info to debug
@@ -56,13 +55,11 @@ Methods to break down for readability:
 | VLAN visualization | Color-code nodes/edges by VLAN membership | M |
 | Guest network highlight | Distinguish guest network clients visually | S |
 | Firmware status badges | Show update-available indicator on nodes | S |
-| Improve node selection highlight | Blue outline looks ugly on label text | S |
 
 ### Interactive Features
 | Feature | Description | Effort |
 |---------|-------------|--------|
 | Double-click zoom-to-fit | Quick navigation gesture | S |
-| Pinch-to-zoom on touch | Mobile/tablet support | S |
 | Group/collapse nodes | Collapse switches with all their clients | L |
 | Path visualization | Highlight route between two selected nodes | M |
 | Drag-to-rearrange | Custom node positioning with save/restore | L |
@@ -97,5 +94,6 @@ Methods to break down for readability:
 
 
 ## Recently Completed
-
+- **Copy-to-clipboard for MAC/IP** - One-click copy in detail panel
+- 
 See [CHANGELOG.md](CHANGELOG.md) for full history.

@@ -1043,6 +1043,7 @@ var DOMPURIFY_CONFIG = {
     "data-context-action",
     "data-context-node",
     "data-mac",
+    "data-ip",
     "data-modal-overlay",
     "data-modal-entity-id"
   ]
@@ -1330,9 +1331,9 @@ var EMOJI_ICONS = {
   "node-other": "\u{1F4E6}",
   "action-details": "\u{1F4CA}",
   "action-copy": "\u{1F4CB}",
-  "menu-select": "\u{1F446}",
   "menu-details": "\u{1F4CA}",
   "menu-copy": "\u{1F4CB}",
+  "menu-copy-ip": "\u{1F4C4}",
   "menu-restart": "\u{1F504}",
   "edge-wired": "\u{1F517}",
   "edge-wireless": "\u{1F4F6}",
@@ -1372,9 +1373,9 @@ var HERO_SVGS = {
   "node-other": svg2(["M12 3 4 7 12 11 20 7 12 3z", "M4 7v10l8 4 8-4V7", "M12 11v10"]),
   "action-details": svg2(["M4 4h16v16H4z", "M8 16v-4", "M12 16v-7", "M16 16v-2"]),
   "action-copy": svg2(["M8 4h8v3H8z", "M6 7h12v13H6z"]),
-  "menu-select": svg2(["M4 4l8 16 2-6 6-2-16-8z"]),
   "menu-details": svg2(["M4 4h16v16H4z", "M8 16v-4", "M12 16v-7", "M16 16v-2"]),
   "menu-copy": svg2(["M8 4h8v3H8z", "M6 7h12v13H6z"]),
+  "menu-copy-ip": svg2(["M4 10h16", "M4 14h16", "M8 6h8", "M8 18h8"]),
   "menu-restart": svg2(["M3 12a9 9 0 0115-6l2-2v6h-6l2-2a6 6 0 10 1 8"]),
   "edge-wired": svg2(["M8 12a3 3 0 013-3h2", "M16 12a3 3 0 01-3 3h-2", "M10 12h4"]),
   "edge-wireless": svg2(
@@ -1899,13 +1900,8 @@ function renderContextMenu(options) {
   const mac = options.payload?.client_macs?.[options.nodeName] ?? options.payload?.device_macs?.[options.nodeName];
   const entityId = options.payload?.node_entities?.[options.nodeName] ?? options.payload?.client_entities?.[options.nodeName] ?? options.payload?.device_entities?.[options.nodeName];
   const isDevice = nodeType !== "client";
+  const ip = options.payload?.related_entities?.[options.nodeName]?.find((entity) => entity.ip)?.ip ?? null;
   const items = [];
-  items.push(`
-    <button type="button" class="context-menu__item" data-context-action="select">
-      <span class="context-menu__icon">${options.getIcon("menu-select")}</span>
-      <span>Select</span>
-    </button>
-  `);
   if (entityId) {
     items.push(`
       <button type="button" class="context-menu__item" data-context-action="details">
@@ -1922,7 +1918,17 @@ function renderContextMenu(options) {
       </button>
     `);
   }
-  items.push('<div class="context-menu__divider"></div>');
+  if (ip) {
+    items.push(`
+      <button type="button" class="context-menu__item" data-context-action="copy-ip" data-ip="${escapeHtml(ip)}">
+        <span class="context-menu__icon">${options.getIcon("menu-copy-ip")}</span>
+        <span>Copy IP Address</span>
+      </button>
+    `);
+  }
+  if (items.length > 0) {
+    items.push('<div class="context-menu__divider"></div>');
+  }
   if (isDevice) {
     items.push(`
       <button type="button" class="context-menu__item" data-context-action="restart" ${!entityId ? "disabled" : ""}>
@@ -1948,13 +1954,15 @@ function parseContextMenuAction(target) {
   }
   const action = actionButton.getAttribute("data-context-action") ?? "unknown";
   const mac = actionButton.getAttribute("data-mac");
+  const ip = actionButton.getAttribute("data-ip");
   return {
     action: isContextMenuAction(action) ? action : "unknown",
-    mac
+    mac,
+    ip
   };
 }
 function isContextMenuAction(action) {
-  return action === "select" || action === "details" || action === "copy-mac" || action === "restart";
+  return action === "details" || action === "copy-mac" || action === "copy-ip" || action === "restart";
 }
 
 // src/card/data/auth.ts
@@ -2060,7 +2068,7 @@ function openContextMenu(params) {
   wireContextMenuEvents(
     menuEl,
     () => closeContextMenu(params.controller),
-    (action, mac) => params.onAction(action, params.menu.nodeName, mac)
+    (action, mac, ip) => params.onAction(action, params.menu.nodeName, mac, ip)
   );
 }
 function closeContextMenu(controller) {
@@ -2105,7 +2113,7 @@ function wireContextMenuEvents(menu, onClose, onAction) {
     }
     event.preventDefault();
     event.stopPropagation();
-    onAction(result.action, result.mac);
+    onAction(result.action, result.mac, result.ip);
   };
   const handleClickOutside = (event) => {
     if (!menu.contains(event.target)) {
@@ -4025,7 +4033,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       controller: this._contextMenu,
       menu: this._contextMenu.menu,
       renderMenu: (nodeName) => this._renderContextMenu(nodeName),
-      onAction: (action, nodeName, mac) => this._handleContextMenuAction(action, nodeName, mac)
+      onAction: (action, nodeName, mac, ip) => this._handleContextMenuAction(action, nodeName, mac, ip)
     });
   }
   _renderContextMenu(nodeName) {
@@ -4037,13 +4045,8 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       getIcon: (name) => this._getIcon(name)
     });
   }
-  _handleContextMenuAction(action, nodeName, mac) {
+  _handleContextMenuAction(action, nodeName, mac, ip) {
     switch (action) {
-      case "select":
-        selectNode(this._selection, nodeName);
-        this._removeContextMenu();
-        this._render();
-        break;
       case "details":
         this._removeContextMenu();
         this._showEntityModal(nodeName);
@@ -4051,7 +4054,15 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       case "copy-mac":
         if (mac) {
           navigator.clipboard.writeText(mac).then(() => {
-            this._showCopyFeedback();
+            this._showCopyFeedback("MAC address copied!");
+          });
+        }
+        this._removeContextMenu();
+        break;
+      case "copy-ip":
+        if (ip) {
+          navigator.clipboard.writeText(ip).then(() => {
+            this._showCopyFeedback("IP address copied!");
           });
         }
         this._removeContextMenu();
@@ -4064,8 +4075,8 @@ var UnifiNetworkMapCard = class extends HTMLElement {
         this._removeContextMenu();
     }
   }
-  _showCopyFeedback() {
-    showToast("MAC address copied!", "success");
+  _showCopyFeedback(message) {
+    showToast(message, "success");
   }
   _handleRestartDevice(nodeName) {
     const entityId = this._payload?.node_entities?.[nodeName] ?? this._payload?.device_entities?.[nodeName];

@@ -16,7 +16,7 @@ export function openContextMenu(params: {
   controller: ContextMenuController;
   menu: ContextMenuState;
   renderMenu: (nodeName: string) => string;
-  onAction: (action: string, nodeName: string, mac: string | null) => void;
+  onAction: (action: string, nodeName: string, mac: string | null, ip: string | null) => void;
 }): void {
   const container = document.createElement("div");
   container.innerHTML = params.renderMenu(params.menu.nodeName);
@@ -33,7 +33,7 @@ export function openContextMenu(params: {
   wireContextMenuEvents(
     menuEl,
     () => closeContextMenu(params.controller),
-    (action, mac) => params.onAction(action, params.menu.nodeName, mac),
+    (action, mac, ip) => params.onAction(action, params.menu.nodeName, mac, ip),
   );
 }
 
@@ -79,7 +79,7 @@ function positionContextMenu(menu: HTMLElement, x: number, y: number): void {
 function wireContextMenuEvents(
   menu: ContextMenuElement,
   onClose: () => void,
-  onAction: (action: string, mac: string | null) => void,
+  onAction: (action: string, mac: string | null, ip: string | null) => void,
 ): void {
   const handleClick = (event: MouseEvent) => {
     const target = event.target as HTMLElement;
@@ -91,7 +91,7 @@ function wireContextMenuEvents(
 
     event.preventDefault();
     event.stopPropagation();
-    onAction(result.action, result.mac);
+    onAction(result.action, result.mac, result.ip);
   };
 
   const handleClickOutside = (event: MouseEvent) => {

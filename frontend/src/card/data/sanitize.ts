@@ -23,6 +23,7 @@ const DOMPURIFY_CONFIG = {
     "data-context-action",
     "data-context-node",
     "data-mac",
+    "data-ip",
     "data-modal-overlay",
     "data-modal-entity-id",
   ],
