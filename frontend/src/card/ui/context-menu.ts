@@ -38,7 +38,10 @@ export function renderContextMenu(options: ContextMenuRenderOptions): string {
     options.payload?.device_entities?.[options.nodeName];
   const isDevice = nodeType !== "client";
   const ip =
-    options.payload?.related_entities?.[options.nodeName]?.find((entity) => entity.ip)?.ip ?? null;
+    options.payload?.client_ips?.[options.nodeName] ??
+    options.payload?.device_ips?.[options.nodeName] ??
+    options.payload?.related_entities?.[options.nodeName]?.find((entity) => entity.ip)?.ip ??
+    null;
 
   const items: string[] = [];
 

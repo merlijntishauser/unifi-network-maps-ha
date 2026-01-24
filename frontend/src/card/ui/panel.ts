@@ -233,12 +233,17 @@ function renderStatsTab(context: PanelContext, name: string, helpers: PanelHelpe
   const edges = context.payload?.edges ?? [];
   const nodeEdges = edges.filter((edge) => edge.left === name || edge.right === name);
   const mac = context.payload?.client_macs?.[name] ?? context.payload?.device_macs?.[name] ?? null;
+  const ip =
+    context.payload?.client_ips?.[name] ??
+    context.payload?.device_ips?.[name] ??
+    context.payload?.related_entities?.[name]?.find((e) => e.ip)?.ip ??
+    null;
   const status = context.payload?.node_status?.[name];
 
   return `
     ${renderStatsLiveStatus(status, helpers)}
     ${renderStatsConnectionSection(nodeEdges)}
-    ${renderStatsDeviceInfo(mac, helpers)}
+    ${renderStatsDeviceInfo(mac, ip, helpers)}
   `;
 }
 
@@ -296,17 +301,35 @@ function renderStatsConnectionSection(
   `;
 }
 
-function renderStatsDeviceInfo(mac: string | null, helpers: PanelHelpers): string {
-  if (!mac) {
+function renderStatsDeviceInfo(
+  mac: string | null,
+  ip: string | null,
+  helpers: PanelHelpers,
+): string {
+  if (!mac && !ip) {
     return "";
   }
-  return `
-    <div class="panel-section">
-      <div class="panel-section__title">Device Info</div>
+  const macRow = mac
+    ? `
       <div class="info-row">
         <span class="info-row__label">MAC Address</span>
         <code class="info-row__value">${helpers.escapeHtml(mac)}</code>
       </div>
+    `
+    : "";
+  const ipRow = ip
+    ? `
+      <div class="info-row">
+        <span class="info-row__label">IP Address</span>
+        <code class="info-row__value">${helpers.escapeHtml(ip)}</code>
+      </div>
+    `
+    : "";
+  return `
+    <div class="panel-section">
+      <div class="panel-section__title">Device Info</div>
+      ${macRow}
+      ${ipRow}
     </div>
   `;
 }
@@ -317,10 +340,16 @@ function renderActionsTab(context: PanelContext, name: string, helpers: PanelHel
     context.payload?.client_entities?.[name] ??
     context.payload?.device_entities?.[name];
   const mac = context.payload?.client_macs?.[name] ?? context.payload?.device_macs?.[name] ?? null;
+  const ip =
+    context.payload?.client_ips?.[name] ??
+    context.payload?.device_ips?.[name] ??
+    context.payload?.related_entities?.[name]?.find((e) => e.ip)?.ip ??
+    null;
   const nodeType = context.payload?.node_types?.[name] ?? "unknown";
   const hasPortInfo = nodeType === "switch" || nodeType === "gateway";
   const safeEntityId = entityId ? helpers.escapeHtml(entityId) : "";
   const safeMac = mac ? helpers.escapeHtml(mac) : "";
+  const safeIp = ip ? helpers.escapeHtml(ip) : "";
   const safeName = helpers.escapeHtml(name);
 
   return `
@@ -353,6 +382,16 @@ function renderActionsTab(context: PanelContext, name: string, helpers: PanelHel
             <button type="button" class="action-button" data-action="copy" data-copy-value="${safeMac}">
               <span class="action-button__icon">${helpers.getIcon("action-copy")}</span>
               <span class="action-button__text">Copy MAC Address</span>
+            </button>
+          `
+            : ""
+        }
+        ${
+          ip
+            ? `
+            <button type="button" class="action-button" data-action="copy" data-copy-value="${safeIp}">
+              <span class="action-button__icon">${helpers.getIcon("action-copy")}</span>
+              <span class="action-button__text">Copy IP Address</span>
             </button>
           `
             : ""

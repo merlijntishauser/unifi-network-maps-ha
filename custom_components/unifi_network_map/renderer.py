@@ -39,12 +39,14 @@ class ClientDict(TypedDict, total=False):
     name: str
     hostname: str
     mac: str
+    ip: str
 
 
 class ClientLike(Protocol):
     name: str | None
     hostname: str | None
     mac: str | None
+    ip: str | None
 
 
 ClientData = ClientLike | Mapping[str, Any]
@@ -160,6 +162,8 @@ def _build_payload(
         "gateways": gateways,
         "client_macs": _build_client_mac_index(clients),
         "device_macs": _build_device_mac_index(devices),
+        "client_ips": _build_client_ip_index(clients),
+        "device_ips": _build_device_ip_index(devices),
     }
 
 
@@ -196,6 +200,27 @@ def _build_device_mac_index(devices: list[Device]) -> dict[str, str]:
     return device_macs
 
 
+def _build_client_ip_index(clients: list[ClientData] | None) -> dict[str, str]:
+    if not clients:
+        return {}
+    client_ips: dict[str, str] = {}
+    for client in clients:
+        name = _client_display_name(client)
+        ip = _client_ip(client)
+        if not name or not ip:
+            continue
+        client_ips[name] = ip.strip()
+    return client_ips
+
+
+def _build_device_ip_index(devices: list[Device]) -> dict[str, str]:
+    device_ips: dict[str, str] = {}
+    for device in devices:
+        if device.name and device.ip:
+            device_ips[device.name] = device.ip.strip()
+    return device_ips
+
+
 def _client_display_name(client: ClientData) -> str | None:
     for key in ("name", "hostname", "mac"):
         value = _client_field(client, key)
@@ -206,6 +231,13 @@ def _client_display_name(client: ClientData) -> str | None:
 
 def _client_mac(client: ClientData) -> str | None:
     value = _client_field(client, "mac")
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return None
+
+
+def _client_ip(client: ClientData) -> str | None:
+    value = _client_field(client, "ip")
     if isinstance(value, str) and value.strip():
         return value.strip()
     return None

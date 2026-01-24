@@ -134,5 +134,7 @@ export type MapPayload = {
   node_status?: Record<string, NodeStatus>;
   client_macs?: Record<string, string>;
   device_macs?: Record<string, string>;
+  client_ips?: Record<string, string>;
+  device_ips?: Record<string, string>;
   related_entities?: Record<string, RelatedEntity[]>;
 };

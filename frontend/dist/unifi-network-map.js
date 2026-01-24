@@ -1375,12 +1375,30 @@ var HERO_SVGS = {
   "node-other": svg2(["M12 3 4 7 12 11 20 7 12 3z", "M4 7v10l8 4 8-4V7", "M12 11v10"]),
   "action-details": svg2(["M4 4h16v16H4z", "M8 16v-4", "M12 16v-7", "M16 16v-2"]),
   "action-copy": svg2(["M8 4h8v3H8z", "M6 7h12v13H6z"]),
-  "action-ports": svg2(["M5 5h4v4H5z", "M15 5h4v4h-4z", "M5 15h4v4H5z", "M15 15h4v4h-4z", "M9 7h6", "M9 17h6", "M7 9v6", "M17 9v6"]),
+  "action-ports": svg2([
+    "M5 5h4v4H5z",
+    "M15 5h4v4h-4z",
+    "M5 15h4v4H5z",
+    "M15 15h4v4h-4z",
+    "M9 7h6",
+    "M9 17h6",
+    "M7 9v6",
+    "M17 9v6"
+  ]),
   "menu-details": svg2(["M4 4h16v16H4z", "M8 16v-4", "M12 16v-7", "M16 16v-2"]),
   "menu-copy": svg2(["M8 4h8v3H8z", "M6 7h12v13H6z"]),
   "menu-copy-ip": svg2(["M4 10h16", "M4 14h16", "M8 6h8", "M8 18h8"]),
   "menu-restart": svg2(["M3 12a9 9 0 0115-6l2-2v6h-6l2-2a6 6 0 10 1 8"]),
-  "menu-ports": svg2(["M5 5h4v4H5z", "M15 5h4v4h-4z", "M5 15h4v4H5z", "M15 15h4v4h-4z", "M9 7h6", "M9 17h6", "M7 9v6", "M17 9v6"]),
+  "menu-ports": svg2([
+    "M5 5h4v4H5z",
+    "M15 5h4v4h-4z",
+    "M5 15h4v4H5z",
+    "M15 15h4v4h-4z",
+    "M9 7h6",
+    "M9 17h6",
+    "M7 9v6",
+    "M17 9v6"
+  ]),
   "edge-wired": svg2(["M8 12a3 3 0 013-3h2", "M16 12a3 3 0 01-3 3h-2", "M10 12h4"]),
   "edge-wireless": svg2(
     ["M4 9a11 11 0 0116 0", "M7 12a7 7 0 0110 0", "M10 15a3 3 0 014 0"],
@@ -1925,11 +1943,12 @@ function renderStatsTab(context, name, helpers) {
   const edges = context.payload?.edges ?? [];
   const nodeEdges = edges.filter((edge) => edge.left === name || edge.right === name);
   const mac = context.payload?.client_macs?.[name] ?? context.payload?.device_macs?.[name] ?? null;
+  const ip = context.payload?.client_ips?.[name] ?? context.payload?.device_ips?.[name] ?? context.payload?.related_entities?.[name]?.find((e) => e.ip)?.ip ?? null;
   const status = context.payload?.node_status?.[name];
   return `
     ${renderStatsLiveStatus(status, helpers)}
     ${renderStatsConnectionSection(nodeEdges)}
-    ${renderStatsDeviceInfo(mac, helpers)}
+    ${renderStatsDeviceInfo(mac, ip, helpers)}
   `;
 }
 function renderStatsLiveStatus(status, helpers) {
@@ -1978,27 +1997,39 @@ function renderStatsConnectionSection(nodeEdges) {
     </div>
   `;
 }
-function renderStatsDeviceInfo(mac, helpers) {
-  if (!mac) {
+function renderStatsDeviceInfo(mac, ip, helpers) {
+  if (!mac && !ip) {
     return "";
   }
-  return `
-    <div class="panel-section">
-      <div class="panel-section__title">Device Info</div>
+  const macRow = mac ? `
       <div class="info-row">
         <span class="info-row__label">MAC Address</span>
         <code class="info-row__value">${helpers.escapeHtml(mac)}</code>
       </div>
+    ` : "";
+  const ipRow = ip ? `
+      <div class="info-row">
+        <span class="info-row__label">IP Address</span>
+        <code class="info-row__value">${helpers.escapeHtml(ip)}</code>
+      </div>
+    ` : "";
+  return `
+    <div class="panel-section">
+      <div class="panel-section__title">Device Info</div>
+      ${macRow}
+      ${ipRow}
     </div>
   `;
 }
 function renderActionsTab(context, name, helpers) {
   const entityId = context.payload?.node_entities?.[name] ?? context.payload?.client_entities?.[name] ?? context.payload?.device_entities?.[name];
   const mac = context.payload?.client_macs?.[name] ?? context.payload?.device_macs?.[name] ?? null;
+  const ip = context.payload?.client_ips?.[name] ?? context.payload?.device_ips?.[name] ?? context.payload?.related_entities?.[name]?.find((e) => e.ip)?.ip ?? null;
   const nodeType = context.payload?.node_types?.[name] ?? "unknown";
   const hasPortInfo = nodeType === "switch" || nodeType === "gateway";
   const safeEntityId = entityId ? helpers.escapeHtml(entityId) : "";
   const safeMac = mac ? helpers.escapeHtml(mac) : "";
+  const safeIp = ip ? helpers.escapeHtml(ip) : "";
   const safeName = helpers.escapeHtml(name);
   return `
     <div class="panel-section">
@@ -2020,6 +2051,12 @@ function renderActionsTab(context, name, helpers) {
             <button type="button" class="action-button" data-action="copy" data-copy-value="${safeMac}">
               <span class="action-button__icon">${helpers.getIcon("action-copy")}</span>
               <span class="action-button__text">Copy MAC Address</span>
+            </button>
+          ` : ""}
+        ${ip ? `
+            <button type="button" class="action-button" data-action="copy" data-copy-value="${safeIp}">
+              <span class="action-button__icon">${helpers.getIcon("action-copy")}</span>
+              <span class="action-button__text">Copy IP Address</span>
             </button>
           ` : ""}
       </div>
@@ -2104,7 +2141,7 @@ function renderContextMenu(options) {
   const mac = options.payload?.client_macs?.[options.nodeName] ?? options.payload?.device_macs?.[options.nodeName];
   const entityId = options.payload?.node_entities?.[options.nodeName] ?? options.payload?.client_entities?.[options.nodeName] ?? options.payload?.device_entities?.[options.nodeName];
   const isDevice = nodeType !== "client";
-  const ip = options.payload?.related_entities?.[options.nodeName]?.find((entity) => entity.ip)?.ip ?? null;
+  const ip = options.payload?.client_ips?.[options.nodeName] ?? options.payload?.device_ips?.[options.nodeName] ?? options.payload?.related_entities?.[options.nodeName]?.find((entity) => entity.ip)?.ip ?? null;
   const items = [];
   if (entityId) {
     items.push(`
