@@ -317,8 +317,11 @@ function renderActionsTab(context: PanelContext, name: string, helpers: PanelHel
     context.payload?.client_entities?.[name] ??
     context.payload?.device_entities?.[name];
   const mac = context.payload?.client_macs?.[name] ?? context.payload?.device_macs?.[name] ?? null;
+  const nodeType = context.payload?.node_types?.[name] ?? "unknown";
+  const hasPortInfo = nodeType === "switch" || nodeType === "gateway";
   const safeEntityId = entityId ? helpers.escapeHtml(entityId) : "";
   const safeMac = mac ? helpers.escapeHtml(mac) : "";
+  const safeName = helpers.escapeHtml(name);
 
   return `
     <div class="panel-section">
@@ -333,6 +336,16 @@ function renderActionsTab(context: PanelContext, name: string, helpers: PanelHel
             </button>
           `
             : `<div class="panel-empty__text">No Home Assistant entity linked</div>`
+        }
+        ${
+          hasPortInfo
+            ? `
+            <button type="button" class="action-button" data-action="view-ports" data-node-name="${safeName}">
+              <span class="action-button__icon">${helpers.getIcon("action-ports")}</span>
+              <span class="action-button__text">View Port Overview</span>
+            </button>
+          `
+            : ""
         }
         ${
           mac

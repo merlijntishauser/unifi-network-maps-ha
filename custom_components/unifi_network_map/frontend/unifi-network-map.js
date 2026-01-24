@@ -1331,10 +1331,12 @@ var EMOJI_ICONS = {
   "node-other": "\u{1F4E6}",
   "action-details": "\u{1F4CA}",
   "action-copy": "\u{1F4CB}",
+  "action-ports": "\u{1F50C}",
   "menu-details": "\u{1F4CA}",
   "menu-copy": "\u{1F4CB}",
   "menu-copy-ip": "\u{1F4C4}",
   "menu-restart": "\u{1F504}",
+  "menu-ports": "\u{1F50C}",
   "edge-wired": "\u{1F517}",
   "edge-wireless": "\u{1F4F6}",
   "edge-port": "\u{1F50C}",
@@ -1373,10 +1375,12 @@ var HERO_SVGS = {
   "node-other": svg2(["M12 3 4 7 12 11 20 7 12 3z", "M4 7v10l8 4 8-4V7", "M12 11v10"]),
   "action-details": svg2(["M4 4h16v16H4z", "M8 16v-4", "M12 16v-7", "M16 16v-2"]),
   "action-copy": svg2(["M8 4h8v3H8z", "M6 7h12v13H6z"]),
+  "action-ports": svg2(["M5 5h4v4H5z", "M15 5h4v4h-4z", "M5 15h4v4H5z", "M15 15h4v4h-4z", "M9 7h6", "M9 17h6", "M7 9v6", "M17 9v6"]),
   "menu-details": svg2(["M4 4h16v16H4z", "M8 16v-4", "M12 16v-7", "M16 16v-2"]),
   "menu-copy": svg2(["M8 4h8v3H8z", "M6 7h12v13H6z"]),
   "menu-copy-ip": svg2(["M4 10h16", "M4 14h16", "M8 6h8", "M8 18h8"]),
   "menu-restart": svg2(["M3 12a9 9 0 0115-6l2-2v6h-6l2-2a6 6 0 10 1 8"]),
+  "menu-ports": svg2(["M5 5h4v4H5z", "M15 5h4v4h-4z", "M5 15h4v4H5z", "M15 15h4v4h-4z", "M9 7h6", "M9 17h6", "M7 9v6", "M17 9v6"]),
   "edge-wired": svg2(["M8 12a3 3 0 013-3h2", "M16 12a3 3 0 01-3 3h-2", "M10 12h4"]),
   "edge-wireless": svg2(
     ["M4 9a11 11 0 0116 0", "M7 12a7 7 0 0110 0", "M10 15a3 3 0 014 0"],
@@ -1609,6 +1613,140 @@ function wireEntityModalEvents(overlay, onClose, onEntityDetails) {
       }
     }
   });
+}
+
+// src/card/ui/port-modal.ts
+function createPortModalController() {
+  return { overlay: null, state: null };
+}
+function openPortModal(params) {
+  const { controller, nodeName, payload, theme, getNodeTypeIcon, onClose, onDeviceClick } = params;
+  if (!payload) return;
+  const nodeType = payload.node_types?.[nodeName] ?? "unknown";
+  const ports = extractPortsForDevice(nodeName, payload);
+  if (ports.length === 0) {
+    return;
+  }
+  controller.state = { nodeName, nodeType, ports };
+  const overlay = document.createElement("div");
+  overlay.className = "port-modal-overlay";
+  overlay.dataset.theme = theme;
+  overlay.innerHTML = renderPortModal(controller.state, theme, getNodeTypeIcon);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) {
+      closePortModal(controller);
+      onClose();
+    }
+  });
+  const closeBtn = overlay.querySelector(".port-modal__close");
+  closeBtn?.addEventListener("click", () => {
+    closePortModal(controller);
+    onClose();
+  });
+  const deviceLinks = overlay.querySelectorAll("[data-device-name]");
+  deviceLinks.forEach((link) => {
+    link.addEventListener("click", (e) => {
+      e.preventDefault();
+      const deviceName = link.dataset.deviceName;
+      if (deviceName) {
+        closePortModal(controller);
+        onDeviceClick(deviceName);
+      }
+    });
+  });
+  document.body.appendChild(overlay);
+  controller.overlay = overlay;
+}
+function closePortModal(controller) {
+  if (controller.overlay) {
+    controller.overlay.remove();
+    controller.overlay = null;
+  }
+  controller.state = null;
+}
+function extractPortsForDevice(nodeName, payload) {
+  const edges = payload.edges ?? [];
+  const nodeTypes = payload.node_types ?? {};
+  const connectedEdges = edges.filter((e) => e.left === nodeName || e.right === nodeName);
+  const portMap = /* @__PURE__ */ new Map();
+  for (const edge of connectedEdges) {
+    const isLeft = edge.left === nodeName;
+    const connectedDevice = isLeft ? edge.right : edge.left;
+    const connectedDeviceType = nodeTypes[connectedDevice] ?? "unknown";
+    const portNum = extractPortNumber(edge.label, isLeft);
+    if (portNum === null) continue;
+    portMap.set(portNum, {
+      port: portNum,
+      connectedDevice,
+      connectedDeviceType,
+      poe: edge.poe ?? false,
+      speed: edge.speed ?? null
+    });
+  }
+  return Array.from(portMap.values()).sort((a, b) => a.port - b.port);
+}
+function extractPortNumber(label, isLeft) {
+  if (!label) return null;
+  const parts = label.split(" <-> ");
+  let side = label;
+  if (parts.length === 2) {
+    side = isLeft ? parts[0] : parts[1];
+  }
+  const match = side.match(/Port\s*(\d+)/i);
+  return match ? parseInt(match[1], 10) : null;
+}
+function renderPortModal(state, theme, getNodeTypeIcon) {
+  const { nodeName, nodeType, ports } = state;
+  const nodeIcon = getNodeTypeIcon(nodeType);
+  const portRows = ports.map((port) => {
+    const deviceIcon = port.connectedDeviceType ? getNodeTypeIcon(port.connectedDeviceType) : "";
+    const deviceName = port.connectedDevice ?? "Empty";
+    const isConnected = port.connectedDevice !== null;
+    return `
+        <div class="port-row ${isConnected ? "port-row--connected" : "port-row--empty"}">
+          <span class="port-row__number">Port ${port.port}</span>
+          <div class="port-row__device">
+            ${isConnected ? `
+                  <span class="port-row__device-icon">${deviceIcon}</span>
+                  <a href="#" class="port-row__device-name" data-device-name="${escapeAttr(port.connectedDevice)}">${escapeHtml2(deviceName)}</a>
+                ` : `<span class="port-row__empty">\u2014</span>`}
+          </div>
+          <span class="port-row__badges">
+            ${port.poe ? '<span class="badge badge--poe">PoE</span>' : ""}
+            ${port.speed ? `<span class="badge badge--speed">${formatSpeed2(port.speed)}</span>` : ""}
+          </span>
+        </div>
+      `;
+  }).join("");
+  return `
+    <div class="port-modal">
+      <div class="port-modal__header">
+        <div class="port-modal__title">
+          <span class="port-modal__icon">${nodeIcon}</span>
+          <span>${escapeHtml2(nodeName)}</span>
+        </div>
+        <button type="button" class="port-modal__close">&times;</button>
+      </div>
+      <div class="port-modal__subtitle">Port Overview</div>
+      <div class="port-modal__body">
+        <div class="port-list">
+          ${portRows || '<div class="port-modal__empty">No port information available</div>'}
+        </div>
+      </div>
+    </div>
+  `;
+}
+function formatSpeed2(speed) {
+  if (speed >= 1e3) {
+    return `${speed / 1e3}G`;
+  }
+  return `${speed}M`;
+}
+function escapeHtml2(str) {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function escapeAttr(str) {
+  return str.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
 // src/card/ui/panel.ts
@@ -1857,8 +1995,11 @@ function renderStatsDeviceInfo(mac, helpers) {
 function renderActionsTab(context, name, helpers) {
   const entityId = context.payload?.node_entities?.[name] ?? context.payload?.client_entities?.[name] ?? context.payload?.device_entities?.[name];
   const mac = context.payload?.client_macs?.[name] ?? context.payload?.device_macs?.[name] ?? null;
+  const nodeType = context.payload?.node_types?.[name] ?? "unknown";
+  const hasPortInfo = nodeType === "switch" || nodeType === "gateway";
   const safeEntityId = entityId ? helpers.escapeHtml(entityId) : "";
   const safeMac = mac ? helpers.escapeHtml(mac) : "";
+  const safeName = helpers.escapeHtml(name);
   return `
     <div class="panel-section">
       <div class="panel-section__title">Quick Actions</div>
@@ -1869,6 +2010,12 @@ function renderActionsTab(context, name, helpers) {
               <span class="action-button__text">View Entity Details</span>
             </button>
           ` : `<div class="panel-empty__text">No Home Assistant entity linked</div>`}
+        ${hasPortInfo ? `
+            <button type="button" class="action-button" data-action="view-ports" data-node-name="${safeName}">
+              <span class="action-button__icon">${helpers.getIcon("action-ports")}</span>
+              <span class="action-button__text">View Port Overview</span>
+            </button>
+          ` : ""}
         ${mac ? `
             <button type="button" class="action-button" data-action="copy" data-copy-value="${safeMac}">
               <span class="action-button__icon">${helpers.getIcon("action-copy")}</span>
@@ -1983,6 +2130,15 @@ function renderContextMenu(options) {
       </button>
     `);
   }
+  const hasPortInfo = nodeType === "switch" || nodeType === "gateway";
+  if (hasPortInfo) {
+    items.push(`
+      <button type="button" class="context-menu__item" data-context-action="view-ports">
+        <span class="context-menu__icon">${options.getIcon("menu-ports")}</span>
+        <span>View Ports</span>
+      </button>
+    `);
+  }
   if (items.length > 0) {
     items.push('<div class="context-menu__divider"></div>');
   }
@@ -2019,7 +2175,7 @@ function parseContextMenuAction(target) {
   };
 }
 function isContextMenuAction(action) {
-  return action === "details" || action === "copy-mac" || action === "copy-ip" || action === "restart";
+  return action === "details" || action === "copy-mac" || action === "copy-ip" || action === "restart" || action === "view-ports";
 }
 
 // src/card/data/auth.ts
@@ -3588,6 +3744,160 @@ var GLOBAL_STYLES = `
     85% { opacity: 1; transform: translateX(-50%) translateY(0); }
     100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
   }
+
+  /* Port Modal Styles */
+  .port-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+  }
+  .port-modal {
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 520px;
+    max-height: 85vh;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+  }
+  .port-modal__header {
+    padding: 20px 24px;
+    background: rgba(148, 163, 184, 0.1);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .port-modal__title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #f8fafc;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .port-modal__icon { font-size: 20px; }
+  .port-modal__close {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: all 0.2s;
+  }
+  .port-modal__close:hover {
+    background: rgba(148, 163, 184, 0.2);
+    color: #f8fafc;
+  }
+  .port-modal__subtitle {
+    padding: 12px 24px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748b;
+    background: rgba(0, 0, 0, 0.2);
+  }
+  .port-modal__body {
+    padding: 16px 24px;
+    overflow-y: auto;
+    max-height: calc(85vh - 140px);
+  }
+  .port-list { display: flex; flex-direction: column; gap: 8px; }
+  .port-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: rgba(30, 41, 59, 0.5);
+    border-radius: 10px;
+    border: 1px solid rgba(148, 163, 184, 0.1);
+  }
+  .port-row--connected { }
+  .port-row--empty { opacity: 0.5; }
+  .port-row__number {
+    font-weight: 600;
+    font-size: 13px;
+    color: #94a3b8;
+    min-width: 60px;
+  }
+  .port-row__device {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .port-row__device-icon { font-size: 16px; flex-shrink: 0; }
+  .port-row__device-name {
+    color: #60a5fa;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .port-row__device-name:hover { text-decoration: underline; }
+  .port-row__empty { color: #64748b; font-size: 13px; }
+  .port-row__badges { display: flex; gap: 4px; flex-shrink: 0; }
+  .port-modal__empty {
+    text-align: center;
+    color: #64748b;
+    padding: 24px;
+  }
+
+  /* Port Modal - Light theme */
+  .port-modal-overlay[data-theme="light"] .port-modal {
+    background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+  }
+  .port-modal-overlay[data-theme="light"] .port-modal__header {
+    background: rgba(148, 163, 184, 0.15);
+    border-bottom-color: rgba(148, 163, 184, 0.3);
+  }
+  .port-modal-overlay[data-theme="light"] .port-modal__title { color: #0f172a; }
+  .port-modal-overlay[data-theme="light"] .port-modal__close { color: #64748b; }
+  .port-modal-overlay[data-theme="light"] .port-modal__close:hover { background: rgba(15, 23, 42, 0.1); color: #0f172a; }
+  .port-modal-overlay[data-theme="light"] .port-modal__subtitle { color: #475569; }
+  .port-modal-overlay[data-theme="light"] .port-row { background: rgba(15, 23, 42, 0.04); }
+  .port-modal-overlay[data-theme="light"] .port-row__number { color: #64748b; }
+  .port-modal-overlay[data-theme="light"] .port-row__device-name { color: #1d4ed8; }
+  .port-modal-overlay[data-theme="light"] .port-row__empty { color: #64748b; }
+
+  /* Port Modal - UniFi theme */
+  .port-modal-overlay[data-theme="unifi"] .port-modal { background: #ffffff; border: 1px solid #e5e7eb; }
+  .port-modal-overlay[data-theme="unifi"] .port-modal__header { background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+  .port-modal-overlay[data-theme="unifi"] .port-modal__title { color: #1a1a1a; }
+  .port-modal-overlay[data-theme="unifi"] .port-modal__close { color: #6b7280; }
+  .port-modal-overlay[data-theme="unifi"] .port-modal__close:hover { background: #f3f4f6; color: #1a1a1a; }
+  .port-modal-overlay[data-theme="unifi"] .port-modal__subtitle { color: #6b7280; background: #f9fafb; }
+  .port-modal-overlay[data-theme="unifi"] .port-row { background: #f9fafb; border: 1px solid #e5e7eb; }
+  .port-modal-overlay[data-theme="unifi"] .port-row__number { color: #6b7280; }
+  .port-modal-overlay[data-theme="unifi"] .port-row__device-name { color: #006fff; }
+  .port-modal-overlay[data-theme="unifi"] .port-row__empty { color: #6b7280; }
+
+  /* Port Modal - UniFi Dark theme */
+  .port-modal-overlay[data-theme="unifi-dark"] .port-modal { background: #1a1a1a; border: 1px solid #2a2a2a; }
+  .port-modal-overlay[data-theme="unifi-dark"] .port-modal__header { background: #151515; border-bottom: 1px solid #2a2a2a; }
+  .port-modal-overlay[data-theme="unifi-dark"] .port-modal__title { color: #ffffff; }
+  .port-modal-overlay[data-theme="unifi-dark"] .port-modal__close { color: #9ca3af; }
+  .port-modal-overlay[data-theme="unifi-dark"] .port-modal__close:hover { background: #252525; color: #ffffff; }
+  .port-modal-overlay[data-theme="unifi-dark"] .port-modal__subtitle { color: #9ca3af; background: #151515; }
+  .port-modal-overlay[data-theme="unifi-dark"] .port-row { background: #151515; border: 1px solid #2a2a2a; }
+  .port-modal-overlay[data-theme="unifi-dark"] .port-row__number { color: #9ca3af; }
+  .port-modal-overlay[data-theme="unifi-dark"] .port-row__device-name { color: #3b9eff; }
+  .port-modal-overlay[data-theme="unifi-dark"] .port-row__empty { color: #9ca3af; }
 `;
 
 // src/card/core/unifi-network-map-card.ts
@@ -3624,6 +3934,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._activeTab = "overview";
     this._entityModal = createEntityModalController();
     this._contextMenu = createContextMenuController();
+    this._portModal = createPortModalController();
   }
   static getLayoutOptions() {
     return { grid_columns: 4, grid_rows: 3, grid_min_columns: 2, grid_min_rows: 2 };
@@ -3662,6 +3973,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._stopStatusPolling();
     this._removeEntityModal();
     this._removeContextMenu();
+    this._removePortModal();
   }
   _startStatusPolling() {
     this._statusPollInterval = startPolling(this._statusPollInterval, 3e4, () => {
@@ -4039,7 +4351,18 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     if (this._handleTabClick(target, event)) return;
     if (this._handleBackClick(target, event)) return;
     if (this._handleCopyClick(target, event)) return;
+    if (this._handleViewPortsClick(target, event)) return;
     this._handleEntityClick(target, event);
+  }
+  _handleViewPortsClick(target, event) {
+    const button = target.closest('[data-action="view-ports"]');
+    if (!button) return false;
+    event.preventDefault();
+    const nodeName = button.getAttribute("data-node-name");
+    if (nodeName) {
+      this._showPortModal(nodeName);
+    }
+    return true;
   }
   _handleTabClick(target, event) {
     const tab = target.closest("[data-tab]");
@@ -4161,9 +4484,31 @@ var UnifiNetworkMapCard = class extends HTMLElement {
         this._handleRestartDevice(nodeName);
         this._removeContextMenu();
         break;
+      case "view-ports":
+        this._removeContextMenu();
+        this._showPortModal(nodeName);
+        break;
       default:
         this._removeContextMenu();
     }
+  }
+  _showPortModal(nodeName) {
+    openPortModal({
+      controller: this._portModal,
+      nodeName,
+      payload: this._payload,
+      theme: this._config?.theme ?? "dark",
+      getNodeTypeIcon: (nodeType) => this._getNodeTypeIcon(nodeType),
+      onClose: () => this._removePortModal(),
+      onDeviceClick: (deviceName) => {
+        this._removePortModal();
+        selectNode(this._selection, deviceName);
+        this._render();
+      }
+    });
+  }
+  _removePortModal() {
+    closePortModal(this._portModal);
   }
   _showCopyFeedback(message) {
     showToast(message, "success");

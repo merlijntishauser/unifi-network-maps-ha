@@ -1067,4 +1067,158 @@ export const GLOBAL_STYLES = `
     85% { opacity: 1; transform: translateX(-50%) translateY(0); }
     100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
   }
+
+  /* Port Modal Styles */
+  .port-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+  }
+  .port-modal {
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 520px;
+    max-height: 85vh;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+  }
+  .port-modal__header {
+    padding: 20px 24px;
+    background: rgba(148, 163, 184, 0.1);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .port-modal__title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #f8fafc;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .port-modal__icon { font-size: 20px; }
+  .port-modal__close {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: all 0.2s;
+  }
+  .port-modal__close:hover {
+    background: rgba(148, 163, 184, 0.2);
+    color: #f8fafc;
+  }
+  .port-modal__subtitle {
+    padding: 12px 24px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748b;
+    background: rgba(0, 0, 0, 0.2);
+  }
+  .port-modal__body {
+    padding: 16px 24px;
+    overflow-y: auto;
+    max-height: calc(85vh - 140px);
+  }
+  .port-list { display: flex; flex-direction: column; gap: 8px; }
+  .port-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: rgba(30, 41, 59, 0.5);
+    border-radius: 10px;
+    border: 1px solid rgba(148, 163, 184, 0.1);
+  }
+  .port-row--connected { }
+  .port-row--empty { opacity: 0.5; }
+  .port-row__number {
+    font-weight: 600;
+    font-size: 13px;
+    color: #94a3b8;
+    min-width: 60px;
+  }
+  .port-row__device {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .port-row__device-icon { font-size: 16px; flex-shrink: 0; }
+  .port-row__device-name {
+    color: #60a5fa;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .port-row__device-name:hover { text-decoration: underline; }
+  .port-row__empty { color: #64748b; font-size: 13px; }
+  .port-row__badges { display: flex; gap: 4px; flex-shrink: 0; }
+  .port-modal__empty {
+    text-align: center;
+    color: #64748b;
+    padding: 24px;
+  }
+
+  /* Port Modal - Light theme */
+  .port-modal-overlay[data-theme="light"] .port-modal {
+    background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+  }
+  .port-modal-overlay[data-theme="light"] .port-modal__header {
+    background: rgba(148, 163, 184, 0.15);
+    border-bottom-color: rgba(148, 163, 184, 0.3);
+  }
+  .port-modal-overlay[data-theme="light"] .port-modal__title { color: #0f172a; }
+  .port-modal-overlay[data-theme="light"] .port-modal__close { color: #64748b; }
+  .port-modal-overlay[data-theme="light"] .port-modal__close:hover { background: rgba(15, 23, 42, 0.1); color: #0f172a; }
+  .port-modal-overlay[data-theme="light"] .port-modal__subtitle { color: #475569; }
+  .port-modal-overlay[data-theme="light"] .port-row { background: rgba(15, 23, 42, 0.04); }
+  .port-modal-overlay[data-theme="light"] .port-row__number { color: #64748b; }
+  .port-modal-overlay[data-theme="light"] .port-row__device-name { color: #1d4ed8; }
+  .port-modal-overlay[data-theme="light"] .port-row__empty { color: #64748b; }
+
+  /* Port Modal - UniFi theme */
+  .port-modal-overlay[data-theme="unifi"] .port-modal { background: #ffffff; border: 1px solid #e5e7eb; }
+  .port-modal-overlay[data-theme="unifi"] .port-modal__header { background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+  .port-modal-overlay[data-theme="unifi"] .port-modal__title { color: #1a1a1a; }
+  .port-modal-overlay[data-theme="unifi"] .port-modal__close { color: #6b7280; }
+  .port-modal-overlay[data-theme="unifi"] .port-modal__close:hover { background: #f3f4f6; color: #1a1a1a; }
+  .port-modal-overlay[data-theme="unifi"] .port-modal__subtitle { color: #6b7280; background: #f9fafb; }
+  .port-modal-overlay[data-theme="unifi"] .port-row { background: #f9fafb; border: 1px solid #e5e7eb; }
+  .port-modal-overlay[data-theme="unifi"] .port-row__number { color: #6b7280; }
+  .port-modal-overlay[data-theme="unifi"] .port-row__device-name { color: #006fff; }
+  .port-modal-overlay[data-theme="unifi"] .port-row__empty { color: #6b7280; }
+
+  /* Port Modal - UniFi Dark theme */
+  .port-modal-overlay[data-theme="unifi-dark"] .port-modal { background: #1a1a1a; border: 1px solid #2a2a2a; }
+  .port-modal-overlay[data-theme="unifi-dark"] .port-modal__header { background: #151515; border-bottom: 1px solid #2a2a2a; }
+  .port-modal-overlay[data-theme="unifi-dark"] .port-modal__title { color: #ffffff; }
+  .port-modal-overlay[data-theme="unifi-dark"] .port-modal__close { color: #9ca3af; }
+  .port-modal-overlay[data-theme="unifi-dark"] .port-modal__close:hover { background: #252525; color: #ffffff; }
+  .port-modal-overlay[data-theme="unifi-dark"] .port-modal__subtitle { color: #9ca3af; background: #151515; }
+  .port-modal-overlay[data-theme="unifi-dark"] .port-row { background: #151515; border: 1px solid #2a2a2a; }
+  .port-modal-overlay[data-theme="unifi-dark"] .port-row__number { color: #9ca3af; }
+  .port-modal-overlay[data-theme="unifi-dark"] .port-row__device-name { color: #3b9eff; }
+  .port-modal-overlay[data-theme="unifi-dark"] .port-row__empty { color: #9ca3af; }
 `;

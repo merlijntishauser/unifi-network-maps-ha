@@ -21,6 +21,7 @@ import {
   createEntityModalController,
   openEntityModal,
 } from "../interaction/entity-modal-state";
+import { closePortModal, createPortModalController, openPortModal } from "../ui/port-modal";
 import { domainIcon, iconMarkup, nodeTypeIcon } from "../ui/icons";
 import { renderPanelContent, renderTabContent } from "../ui/panel";
 import { renderContextMenu } from "../ui/context-menu";
@@ -132,6 +133,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
     this._stopStatusPolling();
     this._removeEntityModal();
     this._removeContextMenu();
+    this._removePortModal();
   }
 
   private _startStatusPolling() {
@@ -166,6 +168,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
   private _statusPollInterval?: number;
   private _entityModal = createEntityModalController();
   private _contextMenu = createContextMenuController();
+  private _portModal = createPortModalController();
   get _viewTransform() {
     return this._viewportState.viewTransform;
   }
@@ -594,7 +597,20 @@ export class UnifiNetworkMapCard extends HTMLElement {
     if (this._handleTabClick(target, event)) return;
     if (this._handleBackClick(target, event)) return;
     if (this._handleCopyClick(target, event)) return;
+    if (this._handleViewPortsClick(target, event)) return;
     this._handleEntityClick(target, event);
+  }
+
+  private _handleViewPortsClick(target: HTMLElement, event: MouseEvent): boolean {
+    const button = target.closest('[data-action="view-ports"]') as HTMLElement | null;
+    if (!button) return false;
+
+    event.preventDefault();
+    const nodeName = button.getAttribute("data-node-name");
+    if (nodeName) {
+      this._showPortModal(nodeName);
+    }
+    return true;
   }
 
   private _handleTabClick(target: HTMLElement, event: MouseEvent): boolean {
@@ -740,9 +756,34 @@ export class UnifiNetworkMapCard extends HTMLElement {
         this._removeContextMenu();
         break;
 
+      case "view-ports":
+        this._removeContextMenu();
+        this._showPortModal(nodeName);
+        break;
+
       default:
         this._removeContextMenu();
     }
+  }
+
+  private _showPortModal(nodeName: string): void {
+    openPortModal({
+      controller: this._portModal,
+      nodeName,
+      payload: this._payload,
+      theme: this._config?.theme ?? "dark",
+      getNodeTypeIcon: (nodeType: string) => this._getNodeTypeIcon(nodeType),
+      onClose: () => this._removePortModal(),
+      onDeviceClick: (deviceName) => {
+        this._removePortModal();
+        selectNode(this._selection, deviceName);
+        this._render();
+      },
+    });
+  }
+
+  private _removePortModal(): void {
+    closePortModal(this._portModal);
   }
 
   private _showCopyFeedback(message: string): void {

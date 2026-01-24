@@ -6,10 +6,18 @@ export type ContextMenuRenderOptions = {
   payload?: MapPayload;
   theme: "dark" | "light" | "unifi" | "unifi-dark";
   getNodeTypeIcon: (nodeType: string) => string;
-  getIcon: (name: "menu-details" | "menu-copy" | "menu-copy-ip" | "menu-restart") => string;
+  getIcon: (
+    name: "menu-details" | "menu-copy" | "menu-copy-ip" | "menu-restart" | "menu-ports",
+  ) => string;
 };
 
-export type ContextMenuAction = "details" | "copy-mac" | "copy-ip" | "restart" | "unknown";
+export type ContextMenuAction =
+  | "details"
+  | "copy-mac"
+  | "copy-ip"
+  | "restart"
+  | "view-ports"
+  | "unknown";
 
 export type ContextMenuActionResult = {
   action: ContextMenuAction;
@@ -60,6 +68,17 @@ export function renderContextMenu(options: ContextMenuRenderOptions): string {
     `);
   }
 
+  // Add "View Ports" for switches and gateways
+  const hasPortInfo = nodeType === "switch" || nodeType === "gateway";
+  if (hasPortInfo) {
+    items.push(`
+      <button type="button" class="context-menu__item" data-context-action="view-ports">
+        <span class="context-menu__icon">${options.getIcon("menu-ports")}</span>
+        <span>View Ports</span>
+      </button>
+    `);
+  }
+
   if (items.length > 0) {
     items.push('<div class="context-menu__divider"></div>');
   }
@@ -101,6 +120,10 @@ export function parseContextMenuAction(target: HTMLElement): ContextMenuActionRe
 
 function isContextMenuAction(action: string): action is ContextMenuAction {
   return (
-    action === "details" || action === "copy-mac" || action === "copy-ip" || action === "restart"
+    action === "details" ||
+    action === "copy-mac" ||
+    action === "copy-ip" ||
+    action === "restart" ||
+    action === "view-ports"
   );
 }

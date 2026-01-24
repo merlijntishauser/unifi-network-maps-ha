@@ -109,6 +109,20 @@ export type ContextMenuState = {
   y: number;
 };
 
+export type PortInfo = {
+  port: number;
+  connectedDevice: string | null;
+  connectedDeviceType: string | null;
+  poe: boolean;
+  speed: number | null;
+};
+
+export type PortModalState = {
+  nodeName: string;
+  nodeType: string;
+  ports: PortInfo[];
+};
+
 export type MapPayload = {
   schema_version?: string;
   edges: Edge[];
