@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implemented websockets
 - Less logging at Info level, enable debug level for more details
 - For AP, the number of wireless clients is always shown, regardless of the config option for map
+- Bumped unifi-network-maps to version 1.4.13
 
 ### Fixed
 - Labels in lovelace editor not showing up
