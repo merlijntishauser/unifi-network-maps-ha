@@ -21,22 +21,48 @@ export function annotateEdges(svg: SVGElement, edges: Edge[]): void {
 function annotateEdgeLabels(svg: SVGElement): void {
   // Annotate mermaid edge labels with data attributes for filtering
   const edgeLabels = svg.querySelectorAll(".edgeLabel");
-  edgeLabels.forEach((label) => {
-    // Skip if already annotated
-    if (label.hasAttribute("data-edge-left")) return;
+  edgeLabels.forEach((label) => annotateElementWithEdge(label, svg));
 
-    // Try to find the associated edge by examining the label's parent group
-    // Mermaid wraps edges in groups, so we look for nearby edge paths
-    const edgePath = findNearestEdgePath(label, svg);
-    if (edgePath) {
-      const left = edgePath.getAttribute("data-edge-left");
-      const right = edgePath.getAttribute("data-edge-right");
-      if (left && right) {
-        label.setAttribute("data-edge-left", left);
-        label.setAttribute("data-edge-right", right);
+  // Also annotate standalone PoE icons (⚡) and other edge-related text
+  annotatePoeIcons(svg);
+}
+
+function annotateElementWithEdge(element: Element, svg: SVGElement): void {
+  // Skip if already annotated
+  if (element.hasAttribute("data-edge-left")) return;
+
+  // Try to find the associated edge by examining the element's position/context
+  const edgePath = findNearestEdgePath(element, svg);
+  if (edgePath) {
+    const left = edgePath.getAttribute("data-edge-left");
+    const right = edgePath.getAttribute("data-edge-right");
+    if (left && right) {
+      element.setAttribute("data-edge-left", left);
+      element.setAttribute("data-edge-right", right);
+    }
+  }
+}
+
+function annotatePoeIcons(svg: SVGElement): void {
+  // Find all text elements that might be PoE icons
+  const textElements = svg.querySelectorAll("text");
+  for (const text of textElements) {
+    const content = text.textContent?.trim() ?? "";
+    // Check for lightning bolt emoji or "PoE" text
+    if (content === "⚡" || content === "⚡️" || content.toLowerCase() === "poe") {
+      annotateElementWithEdge(text, svg);
+      // Also annotate parent group if present
+      const parentGroup = text.closest("g");
+      if (parentGroup && !parentGroup.hasAttribute("data-edge-left")) {
+        const left = text.getAttribute("data-edge-left");
+        const right = text.getAttribute("data-edge-right");
+        if (left && right) {
+          parentGroup.setAttribute("data-edge-left", left);
+          parentGroup.setAttribute("data-edge-right", right);
+        }
       }
     }
-  });
+  }
 }
 
 function findNearestEdgePath(label: Element, svg: SVGElement): Element | null {
@@ -77,14 +103,38 @@ function findNearestEdgePath(label: Element, svg: SVGElement): Element | null {
   return null;
 }
 
-function getLabelPosition(label: Element): { x: number; y: number } | null {
-  const transform = label.getAttribute("transform");
-  if (!transform) return null;
-
-  const translateMatch = transform.match(/translate\s*\(\s*([-\d.]+)\s*,\s*([-\d.]+)\s*\)/);
-  if (translateMatch) {
-    return { x: parseFloat(translateMatch[1]), y: parseFloat(translateMatch[2]) };
+function getLabelPosition(element: Element): { x: number; y: number } | null {
+  // Try to get position from transform attribute on element or ancestors
+  let current: Element | null = element;
+  while (current && current.tagName !== "svg") {
+    const transform = current.getAttribute("transform");
+    if (transform) {
+      const translateMatch = transform.match(/translate\s*\(\s*([-\d.]+)\s*,\s*([-\d.]+)\s*\)/);
+      if (translateMatch) {
+        return { x: parseFloat(translateMatch[1]), y: parseFloat(translateMatch[2]) };
+      }
+    }
+    current = current.parentElement;
   }
+
+  // Try to get position from x/y attributes (common for text elements)
+  const x = element.getAttribute("x");
+  const y = element.getAttribute("y");
+  if (x && y) {
+    return { x: parseFloat(x), y: parseFloat(y) };
+  }
+
+  // Try getBBox if available (works in browser, not in JSDOM)
+  try {
+    const svgEl = element as SVGGraphicsElement;
+    if (typeof svgEl.getBBox === "function") {
+      const bbox = svgEl.getBBox();
+      return { x: bbox.x + bbox.width / 2, y: bbox.y + bbox.height / 2 };
+    }
+  } catch {
+    // getBBox not available
+  }
+
   return null;
 }
 
@@ -97,19 +147,22 @@ function findClosestEdgeByPosition(svg: SVGElement, pos: { x: number; y: number 
     const pathEl = path as SVGPathElement;
     try {
       const length = pathEl.getTotalLength();
-      const midPoint = pathEl.getPointAtLength(length / 2);
-      const dist = Math.hypot(midPoint.x - pos.x, midPoint.y - pos.y);
-      if (dist < minDist) {
-        minDist = dist;
-        closest = path;
+      // Check multiple points along the path for better matching
+      for (const ratio of [0.25, 0.5, 0.75]) {
+        const point = pathEl.getPointAtLength(length * ratio);
+        const dist = Math.hypot(point.x - pos.x, point.y - pos.y);
+        if (dist < minDist) {
+          minDist = dist;
+          closest = path;
+        }
       }
     } catch {
       // SVG method not available, skip
     }
   }
 
-  // Only return if reasonably close (within 100px)
-  return minDist < 100 ? closest : null;
+  // Only return if reasonably close (within 150px - edges can be long)
+  return minDist < 150 ? closest : null;
 }
 
 export function findEdgeFromTarget(target: Element | null, edges: Edge[]): Edge | null {

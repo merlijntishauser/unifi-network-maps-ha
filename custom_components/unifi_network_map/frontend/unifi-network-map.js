@@ -1111,18 +1111,38 @@ function annotateEdges(svg3, edges) {
 }
 function annotateEdgeLabels(svg3) {
   const edgeLabels = svg3.querySelectorAll(".edgeLabel");
-  edgeLabels.forEach((label) => {
-    if (label.hasAttribute("data-edge-left")) return;
-    const edgePath = findNearestEdgePath(label, svg3);
-    if (edgePath) {
-      const left = edgePath.getAttribute("data-edge-left");
-      const right = edgePath.getAttribute("data-edge-right");
-      if (left && right) {
-        label.setAttribute("data-edge-left", left);
-        label.setAttribute("data-edge-right", right);
+  edgeLabels.forEach((label) => annotateElementWithEdge(label, svg3));
+  annotatePoeIcons(svg3);
+}
+function annotateElementWithEdge(element, svg3) {
+  if (element.hasAttribute("data-edge-left")) return;
+  const edgePath = findNearestEdgePath(element, svg3);
+  if (edgePath) {
+    const left = edgePath.getAttribute("data-edge-left");
+    const right = edgePath.getAttribute("data-edge-right");
+    if (left && right) {
+      element.setAttribute("data-edge-left", left);
+      element.setAttribute("data-edge-right", right);
+    }
+  }
+}
+function annotatePoeIcons(svg3) {
+  const textElements = svg3.querySelectorAll("text");
+  for (const text2 of textElements) {
+    const content = text2.textContent?.trim() ?? "";
+    if (content === "\u26A1" || content === "\u26A1\uFE0F" || content.toLowerCase() === "poe") {
+      annotateElementWithEdge(text2, svg3);
+      const parentGroup = text2.closest("g");
+      if (parentGroup && !parentGroup.hasAttribute("data-edge-left")) {
+        const left = text2.getAttribute("data-edge-left");
+        const right = text2.getAttribute("data-edge-right");
+        if (left && right) {
+          parentGroup.setAttribute("data-edge-left", left);
+          parentGroup.setAttribute("data-edge-right", right);
+        }
       }
     }
-  });
+  }
 }
 function findNearestEdgePath(label, svg3) {
   const parentGroup = label.closest("g");
@@ -1152,12 +1172,30 @@ function findNearestEdgePath(label, svg3) {
   }
   return null;
 }
-function getLabelPosition(label) {
-  const transform = label.getAttribute("transform");
-  if (!transform) return null;
-  const translateMatch = transform.match(/translate\s*\(\s*([-\d.]+)\s*,\s*([-\d.]+)\s*\)/);
-  if (translateMatch) {
-    return { x: parseFloat(translateMatch[1]), y: parseFloat(translateMatch[2]) };
+function getLabelPosition(element) {
+  let current = element;
+  while (current && current.tagName !== "svg") {
+    const transform = current.getAttribute("transform");
+    if (transform) {
+      const translateMatch = transform.match(/translate\s*\(\s*([-\d.]+)\s*,\s*([-\d.]+)\s*\)/);
+      if (translateMatch) {
+        return { x: parseFloat(translateMatch[1]), y: parseFloat(translateMatch[2]) };
+      }
+    }
+    current = current.parentElement;
+  }
+  const x = element.getAttribute("x");
+  const y = element.getAttribute("y");
+  if (x && y) {
+    return { x: parseFloat(x), y: parseFloat(y) };
+  }
+  try {
+    const svgEl = element;
+    if (typeof svgEl.getBBox === "function") {
+      const bbox = svgEl.getBBox();
+      return { x: bbox.x + bbox.width / 2, y: bbox.y + bbox.height / 2 };
+    }
+  } catch {
   }
   return null;
 }
@@ -1169,16 +1207,18 @@ function findClosestEdgeByPosition(svg3, pos) {
     const pathEl = path;
     try {
       const length = pathEl.getTotalLength();
-      const midPoint = pathEl.getPointAtLength(length / 2);
-      const dist = Math.hypot(midPoint.x - pos.x, midPoint.y - pos.y);
-      if (dist < minDist) {
-        minDist = dist;
-        closest = path;
+      for (const ratio of [0.25, 0.5, 0.75]) {
+        const point = pathEl.getPointAtLength(length * ratio);
+        const dist = Math.hypot(point.x - pos.x, point.y - pos.y);
+        if (dist < minDist) {
+          minDist = dist;
+          closest = path;
+        }
       }
     } catch {
     }
   }
-  return minDist < 100 ? closest : null;
+  return minDist < 150 ? closest : null;
 }
 function findEdgeFromTarget(target, edges) {
   if (!target) return null;
