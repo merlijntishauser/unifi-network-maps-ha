@@ -49,7 +49,7 @@ async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> Non
     if isinstance(coordinator, UniFiNetworkMapCoordinator):
         coordinator.update_settings()
         await coordinator.async_request_refresh()
-        LOGGER.info("Options updated, refreshing UniFi Network Map")
+        LOGGER.debug("Options updated, refreshing UniFi Network Map")
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -93,7 +93,7 @@ async def _forward_entry_setups(hass: HomeAssistant, entry: ConfigEntry) -> None
 
 
 def _log_api_endpoints(entry_id: str) -> None:
-    LOGGER.info(
+    LOGGER.debug(
         "UniFi Network Map endpoints: /api/unifi_network_map/%s/svg and /api/unifi_network_map/%s/payload",
         entry_id,
         entry_id,
@@ -142,7 +142,7 @@ def _register_frontend_assets(hass: HomeAssistant) -> None:
         LOGGER.warning("Frontend bundle missing at %s", js_path)
         return
     _register_static_asset(hass, js_path)
-    LOGGER.info("Attempting Lovelace resource registration for %s", _frontend_bundle_url())
+    LOGGER.debug("Attempting Lovelace resource registration for %s", _frontend_bundle_url())
     _schedule_lovelace_resource_registration(hass)
     _set_flag(data, "frontend_registered")
 
@@ -267,7 +267,7 @@ async def _ensure_lovelace_resource(hass: HomeAssistant) -> None:
     LOGGER.debug("Got %d existing resources, checking for %s", len(items), resource_url)
 
     if any(item.get("url") == resource_url for item in items):
-        LOGGER.info("Lovelace resource already registered: %s", resource_url)
+        LOGGER.debug("Lovelace resource already registered: %s", resource_url)
         _mark_lovelace_resource_registered(hass)
         return
 
@@ -406,7 +406,7 @@ async def _create_lovelace_resource(
             resource_collection = lovelace_data.resources
             if resource_collection and hasattr(resource_collection, "async_create_item"):
                 await resource_collection.async_create_item(payload)
-                LOGGER.info("Registered Lovelace resource %s", resource_url)
+                LOGGER.debug("Registered Lovelace resource %s", resource_url)
                 return True
     except Exception as err:
         LOGGER.debug("Unable to create via collection: %s", err)
@@ -414,7 +414,7 @@ async def _create_lovelace_resource(
     # Fallback to old API
     result = await _create_lovelace_resource_with_module(hass, resources, payload)
     if result:
-        LOGGER.info("Registered Lovelace resource %s", resource_url)
+        LOGGER.debug("Registered Lovelace resource %s", resource_url)
         return True
 
     try:
@@ -425,7 +425,7 @@ async def _create_lovelace_resource(
 
     created = await _create_lovelace_resource_with_collection(info, payload)
     if created:
-        LOGGER.info("Registered Lovelace resource %s", resource_url)
+        LOGGER.debug("Registered Lovelace resource %s", resource_url)
         return True
     return False
 

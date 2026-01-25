@@ -225,7 +225,7 @@ def test_initialize_coordinator_triggers_refresh() -> None:
 
 
 def test_log_api_endpoints_logs(caplog: pytest.LogCaptureFixture) -> None:
-    caplog.set_level("INFO")
+    caplog.set_level("DEBUG")
     log_api_endpoints = cast(Callable[[str], None], getattr(init_module, "_log_api_endpoints"))
 
     log_api_endpoints("entry-1")
