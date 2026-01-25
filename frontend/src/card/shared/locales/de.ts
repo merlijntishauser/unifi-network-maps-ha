@@ -90,6 +90,7 @@ export const de = {
   "panel.stats.total_connections": "Gesamtverbindungen",
   "panel.stats.wired": "Kabelgebunden",
   "panel.stats.wireless": "Drahtlos",
+  "panel.stats.wireless_clients": "WLAN-Clients",
   "panel.status.last_changed": "Zuletzt geändert",
   "panel.status.live": "Live-Status",
   "panel.status.offline": "Offline",

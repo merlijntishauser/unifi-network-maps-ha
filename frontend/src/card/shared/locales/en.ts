@@ -88,6 +88,7 @@ export const en = {
   "panel.stats.total_connections": "Total Connections",
   "panel.stats.wired": "Wired",
   "panel.stats.wireless": "Wireless",
+  "panel.stats.wireless_clients": "Wireless Clients",
   "panel.status.last_changed": "Last Changed",
   "panel.status.live": "Live Status",
   "panel.status.offline": "Offline",

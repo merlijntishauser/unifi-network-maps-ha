@@ -291,10 +291,12 @@ function renderStatsTab(context: PanelContext, name: string, helpers: PanelHelpe
     null;
   const status = context.payload?.node_status?.[name];
   const vlanInfo = getNodeVlanInfo(name, context.payload);
+  const nodeType = context.payload?.node_types?.[name];
+  const apWirelessClients = context.payload?.ap_client_counts?.[name];
 
   return `
     ${renderStatsLiveStatus(status, helpers)}
-    ${renderStatsConnectionSection(nodeEdges, helpers)}
+    ${renderStatsConnectionSection(nodeEdges, nodeType, apWirelessClients, helpers)}
     ${renderStatsNetworkInfo(vlanInfo, helpers)}
     ${renderStatsDeviceInfo(mac, ip, helpers)}
   `;
@@ -323,6 +325,8 @@ function renderStatsLiveStatus(status: NodeStatus | undefined, helpers: PanelHel
 
 function renderStatsConnectionSection(
   nodeEdges: Array<{ wireless?: boolean | null; poe?: boolean | null }>,
+  nodeType: string | undefined,
+  apWirelessClients: number | undefined,
   helpers: PanelHelpers,
 ): string {
   const wirelessCount = nodeEdges.filter((e) => e.wireless).length;
@@ -331,6 +335,13 @@ function renderStatsConnectionSection(
   const poeRow =
     poeCount > 0
       ? `<div class="stats-row"><span class="stats-row__label">${helpers.localize("panel.stats.connection_poe")}</span><span class="stats-row__value">${poeCount}</span></div>`
+      : "";
+
+  // For APs, show wireless client count from ap_client_counts (always available)
+  const isAp = nodeType === "ap" || nodeType === "access_point";
+  const wirelessClientsRow =
+    isAp && apWirelessClients !== undefined
+      ? `<div class="stats-row"><span class="stats-row__label">${helpers.localize("panel.stats.wireless_clients")}</span><span class="stats-row__value">${apWirelessClients}</span></div>`
       : "";
 
   return `
@@ -350,6 +361,7 @@ function renderStatsConnectionSection(
           <span class="stats-row__value">${wirelessCount}</span>
         </div>
         ${poeRow}
+        ${wirelessClientsRow}
       </div>
     </div>
   `;

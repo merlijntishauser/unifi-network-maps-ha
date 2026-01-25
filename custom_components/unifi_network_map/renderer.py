@@ -66,7 +66,9 @@ def _render_map(config: Config, settings: RenderSettings) -> UniFiNetworkMapData
     edges, clients = _apply_clients(config, settings, topology, devices)
     node_types = build_node_type_map(devices, clients, client_mode=settings.client_scope)
     svg = _render_svg(edges, node_types, settings)
-    payload = _build_payload(edges, node_types, gateways, clients, devices)
+    # Always fetch clients for stats (wireless counts per AP)
+    all_clients = _load_all_clients(config, settings)
+    payload = _build_payload(edges, node_types, gateways, clients, devices, all_clients)
     return UniFiNetworkMapData(svg=svg, payload=payload)
 
 
@@ -137,6 +139,14 @@ def _load_clients(config: Config, settings: RenderSettings) -> list[ClientData] 
     )
 
 
+def _load_all_clients(config: Config, settings: RenderSettings) -> list[ClientData]:
+    """Load all clients for stats purposes (always fetched regardless of include_clients)."""
+    return cast(
+        list[ClientData],
+        list(fetch_clients(config, site=config.site, use_cache=settings.use_cache)),
+    )
+
+
 def _render_svg(
     edges: list[Edge],
     node_types: dict[str, str],
@@ -154,6 +164,7 @@ def _build_payload(
     gateways: list[str],
     clients: list[ClientData] | None,
     devices: list[Device],
+    all_clients: list[ClientData],
 ) -> dict[str, Any]:
     return {
         "schema_version": PAYLOAD_SCHEMA_VERSION,
@@ -166,6 +177,7 @@ def _build_payload(
         "device_ips": _build_device_ip_index(devices),
         "node_vlans": _build_node_vlan_index(clients),
         "vlan_info": _build_vlan_info(clients),
+        "ap_client_counts": _build_ap_client_counts(all_clients, devices),
     }
 
 
@@ -309,3 +321,29 @@ def _build_vlan_info(clients: list[ClientData] | None) -> dict[int, dict[str, An
             "name": network_name or f"VLAN {vlan}",
         }
     return vlan_info
+
+
+def _build_ap_client_counts(clients: list[ClientData], devices: list[Device]) -> dict[str, int]:
+    """Build wireless client counts per access point.
+
+    Returns a dict mapping AP name to the number of wireless clients connected to it.
+    """
+    # Build MAC to device name mapping for APs
+    ap_mac_to_name: dict[str, str] = {}
+    for device in devices:
+        if device.mac and device.name:
+            ap_mac_to_name[device.mac.strip().lower()] = device.name
+
+    # Count wireless clients per AP
+    ap_counts: dict[str, int] = {}
+    for client in clients:
+        # Check if client is wireless (has ap_mac field)
+        ap_mac = _client_field(client, "ap_mac")
+        if not ap_mac or not isinstance(ap_mac, str):
+            continue
+        ap_mac_normalized = ap_mac.strip().lower()
+        ap_name = ap_mac_to_name.get(ap_mac_normalized)
+        if ap_name:
+            ap_counts[ap_name] = ap_counts.get(ap_name, 0) + 1
+
+    return ap_counts

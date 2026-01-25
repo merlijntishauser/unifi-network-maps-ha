@@ -88,6 +88,7 @@ export const nl = {
   "panel.stats.total_connections": "Totaal verbindingen",
   "panel.stats.wired": "Bekabeld",
   "panel.stats.wireless": "Draadloos",
+  "panel.stats.wireless_clients": "Draadloze clients",
   "panel.status.last_changed": "Laatst gewijzigd",
   "panel.status.live": "Live status",
   "panel.status.offline": "Offline",

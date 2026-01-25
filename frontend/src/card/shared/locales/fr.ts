@@ -89,6 +89,7 @@ export const fr = {
   "panel.stats.total_connections": "Connexions totales",
   "panel.stats.wired": "Filaire",
   "panel.stats.wireless": "Sans fil",
+  "panel.stats.wireless_clients": "Clients sans fil",
   "panel.status.last_changed": "Dernier changement",
   "panel.status.live": "État en direct",
   "panel.status.offline": "Hors ligne",

@@ -89,6 +89,7 @@ export const es = {
   "panel.stats.total_connections": "Conexiones totales",
   "panel.stats.wired": "Cableado",
   "panel.stats.wireless": "Inalámbrico",
+  "panel.stats.wireless_clients": "Clientes inalámbricos",
   "panel.status.last_changed": "Último cambio",
   "panel.status.live": "Estado en tiempo real",
   "panel.status.offline": "Desconectado",

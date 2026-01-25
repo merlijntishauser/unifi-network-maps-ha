@@ -2122,9 +2122,11 @@ function renderStatsTab(context, name, helpers) {
   const ip = context.payload?.client_ips?.[name] ?? context.payload?.device_ips?.[name] ?? context.payload?.related_entities?.[name]?.find((e) => e.ip)?.ip ?? null;
   const status = context.payload?.node_status?.[name];
   const vlanInfo = getNodeVlanInfo(name, context.payload);
+  const nodeType = context.payload?.node_types?.[name];
+  const apWirelessClients = context.payload?.ap_client_counts?.[name];
   return `
     ${renderStatsLiveStatus(status, helpers)}
-    ${renderStatsConnectionSection(nodeEdges, helpers)}
+    ${renderStatsConnectionSection(nodeEdges, nodeType, apWirelessClients, helpers)}
     ${renderStatsNetworkInfo(vlanInfo, helpers)}
     ${renderStatsDeviceInfo(mac, ip, helpers)}
   `;
@@ -2149,11 +2151,13 @@ function renderStatsLiveStatus(status, helpers) {
     </div>
   `;
 }
-function renderStatsConnectionSection(nodeEdges, helpers) {
+function renderStatsConnectionSection(nodeEdges, nodeType, apWirelessClients, helpers) {
   const wirelessCount = nodeEdges.filter((e) => e.wireless).length;
   const wiredCount = nodeEdges.length - wirelessCount;
   const poeCount = nodeEdges.filter((e) => e.poe).length;
   const poeRow = poeCount > 0 ? `<div class="stats-row"><span class="stats-row__label">${helpers.localize("panel.stats.connection_poe")}</span><span class="stats-row__value">${poeCount}</span></div>` : "";
+  const isAp = nodeType === "ap" || nodeType === "access_point";
+  const wirelessClientsRow = isAp && apWirelessClients !== void 0 ? `<div class="stats-row"><span class="stats-row__label">${helpers.localize("panel.stats.wireless_clients")}</span><span class="stats-row__value">${apWirelessClients}</span></div>` : "";
   return `
     <div class="panel-section">
       <div class="panel-section__title">${helpers.localize("panel.stats.connection")}</div>
@@ -2171,6 +2175,7 @@ function renderStatsConnectionSection(nodeEdges, helpers) {
           <span class="stats-row__value">${wirelessCount}</span>
         </div>
         ${poeRow}
+        ${wirelessClientsRow}
       </div>
     </div>
   `;
@@ -2637,6 +2642,7 @@ var de = {
   "panel.stats.total_connections": "Gesamtverbindungen",
   "panel.stats.wired": "Kabelgebunden",
   "panel.stats.wireless": "Drahtlos",
+  "panel.stats.wireless_clients": "WLAN-Clients",
   "panel.status.last_changed": "Zuletzt ge\xE4ndert",
   "panel.status.live": "Live-Status",
   "panel.status.offline": "Offline",
@@ -2750,6 +2756,7 @@ var en = {
   "panel.stats.total_connections": "Total Connections",
   "panel.stats.wired": "Wired",
   "panel.stats.wireless": "Wireless",
+  "panel.stats.wireless_clients": "Wireless Clients",
   "panel.status.last_changed": "Last Changed",
   "panel.status.live": "Live Status",
   "panel.status.offline": "Offline",
@@ -2863,6 +2870,7 @@ var es = {
   "panel.stats.total_connections": "Conexiones totales",
   "panel.stats.wired": "Cableado",
   "panel.stats.wireless": "Inal\xE1mbrico",
+  "panel.stats.wireless_clients": "Clientes inal\xE1mbricos",
   "panel.status.last_changed": "\xDAltimo cambio",
   "panel.status.live": "Estado en tiempo real",
   "panel.status.offline": "Desconectado",
@@ -2976,6 +2984,7 @@ var fr = {
   "panel.stats.total_connections": "Connexions totales",
   "panel.stats.wired": "Filaire",
   "panel.stats.wireless": "Sans fil",
+  "panel.stats.wireless_clients": "Clients sans fil",
   "panel.status.last_changed": "Dernier changement",
   "panel.status.live": "\xC9tat en direct",
   "panel.status.offline": "Hors ligne",
@@ -3089,6 +3098,7 @@ var nl = {
   "panel.stats.total_connections": "Totaal verbindingen",
   "panel.stats.wired": "Bekabeld",
   "panel.stats.wireless": "Draadloos",
+  "panel.stats.wireless_clients": "Draadloze clients",
   "panel.status.last_changed": "Laatst gewijzigd",
   "panel.status.live": "Live status",
   "panel.status.offline": "Offline",

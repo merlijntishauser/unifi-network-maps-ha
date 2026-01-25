@@ -155,6 +155,7 @@ export type MapPayload = {
   related_entities?: Record<string, RelatedEntity[]>;
   node_vlans?: Record<string, number | null>;
   vlan_info?: Record<number, VlanInfo>;
+  ap_client_counts?: Record<string, number>;
 };
 
 export type DeviceType = "gateway" | "switch" | "ap" | "client" | "other";
