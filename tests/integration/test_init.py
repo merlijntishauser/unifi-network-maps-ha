@@ -166,7 +166,7 @@ def test_async_unload_entry_removes_coordinator() -> None:
 
 def test_register_runtime_services_calls_helpers() -> None:
     hass = FakeHass()
-    called = {"views": False, "frontend": False, "refresh": False}
+    called = {"views": False, "frontend": False, "refresh": False, "websocket": False}
 
     def _register_views(_hass: FakeHass) -> None:
         called["views"] = True
@@ -179,9 +179,19 @@ def test_register_runtime_services_calls_helpers() -> None:
 
     original_frontend = getattr(init_module, "_register_frontend_assets")
     original_refresh = getattr(init_module, "_register_refresh_service")
+
+    # Mock websocket module import
+    import custom_components.unifi_network_map.websocket as ws_module
+
+    original_ws_register = ws_module.async_register_websocket_api
+
+    def _async_register_websocket_api(_hass: FakeHass) -> None:
+        called["websocket"] = True
+
     try:
         setattr(init_module, "_register_frontend_assets", _register_frontend_assets)
         setattr(init_module, "_register_refresh_service", _register_refresh_service)
+        ws_module.async_register_websocket_api = _async_register_websocket_api
         register_runtime_services = cast(
             Callable[[FakeHass, Callable[[FakeHass], None]], None],
             getattr(init_module, "_register_runtime_services"),
@@ -190,8 +200,9 @@ def test_register_runtime_services_calls_helpers() -> None:
     finally:
         setattr(init_module, "_register_frontend_assets", original_frontend)
         setattr(init_module, "_register_refresh_service", original_refresh)
+        ws_module.async_register_websocket_api = original_ws_register
 
-    assert called == {"views": True, "frontend": True, "refresh": True}
+    assert called == {"views": True, "frontend": True, "refresh": True, "websocket": True}
 
 
 def test_initialize_coordinator_triggers_refresh() -> None:

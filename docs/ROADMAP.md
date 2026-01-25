@@ -6,6 +6,7 @@
 ## P2 - Bugs & Correctness (High Impact)
 - **Diagnostics timestamp** - Add timestamp to show data freshness
 - **Diagnostics include clients list** (anonymized) - Include counts + sample names
+- **PoE icons are not removed when links are  hidden by filtering ** - 
 
 ## P3 - UX Polish (User-facing)
 
@@ -46,13 +47,14 @@ Methods to break down for readability:
 ## P5 - Feature Expansion (Nice-to-have)
 
 ### Network Visualization Enhancements
-| Feature | Description | Effort |
-|---------|-------------|--------|
-| Online/offline halos | Visual indicator around nodes based on status | S |
-| Bandwidth overlays | Show throughput on edges with thickness/color | M |
-| Animated data flow | Pulse animation on edges showing traffic direction | M |
-| Guest network highlight | Distinguish guest network clients visually | S |
-| Firmware status badges | Show update-available indicator on nodes | S |
+| Feature                              | Description                                          | Effort |
+|--------------------------------------|------------------------------------------------------|--------|
+| Online/offline halos                 | Visual indicator around nodes based on status        | S      |
+| Bandwidth overlays                   | Show throughput on edges with thickness/color        | M      |
+| Animated data flow                   | Pulse animation on edges showing traffic direction   | M      |
+| Guest network highlight              | Distinguish guest network clients visually           | S      |
+| Firmware status badges               | Show update-available indicator on nodes             | S      |
+| Close integration with Unifi protect | Closer integration, show entities, or special "nodes" | ?      |
 
 ### Interactive Features
 | Feature | Description | Effort |

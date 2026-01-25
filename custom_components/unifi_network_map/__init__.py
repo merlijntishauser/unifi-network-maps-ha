@@ -80,9 +80,12 @@ def _store_coordinator(
 def _register_runtime_services(
     hass: HomeAssistant, register_views: Callable[[HomeAssistant], None]
 ) -> None:
+    from .websocket import async_register_websocket_api
+
     register_views(hass)
     _register_frontend_assets(hass)
     _register_refresh_service(hass)
+    async_register_websocket_api(hass)
 
 
 async def _forward_entry_setups(hass: HomeAssistant, entry: ConfigEntry) -> None:

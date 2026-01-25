@@ -36,6 +36,7 @@ def _install_homeassistant_stubs() -> None:
     components_http = cast(Any, ModuleType("homeassistant.components.http"))
     components_diagnostics = cast(Any, ModuleType("homeassistant.components.diagnostics"))
     components_sensor = cast(Any, ModuleType("homeassistant.components.sensor"))
+    components_websocket_api = cast(Any, ModuleType("homeassistant.components.websocket_api"))
     helpers = cast(Any, ModuleType("homeassistant.helpers"))
     helpers_update = cast(Any, ModuleType("homeassistant.helpers.update_coordinator"))
     selector = cast(Any, ModuleType("homeassistant.helpers.selector"))
@@ -49,6 +50,10 @@ def _install_homeassistant_stubs() -> None:
     class HomeAssistant:  # minimal stub for imports
         async def async_add_executor_job(self, func, *args: object):
             return func(*args)
+
+    def callback(func):
+        """Stub callback decorator."""
+        return func
 
     def async_redact_data(data: dict[str, object], _keys: set[str]) -> dict[str, object]:
         return dict(data)
@@ -167,6 +172,7 @@ def _install_homeassistant_stubs() -> None:
     config_entries.OptionsFlow = OptionsFlow
     core.HomeAssistant = HomeAssistant
     core.ServiceCall = ServiceCall
+    core.callback = callback
     const.CONF_PASSWORD = "password"
     const.CONF_URL = "url"
     const.CONF_USERNAME = "username"
@@ -193,6 +199,38 @@ def _install_homeassistant_stubs() -> None:
     components_http.StaticPathConfig = StaticPathConfig
     components_diagnostics.async_redact_data = async_redact_data
     components_sensor.SensorEntity = SensorEntity
+
+    # WebSocket API stubs
+    def websocket_command(_schema: dict[str, object]):
+        def decorator(func):
+            return func
+
+        return decorator
+
+    def async_response(func):
+        return func
+
+    def async_register_command(_hass: object, _handler: object) -> None:
+        pass
+
+    def event_message(msg_id: int, data: dict[str, object]) -> dict[str, object]:
+        return {"id": msg_id, "type": "event", "event": data}
+
+    class ActiveConnection:  # minimal stub for imports
+        def __init__(self) -> None:
+            self.subscriptions: dict[int, object] = {}
+
+        def send_message(self, msg: dict[str, object]) -> None:
+            pass
+
+        def send_error(self, msg_id: int, code: str, message: str) -> None:
+            pass
+
+    components_websocket_api.websocket_command = websocket_command
+    components_websocket_api.async_response = async_response
+    components_websocket_api.async_register_command = async_register_command
+    components_websocket_api.event_message = event_message
+    components_websocket_api.ActiveConnection = ActiveConnection
     selector.BooleanSelector = BooleanSelector
     selector.SelectSelector = SelectSelector
     selector.SelectSelectorConfig = SelectSelectorConfig
@@ -210,6 +248,7 @@ def _install_homeassistant_stubs() -> None:
     sys.modules.setdefault("homeassistant.components.http", components_http)
     sys.modules.setdefault("homeassistant.components.diagnostics", components_diagnostics)
     sys.modules.setdefault("homeassistant.components.sensor", components_sensor)
+    sys.modules.setdefault("homeassistant.components.websocket_api", components_websocket_api)
     sys.modules.setdefault("homeassistant.config_entries", config_entries)
     sys.modules.setdefault("homeassistant.core", core)
     sys.modules.setdefault("homeassistant.const", const)

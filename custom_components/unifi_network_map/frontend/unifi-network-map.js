@@ -1118,8 +1118,8 @@ function findEdgeFromTarget(target, edges) {
   const lookup = buildEdgeLookup(edges);
   return lookup.get(edgeKey(left, right)) ?? null;
 }
-function renderEdgeTooltip(edge, getIcon) {
-  const connectionType = edge.wireless ? "Wireless" : "Wired";
+function renderEdgeTooltip(edge, getIcon, localize) {
+  const connectionType = edge.wireless ? localize("edge_tooltip.wireless") : localize("edge_tooltip.wired");
   const icon = edge.wireless ? getIcon("edge-wireless") : getIcon("edge-wired");
   const rows = [];
   rows.push(
@@ -1135,17 +1135,17 @@ function renderEdgeTooltip(edge, getIcon) {
   }
   if (edge.poe) {
     rows.push(
-      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">${getIcon("edge-poe")}</span><span class="tooltip-edge__label">PoE Powered</span></div>`
+      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">${getIcon("edge-poe")}</span><span class="tooltip-edge__label">${localize("edge_tooltip.poe")}</span></div>`
     );
   }
   if (edge.speed) {
     rows.push(
-      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">${getIcon("edge-speed")}</span><span class="tooltip-edge__label">${formatSpeed(edge.speed)}</span></div>`
+      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">${getIcon("edge-speed")}</span><span class="tooltip-edge__label">${formatSpeed(edge.speed, localize)}</span></div>`
     );
   }
   if (edge.channel) {
     rows.push(
-      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">${getIcon("edge-channel")}</span><span class="tooltip-edge__label">${formatChannel(edge.channel)}</span></div>`
+      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">${getIcon("edge-channel")}</span><span class="tooltip-edge__label">${formatChannel(edge.channel, localize)}</span></div>`
     );
   }
   return rows.join("");
@@ -1173,27 +1173,27 @@ function ensureEdgeHitbox(path, edge) {
   hitbox.setAttribute("fill", "none");
   path.after(hitbox);
 }
-function formatSpeed(speedMbps) {
+function formatSpeed(speedMbps, localize) {
   if (speedMbps >= 1e3) {
     const gbps = (speedMbps / 1e3).toFixed(1).replace(/\.0$/, "");
-    return `${gbps} Gbps`;
+    return localize("edge_tooltip.speed_gbps", { speed: gbps });
   }
-  return `${speedMbps} Mbps`;
+  return localize("edge_tooltip.speed_mbps", { speed: speedMbps });
 }
-function formatChannel(channel) {
-  const band = channelBand(channel);
+function formatChannel(channel, localize) {
+  const band = channelBand(channel, localize);
   const suffix = band ? ` (${band})` : "";
-  return `Channel ${channel}${suffix}`;
+  return localize("edge_tooltip.channel", { channel, suffix });
 }
-function channelBand(channel) {
+function channelBand(channel, localize) {
   if (channel >= 1 && channel <= 14) {
-    return "2.4GHz";
+    return localize("edge_tooltip.band_24");
   }
   if (channel >= 36 && channel <= 177) {
-    return "5GHz";
+    return localize("edge_tooltip.band_5");
   }
   if (channel >= 1) {
-    return "6GHz";
+    return localize("edge_tooltip.band_6");
   }
   return null;
 }
@@ -1495,7 +1495,7 @@ function renderEntityModal(context) {
   if (mac) {
     infoRows.push(`
       <div class="entity-modal__info-row">
-        <span class="entity-modal__info-label">MAC Address</span>
+        <span class="entity-modal__info-label">${context.localize("entity_modal.mac")}</span>
         <span class="entity-modal__info-value">${escapeHtml(mac)}</span>
       </div>
     `);
@@ -1504,16 +1504,16 @@ function renderEntityModal(context) {
   if (ipEntity?.ip) {
     infoRows.push(`
       <div class="entity-modal__info-row">
-        <span class="entity-modal__info-label">IP Address</span>
+        <span class="entity-modal__info-label">${context.localize("entity_modal.ip")}</span>
         <span class="entity-modal__info-value">${escapeHtml(ipEntity.ip)}</span>
       </div>
     `);
   }
   if (status?.state) {
-    const stateDisplay = status.state === "online" ? "Online" : status.state === "offline" ? "Offline" : "Unknown";
+    const stateDisplay = status.state === "online" ? context.localize("entity_modal.status_online") : status.state === "offline" ? context.localize("entity_modal.status_offline") : context.localize("entity_modal.status_unknown");
     infoRows.push(`
       <div class="entity-modal__info-row">
-        <span class="entity-modal__info-label">Status</span>
+        <span class="entity-modal__info-label">${context.localize("entity_modal.status")}</span>
         <span class="entity-modal__info-value">${stateDisplay}</span>
       </div>
     `);
@@ -1521,14 +1521,14 @@ function renderEntityModal(context) {
   if (status?.last_changed) {
     infoRows.push(`
       <div class="entity-modal__info-row">
-        <span class="entity-modal__info-label">Last Changed</span>
+        <span class="entity-modal__info-label">${context.localize("entity_modal.last_changed")}</span>
         <span class="entity-modal__info-value">${context.formatLastChanged(status.last_changed)}</span>
       </div>
     `);
   }
   infoRows.push(`
     <div class="entity-modal__info-row">
-      <span class="entity-modal__info-label">Device Type</span>
+      <span class="entity-modal__info-label">${context.localize("entity_modal.device_type")}</span>
       <span class="entity-modal__info-value">${escapeHtml(nodeType)}</span>
     </div>
   `);
@@ -1545,22 +1545,22 @@ function renderEntityModal(context) {
         </div>
         <div class="entity-modal__body">
           <div class="entity-modal__section">
-            <div class="entity-modal__section-title">Device Information</div>
+            <div class="entity-modal__section-title">${context.localize("entity_modal.device_info")}</div>
             <div class="entity-modal__info-grid">
               ${infoRows.join("")}
             </div>
           </div>
           ${relatedEntities.length > 0 ? `
             <div class="entity-modal__section">
-              <div class="entity-modal__section-title">Related Entities (${relatedEntities.length})</div>
+              <div class="entity-modal__section-title">${context.localize("entity_modal.related_entities_count", { count: relatedEntities.length })}</div>
               <div class="entity-modal__entity-list">
                 ${entityItems}
               </div>
             </div>
           ` : `
             <div class="entity-modal__section">
-              <div class="entity-modal__section-title">Related Entities</div>
-              <div class="panel-empty__text">No Home Assistant entities found for this device</div>
+              <div class="entity-modal__section-title">${context.localize("entity_modal.related_entities")}</div>
+              <div class="panel-empty__text">${context.localize("entity_modal.no_entities")}</div>
             </div>
           `}
         </div>
@@ -1610,7 +1610,8 @@ function openEntityModal(params) {
     payload: params.payload,
     theme: params.theme,
     getNodeTypeIcon: params.getNodeTypeIcon,
-    formatLastChanged: params.formatLastChanged
+    formatLastChanged: params.formatLastChanged,
+    localize: params.localize
   });
   const container = document.createElement("div");
   container.innerHTML = modalHtml;
@@ -1657,7 +1658,16 @@ function createPortModalController() {
   return { overlay: null, state: null };
 }
 function openPortModal(params) {
-  const { controller, nodeName, payload, theme, getNodeTypeIcon, onClose, onDeviceClick } = params;
+  const {
+    controller,
+    nodeName,
+    payload,
+    theme,
+    getNodeTypeIcon,
+    localize,
+    onClose,
+    onDeviceClick
+  } = params;
   if (!payload) return;
   const nodeType = payload.node_types?.[nodeName] ?? "unknown";
   const ports = extractPortsForDevice(nodeName, payload);
@@ -1668,7 +1678,7 @@ function openPortModal(params) {
   const overlay = document.createElement("div");
   overlay.className = "port-modal-overlay";
   overlay.dataset.theme = theme;
-  overlay.innerHTML = renderPortModal(controller.state, theme, getNodeTypeIcon);
+  overlay.innerHTML = renderPortModal(controller.state, theme, getNodeTypeIcon, localize);
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) {
       closePortModal(controller);
@@ -1732,7 +1742,7 @@ function extractPortNumber(label, isLeft) {
   const match = side.match(/Port\s*(\d+)/i);
   return match ? parseInt(match[1], 10) : null;
 }
-function renderPortModal(state, theme, getNodeTypeIcon) {
+function renderPortModal(state, theme, getNodeTypeIcon, localize) {
   const { nodeName, nodeType, ports } = state;
   const nodeIcon = getNodeTypeIcon(nodeType);
   const portRows = ports.map((port) => {
@@ -1741,15 +1751,15 @@ function renderPortModal(state, theme, getNodeTypeIcon) {
     const isConnected = port.connectedDevice !== null;
     return `
         <div class="port-row ${isConnected ? "port-row--connected" : "port-row--empty"}">
-          <span class="port-row__number">Port ${port.port}</span>
+          <span class="port-row__number">${localize("port_modal.port", { port: port.port })}</span>
           <div class="port-row__device">
             ${isConnected ? `
                   <span class="port-row__device-icon">${deviceIcon}</span>
                   <a href="#" class="port-row__device-name" data-device-name="${escapeAttr(port.connectedDevice)}">${escapeHtml2(deviceName)}</a>
-                ` : `<span class="port-row__empty">\u2014</span>`}
+                ` : `<span class="port-row__empty">${localize("port_modal.empty")}</span>`}
           </div>
           <span class="port-row__badges">
-            ${port.poe ? '<span class="badge badge--poe">PoE</span>' : ""}
+            ${port.poe ? `<span class="badge badge--poe">${localize("panel.badge.poe")}</span>` : ""}
             ${port.speed ? `<span class="badge badge--speed">${formatSpeed2(port.speed)}</span>` : ""}
           </span>
         </div>
@@ -1764,10 +1774,10 @@ function renderPortModal(state, theme, getNodeTypeIcon) {
         </div>
         <button type="button" class="port-modal__close">&times;</button>
       </div>
-      <div class="port-modal__subtitle">Port Overview</div>
+      <div class="port-modal__subtitle">${localize("port_modal.title")}</div>
       <div class="port-modal__body">
         <div class="port-list">
-          ${portRows || '<div class="port-modal__empty">No port information available</div>'}
+          ${portRows || `<div class="port-modal__empty">${localize("port_modal.no_ports")}</div>`}
         </div>
       </div>
     </div>
@@ -1798,7 +1808,7 @@ function renderMapOverview(context, helpers) {
     return `
       <div class="panel-empty">
         <div class="panel-empty__icon">${helpers.getIcon("network")}</div>
-        <div class="panel-empty__text">Loading network data...</div>
+        <div class="panel-empty__text">${helpers.localize("panel.loading")}</div>
       </div>
     `;
   }
@@ -1810,14 +1820,14 @@ function renderMapOverview(context, helpers) {
   const statusCounts = countNodeStatus(nodeStatus);
   return `
     <div class="panel-header">
-      <div class="panel-header__title">Network Overview</div>
+      <div class="panel-header__title">${helpers.localize("panel.overview")}</div>
     </div>
-    ${renderOverviewStatsGrid(nodes.length, edges.length)}
-    ${renderOverviewStatusSection(statusCounts)}
+    ${renderOverviewStatsGrid(nodes.length, edges.length, helpers)}
+    ${renderOverviewStatusSection(statusCounts, helpers)}
     ${renderOverviewDeviceBreakdown(deviceCounts, helpers)}
     <div class="panel-hint">
       <span class="panel-hint__icon">${helpers.getIcon("hint")}</span>
-      Click a node in the map to see details
+      ${helpers.localize("panel.hint")}
     </div>
   `;
 }
@@ -1830,7 +1840,7 @@ function renderNodePanel(context, name, helpers) {
         <div class="panel-header__title">${safeName}</div>
       </div>
       <div class="panel-empty">
-        <div class="panel-empty__text">No data available</div>
+        <div class="panel-empty__text">${helpers.localize("panel.no_data")}</div>
       </div>
     `;
   }
@@ -1850,9 +1860,9 @@ function renderNodePanel(context, name, helpers) {
       </div>
     </div>
     <div class="panel-tabs">
-      <button type="button" class="panel-tab ${context.activeTab === "overview" ? "panel-tab--active" : ""}" data-tab="overview">Overview</button>
-      <button type="button" class="panel-tab ${context.activeTab === "stats" ? "panel-tab--active" : ""}" data-tab="stats">Stats</button>
-      <button type="button" class="panel-tab ${context.activeTab === "actions" ? "panel-tab--active" : ""}" data-tab="actions">Actions</button>
+      <button type="button" class="panel-tab ${context.activeTab === "overview" ? "panel-tab--active" : ""}" data-tab="overview">${helpers.localize("panel.tabs.overview")}</button>
+      <button type="button" class="panel-tab ${context.activeTab === "stats" ? "panel-tab--active" : ""}" data-tab="stats">${helpers.localize("panel.tabs.stats")}</button>
+      <button type="button" class="panel-tab ${context.activeTab === "actions" ? "panel-tab--active" : ""}" data-tab="actions">${helpers.localize("panel.tabs.actions")}</button>
     </div>
     <div class="panel-tab-content">
       ${renderTabContent(context, name, helpers)}
@@ -1892,19 +1902,19 @@ function renderOverviewTab(context, name, helpers) {
           <div class="neighbor-item">
             <span class="neighbor-item__name">${helpers.escapeHtml(n.name)}</span>
             <span class="neighbor-item__badges">
-              ${n.poe ? '<span class="badge badge--poe">PoE</span>' : ""}
-              ${n.wireless ? '<span class="badge badge--wireless">WiFi</span>' : ""}
+              ${n.poe ? `<span class="badge badge--poe">${helpers.localize("panel.badge.poe")}</span>` : ""}
+              ${n.wireless ? `<span class="badge badge--wireless">${helpers.localize("panel.badge.wifi")}</span>` : ""}
               ${n.label ? `<span class="badge badge--port">${helpers.escapeHtml(n.label)}</span>` : ""}
             </span>
           </div>
         `
-  ).join("") : '<div class="panel-empty__text">No connections</div>';
+  ).join("") : `<div class="panel-empty__text">${helpers.localize("panel.no_connections")}</div>`;
   const relatedEntitiesSection = renderRelatedEntitiesSection(context, name, helpers);
   const vlanSection = renderVlanSection(context, name, helpers);
   return `
     ${vlanSection}
     <div class="panel-section">
-      <div class="panel-section__title">Connected Devices</div>
+      <div class="panel-section__title">${helpers.localize("panel.connected_devices")}</div>
       <div class="neighbor-list">${neighborList}</div>
     </div>
     ${relatedEntitiesSection}
@@ -1917,14 +1927,14 @@ function renderVlanSection(context, name, helpers) {
   }
   return `
     <div class="panel-section">
-      <div class="panel-section__title">Network</div>
+      <div class="panel-section__title">${helpers.localize("panel.network")}</div>
       <div class="stats-list">
         <div class="stats-row">
-          <span class="stats-row__label">VLAN</span>
+          <span class="stats-row__label">${helpers.localize("panel.vlan")}</span>
           <span class="stats-row__value">${helpers.escapeHtml(vlanInfo.name)}</span>
         </div>
         <div class="stats-row">
-          <span class="stats-row__label">VLAN ID</span>
+          <span class="stats-row__label">${helpers.localize("panel.vlan_id")}</span>
           <span class="stats-row__value">${vlanInfo.id}</span>
         </div>
       </div>
@@ -1940,7 +1950,7 @@ function renderRelatedEntitiesSection(context, name, helpers) {
     const icon = helpers.getDomainIcon(entity.domain);
     const displayName = entity.friendly_name ?? entity.entity_id;
     const stateClass = getEntityStateClass(entity.state);
-    const stateLabel = normalizeStateLabel(entity.state, entity.domain);
+    const stateLabel = normalizeStateLabel(entity.state, entity.domain, helpers.localize);
     return `
         <div class="entity-item" data-entity-id="${helpers.escapeHtml(entity.entity_id)}">
           <span class="entity-item__icon">${icon}</span>
@@ -1954,17 +1964,17 @@ function renderRelatedEntitiesSection(context, name, helpers) {
   }).join("");
   return `
     <div class="panel-section">
-      <div class="panel-section__title">Home Assistant Entities</div>
+      <div class="panel-section__title">${helpers.localize("panel.entities")}</div>
       <div class="entity-list">${entityItems}</div>
     </div>
   `;
 }
-function normalizeStateLabel(state, domain) {
-  if (!state) return "Unknown";
+function normalizeStateLabel(state, domain, localize) {
+  if (!state) return localize("panel.status.unknown");
   const lower = state.toLowerCase();
   if (domain === "device_tracker") {
-    if (lower === "home" || lower === "connected") return "Online";
-    if (lower === "not_home" || lower === "disconnected") return "Offline";
+    if (lower === "home" || lower === "connected") return localize("panel.status.online");
+    if (lower === "not_home" || lower === "disconnected") return localize("panel.status.offline");
   }
   return state.charAt(0).toUpperCase() + state.slice(1).replace(/_/g, " ");
 }
@@ -1999,7 +2009,7 @@ function renderStatsTab(context, name, helpers) {
   const vlanInfo = getNodeVlanInfo(name, context.payload);
   return `
     ${renderStatsLiveStatus(status, helpers)}
-    ${renderStatsConnectionSection(nodeEdges)}
+    ${renderStatsConnectionSection(nodeEdges, helpers)}
     ${renderStatsNetworkInfo(vlanInfo, helpers)}
     ${renderStatsDeviceInfo(mac, ip, helpers)}
   `;
@@ -2010,39 +2020,39 @@ function renderStatsLiveStatus(status, helpers) {
   }
   return `
     <div class="panel-section">
-      <div class="panel-section__title">Live Status</div>
+      <div class="panel-section__title">${helpers.localize("panel.status.live")}</div>
       <div class="stats-list">
         <div class="stats-row">
-          <span class="stats-row__label">Status</span>
+          <span class="stats-row__label">${helpers.localize("panel.status.status")}</span>
           <span class="stats-row__value">${helpers.getStatusBadgeHtml(status.state)}</span>
         </div>
         <div class="stats-row">
-          <span class="stats-row__label">Last Changed</span>
+          <span class="stats-row__label">${helpers.localize("panel.status.last_changed")}</span>
           <span class="stats-row__value">${helpers.formatLastChanged(status.last_changed)}</span>
         </div>
       </div>
     </div>
   `;
 }
-function renderStatsConnectionSection(nodeEdges) {
+function renderStatsConnectionSection(nodeEdges, helpers) {
   const wirelessCount = nodeEdges.filter((e) => e.wireless).length;
   const wiredCount = nodeEdges.length - wirelessCount;
   const poeCount = nodeEdges.filter((e) => e.poe).length;
-  const poeRow = poeCount > 0 ? `<div class="stats-row"><span class="stats-row__label">PoE Powered</span><span class="stats-row__value">${poeCount}</span></div>` : "";
+  const poeRow = poeCount > 0 ? `<div class="stats-row"><span class="stats-row__label">${helpers.localize("panel.stats.connection_poe")}</span><span class="stats-row__value">${poeCount}</span></div>` : "";
   return `
     <div class="panel-section">
-      <div class="panel-section__title">Connection Stats</div>
+      <div class="panel-section__title">${helpers.localize("panel.stats.connection")}</div>
       <div class="stats-list">
         <div class="stats-row">
-          <span class="stats-row__label">Total Connections</span>
+          <span class="stats-row__label">${helpers.localize("panel.stats.total_connections")}</span>
           <span class="stats-row__value">${nodeEdges.length}</span>
         </div>
         <div class="stats-row">
-          <span class="stats-row__label">Wired</span>
+          <span class="stats-row__label">${helpers.localize("panel.stats.wired")}</span>
           <span class="stats-row__value">${wiredCount}</span>
         </div>
         <div class="stats-row">
-          <span class="stats-row__label">Wireless</span>
+          <span class="stats-row__label">${helpers.localize("panel.stats.wireless")}</span>
           <span class="stats-row__value">${wirelessCount}</span>
         </div>
         ${poeRow}
@@ -2056,14 +2066,14 @@ function renderStatsNetworkInfo(vlanInfo, helpers) {
   }
   return `
     <div class="panel-section">
-      <div class="panel-section__title">Network Info</div>
+      <div class="panel-section__title">${helpers.localize("panel.network_info")}</div>
       <div class="stats-list">
         <div class="stats-row">
-          <span class="stats-row__label">Network</span>
+          <span class="stats-row__label">${helpers.localize("panel.network")}</span>
           <span class="stats-row__value">${helpers.escapeHtml(vlanInfo.name)}</span>
         </div>
         <div class="stats-row">
-          <span class="stats-row__label">VLAN ID</span>
+          <span class="stats-row__label">${helpers.localize("panel.vlan_id")}</span>
           <span class="stats-row__value">${vlanInfo.id}</span>
         </div>
       </div>
@@ -2076,19 +2086,19 @@ function renderStatsDeviceInfo(mac, ip, helpers) {
   }
   const macRow = mac ? `
       <div class="info-row">
-        <span class="info-row__label">MAC Address</span>
+        <span class="info-row__label">${helpers.localize("panel.stats.mac")}</span>
         <code class="info-row__value">${helpers.escapeHtml(mac)}</code>
       </div>
     ` : "";
   const ipRow = ip ? `
       <div class="info-row">
-        <span class="info-row__label">IP Address</span>
+        <span class="info-row__label">${helpers.localize("panel.stats.ip")}</span>
         <code class="info-row__value">${helpers.escapeHtml(ip)}</code>
       </div>
     ` : "";
   return `
     <div class="panel-section">
-      <div class="panel-section__title">Device Info</div>
+      <div class="panel-section__title">${helpers.localize("panel.device_info")}</div>
       ${macRow}
       ${ipRow}
     </div>
@@ -2106,84 +2116,104 @@ function renderActionsTab(context, name, helpers) {
   const safeName = helpers.escapeHtml(name);
   return `
     <div class="panel-section">
-      <div class="panel-section__title">Quick Actions</div>
+      <div class="panel-section__title">${helpers.localize("panel.actions.title")}</div>
       <div class="actions-list">
         ${entityId ? `
             <button type="button" class="action-button" data-entity-id="${safeEntityId}">
               <span class="action-button__icon">${helpers.getIcon("action-details")}</span>
-              <span class="action-button__text">View Entity Details</span>
+              <span class="action-button__text">${helpers.localize("panel.actions.view_entity")}</span>
             </button>
-          ` : `<div class="panel-empty__text">No Home Assistant entity linked</div>`}
+          ` : `<div class="panel-empty__text">${helpers.localize("panel.actions.no_entity")}</div>`}
         ${hasPortInfo ? `
             <button type="button" class="action-button" data-action="view-ports" data-node-name="${safeName}">
               <span class="action-button__icon">${helpers.getIcon("action-ports")}</span>
-              <span class="action-button__text">View Port Overview</span>
+              <span class="action-button__text">${helpers.localize("panel.actions.view_ports")}</span>
             </button>
           ` : ""}
         ${mac ? `
             <button type="button" class="action-button" data-action="copy" data-copy-value="${safeMac}">
               <span class="action-button__icon">${helpers.getIcon("action-copy")}</span>
-              <span class="action-button__text">Copy MAC Address</span>
+              <span class="action-button__text">${helpers.localize("panel.actions.copy_mac")}</span>
             </button>
           ` : ""}
         ${ip ? `
             <button type="button" class="action-button" data-action="copy" data-copy-value="${safeIp}">
               <span class="action-button__icon">${helpers.getIcon("action-copy")}</span>
-              <span class="action-button__text">Copy IP Address</span>
+              <span class="action-button__text">${helpers.localize("panel.actions.copy_ip")}</span>
             </button>
           ` : ""}
       </div>
     </div>
     ${entityId ? `
       <div class="panel-section">
-        <div class="panel-section__title">Entity</div>
+        <div class="panel-section__title">${helpers.localize("panel.actions.entity")}</div>
         <code class="entity-id">${safeEntityId}</code>
       </div>
     ` : ""}
   `;
 }
-function renderOverviewStatsGrid(nodeCount, edgeCount) {
+function renderOverviewStatsGrid(nodeCount, edgeCount, helpers) {
   return `
     <div class="panel-stats-grid">
       <div class="stat-card">
         <div class="stat-card__value">${nodeCount}</div>
-        <div class="stat-card__label">Total Nodes</div>
+        <div class="stat-card__label">${helpers.localize("panel.overview.total_nodes")}</div>
       </div>
       <div class="stat-card">
         <div class="stat-card__value">${edgeCount}</div>
-        <div class="stat-card__label">Connections</div>
+        <div class="stat-card__label">${helpers.localize("panel.overview.connections")}</div>
       </div>
     </div>
   `;
 }
-function renderOverviewStatusSection(counts) {
+function renderOverviewStatusSection(counts, helpers) {
   if (!counts.hasStatus) {
     return "";
   }
   return `
     <div class="panel-section">
-      <div class="panel-section__title">Live Status</div>
+      <div class="panel-section__title">${helpers.localize("panel.status.live")}</div>
       <div class="device-list">
-        <div class="device-row"><span class="status-dot status-dot--online"></span><span class="device-row__label">Online</span><span class="device-row__count">${counts.online}</span></div>
-        <div class="device-row"><span class="status-dot status-dot--offline"></span><span class="device-row__label">Offline</span><span class="device-row__count">${counts.offline}</span></div>
+        <div class="device-row"><span class="status-dot status-dot--online"></span><span class="device-row__label">${helpers.localize("panel.status.online")}</span><span class="device-row__count">${counts.online}</span></div>
+        <div class="device-row"><span class="status-dot status-dot--offline"></span><span class="device-row__label">${helpers.localize("panel.status.offline")}</span><span class="device-row__count">${counts.offline}</span></div>
       </div>
     </div>
   `;
 }
 function renderOverviewDeviceBreakdown(counts, helpers) {
   const items = [
-    { key: "gateways", icon: helpers.getIcon("node-gateway"), label: "Gateways" },
-    { key: "switches", icon: helpers.getIcon("node-switch"), label: "Switches" },
-    { key: "aps", icon: helpers.getIcon("node-ap"), label: "Access Points" },
-    { key: "clients", icon: helpers.getIcon("node-client"), label: "Clients" },
-    { key: "other", icon: helpers.getIcon("node-other"), label: "Other" }
+    {
+      key: "gateways",
+      icon: helpers.getIcon("node-gateway"),
+      label: helpers.localize("panel.device_type.gateways")
+    },
+    {
+      key: "switches",
+      icon: helpers.getIcon("node-switch"),
+      label: helpers.localize("panel.device_type.switches")
+    },
+    {
+      key: "aps",
+      icon: helpers.getIcon("node-ap"),
+      label: helpers.localize("panel.device_type.access_points")
+    },
+    {
+      key: "clients",
+      icon: helpers.getIcon("node-client"),
+      label: helpers.localize("panel.device_type.clients")
+    },
+    {
+      key: "other",
+      icon: helpers.getIcon("node-other"),
+      label: helpers.localize("panel.device_type.other")
+    }
   ];
   const rows = items.filter((item) => counts[item.key] > 0).map(
     (item) => `<div class="device-row"><span class="device-row__icon">${item.icon}</span><span class="device-row__label">${item.label}</span><span class="device-row__count">${counts[item.key]}</span></div>`
   ).join("");
   return `
     <div class="panel-section">
-      <div class="panel-section__title">Device Breakdown</div>
+      <div class="panel-section__title">${helpers.localize("panel.device_breakdown")}</div>
       <div class="device-list">${rows}</div>
     </div>
   `;
@@ -2230,7 +2260,7 @@ function renderContextMenu(options) {
     items.push(`
       <button type="button" class="context-menu__item" data-context-action="details">
         <span class="context-menu__icon">${options.getIcon("menu-details")}</span>
-        <span>View Details</span>
+        <span>${options.localize("context_menu.view_details")}</span>
       </button>
     `);
   }
@@ -2238,7 +2268,7 @@ function renderContextMenu(options) {
     items.push(`
       <button type="button" class="context-menu__item" data-context-action="copy-mac" data-mac="${escapeHtml(mac)}">
         <span class="context-menu__icon">${options.getIcon("menu-copy")}</span>
-        <span>Copy MAC Address</span>
+        <span>${options.localize("context_menu.copy_mac")}</span>
       </button>
     `);
   }
@@ -2246,7 +2276,7 @@ function renderContextMenu(options) {
     items.push(`
       <button type="button" class="context-menu__item" data-context-action="copy-ip" data-ip="${escapeHtml(ip)}">
         <span class="context-menu__icon">${options.getIcon("menu-copy-ip")}</span>
-        <span>Copy IP Address</span>
+        <span>${options.localize("context_menu.copy_ip")}</span>
       </button>
     `);
   }
@@ -2255,7 +2285,7 @@ function renderContextMenu(options) {
     items.push(`
       <button type="button" class="context-menu__item" data-context-action="view-ports">
         <span class="context-menu__icon">${options.getIcon("menu-ports")}</span>
-        <span>View Ports</span>
+        <span>${options.localize("context_menu.view_ports")}</span>
       </button>
     `);
   }
@@ -2266,7 +2296,7 @@ function renderContextMenu(options) {
     items.push(`
       <button type="button" class="context-menu__item" data-context-action="restart" ${!entityId ? "disabled" : ""}>
         <span class="context-menu__icon">${options.getIcon("menu-restart")}</span>
-        <span>Restart Device</span>
+        <span>${options.localize("context_menu.restart")}</span>
       </button>
     `);
   }
@@ -2355,6 +2385,24 @@ async function loadPayload(fetchWithAuth2, url, signal) {
   return fetchWithAuth2(url, signal, (response) => response.json());
 }
 
+// src/card/data/websocket.ts
+async function subscribeMapUpdates(hass, entryId, onUpdate) {
+  if (!hass.connection?.subscribeMessage) {
+    return { subscribed: false, reason: "WebSocket not available" };
+  }
+  try {
+    const unsubscribe = await hass.connection.subscribeMessage(
+      (msg) => onUpdate(msg.payload),
+      { type: "unifi_network_map/subscribe", entry_id: entryId },
+      { resubscribe: true }
+    );
+    return { subscribed: true, unsubscribe };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : "Subscription failed";
+    return { subscribed: false, reason };
+  }
+}
+
 // src/card/core/state.ts
 function normalizeConfig(config) {
   if (config.entry_id) {
@@ -2381,6 +2429,602 @@ function stopPolling(currentId) {
     window.clearInterval(currentId);
   }
   return void 0;
+}
+
+// src/card/shared/locales/de.ts
+var de = {
+  "card.controls.reset": "Zur\xFCcksetzen",
+  "card.controls.reset_view": "Ansicht zur\xFCcksetzen",
+  "card.controls.zoom_in": "Vergr\xF6\xDFern",
+  "card.controls.zoom_out": "Verkleinern",
+  "card.error.load_payload": "Daten konnten nicht geladen werden ({error})",
+  "card.error.load_svg": "SVG konnte nicht geladen werden ({error})",
+  "card.error.missing_auth": "Authentifizierungstoken fehlt",
+  "card.error.missing_config": "Konfiguration fehlt",
+  "card.error.missing_entry": "W\xE4hle in den Karteneinstellungen eine UniFi Network Map-Instanz aus.",
+  "card.error.retry": "Erneut versuchen",
+  "card.error.unknown": "Unbekannter Fehler",
+  "card.filter.hide": "{label} ausblenden",
+  "card.filter.show": "{label} anzeigen",
+  "card.loading.aria": "Laden",
+  "card.loading.map": "Karte wird geladen...",
+  "card.loading.refresh": "Daten werden aktualisiert...",
+  "card.time.days_ago": "vor {count}d",
+  "card.time.hours_ago": "vor {count}h",
+  "card.time.just_now": "Gerade eben",
+  "card.time.minutes_ago": "vor {count}m",
+  "card.time.unknown": "Unbekannt",
+  "context_menu.copy_ip": "IP-Adresse kopieren",
+  "context_menu.copy_mac": "MAC-Adresse kopieren",
+  "context_menu.restart": "Ger\xE4t neu starten",
+  "context_menu.view_details": "Details anzeigen",
+  "context_menu.view_ports": "Ports anzeigen",
+  "editor.card_height": "Kartenh\xF6he (optional)",
+  "editor.entry_id": "UniFi Network Map-Instanz",
+  "editor.no_entries": "Keine UniFi Network Map-Integrationen gefunden. Bitte zuerst eine hinzuf\xFCgen.",
+  "editor.theme": "Thema",
+  "editor.theme.dark": "Dunkel (Standard)",
+  "editor.theme.light": "Hell",
+  "editor.theme.unifi": "UniFi",
+  "editor.theme.unifi_dark": "UniFi Dunkel",
+  "edge_tooltip.band_24": "2.4GHz",
+  "edge_tooltip.band_5": "5GHz",
+  "edge_tooltip.band_6": "6GHz",
+  "edge_tooltip.channel": "Kanal {channel}{suffix}",
+  "edge_tooltip.poe": "Per PoE versorgt",
+  "edge_tooltip.speed_gbps": "{speed} Gbps",
+  "edge_tooltip.speed_mbps": "{speed} Mbps",
+  "edge_tooltip.wired": "Kabelgebunden",
+  "edge_tooltip.wireless": "Drahtlos",
+  "entity_modal.device_info": "Ger\xE4teinformationen",
+  "entity_modal.device_type": "Ger\xE4tetyp",
+  "entity_modal.ip": "IP-Adresse",
+  "entity_modal.last_changed": "Zuletzt ge\xE4ndert",
+  "entity_modal.mac": "MAC-Adresse",
+  "entity_modal.no_entities": "Keine Home-Assistant-Entit\xE4ten f\xFCr dieses Ger\xE4t gefunden",
+  "entity_modal.related_entities": "Zugeh\xF6rige Entit\xE4ten",
+  "entity_modal.related_entities_count": "Zugeh\xF6rige Entit\xE4ten ({count})",
+  "entity_modal.status": "Status",
+  "entity_modal.status_offline": "Offline",
+  "entity_modal.status_online": "Online",
+  "entity_modal.status_unknown": "Unbekannt",
+  "panel.actions.copy_ip": "IP-Adresse kopieren",
+  "panel.actions.copy_mac": "MAC-Adresse kopieren",
+  "panel.actions.entity": "Entit\xE4t",
+  "panel.actions.no_entity": "Keine Home-Assistant-Entit\xE4t verkn\xFCpft",
+  "panel.actions.title": "Schnellaktionen",
+  "panel.actions.view_entity": "Entit\xE4tsdetails anzeigen",
+  "panel.actions.view_ports": "Port\xFCbersicht anzeigen",
+  "panel.badge.poe": "PoE",
+  "panel.badge.wifi": "WiFi",
+  "panel.connected_devices": "Verbundene Ger\xE4te",
+  "panel.device_breakdown": "Ger\xE4te\xFCbersicht",
+  "panel.device_info": "Ger\xE4teinfo",
+  "panel.device_type.access_points": "Access Points",
+  "panel.device_type.clients": "Clients",
+  "panel.device_type.gateways": "Gateways",
+  "panel.device_type.other": "Andere",
+  "panel.device_type.switches": "Switches",
+  "panel.entities": "Home-Assistant-Entit\xE4ten",
+  "panel.hint": "Klicke auf einen Knoten in der Karte, um Details zu sehen",
+  "panel.loading": "Netzwerkdaten werden geladen...",
+  "panel.network": "Netzwerk",
+  "panel.network_info": "Netzwerkinfo",
+  "panel.no_connections": "Keine Verbindungen",
+  "panel.no_data": "Keine Daten verf\xFCgbar",
+  "panel.overview": "Netzwerk\xFCbersicht",
+  "panel.overview.connections": "Verbindungen",
+  "panel.overview.total_nodes": "Gesamte Knoten",
+  "panel.stats.connection": "Verbindungsstatistiken",
+  "panel.stats.connection_poe": "Per PoE versorgt",
+  "panel.stats.ip": "IP-Adresse",
+  "panel.stats.mac": "MAC-Adresse",
+  "panel.stats.total_connections": "Gesamtverbindungen",
+  "panel.stats.wired": "Kabelgebunden",
+  "panel.stats.wireless": "Drahtlos",
+  "panel.status.last_changed": "Zuletzt ge\xE4ndert",
+  "panel.status.live": "Live-Status",
+  "panel.status.offline": "Offline",
+  "panel.status.online": "Online",
+  "panel.status.status": "Status",
+  "panel.status.unknown": "Unbekannt",
+  "panel.tabs.actions": "Aktionen",
+  "panel.tabs.overview": "\xDCbersicht",
+  "panel.tabs.stats": "Statistiken",
+  "panel.vlan": "VLAN",
+  "panel.vlan_id": "VLAN-ID",
+  "port_modal.empty": "Leer",
+  "port_modal.no_ports": "Keine Portinformationen verf\xFCgbar",
+  "port_modal.port": "Port {port}",
+  "port_modal.title": "Port\xFCbersicht",
+  "toast.copied": "Kopiert!",
+  "toast.copy_ip": "IP-Adresse kopiert!",
+  "toast.copy_mac": "MAC-Adresse kopiert!",
+  "toast.no_entity": "Keine Entit\xE4t f\xFCr dieses Ger\xE4t gefunden",
+  "toast.restart_sent": "Neustartbefehl gesendet"
+};
+
+// src/card/shared/locales/en.ts
+var en = {
+  "card.controls.reset": "Reset",
+  "card.controls.reset_view": "Reset view",
+  "card.controls.zoom_in": "Zoom in",
+  "card.controls.zoom_out": "Zoom out",
+  "card.error.load_payload": "Failed to load payload ({error})",
+  "card.error.load_svg": "Failed to load SVG ({error})",
+  "card.error.missing_auth": "Missing auth token",
+  "card.error.missing_config": "Missing configuration",
+  "card.error.missing_entry": "Select a UniFi Network Map instance in the card settings.",
+  "card.error.retry": "Retry",
+  "card.error.unknown": "Unknown error",
+  "card.filter.hide": "Hide {label}",
+  "card.filter.show": "Show {label}",
+  "card.loading.aria": "Loading",
+  "card.loading.map": "Loading map...",
+  "card.loading.refresh": "Refreshing data...",
+  "card.time.days_ago": "{count}d ago",
+  "card.time.hours_ago": "{count}h ago",
+  "card.time.just_now": "Just now",
+  "card.time.minutes_ago": "{count}m ago",
+  "card.time.unknown": "Unknown",
+  "context_menu.copy_ip": "Copy IP Address",
+  "context_menu.copy_mac": "Copy MAC Address",
+  "context_menu.restart": "Restart Device",
+  "context_menu.view_details": "View Details",
+  "context_menu.view_ports": "View Ports",
+  "editor.card_height": "Card height (optional)",
+  "editor.entry_id": "UniFi Network Map Instance",
+  "editor.no_entries": "No UniFi Network Map integrations found. Please add one first.",
+  "editor.theme": "Theme",
+  "editor.theme.dark": "Dark (default)",
+  "editor.theme.light": "Light",
+  "editor.theme.unifi": "UniFi",
+  "editor.theme.unifi_dark": "UniFi Dark",
+  "edge_tooltip.band_24": "2.4GHz",
+  "edge_tooltip.band_5": "5GHz",
+  "edge_tooltip.band_6": "6GHz",
+  "edge_tooltip.channel": "Channel {channel}{suffix}",
+  "edge_tooltip.poe": "PoE Powered",
+  "edge_tooltip.speed_gbps": "{speed} Gbps",
+  "edge_tooltip.speed_mbps": "{speed} Mbps",
+  "edge_tooltip.wired": "Wired",
+  "edge_tooltip.wireless": "Wireless",
+  "entity_modal.device_info": "Device Information",
+  "entity_modal.device_type": "Device Type",
+  "entity_modal.ip": "IP Address",
+  "entity_modal.last_changed": "Last Changed",
+  "entity_modal.mac": "MAC Address",
+  "entity_modal.no_entities": "No Home Assistant entities found for this device",
+  "entity_modal.related_entities": "Related Entities",
+  "entity_modal.related_entities_count": "Related Entities ({count})",
+  "entity_modal.status": "Status",
+  "entity_modal.status_offline": "Offline",
+  "entity_modal.status_online": "Online",
+  "entity_modal.status_unknown": "Unknown",
+  "panel.actions.copy_ip": "Copy IP Address",
+  "panel.actions.copy_mac": "Copy MAC Address",
+  "panel.actions.entity": "Entity",
+  "panel.actions.no_entity": "No Home Assistant entity linked",
+  "panel.actions.title": "Quick Actions",
+  "panel.actions.view_entity": "View Entity Details",
+  "panel.actions.view_ports": "View Port Overview",
+  "panel.badge.poe": "PoE",
+  "panel.badge.wifi": "WiFi",
+  "panel.connected_devices": "Connected Devices",
+  "panel.device_breakdown": "Device Breakdown",
+  "panel.device_info": "Device Info",
+  "panel.device_type.access_points": "Access Points",
+  "panel.device_type.clients": "Clients",
+  "panel.device_type.gateways": "Gateways",
+  "panel.device_type.other": "Other",
+  "panel.device_type.switches": "Switches",
+  "panel.entities": "Home Assistant Entities",
+  "panel.hint": "Click a node in the map to see details",
+  "panel.loading": "Loading network data...",
+  "panel.network": "Network",
+  "panel.network_info": "Network Info",
+  "panel.no_connections": "No connections",
+  "panel.no_data": "No data available",
+  "panel.overview": "Network Overview",
+  "panel.overview.connections": "Connections",
+  "panel.overview.total_nodes": "Total Nodes",
+  "panel.stats.connection": "Connection Stats",
+  "panel.stats.connection_poe": "PoE Powered",
+  "panel.stats.ip": "IP Address",
+  "panel.stats.mac": "MAC Address",
+  "panel.stats.total_connections": "Total Connections",
+  "panel.stats.wired": "Wired",
+  "panel.stats.wireless": "Wireless",
+  "panel.status.last_changed": "Last Changed",
+  "panel.status.live": "Live Status",
+  "panel.status.offline": "Offline",
+  "panel.status.online": "Online",
+  "panel.status.status": "Status",
+  "panel.status.unknown": "Unknown",
+  "panel.tabs.actions": "Actions",
+  "panel.tabs.overview": "Overview",
+  "panel.tabs.stats": "Stats",
+  "panel.vlan": "VLAN",
+  "panel.vlan_id": "VLAN ID",
+  "port_modal.empty": "Empty",
+  "port_modal.no_ports": "No port information available",
+  "port_modal.port": "Port {port}",
+  "port_modal.title": "Port Overview",
+  "toast.copied": "Copied!",
+  "toast.copy_ip": "IP address copied!",
+  "toast.copy_mac": "MAC address copied!",
+  "toast.no_entity": "No entity found for this device",
+  "toast.restart_sent": "Restart command sent"
+};
+
+// src/card/shared/locales/es.ts
+var es = {
+  "card.controls.reset": "Restablecer",
+  "card.controls.reset_view": "Restablecer vista",
+  "card.controls.zoom_in": "Acercar",
+  "card.controls.zoom_out": "Alejar",
+  "card.error.load_payload": "Error al cargar datos ({error})",
+  "card.error.load_svg": "Error al cargar SVG ({error})",
+  "card.error.missing_auth": "Falta el token de autenticaci\xF3n",
+  "card.error.missing_config": "Falta configuraci\xF3n",
+  "card.error.missing_entry": "Selecciona una instancia de UniFi Network Map en la configuraci\xF3n de la tarjeta.",
+  "card.error.retry": "Reintentar",
+  "card.error.unknown": "Error desconocido",
+  "card.filter.hide": "Ocultar {label}",
+  "card.filter.show": "Mostrar {label}",
+  "card.loading.aria": "Cargando",
+  "card.loading.map": "Cargando mapa...",
+  "card.loading.refresh": "Actualizando datos...",
+  "card.time.days_ago": "hace {count}d",
+  "card.time.hours_ago": "hace {count}h",
+  "card.time.just_now": "Justo ahora",
+  "card.time.minutes_ago": "hace {count}m",
+  "card.time.unknown": "Desconocido",
+  "context_menu.copy_ip": "Copiar direcci\xF3n IP",
+  "context_menu.copy_mac": "Copiar direcci\xF3n MAC",
+  "context_menu.restart": "Reiniciar dispositivo",
+  "context_menu.view_details": "Ver detalles",
+  "context_menu.view_ports": "Ver puertos",
+  "editor.card_height": "Altura de la tarjeta (opcional)",
+  "editor.entry_id": "Instancia de UniFi Network Map",
+  "editor.no_entries": "No se encontraron integraciones de UniFi Network Map. A\xF1ade una primero.",
+  "editor.theme": "Tema",
+  "editor.theme.dark": "Oscuro (predeterminado)",
+  "editor.theme.light": "Claro",
+  "editor.theme.unifi": "UniFi",
+  "editor.theme.unifi_dark": "UniFi oscuro",
+  "edge_tooltip.band_24": "2.4GHz",
+  "edge_tooltip.band_5": "5GHz",
+  "edge_tooltip.band_6": "6GHz",
+  "edge_tooltip.channel": "Canal {channel}{suffix}",
+  "edge_tooltip.poe": "Alimentado por PoE",
+  "edge_tooltip.speed_gbps": "{speed} Gbps",
+  "edge_tooltip.speed_mbps": "{speed} Mbps",
+  "edge_tooltip.wired": "Cableado",
+  "edge_tooltip.wireless": "Inal\xE1mbrico",
+  "entity_modal.device_info": "Informaci\xF3n del dispositivo",
+  "entity_modal.device_type": "Tipo de dispositivo",
+  "entity_modal.ip": "Direcci\xF3n IP",
+  "entity_modal.last_changed": "\xDAltimo cambio",
+  "entity_modal.mac": "Direcci\xF3n MAC",
+  "entity_modal.no_entities": "No se encontraron entidades de Home Assistant para este dispositivo",
+  "entity_modal.related_entities": "Entidades relacionadas",
+  "entity_modal.related_entities_count": "Entidades relacionadas ({count})",
+  "entity_modal.status": "Estado",
+  "entity_modal.status_offline": "Desconectado",
+  "entity_modal.status_online": "En l\xEDnea",
+  "entity_modal.status_unknown": "Desconocido",
+  "panel.actions.copy_ip": "Copiar direcci\xF3n IP",
+  "panel.actions.copy_mac": "Copiar direcci\xF3n MAC",
+  "panel.actions.entity": "Entidad",
+  "panel.actions.no_entity": "No hay entidad de Home Assistant vinculada",
+  "panel.actions.title": "Acciones r\xE1pidas",
+  "panel.actions.view_entity": "Ver detalles de la entidad",
+  "panel.actions.view_ports": "Ver resumen de puertos",
+  "panel.badge.poe": "PoE",
+  "panel.badge.wifi": "WiFi",
+  "panel.connected_devices": "Dispositivos conectados",
+  "panel.device_breakdown": "Desglose de dispositivos",
+  "panel.device_info": "Informaci\xF3n del dispositivo",
+  "panel.device_type.access_points": "Puntos de acceso",
+  "panel.device_type.clients": "Clientes",
+  "panel.device_type.gateways": "Puertas de enlace",
+  "panel.device_type.other": "Otros",
+  "panel.device_type.switches": "Switches",
+  "panel.entities": "Entidades de Home Assistant",
+  "panel.hint": "Haz clic en un nodo del mapa para ver detalles",
+  "panel.loading": "Cargando datos de red...",
+  "panel.network": "Red",
+  "panel.network_info": "Informaci\xF3n de red",
+  "panel.no_connections": "Sin conexiones",
+  "panel.no_data": "No hay datos disponibles",
+  "panel.overview": "Resumen de red",
+  "panel.overview.connections": "Conexiones",
+  "panel.overview.total_nodes": "Nodos totales",
+  "panel.stats.connection": "Estad\xEDsticas de conexi\xF3n",
+  "panel.stats.connection_poe": "Alimentado por PoE",
+  "panel.stats.ip": "Direcci\xF3n IP",
+  "panel.stats.mac": "Direcci\xF3n MAC",
+  "panel.stats.total_connections": "Conexiones totales",
+  "panel.stats.wired": "Cableado",
+  "panel.stats.wireless": "Inal\xE1mbrico",
+  "panel.status.last_changed": "\xDAltimo cambio",
+  "panel.status.live": "Estado en tiempo real",
+  "panel.status.offline": "Desconectado",
+  "panel.status.online": "En l\xEDnea",
+  "panel.status.status": "Estado",
+  "panel.status.unknown": "Desconocido",
+  "panel.tabs.actions": "Acciones",
+  "panel.tabs.overview": "Resumen",
+  "panel.tabs.stats": "Estad\xEDsticas",
+  "panel.vlan": "VLAN",
+  "panel.vlan_id": "ID de VLAN",
+  "port_modal.empty": "Vac\xEDo",
+  "port_modal.no_ports": "No hay informaci\xF3n de puertos disponible",
+  "port_modal.port": "Puerto {port}",
+  "port_modal.title": "Resumen de puertos",
+  "toast.copied": "\xA1Copiado!",
+  "toast.copy_ip": "\xA1Direcci\xF3n IP copiada!",
+  "toast.copy_mac": "\xA1Direcci\xF3n MAC copiada!",
+  "toast.no_entity": "No se encontr\xF3 una entidad para este dispositivo",
+  "toast.restart_sent": "Comando de reinicio enviado"
+};
+
+// src/card/shared/locales/fr.ts
+var fr = {
+  "card.controls.reset": "R\xE9initialiser",
+  "card.controls.reset_view": "R\xE9initialiser la vue",
+  "card.controls.zoom_in": "Zoom avant",
+  "card.controls.zoom_out": "Zoom arri\xE8re",
+  "card.error.load_payload": "\xC9chec du chargement des donn\xE9es ({error})",
+  "card.error.load_svg": "\xC9chec du chargement du SVG ({error})",
+  "card.error.missing_auth": "Jeton d\u2019authentification manquant",
+  "card.error.missing_config": "Configuration manquante",
+  "card.error.missing_entry": "S\xE9lectionnez une instance UniFi Network Map dans les param\xE8tres de la carte.",
+  "card.error.retry": "R\xE9essayer",
+  "card.error.unknown": "Erreur inconnue",
+  "card.filter.hide": "Masquer {label}",
+  "card.filter.show": "Afficher {label}",
+  "card.loading.aria": "Chargement",
+  "card.loading.map": "Chargement de la carte...",
+  "card.loading.refresh": "Actualisation des donn\xE9es...",
+  "card.time.days_ago": "il y a {count}j",
+  "card.time.hours_ago": "il y a {count}h",
+  "card.time.just_now": "\xC0 l\u2019instant",
+  "card.time.minutes_ago": "il y a {count}m",
+  "card.time.unknown": "Inconnu",
+  "context_menu.copy_ip": "Copier l\u2019adresse IP",
+  "context_menu.copy_mac": "Copier l\u2019adresse MAC",
+  "context_menu.restart": "Red\xE9marrer l\u2019appareil",
+  "context_menu.view_details": "Voir les d\xE9tails",
+  "context_menu.view_ports": "Voir les ports",
+  "editor.card_height": "Hauteur de la carte (optionnel)",
+  "editor.entry_id": "Instance UniFi Network Map",
+  "editor.no_entries": "Aucune int\xE9gration UniFi Network Map trouv\xE9e. Ajoutez-en une d\u2019abord.",
+  "editor.theme": "Th\xE8me",
+  "editor.theme.dark": "Sombre (par d\xE9faut)",
+  "editor.theme.light": "Clair",
+  "editor.theme.unifi": "UniFi",
+  "editor.theme.unifi_dark": "UniFi sombre",
+  "edge_tooltip.band_24": "2.4GHz",
+  "edge_tooltip.band_5": "5GHz",
+  "edge_tooltip.band_6": "6GHz",
+  "edge_tooltip.channel": "Canal {channel}{suffix}",
+  "edge_tooltip.poe": "Aliment\xE9 par PoE",
+  "edge_tooltip.speed_gbps": "{speed} Gbps",
+  "edge_tooltip.speed_mbps": "{speed} Mbps",
+  "edge_tooltip.wired": "Filaire",
+  "edge_tooltip.wireless": "Sans fil",
+  "entity_modal.device_info": "Informations sur l\u2019appareil",
+  "entity_modal.device_type": "Type d\u2019appareil",
+  "entity_modal.ip": "Adresse IP",
+  "entity_modal.last_changed": "Dernier changement",
+  "entity_modal.mac": "Adresse MAC",
+  "entity_modal.no_entities": "Aucune entit\xE9 Home Assistant trouv\xE9e pour cet appareil",
+  "entity_modal.related_entities": "Entit\xE9s associ\xE9es",
+  "entity_modal.related_entities_count": "Entit\xE9s associ\xE9es ({count})",
+  "entity_modal.status": "Statut",
+  "entity_modal.status_offline": "Hors ligne",
+  "entity_modal.status_online": "En ligne",
+  "entity_modal.status_unknown": "Inconnu",
+  "panel.actions.copy_ip": "Copier l\u2019adresse IP",
+  "panel.actions.copy_mac": "Copier l\u2019adresse MAC",
+  "panel.actions.entity": "Entit\xE9",
+  "panel.actions.no_entity": "Aucune entit\xE9 Home Assistant li\xE9e",
+  "panel.actions.title": "Actions rapides",
+  "panel.actions.view_entity": "Voir les d\xE9tails de l\u2019entit\xE9",
+  "panel.actions.view_ports": "Voir l\u2019aper\xE7u des ports",
+  "panel.badge.poe": "PoE",
+  "panel.badge.wifi": "WiFi",
+  "panel.connected_devices": "Appareils connect\xE9s",
+  "panel.device_breakdown": "R\xE9partition des appareils",
+  "panel.device_info": "Infos appareil",
+  "panel.device_type.access_points": "Points d\u2019acc\xE8s",
+  "panel.device_type.clients": "Clients",
+  "panel.device_type.gateways": "Passerelles",
+  "panel.device_type.other": "Autres",
+  "panel.device_type.switches": "Commutateurs",
+  "panel.entities": "Entit\xE9s Home Assistant",
+  "panel.hint": "Cliquez sur un n\u0153ud de la carte pour voir les d\xE9tails",
+  "panel.loading": "Chargement des donn\xE9es r\xE9seau...",
+  "panel.network": "R\xE9seau",
+  "panel.network_info": "Infos r\xE9seau",
+  "panel.no_connections": "Aucune connexion",
+  "panel.no_data": "Aucune donn\xE9e disponible",
+  "panel.overview": "Vue d\u2019ensemble du r\xE9seau",
+  "panel.overview.connections": "Connexions",
+  "panel.overview.total_nodes": "Nombre total de n\u0153uds",
+  "panel.stats.connection": "Statistiques de connexion",
+  "panel.stats.connection_poe": "Aliment\xE9 par PoE",
+  "panel.stats.ip": "Adresse IP",
+  "panel.stats.mac": "Adresse MAC",
+  "panel.stats.total_connections": "Connexions totales",
+  "panel.stats.wired": "Filaire",
+  "panel.stats.wireless": "Sans fil",
+  "panel.status.last_changed": "Dernier changement",
+  "panel.status.live": "\xC9tat en direct",
+  "panel.status.offline": "Hors ligne",
+  "panel.status.online": "En ligne",
+  "panel.status.status": "Statut",
+  "panel.status.unknown": "Inconnu",
+  "panel.tabs.actions": "Actions",
+  "panel.tabs.overview": "Vue d\u2019ensemble",
+  "panel.tabs.stats": "Statistiques",
+  "panel.vlan": "VLAN",
+  "panel.vlan_id": "ID VLAN",
+  "port_modal.empty": "Vide",
+  "port_modal.no_ports": "Aucune information de port disponible",
+  "port_modal.port": "Port {port}",
+  "port_modal.title": "Aper\xE7u des ports",
+  "toast.copied": "Copi\xE9\xA0!",
+  "toast.copy_ip": "Adresse IP copi\xE9e\xA0!",
+  "toast.copy_mac": "Adresse MAC copi\xE9e\xA0!",
+  "toast.no_entity": "Aucune entit\xE9 trouv\xE9e pour cet appareil",
+  "toast.restart_sent": "Commande de red\xE9marrage envoy\xE9e"
+};
+
+// src/card/shared/locales/nl.ts
+var nl = {
+  "card.controls.reset": "Reset",
+  "card.controls.reset_view": "Weergave resetten",
+  "card.controls.zoom_in": "Inzoomen",
+  "card.controls.zoom_out": "Uitzoomen",
+  "card.error.load_payload": "Laden van gegevens mislukt ({error})",
+  "card.error.load_svg": "Laden van SVG mislukt ({error})",
+  "card.error.missing_auth": "Authenticatietoken ontbreekt",
+  "card.error.missing_config": "Configuratie ontbreekt",
+  "card.error.missing_entry": "Selecteer een UniFi Network Map-instantie in de kaartinstellingen.",
+  "card.error.retry": "Opnieuw proberen",
+  "card.error.unknown": "Onbekende fout",
+  "card.filter.hide": "{label} verbergen",
+  "card.filter.show": "{label} tonen",
+  "card.loading.aria": "Laden",
+  "card.loading.map": "Kaart laden...",
+  "card.loading.refresh": "Gegevens verversen...",
+  "card.time.days_ago": "{count}d geleden",
+  "card.time.hours_ago": "{count}u geleden",
+  "card.time.just_now": "Zojuist",
+  "card.time.minutes_ago": "{count}m geleden",
+  "card.time.unknown": "Onbekend",
+  "context_menu.copy_ip": "IP-adres kopi\xEBren",
+  "context_menu.copy_mac": "MAC-adres kopi\xEBren",
+  "context_menu.restart": "Apparaat herstarten",
+  "context_menu.view_details": "Details bekijken",
+  "context_menu.view_ports": "Poorten bekijken",
+  "editor.card_height": "Kaarthoogte (optioneel)",
+  "editor.entry_id": "UniFi Network Map-instantie",
+  "editor.no_entries": "Geen UniFi Network Map-integraties gevonden. Voeg er eerst \xE9\xE9n toe.",
+  "editor.theme": "Thema",
+  "editor.theme.dark": "Donker (standaard)",
+  "editor.theme.light": "Licht",
+  "editor.theme.unifi": "UniFi",
+  "editor.theme.unifi_dark": "UniFi Donker",
+  "edge_tooltip.band_24": "2.4GHz",
+  "edge_tooltip.band_5": "5GHz",
+  "edge_tooltip.band_6": "6GHz",
+  "edge_tooltip.channel": "Kanaal {channel}{suffix}",
+  "edge_tooltip.poe": "PoE-gevoed",
+  "edge_tooltip.speed_gbps": "{speed} Gbps",
+  "edge_tooltip.speed_mbps": "{speed} Mbps",
+  "edge_tooltip.wired": "Bekabeld",
+  "edge_tooltip.wireless": "Draadloos",
+  "entity_modal.device_info": "Apparaatinformatie",
+  "entity_modal.device_type": "Apparaattype",
+  "entity_modal.ip": "IP-adres",
+  "entity_modal.last_changed": "Laatst gewijzigd",
+  "entity_modal.mac": "MAC-adres",
+  "entity_modal.no_entities": "Geen Home Assistant-entiteiten gevonden voor dit apparaat",
+  "entity_modal.related_entities": "Gerelateerde entiteiten",
+  "entity_modal.related_entities_count": "Gerelateerde entiteiten ({count})",
+  "entity_modal.status": "Status",
+  "entity_modal.status_offline": "Offline",
+  "entity_modal.status_online": "Online",
+  "entity_modal.status_unknown": "Onbekend",
+  "panel.actions.copy_ip": "IP-adres kopi\xEBren",
+  "panel.actions.copy_mac": "MAC-adres kopi\xEBren",
+  "panel.actions.entity": "Entiteit",
+  "panel.actions.no_entity": "Geen Home Assistant-entiteit gekoppeld",
+  "panel.actions.title": "Snelle acties",
+  "panel.actions.view_entity": "Entiteitsdetails bekijken",
+  "panel.actions.view_ports": "Poortoverzicht bekijken",
+  "panel.badge.poe": "PoE",
+  "panel.badge.wifi": "WiFi",
+  "panel.connected_devices": "Verbonden apparaten",
+  "panel.device_breakdown": "Apparaatoverzicht",
+  "panel.device_info": "Apparaatinformatie",
+  "panel.device_type.access_points": "Access points",
+  "panel.device_type.clients": "Clients",
+  "panel.device_type.gateways": "Gateways",
+  "panel.device_type.other": "Overig",
+  "panel.device_type.switches": "Switches",
+  "panel.entities": "Home Assistant-entiteiten",
+  "panel.hint": "Klik op een node in de kaart om details te zien",
+  "panel.loading": "Netwerkgegevens laden...",
+  "panel.network": "Netwerk",
+  "panel.network_info": "Netwerkinformatie",
+  "panel.no_connections": "Geen verbindingen",
+  "panel.no_data": "Geen gegevens beschikbaar",
+  "panel.overview": "Netwerkoverzicht",
+  "panel.overview.connections": "Verbindingen",
+  "panel.overview.total_nodes": "Totaal nodes",
+  "panel.stats.connection": "Verbindingsstatistieken",
+  "panel.stats.connection_poe": "PoE-gevoed",
+  "panel.stats.ip": "IP-adres",
+  "panel.stats.mac": "MAC-adres",
+  "panel.stats.total_connections": "Totaal verbindingen",
+  "panel.stats.wired": "Bekabeld",
+  "panel.stats.wireless": "Draadloos",
+  "panel.status.last_changed": "Laatst gewijzigd",
+  "panel.status.live": "Live status",
+  "panel.status.offline": "Offline",
+  "panel.status.online": "Online",
+  "panel.status.status": "Status",
+  "panel.status.unknown": "Onbekend",
+  "panel.tabs.actions": "Acties",
+  "panel.tabs.overview": "Overzicht",
+  "panel.tabs.stats": "Statistieken",
+  "panel.vlan": "VLAN",
+  "panel.vlan_id": "VLAN-ID",
+  "port_modal.empty": "Leeg",
+  "port_modal.no_ports": "Geen poortinformatie beschikbaar",
+  "port_modal.port": "Poort {port}",
+  "port_modal.title": "Poortoverzicht",
+  "toast.copied": "Gekopieerd!",
+  "toast.copy_ip": "IP-adres gekopieerd!",
+  "toast.copy_mac": "MAC-adres gekopieerd!",
+  "toast.no_entity": "Geen entiteit gevonden voor dit apparaat",
+  "toast.restart_sent": "Herstartcommando verzonden"
+};
+
+// src/card/shared/localize.ts
+var TRANSLATIONS = {
+  de,
+  en,
+  es,
+  fr,
+  nl
+};
+function normalizeLanguage(language) {
+  if (!language) return void 0;
+  const base = language.toLowerCase().split("-")[0];
+  return base in TRANSLATIONS ? base : void 0;
+}
+function formatTemplate(template, replacements) {
+  if (!replacements) return template;
+  let result = template;
+  for (const [key, value] of Object.entries(replacements)) {
+    const token = `{${key}}`;
+    result = result.split(token).join(String(value));
+  }
+  return result;
+}
+function createLocalize(hass) {
+  const language = normalizeLanguage(hass?.locale?.language) || normalizeLanguage(hass?.language) || normalizeLanguage(navigator.language) || "en";
+  return (key, replacements) => {
+    const dict = TRANSLATIONS[language] ?? TRANSLATIONS.en;
+    const template = dict[key] ?? TRANSLATIONS.en[key] ?? key;
+    return formatTemplate(template, replacements);
+  };
 }
 
 // src/card/interaction/context-menu-state.ts
@@ -2848,11 +3492,11 @@ function createDefaultViewportState() {
     pinchStartScale: null
   };
 }
-function createDefaultViewportHandlers(edges, getIcon) {
+function createDefaultViewportHandlers(edges, getIcon, localize) {
   return {
     resolveNodeName: (event) => resolveNodeName(event),
     findEdge: (target) => edges ? findEdgeFromTarget(target, edges) : null,
-    renderEdgeTooltip: (edge) => renderEdgeTooltip(edge, getIcon)
+    renderEdgeTooltip: (edge) => renderEdgeTooltip(edge, getIcon, localize)
   };
 }
 
@@ -4287,6 +4931,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     super(...arguments);
     this._loading = false;
     this._dataLoading = false;
+    this._localize = createLocalize();
     this._showLoadingOverlay = false;
     this._viewportState = createDefaultViewportState();
     this._selection = createSelectionState();
@@ -4295,6 +4940,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._contextMenu = createContextMenuController();
     this._portModal = createPortModalController();
     this._filterState = createFilterState();
+    this._wsSubscribed = false;
   }
   static getLayoutOptions() {
     return { grid_columns: 4, grid_rows: 3, grid_min_columns: 2, grid_min_rows: 2 };
@@ -4321,27 +4967,58 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     const prevToken = this._hass?.auth?.data?.access_token;
     const newToken = hass?.auth?.data?.access_token;
     this._hass = hass;
+    this._localize = createLocalize(hass);
     if (!hadHass || prevToken !== newToken) {
       this._render();
     }
   }
   connectedCallback() {
     this._render();
-    this._startStatusPolling();
+    this._startWebSocketSubscription();
   }
   disconnectedCallback() {
+    this._stopWebSocketSubscription();
     this._stopStatusPolling();
     this._removeEntityModal();
     this._removeContextMenu();
     this._removePortModal();
   }
   _startStatusPolling() {
+    if (this._wsSubscribed) {
+      return;
+    }
     this._statusPollInterval = startPolling(this._statusPollInterval, 3e4, () => {
       this._refreshPayload();
     });
   }
   _stopStatusPolling() {
     this._statusPollInterval = stopPolling(this._statusPollInterval);
+  }
+  async _startWebSocketSubscription() {
+    if (!this._config?.entry_id || !this._hass) {
+      this._startStatusPolling();
+      return;
+    }
+    const result = await subscribeMapUpdates(this._hass, this._config.entry_id, (payload) => {
+      this._payload = payload;
+      this._lastDataUrl = this._config?.data_url;
+      this._render();
+    });
+    if (result.subscribed) {
+      this._wsSubscribed = true;
+      this._wsUnsubscribe = result.unsubscribe;
+      this._stopStatusPolling();
+    } else {
+      this._wsSubscribed = false;
+      this._startStatusPolling();
+    }
+  }
+  _stopWebSocketSubscription() {
+    if (this._wsUnsubscribe) {
+      this._wsUnsubscribe();
+      this._wsUnsubscribe = void 0;
+    }
+    this._wsSubscribed = false;
   }
   _refreshPayload() {
     this._lastDataUrl = void 0;
@@ -4398,12 +5075,15 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   _render() {
     const theme = this._config?.theme ?? "dark";
     if (!this._config) {
-      this._setCardBody('<div style="padding:16px;">Missing configuration</div>', theme);
+      this._setCardBody(
+        `<div style="padding:16px;">${this._localize("card.error.missing_config")}</div>`,
+        theme
+      );
       return;
     }
     if (!this._config.svg_url) {
       this._setCardBody(
-        '<div style="padding:16px;">Select a UniFi Network Map instance in the card settings.</div>',
+        `<div style="padding:16px;">${this._localize("card.error.missing_entry")}</div>`,
         theme
       );
       return;
@@ -4542,18 +5222,35 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   _renderLoading() {
     return `
       <div class="unifi-network-map__loading">
-        <div class="unifi-network-map__spinner" role="progressbar" aria-label="Loading"></div>
-        <div class="unifi-network-map__loading-text">Loading map...</div>
+        <div class="unifi-network-map__spinner" role="progressbar" aria-label="${this._localize("card.loading.aria")}"></div>
+        <div class="unifi-network-map__loading-text">${this._localize("card.loading.map")}</div>
       </div>
     `;
   }
   _renderError() {
     return `
       <div class="unifi-network-map__error">
-        <div class="unifi-network-map__error-text">${escapeHtml(this._error ?? "Unknown error")}</div>
-        <button type="button" class="unifi-network-map__retry" data-action="retry">Retry</button>
+        <div class="unifi-network-map__error-text">${escapeHtml(this._formatErrorMessage(this._error))}</div>
+        <button type="button" class="unifi-network-map__retry" data-action="retry">${this._localize("card.error.retry")}</button>
       </div>
     `;
+  }
+  _formatErrorMessage(error) {
+    if (!error) {
+      return this._localize("card.error.unknown");
+    }
+    if (error === "Missing auth token") {
+      return this._localize("card.error.missing_auth");
+    }
+    const svgMatch = error.match(/^Failed to load SVG \((.+)\)$/);
+    if (svgMatch) {
+      return this._localize("card.error.load_svg", { error: svgMatch[1] });
+    }
+    const payloadMatch = error.match(/^Failed to load payload \((.+)\)$/);
+    if (payloadMatch) {
+      return this._localize("card.error.load_payload", { error: payloadMatch[1] });
+    }
+    return error;
   }
   _renderLayout() {
     const safeSvg = this._svgContent ? sanitizeSvg(this._svgContent) : "";
@@ -4561,9 +5258,9 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       <div class="unifi-network-map__layout">
         <div class="unifi-network-map__viewport">
           <div class="unifi-network-map__controls">
-            <button type="button" data-action="zoom-in" title="Zoom in">+</button>
-            <button type="button" data-action="zoom-out" title="Zoom out">-</button>
-            <button type="button" data-action="reset" title="Reset view">Reset</button>
+            <button type="button" data-action="zoom-in" title="${this._localize("card.controls.zoom_in")}">+</button>
+            <button type="button" data-action="zoom-out" title="${this._localize("card.controls.zoom_out")}">-</button>
+            <button type="button" data-action="reset" title="${this._localize("card.controls.reset_view")}">${this._localize("card.controls.reset")}</button>
           </div>
           ${this._renderLoadingOverlay()}
           ${safeSvg}
@@ -4584,11 +5281,11 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     const counts = countDeviceTypes(nodeTypes);
     const theme = this._config?.theme ?? "dark";
     const labels = {
-      gateway: "Gateways",
-      switch: "Switches",
-      ap: "APs",
-      client: "Clients",
-      other: "Other"
+      gateway: this._localize("panel.device_type.gateways"),
+      switch: this._localize("panel.device_type.switches"),
+      ap: this._localize("panel.device_type.access_points"),
+      client: this._localize("panel.device_type.clients"),
+      other: this._localize("panel.device_type.other")
     };
     const deviceTypes = ["gateway", "switch", "ap", "client", "other"];
     const filterBar = document.createElement("div");
@@ -4600,8 +5297,8 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       button.type = "button";
       button.className = `filter-button ${active ? "filter-button--active" : "filter-button--inactive"}`;
       button.dataset.filterType = type;
-      const actionVerb = active ? "Hide" : "Show";
-      button.title = `${actionVerb} ${labels[type]}`;
+      const titleKey = active ? "card.filter.hide" : "card.filter.show";
+      button.title = this._localize(titleKey, { label: labels[type] });
       const icon = nodeTypeIcon(type, theme);
       button.innerHTML = `<span class="filter-button__icon">${icon}</span><span class="filter-button__count">${count}</span>`;
       button.onclick = (e) => {
@@ -4622,7 +5319,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     return `
       <div class="unifi-network-map__loading-overlay">
         <div class="unifi-network-map__spinner"></div>
-        <div class="unifi-network-map__loading-text">Refreshing data...</div>
+        <div class="unifi-network-map__loading-text">${this._localize("card.loading.refresh")}</div>
       </div>
     `;
   }
@@ -4688,7 +5385,8 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       getIcon: (name) => this._getIcon(name),
       getDomainIcon: (domain) => domainIcon(domain, theme),
       getStatusBadgeHtml: (state) => this._getStatusBadgeHtml(state),
-      formatLastChanged: (value) => this._formatLastChanged(value)
+      formatLastChanged: (value) => this._formatLastChanged(value),
+      localize: this._localize
     };
   }
   _getNodeTypeIcon(nodeType) {
@@ -4701,27 +5399,27 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   }
   _getStatusBadgeHtml(state) {
     const labels = {
-      online: "Online",
-      offline: "Offline",
-      unknown: "Unknown"
+      online: this._localize("panel.status.online"),
+      offline: this._localize("panel.status.offline"),
+      unknown: this._localize("panel.status.unknown")
     };
     return `<span class="status-badge status-badge--${state}">${labels[state]}</span>`;
   }
   _formatLastChanged(isoString) {
-    if (!isoString) return "Unknown";
+    if (!isoString) return this._localize("card.time.unknown");
     try {
       const date = new Date(isoString);
       const now = /* @__PURE__ */ new Date();
       const diffMs = now.getTime() - date.getTime();
       const diffMin = Math.floor(diffMs / 6e4);
-      if (diffMin < 1) return "Just now";
-      if (diffMin < 60) return `${diffMin}m ago`;
+      if (diffMin < 1) return this._localize("card.time.just_now");
+      if (diffMin < 60) return this._localize("card.time.minutes_ago", { count: diffMin });
       const diffHours = Math.floor(diffMin / 60);
-      if (diffHours < 24) return `${diffHours}h ago`;
+      if (diffHours < 24) return this._localize("card.time.hours_ago", { count: diffHours });
       const diffDays = Math.floor(diffHours / 24);
-      return `${diffDays}d ago`;
+      return this._localize("card.time.days_ago", { count: diffDays });
     } catch {
-      return "Unknown";
+      return this._localize("card.time.unknown");
     }
   }
   _ensureStyles() {
@@ -4786,7 +5484,11 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       svg: svg3,
       state: this._viewportState,
       options,
-      handlers: createDefaultViewportHandlers(this._payload?.edges, (name) => this._getIcon(name)),
+      handlers: createDefaultViewportHandlers(
+        this._payload?.edges,
+        (name) => this._getIcon(name),
+        this._localize
+      ),
       callbacks,
       bindings: {
         tooltip,
@@ -4888,7 +5590,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
         const textEl = copyButton.querySelector(".action-button__text");
         if (textEl) {
           const original = textEl.textContent;
-          textEl.textContent = "Copied!";
+          textEl.textContent = this._localize("toast.copied");
           setTimeout(() => {
             textEl.textContent = original;
           }, 1500);
@@ -4914,6 +5616,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       theme: this._config?.theme ?? "dark",
       getNodeTypeIcon: (nodeType) => this._getNodeTypeIcon(nodeType),
       formatLastChanged: (value) => this._formatLastChanged(value),
+      localize: this._localize,
       onEntityDetails: (entityId) => this._openEntityDetails(entityId)
     });
   }
@@ -4949,7 +5652,8 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       payload: this._payload,
       theme: this._config?.theme ?? "dark",
       getNodeTypeIcon: (nodeType) => this._getNodeTypeIcon(nodeType),
-      getIcon: (name) => this._getIcon(name)
+      getIcon: (name) => this._getIcon(name),
+      localize: this._localize
     });
   }
   _handleContextMenuAction(action, nodeName, mac, ip) {
@@ -4961,7 +5665,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       case "copy-mac":
         if (mac) {
           navigator.clipboard.writeText(mac).then(() => {
-            this._showCopyFeedback("MAC address copied!");
+            this._showCopyFeedback(this._localize("toast.copy_mac"));
           });
         }
         this._removeContextMenu();
@@ -4969,7 +5673,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       case "copy-ip":
         if (ip) {
           navigator.clipboard.writeText(ip).then(() => {
-            this._showCopyFeedback("IP address copied!");
+            this._showCopyFeedback(this._localize("toast.copy_ip"));
           });
         }
         this._removeContextMenu();
@@ -4993,6 +5697,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       payload: this._payload,
       theme: this._config?.theme ?? "dark",
       getNodeTypeIcon: (nodeType) => this._getNodeTypeIcon(nodeType),
+      localize: this._localize,
       onClose: () => this._removePortModal(),
       onDeviceClick: (deviceName) => {
         this._removePortModal();
@@ -5010,7 +5715,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   _handleRestartDevice(nodeName) {
     const entityId = this._payload?.node_entities?.[nodeName] ?? this._payload?.device_entities?.[nodeName];
     if (!entityId) {
-      this._showActionError("No entity found for this device");
+      this._showActionError(this._localize("toast.no_entity"));
       return;
     }
     this.dispatchEvent(
@@ -5024,7 +5729,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
         }
       })
     );
-    this._showActionFeedback("Restart command sent");
+    this._showActionFeedback(this._localize("toast.restart_sent"));
   }
   _showActionFeedback(message) {
     showToast(message, "info");
@@ -5112,7 +5817,11 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       svg3,
       this._viewportState,
       this._viewportOptions(),
-      createDefaultViewportHandlers(this._payload?.edges, (name) => this._getIcon(name)),
+      createDefaultViewportHandlers(
+        this._payload?.edges,
+        (name) => this._getIcon(name),
+        this._localize
+      ),
       this._viewportCallbacks(),
       tooltip
     );
@@ -5161,7 +5870,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     annotateEdges(svg3, this._payload.edges);
   }
   _renderEdgeTooltip(edge) {
-    return renderEdgeTooltip(edge, (name) => this._getIcon(name));
+    return renderEdgeTooltip(edge, (name) => this._getIcon(name), this._localize);
   }
   _isControlTarget(target) {
     return Boolean(target?.closest(".unifi-network-map__controls"));
@@ -5169,7 +5878,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
 };
 
 // src/card/shared/editor-helpers.ts
-function buildFormSchema(entries2) {
+function buildFormSchema(entries2, localize) {
   const entryOptions = entries2.map((entry) => ({
     label: entry.title,
     value: entry.entry_id
@@ -5179,7 +5888,7 @@ function buildFormSchema(entries2) {
       name: "entry_id",
       required: true,
       selector: { select: { mode: "dropdown", options: entryOptions } },
-      label: "UniFi Network Map Instance"
+      label: localize("editor.entry_id")
     },
     {
       name: "theme",
@@ -5187,14 +5896,14 @@ function buildFormSchema(entries2) {
         select: {
           mode: "dropdown",
           options: [
-            { label: "Dark (default)", value: "dark" },
-            { label: "Light", value: "light" },
-            { label: "UniFi", value: "unifi" },
-            { label: "UniFi Dark", value: "unifi-dark" }
+            { label: localize("editor.theme.dark"), value: "dark" },
+            { label: localize("editor.theme.light"), value: "light" },
+            { label: localize("editor.theme.unifi"), value: "unifi" },
+            { label: localize("editor.theme.unifi_dark"), value: "unifi-dark" }
           ]
         }
       },
-      label: "Theme"
+      label: localize("editor.theme")
     },
     {
       name: "card_height",
@@ -5204,7 +5913,7 @@ function buildFormSchema(entries2) {
           suffix: "px"
         }
       },
-      label: "Card height (optional)"
+      label: localize("editor.card_height")
     }
   ];
 }
@@ -5220,10 +5929,12 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
   constructor() {
     super(...arguments);
     this._entries = [];
+    this._localize = createLocalize();
     this._boundOnChange = (event) => this._onChange(event);
   }
   set hass(hass) {
     this._hass = hass;
+    this._localize = createLocalize(hass);
     this._loadEntries();
   }
   setConfig(config) {
@@ -5262,7 +5973,7 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
       }
     }
     this._form.hass = this._hass;
-    this._form.computeLabel = (schema) => schema.label ?? schema.name;
+    this._form.computeLabel = (schema) => schema.label ?? this._localize(`editor.${schema.name}`) ?? schema.name;
     this._form.schema = this._buildFormSchema();
     this._form.data = {
       entry_id: this._config?.entry_id ?? "",
@@ -5274,7 +5985,7 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
     this.innerHTML = `
       <div style="padding: 16px;">
         <p style="color: var(--secondary-text-color);">
-          No UniFi Network Map integrations found. Please add one first.
+          ${this._localize("editor.no_entries")}
         </p>
       </div>
     `;
@@ -5294,7 +6005,7 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
     this._form.addEventListener("value-changed", this._boundOnChange);
   }
   _buildFormSchema() {
-    return buildFormSchema(this._entries);
+    return buildFormSchema(this._entries, this._localize);
   }
   _onChange(e) {
     const detail = e.detail;

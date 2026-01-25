@@ -28,6 +28,7 @@ import { renderContextMenu } from "../ui/context-menu";
 import { fetchWithAuth } from "../data/auth";
 import { showToast } from "../shared/feedback";
 import { loadPayload, loadSvg } from "../data/data";
+import { subscribeMapUpdates } from "../data/websocket";
 import { normalizeConfig, startPolling, stopPolling } from "./state";
 import { createLocalize } from "../shared/localize";
 import {
@@ -59,7 +60,15 @@ import {
 } from "../interaction/viewport";
 import { CARD_STYLES, GLOBAL_STYLES } from "../ui/styles";
 import { assignVlanColors, generateVlanStyles } from "../ui/vlan-colors";
-import type { CardConfig, DeviceType, DeviceTypeFilters, Edge, Hass, MapPayload } from "./types";
+import type {
+  CardConfig,
+  DeviceType,
+  DeviceTypeFilters,
+  Edge,
+  Hass,
+  MapPayload,
+  UnsubscribeFunc,
+} from "./types";
 import type { IconName } from "../ui/icons";
 
 function normalizeCardHeight(value: CardConfig["card_height"]): string | null {
@@ -131,10 +140,11 @@ export class UnifiNetworkMapCard extends HTMLElement {
 
   connectedCallback() {
     this._render();
-    this._startStatusPolling();
+    this._startWebSocketSubscription();
   }
 
   disconnectedCallback() {
+    this._stopWebSocketSubscription();
     this._stopStatusPolling();
     this._removeEntityModal();
     this._removeContextMenu();
@@ -142,6 +152,9 @@ export class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _startStatusPolling() {
+    if (this._wsSubscribed) {
+      return;
+    }
     this._statusPollInterval = startPolling(this._statusPollInterval, 30000, () => {
       this._refreshPayload();
     });
@@ -149,6 +162,36 @@ export class UnifiNetworkMapCard extends HTMLElement {
 
   private _stopStatusPolling() {
     this._statusPollInterval = stopPolling(this._statusPollInterval);
+  }
+
+  private async _startWebSocketSubscription() {
+    if (!this._config?.entry_id || !this._hass) {
+      this._startStatusPolling();
+      return;
+    }
+
+    const result = await subscribeMapUpdates(this._hass, this._config.entry_id, (payload) => {
+      this._payload = payload;
+      this._lastDataUrl = this._config?.data_url;
+      this._render();
+    });
+
+    if (result.subscribed) {
+      this._wsSubscribed = true;
+      this._wsUnsubscribe = result.unsubscribe;
+      this._stopStatusPolling();
+    } else {
+      this._wsSubscribed = false;
+      this._startStatusPolling();
+    }
+  }
+
+  private _stopWebSocketSubscription() {
+    if (this._wsUnsubscribe) {
+      this._wsUnsubscribe();
+      this._wsUnsubscribe = undefined;
+    }
+    this._wsSubscribed = false;
   }
 
   private _refreshPayload() {
@@ -178,6 +221,8 @@ export class UnifiNetworkMapCard extends HTMLElement {
   private _contextMenu = createContextMenuController();
   private _portModal = createPortModalController();
   private _filterState: DeviceTypeFilters = createFilterState();
+  private _wsUnsubscribe?: UnsubscribeFunc;
+  private _wsSubscribed = false;
   get _viewTransform() {
     return this._viewportState.viewTransform;
   }

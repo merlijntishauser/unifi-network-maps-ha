@@ -1,3 +1,13 @@
+export type UnsubscribeFunc = () => void;
+
+export type HassConnection = {
+  subscribeMessage<T>(
+    callback: (result: T) => void,
+    subscribeMessage: { type: string; [key: string]: unknown },
+    options?: { resubscribe?: boolean },
+  ): Promise<UnsubscribeFunc>;
+};
+
 export type Hass = {
   auth?: {
     data?: {
@@ -5,6 +15,7 @@ export type Hass = {
     };
   };
   callWS?: <T>(msg: Record<string, unknown>) => Promise<T>;
+  connection?: HassConnection;
 };
 
 export type CardConfig = {
