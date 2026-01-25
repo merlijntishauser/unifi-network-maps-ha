@@ -1031,7 +1031,9 @@ function escapeHtml(text2) {
 }
 var DOMPURIFY_CONFIG = {
   USE_PROFILES: { html: true, svg: true, svgFilters: true },
+  ADD_TAGS: ["svg", "path", "circle", "line", "polyline", "polygon", "rect", "g", "use", "defs"],
   ADD_ATTR: [
+    // Data attributes
     "data-node-id",
     "data-action",
     "data-tab",
@@ -1045,7 +1047,24 @@ var DOMPURIFY_CONFIG = {
     "data-mac",
     "data-ip",
     "data-modal-overlay",
-    "data-modal-entity-id"
+    "data-modal-entity-id",
+    "data-filter-type",
+    // SVG attributes
+    "viewBox",
+    "fill",
+    "stroke",
+    "stroke-width",
+    "stroke-linecap",
+    "stroke-linejoin",
+    "d",
+    "cx",
+    "cy",
+    "r",
+    "x",
+    "y",
+    "width",
+    "height",
+    "focusable"
   ]
 };
 function sanitizeHtml(markup) {
@@ -1461,7 +1480,7 @@ function domainIcon(domain, theme) {
 function svg2(paths, circles = []) {
   const pathMarkup = paths.map((d) => `<path d="${d}"></path>`).join("");
   const circleMarkup = circles.map((circle) => `<circle cx="${circle.cx}" cy="${circle.cy}" r="${circle.r}"></circle>`).join("");
-  return `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${pathMarkup}${circleMarkup}</svg>`;
+  return `<svg viewBox="0 0 24 24" width="16" height="16" style="width:16px;height:16px;display:inline-block;vertical-align:middle;" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${pathMarkup}${circleMarkup}</svg>`;
 }
 
 // src/card/ui/entity-modal.ts
@@ -2509,37 +2528,6 @@ function normalizeDeviceType(type) {
 }
 
 // src/card/ui/filter-bar.ts
-var DEVICE_TYPE_ORDER = ["gateway", "switch", "ap", "client", "other"];
-var DEVICE_TYPE_LABELS = {
-  gateway: "Gateways",
-  switch: "Switches",
-  ap: "APs",
-  client: "Clients",
-  other: "Other"
-};
-function renderFilterBar(options) {
-  const { filters, counts, getNodeTypeIcon } = options;
-  const buttons = DEVICE_TYPE_ORDER.map((type) => {
-    const count = counts[type] ?? 0;
-    const active = filters[type];
-    const activeClass = active ? "filter-button--active" : "filter-button--inactive";
-    const icon = getNodeTypeIcon(type);
-    const label = DEVICE_TYPE_LABELS[type];
-    return `
-      <button
-        type="button"
-        class="filter-button ${activeClass}"
-        data-filter-type="${type}"
-        title="${label}"
-        aria-pressed="${active}"
-      >
-        <span class="filter-button__icon">${icon}</span>
-        <span class="filter-button__count">${count}</span>
-      </button>
-    `;
-  }).join("");
-  return `<div class="filter-bar">${buttons}</div>`;
-}
 function countDeviceTypes(nodeTypes) {
   const counts = {
     gateway: 0,
@@ -2765,6 +2753,9 @@ function positionTooltip(tooltip, event, offset) {
   tooltip.style.top = `${event.clientY - rect.top + offset}px`;
 }
 function isControlTarget(target, controls) {
+  if (target?.closest(".filter-bar") || target?.closest(".filter-bar-container")) {
+    return true;
+  }
   if (!controls) {
     return Boolean(target?.closest(".unifi-network-map__controls"));
   }
@@ -2884,12 +2875,20 @@ var CARD_STYLES = `
   .unifi-network-map__viewport svg path[data-edge]:hover { stroke-width: 4; filter: drop-shadow(0 0 4px currentColor); }
 
   /* Filter Bar */
-  .filter-bar {
+  .filter-bar-container {
     position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    z-index: 10;
+    pointer-events: none;
+  }
+  .filter-bar {
+    position: relative;
     bottom: 8px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 3;
+    z-index: 10;
     display: flex;
     gap: 4px;
     padding: 6px 8px;
@@ -2897,6 +2896,7 @@ var CARD_STYLES = `
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 10px;
     backdrop-filter: blur(8px);
+    pointer-events: auto;
   }
   .filter-button {
     display: flex;
@@ -2910,6 +2910,7 @@ var CARD_STYLES = `
     font-size: 12px;
     cursor: pointer;
     transition: all 0.15s ease;
+    pointer-events: auto;
   }
   .filter-button:hover {
     background: rgba(59, 130, 246, 0.2);
@@ -4568,7 +4569,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
           ${safeSvg}
           <div class="unifi-network-map__status-layer"></div>
           <div class="unifi-network-map__tooltip" hidden></div>
-          ${this._renderFilterBar()}
+          <div class="filter-bar-container"></div>
         </div>
         <div class="unifi-network-map__panel">
           ${this._renderPanelContent()}
@@ -4576,14 +4577,51 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       </div>
     `;
   }
-  _renderFilterBar() {
+  _injectFilterBar(viewport) {
+    const container = viewport.querySelector(".filter-bar-container");
+    if (!container) return;
     const nodeTypes = this._payload?.node_types ?? {};
     const counts = countDeviceTypes(nodeTypes);
-    return renderFilterBar({
-      filters: this._filterState,
-      counts,
-      getNodeTypeIcon: (type) => this._getNodeTypeIcon(type)
-    });
+    const icons = {
+      gateway: "\u{1F310}",
+      switch: "\u{1F500}",
+      ap: "\u{1F4F6}",
+      client: "\u{1F4BB}",
+      other: "\u{1F4E6}"
+    };
+    const labels = {
+      gateway: "Gateways",
+      switch: "Switches",
+      ap: "APs",
+      client: "Clients",
+      other: "Other"
+    };
+    const deviceTypes = ["gateway", "switch", "ap", "client", "other"];
+    const filterBar = document.createElement("div");
+    filterBar.className = "filter-bar";
+    filterBar.style.pointerEvents = "auto";
+    for (const type of deviceTypes) {
+      const count = counts[type] ?? 0;
+      const active = this._filterState[type];
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `filter-button ${active ? "filter-button--active" : "filter-button--inactive"}`;
+      button.title = labels[type];
+      button.style.pointerEvents = "auto";
+      button.innerHTML = `<span style="font-size:14px">${icons[type]}</span> <span>${count}</span>`;
+      button.onclick = (e) => {
+        console.log("[filter-bar] onclick fired for:", type);
+        e.preventDefault();
+        e.stopPropagation();
+        this._filterState = toggleFilter(this._filterState, type);
+        this._updateFilterDisplay();
+        return false;
+      };
+      filterBar.appendChild(button);
+    }
+    container.innerHTML = "";
+    container.appendChild(filterBar);
+    console.log("[filter-bar] Injected filter bar with", deviceTypes.length, "buttons");
   }
   _renderLoadingOverlay() {
     if (!this._showLoadingOverlay || !this._isLoading()) {
@@ -4764,42 +4802,20 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       }
     });
     this._applyVlanColors();
+    this._injectFilterBar(viewport);
     this._applyFilters(svg3);
-    this._wireFilterBar(viewport);
     if (panel) {
       panel.onclick = (event) => this._onPanelClick(event);
     }
   }
-  _wireFilterBar(viewport) {
-    const filterBar = viewport.querySelector(".filter-bar");
-    if (!filterBar) return;
-    filterBar.onclick = (event) => {
-      const button = event.target.closest("[data-filter-type]");
-      if (!button) return;
-      event.preventDefault();
-      const filterType = button.getAttribute("data-filter-type");
-      if (filterType) {
-        this._filterState = toggleFilter(this._filterState, filterType);
-        this._updateFilterDisplay();
-      }
-    };
-  }
   _updateFilterDisplay() {
     const viewport = this.querySelector(".unifi-network-map__viewport");
     const svg3 = viewport?.querySelector("svg");
-    const filterBar = viewport?.querySelector(".filter-bar");
     if (svg3) {
       this._applyFilters(svg3);
     }
-    if (filterBar) {
-      const nodeTypes = this._payload?.node_types ?? {};
-      const counts = countDeviceTypes(nodeTypes);
-      filterBar.outerHTML = renderFilterBar({
-        filters: this._filterState,
-        counts,
-        getNodeTypeIcon: (type) => this._getNodeTypeIcon(type)
-      });
-      this._wireFilterBar(viewport);
+    if (viewport) {
+      this._injectFilterBar(viewport);
     }
   }
   _applyFilters(svg3) {

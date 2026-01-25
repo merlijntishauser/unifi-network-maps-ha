@@ -181,5 +181,5 @@ function svg(paths: string[], circles: Array<{ cx: number; cy: number; r: number
   const circleMarkup = circles
     .map((circle) => `<circle cx="${circle.cx}" cy="${circle.cy}" r="${circle.r}"></circle>`)
     .join("");
-  return `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${pathMarkup}${circleMarkup}</svg>`;
+  return `<svg viewBox="0 0 24 24" width="16" height="16" style="width:16px;height:16px;display:inline-block;vertical-align:middle;" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${pathMarkup}${circleMarkup}</svg>`;
 }

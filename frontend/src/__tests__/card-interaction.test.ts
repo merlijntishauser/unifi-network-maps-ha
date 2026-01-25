@@ -508,3 +508,145 @@ describe("unifi-network-map editor", () => {
     expect(card._resolveNodeName(event)).toBe("Core Switch");
   });
 });
+
+describe("filter bar", () => {
+  afterEach(resetTestDom);
+
+  it("renders filter bar with icons and counts", () => {
+    const { renderFilterBar, countDeviceTypes } = require("../card/ui/filter-bar");
+    const { nodeTypeIcon } = require("../card/ui/icons");
+
+    const nodeTypes = {
+      Gateway: "gateway",
+      "Switch 1": "switch",
+      "Switch 2": "switch",
+      "AP 1": "ap",
+      "Client 1": "client",
+      "Client 2": "client",
+      "Client 3": "client",
+    };
+
+    const counts = countDeviceTypes(nodeTypes);
+    const filters = { gateway: true, switch: true, ap: true, client: true, other: true };
+    const html = renderFilterBar({
+      filters,
+      counts,
+      getNodeTypeIcon: (type: string) => nodeTypeIcon(type, "dark"),
+    });
+
+    expect(html).toContain('data-filter-type="gateway"');
+    expect(html).toContain('data-filter-type="switch"');
+    expect(html).toContain('data-filter-type="ap"');
+    expect(html).toContain('data-filter-type="client"');
+    expect(html).toContain('data-filter-type="other"');
+    expect(html).toContain("unifi-icon");
+    expect(html).toContain(">1<"); // gateway count
+    expect(html).toContain(">2<"); // switch count
+    expect(html).toContain(">3<"); // client count
+  });
+
+  it("counts device types correctly", () => {
+    const { countDeviceTypes } = require("../card/ui/filter-bar");
+
+    const nodeTypes = {
+      GW: "gateway",
+      SW1: "switch",
+      SW2: "switch",
+      AP1: "ap",
+      AP2: "ap",
+      AP3: "ap",
+      Client: "client",
+      Unknown: "unknown_type",
+    };
+
+    const counts = countDeviceTypes(nodeTypes);
+
+    expect(counts.gateway).toBe(1);
+    expect(counts.switch).toBe(2);
+    expect(counts.ap).toBe(3);
+    expect(counts.client).toBe(1);
+    expect(counts.other).toBe(1);
+  });
+
+  it("toggles filter state", () => {
+    const { createFilterState, toggleFilter } = require("../card/interaction/filter-state");
+
+    const initial = createFilterState();
+    expect(initial.client).toBe(true);
+
+    const toggled = toggleFilter(initial, "client");
+    expect(toggled.client).toBe(false);
+    expect(toggled.gateway).toBe(true);
+
+    const toggledBack = toggleFilter(toggled, "client");
+    expect(toggledBack.client).toBe(true);
+  });
+
+  it("normalizes device types", () => {
+    const { normalizeDeviceType } = require("../card/interaction/filter-state");
+
+    expect(normalizeDeviceType("gateway")).toBe("gateway");
+    expect(normalizeDeviceType("switch")).toBe("switch");
+    expect(normalizeDeviceType("ap")).toBe("ap");
+    expect(normalizeDeviceType("client")).toBe("client");
+    expect(normalizeDeviceType("unknown")).toBe("other");
+    expect(normalizeDeviceType("random_type")).toBe("other");
+  });
+
+  it("renders inactive button style when filter is off", () => {
+    const { renderFilterBar, countDeviceTypes } = require("../card/ui/filter-bar");
+    const { nodeTypeIcon } = require("../card/ui/icons");
+
+    const nodeTypes = { Gateway: "gateway" };
+    const counts = countDeviceTypes(nodeTypes);
+    const filters = { gateway: false, switch: true, ap: true, client: true, other: true };
+
+    const html = renderFilterBar({
+      filters,
+      counts,
+      getNodeTypeIcon: (type: string) => nodeTypeIcon(type, "dark"),
+    });
+
+    expect(html).toContain('data-filter-type="gateway"');
+    expect(html).toContain("filter-button--inactive");
+    expect(html).toContain('aria-pressed="false"');
+  });
+
+  it("uses emoji icons for dark theme", () => {
+    const { nodeTypeIcon } = require("../card/ui/icons");
+
+    const icon = nodeTypeIcon("gateway", "dark");
+    expect(icon).toContain("unifi-icon--emoji");
+    expect(icon).toContain("🌐");
+    expect(icon).not.toContain("<svg");
+  });
+
+  it("uses emoji icons for light theme", () => {
+    const { nodeTypeIcon } = require("../card/ui/icons");
+
+    const icon = nodeTypeIcon("switch", "light");
+    expect(icon).toContain("unifi-icon--emoji");
+    expect(icon).toContain("🔀");
+    expect(icon).not.toContain("<svg");
+  });
+
+  it("uses SVG heroicons for unifi theme", () => {
+    const { nodeTypeIcon } = require("../card/ui/icons");
+
+    const icon = nodeTypeIcon("gateway", "unifi");
+    expect(icon).toContain("unifi-icon--hero");
+    expect(icon).toContain("<svg");
+    expect(icon).toContain("viewBox");
+    expect(icon).not.toContain("🌐");
+  });
+
+  it("uses SVG heroicons for unifi-dark theme", () => {
+    const { nodeTypeIcon } = require("../card/ui/icons");
+
+    const icon = nodeTypeIcon("ap", "unifi-dark");
+    expect(icon).toContain("unifi-icon--hero");
+    expect(icon).toContain("<svg");
+    expect(icon).toContain("viewBox");
+    expect(icon).not.toContain("📶");
+  });
+});

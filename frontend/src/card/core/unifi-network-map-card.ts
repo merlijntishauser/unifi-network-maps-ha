@@ -43,7 +43,7 @@ import {
   setHoveredNode,
 } from "../interaction/selection";
 import { createFilterState, normalizeDeviceType, toggleFilter } from "../interaction/filter-state";
-import { countDeviceTypes, renderFilterBar } from "../ui/filter-bar";
+import { countDeviceTypes } from "../ui/filter-bar";
 import {
   applyTransform,
   applyZoom,
@@ -441,7 +441,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
           ${safeSvg}
           <div class="unifi-network-map__status-layer"></div>
           <div class="unifi-network-map__tooltip" hidden></div>
-          ${this._renderFilterBar()}
+          <div class="filter-bar-container"></div>
         </div>
         <div class="unifi-network-map__panel">
           ${this._renderPanelContent()}
@@ -450,14 +450,64 @@ export class UnifiNetworkMapCard extends HTMLElement {
     `;
   }
 
-  private _renderFilterBar(): string {
+  private _injectFilterBar(viewport: HTMLElement): void {
+    const container = viewport.querySelector(".filter-bar-container");
+    if (!container) return;
+
     const nodeTypes = this._payload?.node_types ?? {};
     const counts = countDeviceTypes(nodeTypes);
-    return renderFilterBar({
-      filters: this._filterState,
-      counts,
-      getNodeTypeIcon: (type: string) => this._getNodeTypeIcon(type),
-    });
+
+    // Simple emoji icons that always work
+    const icons: Record<DeviceType, string> = {
+      gateway: "🌐",
+      switch: "🔀",
+      ap: "📶",
+      client: "💻",
+      other: "📦",
+    };
+
+    const labels: Record<DeviceType, string> = {
+      gateway: "Gateways",
+      switch: "Switches",
+      ap: "APs",
+      client: "Clients",
+      other: "Other",
+    };
+
+    const deviceTypes: DeviceType[] = ["gateway", "switch", "ap", "client", "other"];
+
+    // Create filter bar element
+    const filterBar = document.createElement("div");
+    filterBar.className = "filter-bar";
+    filterBar.style.pointerEvents = "auto";
+
+    for (const type of deviceTypes) {
+      const count = counts[type] ?? 0;
+      const active = this._filterState[type];
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `filter-button ${active ? "filter-button--active" : "filter-button--inactive"}`;
+      button.title = labels[type];
+      button.style.pointerEvents = "auto";
+      button.innerHTML = `<span style="font-size:14px">${icons[type]}</span> <span>${count}</span>`;
+
+      // Use onclick directly
+      button.onclick = (e) => {
+        console.log("[filter-bar] onclick fired for:", type);
+        e.preventDefault();
+        e.stopPropagation();
+        this._filterState = toggleFilter(this._filterState, type);
+        this._updateFilterDisplay();
+        return false;
+      };
+
+      filterBar.appendChild(button);
+    }
+
+    container.innerHTML = "";
+    container.appendChild(filterBar);
+    console.log("[filter-bar] Injected filter bar with", deviceTypes.length, "buttons");
   }
 
   private _renderLoadingOverlay(): string {
@@ -664,49 +714,24 @@ export class UnifiNetworkMapCard extends HTMLElement {
     });
 
     this._applyVlanColors();
+    this._injectFilterBar(viewport);
     this._applyFilters(svg);
-    this._wireFilterBar(viewport);
 
     if (panel) {
       panel.onclick = (event) => this._onPanelClick(event);
     }
   }
 
-  private _wireFilterBar(viewport: HTMLElement): void {
-    const filterBar = viewport.querySelector(".filter-bar") as HTMLElement | null;
-    if (!filterBar) return;
-
-    filterBar.onclick = (event) => {
-      const button = (event.target as HTMLElement).closest("[data-filter-type]");
-      if (!button) return;
-
-      event.preventDefault();
-      const filterType = button.getAttribute("data-filter-type") as DeviceType | null;
-      if (filterType) {
-        this._filterState = toggleFilter(this._filterState, filterType);
-        this._updateFilterDisplay();
-      }
-    };
-  }
-
   private _updateFilterDisplay(): void {
     const viewport = this.querySelector(".unifi-network-map__viewport") as HTMLElement | null;
     const svg = viewport?.querySelector("svg") as SVGElement | null;
-    const filterBar = viewport?.querySelector(".filter-bar") as HTMLElement | null;
 
     if (svg) {
       this._applyFilters(svg);
     }
 
-    if (filterBar) {
-      const nodeTypes = this._payload?.node_types ?? {};
-      const counts = countDeviceTypes(nodeTypes);
-      filterBar.outerHTML = renderFilterBar({
-        filters: this._filterState,
-        counts,
-        getNodeTypeIcon: (type: string) => this._getNodeTypeIcon(type),
-      });
-      this._wireFilterBar(viewport!);
+    if (viewport) {
+      this._injectFilterBar(viewport);
     }
   }
 

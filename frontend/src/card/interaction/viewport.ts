@@ -339,6 +339,10 @@ function positionTooltip(tooltip: HTMLElement, event: PointerEvent, offset: numb
 }
 
 function isControlTarget(target: Element | null, controls: HTMLElement | null): boolean {
+  // Skip processing for control buttons and filter bar
+  if (target?.closest(".filter-bar") || target?.closest(".filter-bar-container")) {
+    return true;
+  }
   if (!controls) {
     return Boolean(target?.closest(".unifi-network-map__controls"));
   }

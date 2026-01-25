@@ -11,7 +11,9 @@ export function escapeHtml(text: string): string {
 
 const DOMPURIFY_CONFIG = {
   USE_PROFILES: { html: true, svg: true, svgFilters: true },
+  ADD_TAGS: ["svg", "path", "circle", "line", "polyline", "polygon", "rect", "g", "use", "defs"],
   ADD_ATTR: [
+    // Data attributes
     "data-node-id",
     "data-action",
     "data-tab",
@@ -26,6 +28,23 @@ const DOMPURIFY_CONFIG = {
     "data-ip",
     "data-modal-overlay",
     "data-modal-entity-id",
+    "data-filter-type",
+    // SVG attributes
+    "viewBox",
+    "fill",
+    "stroke",
+    "stroke-width",
+    "stroke-linecap",
+    "stroke-linejoin",
+    "d",
+    "cx",
+    "cy",
+    "r",
+    "x",
+    "y",
+    "width",
+    "height",
+    "focusable",
   ],
 };
 

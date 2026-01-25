@@ -16,12 +16,20 @@ export const CARD_STYLES = `
   .unifi-network-map__viewport svg path[data-edge]:hover { stroke-width: 4; filter: drop-shadow(0 0 4px currentColor); }
 
   /* Filter Bar */
-  .filter-bar {
+  .filter-bar-container {
     position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    z-index: 10;
+    pointer-events: none;
+  }
+  .filter-bar {
+    position: relative;
     bottom: 8px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 3;
+    z-index: 10;
     display: flex;
     gap: 4px;
     padding: 6px 8px;
@@ -29,6 +37,7 @@ export const CARD_STYLES = `
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 10px;
     backdrop-filter: blur(8px);
+    pointer-events: auto;
   }
   .filter-button {
     display: flex;
@@ -42,6 +51,7 @@ export const CARD_STYLES = `
     font-size: 12px;
     cursor: pointer;
     transition: all 0.15s ease;
+    pointer-events: auto;
   }
   .filter-button:hover {
     background: rgba(59, 130, 246, 0.2);
