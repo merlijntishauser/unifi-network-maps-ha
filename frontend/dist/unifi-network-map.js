@@ -2862,17 +2862,17 @@ var CARD_STYLES = `
   unifi-network-map ha-card { display: flex; flex-direction: column; box-sizing: border-box; }
   .unifi-network-map__layout { display: grid; grid-template-columns: minmax(0, 2.5fr) minmax(280px, 1fr); gap: 12px; padding: 12px; flex: 1; min-height: 0; height: 100%; }
   .unifi-network-map__viewport { position: relative; overflow: hidden; min-height: 300px; background: linear-gradient(135deg, #0b1016 0%, #111827 100%); border-radius: 12px; touch-action: none; contain: strict; isolation: isolate; height: 100%; }
-  .unifi-network-map__viewport svg { width: 100%; height: 100%; display: block; position: absolute; top: 0; left: 0; z-index: 0; }
-  .unifi-network-map__viewport svg, .unifi-network-map__viewport svg * { pointer-events: bounding-box !important; }
+  .unifi-network-map__viewport > svg { width: 100%; height: 100%; display: block; position: absolute; top: 0; left: 0; z-index: 0; }
+  .unifi-network-map__viewport > svg, .unifi-network-map__viewport > svg * { pointer-events: bounding-box !important; }
   .unifi-icon { display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
   .unifi-icon svg { width: 1em; height: 1em; stroke: currentColor; fill: none; }
   .unifi-network-map__controls { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; z-index: 3; }
   .unifi-network-map__controls button { background: rgba(15, 23, 42, 0.9); color: #e5e7eb; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 6px 10px; font-size: 12px; cursor: pointer; backdrop-filter: blur(8px); transition: all 0.15s ease; }
   .unifi-network-map__controls button:hover { background: rgba(59, 130, 246, 0.3); border-color: rgba(59, 130, 246, 0.5); }
-  .unifi-network-map__viewport svg text, .unifi-network-map__viewport svg g { cursor: pointer; }
-  .unifi-network-map__viewport svg path[data-edge] { cursor: pointer; transition: stroke-width 0.15s ease, filter 0.15s ease; pointer-events: stroke; }
-  .unifi-network-map__viewport svg path[data-edge-hitbox] { stroke: transparent; stroke-width: 14; fill: none; pointer-events: stroke; }
-  .unifi-network-map__viewport svg path[data-edge]:hover { stroke-width: 4; filter: drop-shadow(0 0 4px currentColor); }
+  .unifi-network-map__viewport > svg text, .unifi-network-map__viewport > svg g { cursor: pointer; }
+  .unifi-network-map__viewport > svg path[data-edge] { cursor: pointer; transition: stroke-width 0.15s ease, filter 0.15s ease; pointer-events: stroke; }
+  .unifi-network-map__viewport > svg path[data-edge-hitbox] { stroke: transparent; stroke-width: 14; fill: none; pointer-events: stroke; }
+  .unifi-network-map__viewport > svg path[data-edge]:hover { stroke-width: 4; filter: drop-shadow(0 0 4px currentColor); }
 
   /* Filter Bar */
   .filter-bar-container {
@@ -2937,8 +2937,8 @@ var CARD_STYLES = `
   }
 
   /* Filtered nodes and edges */
-  .unifi-network-map__viewport svg .node--filtered,
-  .unifi-network-map__viewport svg .edge--filtered {
+  .unifi-network-map__viewport > svg .node--filtered,
+  .unifi-network-map__viewport > svg .edge--filtered {
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s ease;
@@ -3119,19 +3119,19 @@ var CARD_STYLES = `
   .panel-hint__icon { font-size: 14px; }
 
   /* Selected node highlight */
-  .unifi-network-map__viewport svg [data-selected="true"],
-  .unifi-network-map__viewport svg .node--selected {
+  .unifi-network-map__viewport > svg [data-selected="true"],
+  .unifi-network-map__viewport > svg .node--selected {
     filter: none;
   }
-  .unifi-network-map__viewport svg [data-selected="true"] > *,
-  .unifi-network-map__viewport svg .node--selected > * {
+  .unifi-network-map__viewport > svg [data-selected="true"] > *,
+  .unifi-network-map__viewport > svg .node--selected > * {
     stroke: #3b82f6 !important;
     stroke-width: 2.5px;
     stroke-linejoin: round;
     stroke-linecap: round;
   }
-  .unifi-network-map__viewport svg [data-selected="true"] text,
-  .unifi-network-map__viewport svg .node--selected text {
+  .unifi-network-map__viewport > svg [data-selected="true"] text,
+  .unifi-network-map__viewport > svg .node--selected text {
     stroke: none !important;
     fill: #3b82f6 !important;
   }
@@ -3239,10 +3239,10 @@ var CARD_STYLES = `
   ha-card[data-theme="unifi"] .badge--wireless { background: rgba(168, 85, 247, 0.1); color: #9333ea; }
   ha-card[data-theme="unifi"] .badge--poe { background: rgba(0, 168, 107, 0.1); color: #00a86b; }
   ha-card[data-theme="unifi"] .badge--port { background: #f3f4f6; color: #6b7280; border: 1px solid #e5e7eb; }
-  ha-card[data-theme="unifi"] .unifi-network-map__viewport svg [data-selected="true"] > *,
-  ha-card[data-theme="unifi"] .unifi-network-map__viewport svg .node--selected > * { stroke: #006fff !important; }
-  ha-card[data-theme="unifi"] .unifi-network-map__viewport svg [data-selected="true"] text,
-  ha-card[data-theme="unifi"] .unifi-network-map__viewport svg .node--selected text { stroke: none !important; fill: #006fff !important; }
+  ha-card[data-theme="unifi"] .unifi-network-map__viewport > svg [data-selected="true"] > *,
+  ha-card[data-theme="unifi"] .unifi-network-map__viewport > svg .node--selected > * { stroke: #006fff !important; }
+  ha-card[data-theme="unifi"] .unifi-network-map__viewport > svg [data-selected="true"] text,
+  ha-card[data-theme="unifi"] .unifi-network-map__viewport > svg .node--selected text { stroke: none !important; fill: #006fff !important; }
   ha-card[data-theme="unifi"] .filter-bar { background: #ffffff; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); }
   ha-card[data-theme="unifi"] .filter-button { background: #f9fafb; border: 1px solid #e5e7eb; color: #374151; }
   ha-card[data-theme="unifi"] .filter-button:hover { background: #f3f4f6; border-color: #006fff; color: #006fff; }
@@ -3300,10 +3300,10 @@ var CARD_STYLES = `
   ha-card[data-theme="unifi-dark"] .badge--wireless { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
   ha-card[data-theme="unifi-dark"] .badge--poe { background: rgba(0, 168, 107, 0.15); color: #00d68f; }
   ha-card[data-theme="unifi-dark"] .badge--port { background: #1f1f1f; color: #9ca3af; border: 1px solid #2a2a2a; }
-  ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport svg [data-selected="true"] > *,
-  ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport svg .node--selected > * { stroke: #006fff !important; }
-  ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport svg [data-selected="true"] text,
-  ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport svg .node--selected text { stroke: none !important; fill: #3b9eff !important; }
+  ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport > svg [data-selected="true"] > *,
+  ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport > svg .node--selected > * { stroke: #006fff !important; }
+  ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport > svg [data-selected="true"] text,
+  ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport > svg .node--selected text { stroke: none !important; fill: #3b9eff !important; }
   ha-card[data-theme="unifi-dark"] .filter-bar { background: #1a1a1a; border: 1px solid #2a2a2a; }
   ha-card[data-theme="unifi-dark"] .filter-button { background: #151515; border: 1px solid #2a2a2a; color: #e5e5e5; }
   ha-card[data-theme="unifi-dark"] .filter-button:hover { background: #252525; border-color: #006fff; color: #3b9eff; }
@@ -4582,13 +4582,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     if (!container) return;
     const nodeTypes = this._payload?.node_types ?? {};
     const counts = countDeviceTypes(nodeTypes);
-    const icons = {
-      gateway: "\u{1F310}",
-      switch: "\u{1F500}",
-      ap: "\u{1F4F6}",
-      client: "\u{1F4BB}",
-      other: "\u{1F4E6}"
-    };
+    const theme = this._config?.theme ?? "dark";
     const labels = {
       gateway: "Gateways",
       switch: "Switches",
@@ -4599,29 +4593,26 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     const deviceTypes = ["gateway", "switch", "ap", "client", "other"];
     const filterBar = document.createElement("div");
     filterBar.className = "filter-bar";
-    filterBar.style.pointerEvents = "auto";
     for (const type of deviceTypes) {
       const count = counts[type] ?? 0;
       const active = this._filterState[type];
       const button = document.createElement("button");
       button.type = "button";
       button.className = `filter-button ${active ? "filter-button--active" : "filter-button--inactive"}`;
-      button.title = labels[type];
-      button.style.pointerEvents = "auto";
-      button.innerHTML = `<span style="font-size:14px">${icons[type]}</span> <span>${count}</span>`;
+      const actionVerb = active ? "Hide" : "Show";
+      button.title = `${actionVerb} ${labels[type]}`;
+      const icon = nodeTypeIcon(type, theme);
+      button.innerHTML = `<span class="filter-button__icon">${icon}</span><span class="filter-button__count">${count}</span>`;
       button.onclick = (e) => {
-        console.log("[filter-bar] onclick fired for:", type);
         e.preventDefault();
         e.stopPropagation();
         this._filterState = toggleFilter(this._filterState, type);
         this._updateFilterDisplay();
-        return false;
       };
       filterBar.appendChild(button);
     }
     container.innerHTML = "";
     container.appendChild(filterBar);
-    console.log("[filter-bar] Injected filter bar with", deviceTypes.length, "buttons");
   }
   _renderLoadingOverlay() {
     if (!this._showLoadingOverlay || !this._isLoading()) {
@@ -4820,7 +4811,6 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   }
   _applyFilters(svg3) {
     const nodeTypes = this._payload?.node_types ?? {};
-    const edges = this._payload?.edges ?? [];
     const hiddenNodes = /* @__PURE__ */ new Set();
     for (const [nodeName, nodeType] of Object.entries(nodeTypes)) {
       const normalized = normalizeDeviceType(nodeType);
@@ -4833,23 +4823,19 @@ var UnifiNetworkMapCard = class extends HTMLElement {
         }
       }
     }
-    this._applyEdgeFilters(svg3, edges, hiddenNodes);
+    this._applyEdgeFilters(svg3, hiddenNodes);
   }
-  _applyEdgeFilters(svg3, edges, hiddenNodes) {
-    const edgePaths = svg3.querySelectorAll("path[data-edge]");
+  _applyEdgeFilters(svg3, hiddenNodes) {
+    const edgePaths = svg3.querySelectorAll("path[data-edge-left][data-edge-right]");
     for (const path of edgePaths) {
-      const edgeAttr = path.getAttribute("data-edge");
-      if (!edgeAttr) continue;
-      const edge = edges.find(
-        (e) => `${e.left}-${e.right}` === edgeAttr || `${e.right}-${e.left}` === edgeAttr
-      );
-      if (edge) {
-        const shouldHide = hiddenNodes.has(edge.left) || hiddenNodes.has(edge.right);
-        path.classList.toggle("edge--filtered", shouldHide);
-        const hitbox = svg3.querySelector(`path[data-edge-hitbox="${edgeAttr}"]`);
-        if (hitbox) {
-          hitbox.classList.toggle("edge--filtered", shouldHide);
-        }
+      const left = path.getAttribute("data-edge-left");
+      const right = path.getAttribute("data-edge-right");
+      if (!left || !right) continue;
+      const shouldHide = hiddenNodes.has(left) || hiddenNodes.has(right);
+      path.classList.toggle("edge--filtered", shouldHide);
+      const hitbox = path.nextElementSibling;
+      if (hitbox?.getAttribute("data-edge-hitbox")) {
+        hitbox.classList.toggle("edge--filtered", shouldHide);
       }
     }
   }

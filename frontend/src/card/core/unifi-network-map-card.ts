@@ -456,15 +456,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
 
     const nodeTypes = this._payload?.node_types ?? {};
     const counts = countDeviceTypes(nodeTypes);
-
-    // Simple emoji icons that always work
-    const icons: Record<DeviceType, string> = {
-      gateway: "🌐",
-      switch: "🔀",
-      ap: "📶",
-      client: "💻",
-      other: "📦",
-    };
+    const theme = this._config?.theme ?? "dark";
 
     const labels: Record<DeviceType, string> = {
       gateway: "Gateways",
@@ -476,10 +468,8 @@ export class UnifiNetworkMapCard extends HTMLElement {
 
     const deviceTypes: DeviceType[] = ["gateway", "switch", "ap", "client", "other"];
 
-    // Create filter bar element
     const filterBar = document.createElement("div");
     filterBar.className = "filter-bar";
-    filterBar.style.pointerEvents = "auto";
 
     for (const type of deviceTypes) {
       const count = counts[type] ?? 0;
@@ -488,18 +478,20 @@ export class UnifiNetworkMapCard extends HTMLElement {
       const button = document.createElement("button");
       button.type = "button";
       button.className = `filter-button ${active ? "filter-button--active" : "filter-button--inactive"}`;
-      button.title = labels[type];
-      button.style.pointerEvents = "auto";
-      button.innerHTML = `<span style="font-size:14px">${icons[type]}</span> <span>${count}</span>`;
 
-      // Use onclick directly
+      // Dynamic tooltip based on current state
+      const actionVerb = active ? "Hide" : "Show";
+      button.title = `${actionVerb} ${labels[type]}`;
+
+      // Use nodeTypeIcon which returns heroicons for unifi themes, emojis otherwise
+      const icon = nodeTypeIcon(type, theme);
+      button.innerHTML = `<span class="filter-button__icon">${icon}</span><span class="filter-button__count">${count}</span>`;
+
       button.onclick = (e) => {
-        console.log("[filter-bar] onclick fired for:", type);
         e.preventDefault();
         e.stopPropagation();
         this._filterState = toggleFilter(this._filterState, type);
         this._updateFilterDisplay();
-        return false;
       };
 
       filterBar.appendChild(button);
@@ -507,7 +499,6 @@ export class UnifiNetworkMapCard extends HTMLElement {
 
     container.innerHTML = "";
     container.appendChild(filterBar);
-    console.log("[filter-bar] Injected filter bar with", deviceTypes.length, "buttons");
   }
 
   private _renderLoadingOverlay(): string {
@@ -737,8 +728,6 @@ export class UnifiNetworkMapCard extends HTMLElement {
 
   private _applyFilters(svg: SVGElement): void {
     const nodeTypes = this._payload?.node_types ?? {};
-    const edges = this._payload?.edges ?? [];
-
     const hiddenNodes = new Set<string>();
 
     for (const [nodeName, nodeType] of Object.entries(nodeTypes)) {
@@ -754,27 +743,23 @@ export class UnifiNetworkMapCard extends HTMLElement {
       }
     }
 
-    this._applyEdgeFilters(svg, edges, hiddenNodes);
+    this._applyEdgeFilters(svg, hiddenNodes);
   }
 
-  private _applyEdgeFilters(svg: SVGElement, edges: Edge[], hiddenNodes: Set<string>): void {
-    const edgePaths = svg.querySelectorAll("path[data-edge]");
+  private _applyEdgeFilters(svg: SVGElement, hiddenNodes: Set<string>): void {
+    const edgePaths = svg.querySelectorAll("path[data-edge-left][data-edge-right]");
     for (const path of edgePaths) {
-      const edgeAttr = path.getAttribute("data-edge");
-      if (!edgeAttr) continue;
+      const left = path.getAttribute("data-edge-left");
+      const right = path.getAttribute("data-edge-right");
+      if (!left || !right) continue;
 
-      const edge = edges.find(
-        (e) => `${e.left}-${e.right}` === edgeAttr || `${e.right}-${e.left}` === edgeAttr,
-      );
+      const shouldHide = hiddenNodes.has(left) || hiddenNodes.has(right);
+      path.classList.toggle("edge--filtered", shouldHide);
 
-      if (edge) {
-        const shouldHide = hiddenNodes.has(edge.left) || hiddenNodes.has(edge.right);
-        path.classList.toggle("edge--filtered", shouldHide);
-
-        const hitbox = svg.querySelector(`path[data-edge-hitbox="${edgeAttr}"]`);
-        if (hitbox) {
-          hitbox.classList.toggle("edge--filtered", shouldHide);
-        }
+      // Also hide the hitbox if present
+      const hitbox = path.nextElementSibling;
+      if (hitbox?.getAttribute("data-edge-hitbox")) {
+        hitbox.classList.toggle("edge--filtered", shouldHide);
       }
     }
   }
