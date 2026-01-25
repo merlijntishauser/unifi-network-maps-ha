@@ -319,6 +319,7 @@ def _wait_for_integration_loaded(timeout: int = 90) -> None:
         )
         token_response.raise_for_status()
         token = token_response.json()["access_token"]
+        _log_ha_version(client, token)
 
     headers = {"Authorization": f"Bearer {token}"}
     start = time.time()
@@ -416,6 +417,38 @@ def _debug_container_state() -> None:
         or "exception" in line.lower()
     ]
     print("Relevant HA logs:\n" + "\n".join(relevant_lines[-30:]))
+
+
+def _log_ha_version(client: httpx.Client, token: str) -> None:
+    """Log the Home Assistant version in use for E2E runs."""
+    try:
+        response = client.get(
+            "/api/config",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=10,
+        )
+        if response.status_code != 200:
+            print(f"HA config version request failed: {response.status_code}")
+            return
+        data = response.json()
+        version = data.get("version")
+        if version:
+            image_tag = os.environ.get("HA_IMAGE_TAG", "unknown")
+            print(f"Home Assistant version: {version} (image tag: {image_tag})")
+            _write_version_file(version, image_tag)
+    except httpx.RequestError as exc:
+        print(f"HA config version request error: {exc}")
+
+
+def _write_version_file(version: str, image_tag: str) -> None:
+    version_file = os.environ.get("E2E_VERSION_FILE")
+    if not version_file:
+        return
+    try:
+        payload = {"version": version, "image_tag": image_tag}
+        Path(version_file).write_text(json.dumps(payload))
+    except OSError as exc:
+        print(f"Failed to write E2E version file: {exc}")
 
 
 @typed_fixture(scope="session")
@@ -709,4 +742,22 @@ def entry_id(ha_client: httpx.Client, mock_unifi_credentials: dict[str, str]) ->
     if result.get("type") != "create_entry":
         raise RuntimeError(f"Failed to create config entry: {result}")
 
-    return result["result"]["entry_id"]
+    entry_id = result["result"]["entry_id"]
+
+    # Set options to include clients for filter tests
+    options_flow_response = ha_client.post(
+        "/api/config/config_entries/options/flow",
+        json={"handler": entry_id},
+    )
+    if options_flow_response.status_code == 200:
+        options_flow_id = options_flow_response.json().get("flow_id")
+        if options_flow_id:
+            ha_client.post(
+                f"/api/config/config_entries/options/flow/{options_flow_id}",
+                json={
+                    "include_clients": True,
+                    "client_scope": "all",
+                },
+            )
+
+    return entry_id

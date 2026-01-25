@@ -478,6 +478,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
       const button = document.createElement("button");
       button.type = "button";
       button.className = `filter-button ${active ? "filter-button--active" : "filter-button--inactive"}`;
+      button.dataset.filterType = type;
 
       // Dynamic tooltip based on current state
       const actionVerb = active ? "Hide" : "Show";

@@ -61,7 +61,7 @@ Methods to break down for readability:
 | Group/collapse nodes | Collapse switches with all their clients | L |
 | Path visualization | Highlight route between two selected nodes | M |
 | Drag-to-rearrange | Custom node positioning with save/restore | L |
-
+| Add filtering for vlans| Show only clients on selected VLANs | M |
 
 ### Detail Panel Enhancements
 | Feature | Description | Effort |

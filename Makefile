@@ -63,20 +63,36 @@ test-e2e: frontend-build
 	$(PIP) install -r tests/e2e/requirements.txt
 	$(VENV_DIR)/bin/playwright install chromium
 	@echo "Starting Docker services..."
+	@echo "Pulling latest Home Assistant image..."
+	HA_IMAGE_TAG=$(HA_IMAGE_TAG) HA_CONFIG_DIR=$(HA_CONFIG_DIR) docker compose -f tests/e2e/docker-compose.yml pull homeassistant
 	HA_IMAGE_TAG=$(HA_IMAGE_TAG) HA_CONFIG_DIR=$(HA_CONFIG_DIR) docker compose -f tests/e2e/docker-compose.yml up -d --build --wait
 	@echo "Waiting for Home Assistant..."
 	@timeout 120 bash -c 'until curl -sf http://localhost:28123/api/ 2>/dev/null; do sleep 2; done' || true
 	@sleep 10
 	@echo "Running E2E tests..."
-	HA_IMAGE_TAG=$(HA_IMAGE_TAG) HA_CONFIG_DIR=$(HA_CONFIG_DIR) $(VENV_DIR)/bin/pytest tests/e2e -v --browser chromium || (HA_IMAGE_TAG=$(HA_IMAGE_TAG) HA_CONFIG_DIR=$(HA_CONFIG_DIR) docker compose -f tests/e2e/docker-compose.yml logs && exit 1)
-	@echo "Stopping Docker services..."
-	HA_IMAGE_TAG=$(HA_IMAGE_TAG) HA_CONFIG_DIR=$(HA_CONFIG_DIR) docker compose -f tests/e2e/docker-compose.yml down -v
+	@VERSION_FILE=$$(mktemp) ; \
+	STATUS=0 ; \
+	HA_IMAGE_TAG=$(HA_IMAGE_TAG) HA_CONFIG_DIR=$(HA_CONFIG_DIR) E2E_VERSION_FILE=$$VERSION_FILE $(VENV_DIR)/bin/pytest tests/e2e -v --browser chromium || STATUS=$$? ; \
+	if [ $$STATUS -ne 0 ]; then HA_IMAGE_TAG=$(HA_IMAGE_TAG) HA_CONFIG_DIR=$(HA_CONFIG_DIR) docker compose -f tests/e2e/docker-compose.yml logs ; fi ; \
+	echo "Stopping Docker services..." ; \
+	HA_IMAGE_TAG=$(HA_IMAGE_TAG) HA_CONFIG_DIR=$(HA_CONFIG_DIR) docker compose -f tests/e2e/docker-compose.yml down -v ; \
+	VERSION=$$(python3 -c 'import json,sys; from pathlib import Path; p=Path(sys.argv[1]); print(json.loads(p.read_text()).get("version","unknown") if p.exists() else "unknown")' $$VERSION_FILE); \
+	IMAGE_TAG=$${HA_IMAGE_TAG:-stable} ; \
+	RESULT=$$(if [ $$STATUS -eq 0 ]; then echo passed; else echo failed; fi) ; \
+	echo "" ; \
+	echo "E2E Summary" ; \
+	printf "%-10s %-10s %-12s %s\n" "Name" "Image Tag" "HA Version" "Result" ; \
+	printf "%-10s %-10s %-12s %s\n" "single" "$$IMAGE_TAG" "$$VERSION" "$$RESULT" ; \
+	rm -f $$VERSION_FILE ; \
+	exit $$STATUS
 
 test-e2e-debug: frontend-build
 	@echo "Installing E2E test dependencies..."
 	$(PIP) install -r tests/e2e/requirements.txt
 	$(VENV_DIR)/bin/playwright install chromium
 	@echo "Starting Docker services..."
+	@echo "Pulling latest Home Assistant image..."
+	HA_IMAGE_TAG=$(HA_IMAGE_TAG) HA_CONFIG_DIR=$(HA_CONFIG_DIR) docker compose -f tests/e2e/docker-compose.yml pull homeassistant
 	HA_IMAGE_TAG=$(HA_IMAGE_TAG) HA_CONFIG_DIR=$(HA_CONFIG_DIR) docker compose -f tests/e2e/docker-compose.yml up -d --build --wait
 	@echo "Waiting for Home Assistant..."
 	@timeout 120 bash -c 'until curl -sf http://localhost:28123/api/ 2>/dev/null; do sleep 2; done' || true

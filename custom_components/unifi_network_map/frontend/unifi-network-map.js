@@ -4599,6 +4599,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       const button = document.createElement("button");
       button.type = "button";
       button.className = `filter-button ${active ? "filter-button--active" : "filter-button--inactive"}`;
+      button.dataset.filterType = type;
       const actionVerb = active ? "Hide" : "Show";
       button.title = `${actionVerb} ${labels[type]}`;
       const icon = nodeTypeIcon(type, theme);
