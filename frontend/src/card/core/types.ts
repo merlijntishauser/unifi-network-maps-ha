@@ -145,3 +145,13 @@ export type MapPayload = {
   node_vlans?: Record<string, number | null>;
   vlan_info?: Record<number, VlanInfo>;
 };
+
+export type DeviceType = "gateway" | "switch" | "ap" | "client" | "other";
+
+export type DeviceTypeFilters = {
+  gateway: boolean;
+  switch: boolean;
+  ap: boolean;
+  client: boolean;
+  other: boolean;
+};

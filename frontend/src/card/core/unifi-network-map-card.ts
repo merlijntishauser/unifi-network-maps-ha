@@ -42,6 +42,8 @@ import {
   setHoveredEdge,
   setHoveredNode,
 } from "../interaction/selection";
+import { createFilterState, normalizeDeviceType, toggleFilter } from "../interaction/filter-state";
+import { countDeviceTypes, renderFilterBar } from "../ui/filter-bar";
 import {
   applyTransform,
   applyZoom,
@@ -56,7 +58,7 @@ import {
 } from "../interaction/viewport";
 import { CARD_STYLES, GLOBAL_STYLES } from "../ui/styles";
 import { assignVlanColors, generateVlanStyles } from "../ui/vlan-colors";
-import type { CardConfig, Edge, Hass, MapPayload } from "./types";
+import type { CardConfig, DeviceType, DeviceTypeFilters, Edge, Hass, MapPayload } from "./types";
 import type { IconName } from "../ui/icons";
 
 function normalizeCardHeight(value: CardConfig["card_height"]): string | null {
@@ -172,6 +174,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
   private _entityModal = createEntityModalController();
   private _contextMenu = createContextMenuController();
   private _portModal = createPortModalController();
+  private _filterState: DeviceTypeFilters = createFilterState();
   get _viewTransform() {
     return this._viewportState.viewTransform;
   }
@@ -438,12 +441,23 @@ export class UnifiNetworkMapCard extends HTMLElement {
           ${safeSvg}
           <div class="unifi-network-map__status-layer"></div>
           <div class="unifi-network-map__tooltip" hidden></div>
+          ${this._renderFilterBar()}
         </div>
         <div class="unifi-network-map__panel">
           ${this._renderPanelContent()}
         </div>
       </div>
     `;
+  }
+
+  private _renderFilterBar(): string {
+    const nodeTypes = this._payload?.node_types ?? {};
+    const counts = countDeviceTypes(nodeTypes);
+    return renderFilterBar({
+      filters: this._filterState,
+      counts,
+      getNodeTypeIcon: (type: string) => this._getNodeTypeIcon(type),
+    });
   }
 
   private _renderLoadingOverlay(): string {
@@ -650,9 +664,93 @@ export class UnifiNetworkMapCard extends HTMLElement {
     });
 
     this._applyVlanColors();
+    this._applyFilters(svg);
+    this._wireFilterBar(viewport);
 
     if (panel) {
       panel.onclick = (event) => this._onPanelClick(event);
+    }
+  }
+
+  private _wireFilterBar(viewport: HTMLElement): void {
+    const filterBar = viewport.querySelector(".filter-bar") as HTMLElement | null;
+    if (!filterBar) return;
+
+    filterBar.onclick = (event) => {
+      const button = (event.target as HTMLElement).closest("[data-filter-type]");
+      if (!button) return;
+
+      event.preventDefault();
+      const filterType = button.getAttribute("data-filter-type") as DeviceType | null;
+      if (filterType) {
+        this._filterState = toggleFilter(this._filterState, filterType);
+        this._updateFilterDisplay();
+      }
+    };
+  }
+
+  private _updateFilterDisplay(): void {
+    const viewport = this.querySelector(".unifi-network-map__viewport") as HTMLElement | null;
+    const svg = viewport?.querySelector("svg") as SVGElement | null;
+    const filterBar = viewport?.querySelector(".filter-bar") as HTMLElement | null;
+
+    if (svg) {
+      this._applyFilters(svg);
+    }
+
+    if (filterBar) {
+      const nodeTypes = this._payload?.node_types ?? {};
+      const counts = countDeviceTypes(nodeTypes);
+      filterBar.outerHTML = renderFilterBar({
+        filters: this._filterState,
+        counts,
+        getNodeTypeIcon: (type: string) => this._getNodeTypeIcon(type),
+      });
+      this._wireFilterBar(viewport!);
+    }
+  }
+
+  private _applyFilters(svg: SVGElement): void {
+    const nodeTypes = this._payload?.node_types ?? {};
+    const edges = this._payload?.edges ?? [];
+
+    const hiddenNodes = new Set<string>();
+
+    for (const [nodeName, nodeType] of Object.entries(nodeTypes)) {
+      const normalized = normalizeDeviceType(nodeType);
+      const visible = this._filterState[normalized];
+      const element = findNodeElement(svg, nodeName);
+
+      if (element) {
+        element.classList.toggle("node--filtered", !visible);
+        if (!visible) {
+          hiddenNodes.add(nodeName);
+        }
+      }
+    }
+
+    this._applyEdgeFilters(svg, edges, hiddenNodes);
+  }
+
+  private _applyEdgeFilters(svg: SVGElement, edges: Edge[], hiddenNodes: Set<string>): void {
+    const edgePaths = svg.querySelectorAll("path[data-edge]");
+    for (const path of edgePaths) {
+      const edgeAttr = path.getAttribute("data-edge");
+      if (!edgeAttr) continue;
+
+      const edge = edges.find(
+        (e) => `${e.left}-${e.right}` === edgeAttr || `${e.right}-${e.left}` === edgeAttr,
+      );
+
+      if (edge) {
+        const shouldHide = hiddenNodes.has(edge.left) || hiddenNodes.has(edge.right);
+        path.classList.toggle("edge--filtered", shouldHide);
+
+        const hitbox = svg.querySelector(`path[data-edge-hitbox="${edgeAttr}"]`);
+        if (hitbox) {
+          hitbox.classList.toggle("edge--filtered", shouldHide);
+        }
+      }
     }
   }
 

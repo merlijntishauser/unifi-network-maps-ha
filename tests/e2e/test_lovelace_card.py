@@ -434,3 +434,240 @@ def test_context_menu_works_inside_ha_card(
     assert result["menuExists"], "Context menu should exist inside ha-card"
     assert result["menuVisible"], "Context menu should be visible inside ha-card"
     assert result["menuNode"] == "UDM Pro", "Context menu should be for UDM Pro"
+
+
+def test_filter_bar_renders_with_device_counts(
+    authenticated_page: Page,
+    entry_id: str,
+    ha_auth_token: str,
+) -> None:
+    """Test that the filter bar renders with correct device type counts."""
+    page = authenticated_page
+
+    page.goto(f"{HA_URL}/lovelace/e2e-test")
+    page.wait_for_load_state("networkidle")
+    page.wait_for_function(
+        "customElements.get('unifi-network-map') !== undefined",
+        timeout=10000,
+    )
+
+    _create_test_card(page, entry_id, ha_auth_token)
+
+    # Wait for filter bar to appear
+    page.wait_for_selector("#test-card .filter-bar", timeout=10000)
+
+    # Verify filter bar structure and counts
+    result = page.evaluate("""() => {
+        const card = document.getElementById("test-card");
+        const filterBar = card.querySelector(".filter-bar");
+        const buttons = filterBar?.querySelectorAll(".filter-button") || [];
+
+        const counts = {};
+        for (const btn of buttons) {
+            const type = btn.getAttribute("data-filter-type");
+            const countEl = btn.querySelector(".filter-button__count");
+            counts[type] = parseInt(countEl?.textContent || "0", 10);
+        }
+
+        return {
+            filterBarExists: !!filterBar,
+            buttonCount: buttons.length,
+            counts: counts,
+            allActive: Array.from(buttons).every(b => b.classList.contains("filter-button--active"))
+        };
+    }""")
+
+    assert result["filterBarExists"], "Filter bar should exist"
+    assert result["buttonCount"] == 5, (
+        "Should have 5 filter buttons (gateway, switch, ap, client, other)"
+    )
+    assert result["counts"].get("gateway") == 1, "Should have 1 gateway"
+    assert result["counts"].get("switch") == 1, "Should have 1 switch"
+    assert result["counts"].get("ap") == 1, "Should have 1 AP"
+    assert result["counts"].get("client") == 3, "Should have 3 clients"
+    assert result["allActive"], "All filters should be active by default"
+
+
+def test_filter_button_toggles_node_visibility(
+    authenticated_page: Page,
+    entry_id: str,
+    ha_auth_token: str,
+) -> None:
+    """Test that clicking a filter button hides/shows nodes of that type."""
+    page = authenticated_page
+
+    page.goto(f"{HA_URL}/lovelace/e2e-test")
+    page.wait_for_load_state("networkidle")
+    page.wait_for_function(
+        "customElements.get('unifi-network-map') !== undefined",
+        timeout=10000,
+    )
+
+    _create_test_card(page, entry_id, ha_auth_token)
+    page.wait_for_selector("#test-card .filter-bar", timeout=10000)
+
+    # Initially all clients should be visible
+    initial_result = page.evaluate("""() => {
+        const card = document.getElementById("test-card");
+        const clientNodes = card.querySelectorAll('[data-node-id="MacBook Pro"], [data-node-id="Desktop PC"], [data-node-id="iPhone"]');
+        return {
+            clientCount: clientNodes.length,
+            allVisible: Array.from(clientNodes).every(n => !n.classList.contains("node--filtered"))
+        };
+    }""")
+
+    assert initial_result["clientCount"] == 3, "Should find 3 client nodes"
+    assert initial_result["allVisible"], "All client nodes should be visible initially"
+
+    # Click the client filter button to hide clients
+    client_filter = page.locator('#test-card .filter-button[data-filter-type="client"]')
+    client_filter.click()
+    page.wait_for_timeout(300)
+
+    # Verify clients are now hidden
+    after_hide = page.evaluate("""() => {
+        const card = document.getElementById("test-card");
+        const clientNodes = card.querySelectorAll('[data-node-id="MacBook Pro"], [data-node-id="Desktop PC"], [data-node-id="iPhone"]');
+        const filterBtn = card.querySelector('.filter-button[data-filter-type="client"]');
+        return {
+            allHidden: Array.from(clientNodes).every(n => n.classList.contains("node--filtered")),
+            buttonInactive: filterBtn?.classList.contains("filter-button--inactive")
+        };
+    }""")
+
+    assert after_hide["allHidden"], "All client nodes should be hidden after clicking filter"
+    assert after_hide["buttonInactive"], "Client filter button should be inactive"
+
+    # Click again to show clients
+    client_filter.click()
+    page.wait_for_timeout(300)
+
+    after_show = page.evaluate("""() => {
+        const card = document.getElementById("test-card");
+        const clientNodes = card.querySelectorAll('[data-node-id="MacBook Pro"], [data-node-id="Desktop PC"], [data-node-id="iPhone"]');
+        const filterBtn = card.querySelector('.filter-button[data-filter-type="client"]');
+        return {
+            allVisible: Array.from(clientNodes).every(n => !n.classList.contains("node--filtered")),
+            buttonActive: filterBtn?.classList.contains("filter-button--active")
+        };
+    }""")
+
+    assert after_show["allVisible"], "All client nodes should be visible after toggling filter back"
+    assert after_show["buttonActive"], "Client filter button should be active again"
+
+
+def test_filter_hides_edges_when_endpoint_filtered(
+    authenticated_page: Page,
+    entry_id: str,
+    ha_auth_token: str,
+) -> None:
+    """Test that edges are hidden when either endpoint node is filtered."""
+    page = authenticated_page
+
+    page.goto(f"{HA_URL}/lovelace/e2e-test")
+    page.wait_for_load_state("networkidle")
+    page.wait_for_function(
+        "customElements.get('unifi-network-map') !== undefined",
+        timeout=10000,
+    )
+
+    _create_test_card(page, entry_id, ha_auth_token)
+    page.wait_for_selector("#test-card .filter-bar", timeout=10000)
+
+    # Count edges initially visible
+    initial_edges = page.evaluate("""() => {
+        const card = document.getElementById("test-card");
+        const edges = card.querySelectorAll("path[data-edge]");
+        return {
+            total: edges.length,
+            visible: Array.from(edges).filter(e => !e.classList.contains("edge--filtered")).length
+        };
+    }""")
+
+    assert initial_edges["total"] > 0, "Should have edges in the map"
+    assert initial_edges["visible"] == initial_edges["total"], (
+        "All edges should be visible initially"
+    )
+
+    # Hide AP nodes - this should hide edges to the AP
+    ap_filter = page.locator('#test-card .filter-button[data-filter-type="ap"]')
+    ap_filter.click()
+    page.wait_for_timeout(300)
+
+    after_ap_filter = page.evaluate("""() => {
+        const card = document.getElementById("test-card");
+        const edges = card.querySelectorAll("path[data-edge]");
+        const hiddenEdges = Array.from(edges).filter(e => e.classList.contains("edge--filtered"));
+        return {
+            total: edges.length,
+            hidden: hiddenEdges.length,
+            hiddenEdgeIds: hiddenEdges.map(e => e.getAttribute("data-edge"))
+        };
+    }""")
+
+    assert after_ap_filter["hidden"] > 0, "Some edges should be hidden when AP is filtered"
+
+    # Re-enable AP filter
+    ap_filter.click()
+    page.wait_for_timeout(300)
+
+    after_restore = page.evaluate("""() => {
+        const card = document.getElementById("test-card");
+        const edges = card.querySelectorAll("path[data-edge]");
+        return {
+            visible: Array.from(edges).filter(e => !e.classList.contains("edge--filtered")).length,
+            total: edges.length
+        };
+    }""")
+
+    assert after_restore["visible"] == after_restore["total"], (
+        "All edges should be visible after restoring filter"
+    )
+
+
+def test_filter_state_persists_across_selection(
+    authenticated_page: Page,
+    entry_id: str,
+    ha_auth_token: str,
+) -> None:
+    """Test that filter state persists when selecting nodes."""
+    page = authenticated_page
+
+    page.goto(f"{HA_URL}/lovelace/e2e-test")
+    page.wait_for_load_state("networkidle")
+    page.wait_for_function(
+        "customElements.get('unifi-network-map') !== undefined",
+        timeout=10000,
+    )
+
+    _create_test_card(page, entry_id, ha_auth_token)
+    page.wait_for_selector("#test-card .filter-bar", timeout=10000)
+
+    # Hide clients
+    client_filter = page.locator('#test-card .filter-button[data-filter-type="client"]')
+    client_filter.click()
+    page.wait_for_timeout(300)
+
+    # Select a visible node (switch)
+    node = _node_locator(page, "Office Switch")
+    node.click()
+    page.wait_for_timeout(500)
+
+    # Verify filter state is preserved after selection
+    result = page.evaluate("""() => {
+        const card = document.getElementById("test-card");
+        const clientNodes = card.querySelectorAll('[data-node-id="MacBook Pro"], [data-node-id="Desktop PC"], [data-node-id="iPhone"]');
+        const filterBtn = card.querySelector('.filter-button[data-filter-type="client"]');
+        const selectedNode = card.querySelector('[data-selected="true"]');
+        return {
+            clientsStillHidden: Array.from(clientNodes).every(n => n.classList.contains("node--filtered")),
+            filterStillInactive: filterBtn?.classList.contains("filter-button--inactive"),
+            hasSelection: !!selectedNode,
+            selectedNodeId: selectedNode?.getAttribute("data-node-id")
+        };
+    }""")
+
+    assert result["clientsStillHidden"], "Clients should remain hidden after selecting another node"
+    assert result["filterStillInactive"], "Filter button should remain inactive"
+    assert result["hasSelection"], "Should have a selected node"
+    assert result["selectedNodeId"] == "Office Switch", "Office Switch should be selected"

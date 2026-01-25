@@ -61,7 +61,7 @@ Methods to break down for readability:
 | Group/collapse nodes | Collapse switches with all their clients | L |
 | Path visualization | Highlight route between two selected nodes | M |
 | Drag-to-rearrange | Custom node positioning with save/restore | L |
-| Filter by device type | Show only APs, only clients, etc. | S |
+
 
 ### Detail Panel Enhancements
 | Feature | Description | Effort |
@@ -91,10 +91,6 @@ Methods to break down for readability:
 
 
 ## Recently Completed
-- Copy-to-clipboard for MAC/IP: One-click copy in detail panel
-- Port utilization: Show which ports are in use on switches
-- Fixed ip addresses not being displayed
-- Fixed issue with refresh overlay causing flickering
-- VLAN visualization: Color-code nodes/edges by VLAN membership 
+- Filter by device type: Show only APs, only clients, etc.
 
 See [CHANGELOG.md](CHANGELOG.md) for full history.

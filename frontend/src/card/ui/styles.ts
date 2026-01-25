@@ -14,6 +14,66 @@ export const CARD_STYLES = `
   .unifi-network-map__viewport svg path[data-edge] { cursor: pointer; transition: stroke-width 0.15s ease, filter 0.15s ease; pointer-events: stroke; }
   .unifi-network-map__viewport svg path[data-edge-hitbox] { stroke: transparent; stroke-width: 14; fill: none; pointer-events: stroke; }
   .unifi-network-map__viewport svg path[data-edge]:hover { stroke-width: 4; filter: drop-shadow(0 0 4px currentColor); }
+
+  /* Filter Bar */
+  .filter-bar {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    display: flex;
+    gap: 4px;
+    padding: 6px 8px;
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    backdrop-filter: blur(8px);
+  }
+  .filter-button {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: #e5e7eb;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .filter-button:hover {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.4);
+  }
+  .filter-button--active {
+    background: rgba(59, 130, 246, 0.25);
+    border-color: rgba(59, 130, 246, 0.5);
+  }
+  .filter-button--inactive {
+    opacity: 0.5;
+  }
+  .filter-button--inactive:hover {
+    opacity: 0.8;
+  }
+  .filter-button__icon {
+    font-size: 14px;
+    line-height: 1;
+  }
+  .filter-button__count {
+    font-weight: 600;
+    min-width: 16px;
+    text-align: center;
+  }
+
+  /* Filtered nodes and edges */
+  .unifi-network-map__viewport svg .node--filtered,
+  .unifi-network-map__viewport svg .edge--filtered {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
   .unifi-network-map__panel { padding: 0; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); color: #e5e7eb; border-radius: 12px; font-size: 13px; overflow: hidden; display: flex; flex-direction: column; contain: strict; min-height: 0; height: 100%; }
   .unifi-network-map__tooltip { position: absolute; z-index: 2; background: rgba(15, 23, 42, 0.95); color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 12px; pointer-events: none; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(8px); max-width: 280px; }
   .unifi-network-map__tooltip--edge { display: flex; flex-direction: column; gap: 4px; }
@@ -243,6 +303,10 @@ export const CARD_STYLES = `
   ha-card[data-theme="light"] .panel-empty__text { color: #64748b; }
   ha-card[data-theme="light"] .panel-hint { background: rgba(59, 130, 246, 0.08); color: #475569; }
   ha-card[data-theme="light"] .unifi-network-map__tooltip { background: rgba(15, 23, 42, 0.9); }
+  ha-card[data-theme="light"] .filter-bar { background: rgba(241, 245, 249, 0.95); border-color: rgba(148, 163, 184, 0.4); }
+  ha-card[data-theme="light"] .filter-button { background: rgba(15, 23, 42, 0.05); border-color: rgba(148, 163, 184, 0.3); color: #0f172a; }
+  ha-card[data-theme="light"] .filter-button:hover { background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.4); }
+  ha-card[data-theme="light"] .filter-button--active { background: rgba(59, 130, 246, 0.2); border-color: rgba(59, 130, 246, 0.5); }
   ha-card[data-theme="light"] .status-badge--online { background: rgba(34, 197, 94, 0.15); color: #16a34a; }
   ha-card[data-theme="light"] .status-badge--offline { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
   ha-card[data-theme="light"] .status-badge--unknown { background: rgba(107, 114, 128, 0.15); color: #6b7280; }
@@ -310,6 +374,10 @@ export const CARD_STYLES = `
   ha-card[data-theme="unifi"] .unifi-network-map__viewport svg .node--selected > * { stroke: #006fff !important; }
   ha-card[data-theme="unifi"] .unifi-network-map__viewport svg [data-selected="true"] text,
   ha-card[data-theme="unifi"] .unifi-network-map__viewport svg .node--selected text { stroke: none !important; fill: #006fff !important; }
+  ha-card[data-theme="unifi"] .filter-bar { background: #ffffff; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); }
+  ha-card[data-theme="unifi"] .filter-button { background: #f9fafb; border: 1px solid #e5e7eb; color: #374151; }
+  ha-card[data-theme="unifi"] .filter-button:hover { background: #f3f4f6; border-color: #006fff; color: #006fff; }
+  ha-card[data-theme="unifi"] .filter-button--active { background: rgba(0, 111, 255, 0.1); border-color: #006fff; color: #006fff; }
 
   /* UniFi Dark theme - dark mode version of UniFi style */
   ha-card[data-theme="unifi-dark"] { background: #0d0d0d; }
@@ -367,6 +435,10 @@ export const CARD_STYLES = `
   ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport svg .node--selected > * { stroke: #006fff !important; }
   ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport svg [data-selected="true"] text,
   ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport svg .node--selected text { stroke: none !important; fill: #3b9eff !important; }
+  ha-card[data-theme="unifi-dark"] .filter-bar { background: #1a1a1a; border: 1px solid #2a2a2a; }
+  ha-card[data-theme="unifi-dark"] .filter-button { background: #151515; border: 1px solid #2a2a2a; color: #e5e5e5; }
+  ha-card[data-theme="unifi-dark"] .filter-button:hover { background: #252525; border-color: #006fff; color: #3b9eff; }
+  ha-card[data-theme="unifi-dark"] .filter-button--active { background: rgba(0, 111, 255, 0.15); border-color: #006fff; color: #3b9eff; }
 
   /* Entity Modal Styles */
   .entity-modal-overlay {
