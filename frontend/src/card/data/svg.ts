@@ -15,6 +15,101 @@ export function annotateEdges(svg: SVGElement, edges: Edge[]): void {
     path.setAttribute("data-edge", "true");
     ensureEdgeHitbox(path as SVGPathElement, edge);
   });
+  annotateEdgeLabels(svg);
+}
+
+function annotateEdgeLabels(svg: SVGElement): void {
+  // Annotate mermaid edge labels with data attributes for filtering
+  const edgeLabels = svg.querySelectorAll(".edgeLabel");
+  edgeLabels.forEach((label) => {
+    // Skip if already annotated
+    if (label.hasAttribute("data-edge-left")) return;
+
+    // Try to find the associated edge by examining the label's parent group
+    // Mermaid wraps edges in groups, so we look for nearby edge paths
+    const edgePath = findNearestEdgePath(label, svg);
+    if (edgePath) {
+      const left = edgePath.getAttribute("data-edge-left");
+      const right = edgePath.getAttribute("data-edge-right");
+      if (left && right) {
+        label.setAttribute("data-edge-left", left);
+        label.setAttribute("data-edge-right", right);
+      }
+    }
+  });
+}
+
+function findNearestEdgePath(label: Element, svg: SVGElement): Element | null {
+  // Strategy 1: Check if label is inside an edge group with a path
+  const parentGroup = label.closest("g");
+  if (parentGroup) {
+    const siblingPath = parentGroup.querySelector("path[data-edge-left][data-edge-right]");
+    if (siblingPath) return siblingPath;
+
+    // Check parent's siblings
+    const grandparent = parentGroup.parentElement;
+    if (grandparent) {
+      const nearbyPath = grandparent.querySelector("path[data-edge-left][data-edge-right]");
+      if (nearbyPath) return nearbyPath;
+    }
+  }
+
+  // Strategy 2: Find by label text content matching edge endpoints
+  const labelText = label.textContent?.trim() ?? "";
+  if (labelText) {
+    const paths = svg.querySelectorAll("path[data-edge-left][data-edge-right]");
+    for (const path of paths) {
+      const left = path.getAttribute("data-edge-left") ?? "";
+      const right = path.getAttribute("data-edge-right") ?? "";
+      // Check if label contains node names or port info
+      if (labelText.includes(left) || labelText.includes(right)) {
+        return path;
+      }
+    }
+  }
+
+  // Strategy 3: Use position-based matching (find closest path by transform)
+  const labelTransform = getLabelPosition(label);
+  if (labelTransform) {
+    return findClosestEdgeByPosition(svg, labelTransform);
+  }
+
+  return null;
+}
+
+function getLabelPosition(label: Element): { x: number; y: number } | null {
+  const transform = label.getAttribute("transform");
+  if (!transform) return null;
+
+  const translateMatch = transform.match(/translate\s*\(\s*([-\d.]+)\s*,\s*([-\d.]+)\s*\)/);
+  if (translateMatch) {
+    return { x: parseFloat(translateMatch[1]), y: parseFloat(translateMatch[2]) };
+  }
+  return null;
+}
+
+function findClosestEdgeByPosition(svg: SVGElement, pos: { x: number; y: number }): Element | null {
+  const paths = svg.querySelectorAll("path[data-edge-left][data-edge-right]");
+  let closest: Element | null = null;
+  let minDist = Infinity;
+
+  for (const path of paths) {
+    const pathEl = path as SVGPathElement;
+    try {
+      const length = pathEl.getTotalLength();
+      const midPoint = pathEl.getPointAtLength(length / 2);
+      const dist = Math.hypot(midPoint.x - pos.x, midPoint.y - pos.y);
+      if (dist < minDist) {
+        minDist = dist;
+        closest = path;
+      }
+    } catch {
+      // SVG method not available, skip
+    }
+  }
+
+  // Only return if reasonably close (within 100px)
+  return minDist < 100 ? closest : null;
 }
 
 export function findEdgeFromTarget(target: Element | null, edges: Edge[]): Edge | null {

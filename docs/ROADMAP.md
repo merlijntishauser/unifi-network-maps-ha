@@ -6,7 +6,6 @@
 ## P2 - Bugs & Correctness (High Impact)
 - **Diagnostics timestamp** - Add timestamp to show data freshness
 - **Diagnostics include clients list** (anonymized) - Include counts + sample names
-- **PoE icons are not removed when links are  hidden by filtering ** - 
 
 ## P3 - UX Polish (User-facing)
 
@@ -14,7 +13,6 @@
 - **Tooltip boundary detection** - Prevent off-screen tooltips
 - **Separate reset vs clear selection** - Reset view shouldn't clear panel
 - **Card availability after install** - Warn users to hard-refresh when card isn't listed after install
-- **Reduce log chatter** - Move log - messages from info to debug
 
 ### Medium Effort
 - **Search/filter in detail panel** - Find clients/devices quickly
@@ -22,8 +20,7 @@
 - **Add picture to custom card chooser** - Show preview in Lovelace card picker
 - **Export current view as PNG** - Download button for documentation/sharing
 - **Dashboard layout guidance** - Recommend sections view or 4-column layout for wide cards
-- "infinite" background plane...(make way larger...)
-- clients not only horizontally, but multiple rows to keep SVG more square
+- **"infinite" background plane** - (make way larger...)
 
 ### Larger Scope
 - **Docs improvements** - Add more screenshots + example dashboards

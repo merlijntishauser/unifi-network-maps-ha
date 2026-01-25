@@ -1107,6 +1107,78 @@ function annotateEdges(svg3, edges) {
     path.setAttribute("data-edge", "true");
     ensureEdgeHitbox(path, edge);
   });
+  annotateEdgeLabels(svg3);
+}
+function annotateEdgeLabels(svg3) {
+  const edgeLabels = svg3.querySelectorAll(".edgeLabel");
+  edgeLabels.forEach((label) => {
+    if (label.hasAttribute("data-edge-left")) return;
+    const edgePath = findNearestEdgePath(label, svg3);
+    if (edgePath) {
+      const left = edgePath.getAttribute("data-edge-left");
+      const right = edgePath.getAttribute("data-edge-right");
+      if (left && right) {
+        label.setAttribute("data-edge-left", left);
+        label.setAttribute("data-edge-right", right);
+      }
+    }
+  });
+}
+function findNearestEdgePath(label, svg3) {
+  const parentGroup = label.closest("g");
+  if (parentGroup) {
+    const siblingPath = parentGroup.querySelector("path[data-edge-left][data-edge-right]");
+    if (siblingPath) return siblingPath;
+    const grandparent = parentGroup.parentElement;
+    if (grandparent) {
+      const nearbyPath = grandparent.querySelector("path[data-edge-left][data-edge-right]");
+      if (nearbyPath) return nearbyPath;
+    }
+  }
+  const labelText = label.textContent?.trim() ?? "";
+  if (labelText) {
+    const paths = svg3.querySelectorAll("path[data-edge-left][data-edge-right]");
+    for (const path of paths) {
+      const left = path.getAttribute("data-edge-left") ?? "";
+      const right = path.getAttribute("data-edge-right") ?? "";
+      if (labelText.includes(left) || labelText.includes(right)) {
+        return path;
+      }
+    }
+  }
+  const labelTransform = getLabelPosition(label);
+  if (labelTransform) {
+    return findClosestEdgeByPosition(svg3, labelTransform);
+  }
+  return null;
+}
+function getLabelPosition(label) {
+  const transform = label.getAttribute("transform");
+  if (!transform) return null;
+  const translateMatch = transform.match(/translate\s*\(\s*([-\d.]+)\s*,\s*([-\d.]+)\s*\)/);
+  if (translateMatch) {
+    return { x: parseFloat(translateMatch[1]), y: parseFloat(translateMatch[2]) };
+  }
+  return null;
+}
+function findClosestEdgeByPosition(svg3, pos) {
+  const paths = svg3.querySelectorAll("path[data-edge-left][data-edge-right]");
+  let closest = null;
+  let minDist = Infinity;
+  for (const path of paths) {
+    const pathEl = path;
+    try {
+      const length = pathEl.getTotalLength();
+      const midPoint = pathEl.getPointAtLength(length / 2);
+      const dist = Math.hypot(midPoint.x - pos.x, midPoint.y - pos.y);
+      if (dist < minDist) {
+        minDist = dist;
+        closest = path;
+      }
+    } catch {
+    }
+  }
+  return minDist < 100 ? closest : null;
 }
 function findEdgeFromTarget(target, edges) {
   if (!target) return null;
@@ -5530,15 +5602,42 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   }
   _applyEdgeFilters(svg3, hiddenNodes) {
     const edgePaths = svg3.querySelectorAll("path[data-edge-left][data-edge-right]");
+    const filteredEdges = /* @__PURE__ */ new Set();
     for (const path of edgePaths) {
       const left = path.getAttribute("data-edge-left");
       const right = path.getAttribute("data-edge-right");
       if (!left || !right) continue;
       const shouldHide = hiddenNodes.has(left) || hiddenNodes.has(right);
       path.classList.toggle("edge--filtered", shouldHide);
+      if (shouldHide) {
+        filteredEdges.add(this._edgeKey(left, right));
+      }
       const hitbox = path.nextElementSibling;
       if (hitbox?.getAttribute("data-edge-hitbox")) {
         hitbox.classList.toggle("edge--filtered", shouldHide);
+      }
+    }
+    this._applyEdgeLabelFilters(svg3, filteredEdges);
+  }
+  _edgeKey(left, right) {
+    return [left.trim(), right.trim()].sort().join("|");
+  }
+  _applyEdgeLabelFilters(svg3, filteredEdges) {
+    const labeledElements = svg3.querySelectorAll("[data-edge-left][data-edge-right]:not(path)");
+    for (const el of labeledElements) {
+      const left = el.getAttribute("data-edge-left");
+      const right = el.getAttribute("data-edge-right");
+      if (!left || !right) continue;
+      const shouldHide = filteredEdges.has(this._edgeKey(left, right));
+      el.classList.toggle("edge--filtered", shouldHide);
+    }
+    const edgeLabels = svg3.querySelectorAll(".edgeLabel");
+    for (const label of edgeLabels) {
+      const left = label.getAttribute("data-edge-left");
+      const right = label.getAttribute("data-edge-right");
+      if (left && right) {
+        const shouldHide = filteredEdges.has(this._edgeKey(left, right));
+        label.classList.toggle("edge--filtered", shouldHide);
       }
     }
   }

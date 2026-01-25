@@ -12,9 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Labels in lovelace editor not showing up
+- PoE icons weren't removed when links are hidden by filtering
 
 ### Changed
 - Implemented websockets
+- Less logging at Info level, enable debug level for more details
 
 ## [0.1.7] - 2026-01-24
 ### Added

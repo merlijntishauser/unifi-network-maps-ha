@@ -823,6 +823,8 @@ export class UnifiNetworkMapCard extends HTMLElement {
 
   private _applyEdgeFilters(svg: SVGElement, hiddenNodes: Set<string>): void {
     const edgePaths = svg.querySelectorAll("path[data-edge-left][data-edge-right]");
+    const filteredEdges = new Set<string>();
+
     for (const path of edgePaths) {
       const left = path.getAttribute("data-edge-left");
       const right = path.getAttribute("data-edge-right");
@@ -831,10 +833,43 @@ export class UnifiNetworkMapCard extends HTMLElement {
       const shouldHide = hiddenNodes.has(left) || hiddenNodes.has(right);
       path.classList.toggle("edge--filtered", shouldHide);
 
+      if (shouldHide) {
+        filteredEdges.add(this._edgeKey(left, right));
+      }
+
       // Also hide the hitbox if present
       const hitbox = path.nextElementSibling;
       if (hitbox?.getAttribute("data-edge-hitbox")) {
         hitbox.classList.toggle("edge--filtered", shouldHide);
+      }
+    }
+
+    this._applyEdgeLabelFilters(svg, filteredEdges);
+  }
+
+  private _edgeKey(left: string, right: string): string {
+    return [left.trim(), right.trim()].sort().join("|");
+  }
+
+  private _applyEdgeLabelFilters(svg: SVGElement, filteredEdges: Set<string>): void {
+    // Filter edge labels that have data-edge-left/right attributes
+    const labeledElements = svg.querySelectorAll("[data-edge-left][data-edge-right]:not(path)");
+    for (const el of labeledElements) {
+      const left = el.getAttribute("data-edge-left");
+      const right = el.getAttribute("data-edge-right");
+      if (!left || !right) continue;
+      const shouldHide = filteredEdges.has(this._edgeKey(left, right));
+      el.classList.toggle("edge--filtered", shouldHide);
+    }
+
+    // Filter mermaid edge labels (class="edgeLabel")
+    const edgeLabels = svg.querySelectorAll(".edgeLabel");
+    for (const label of edgeLabels) {
+      const left = label.getAttribute("data-edge-left");
+      const right = label.getAttribute("data-edge-right");
+      if (left && right) {
+        const shouldHide = filteredEdges.has(this._edgeKey(left, right));
+        label.classList.toggle("edge--filtered", shouldHide);
       }
     }
   }
