@@ -10,13 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Filter by device type: Show only APs, only clients, etc.
 - Translations (French, German, Spanish and Dutch)
 
-### Fixed
-- Labels in lovelace editor not showing up
-- PoE icons weren't removed when links are hidden by filtering
-
 ### Changed
 - Implemented websockets
 - Less logging at Info level, enable debug level for more details
+
+### Fixed
+- Labels in lovelace editor not showing up
+- PoE icons weren't removed when links are hidden by filtering
+- Duplicate tooltips on nodes removed
 
 ## [0.1.7] - 2026-01-24
 ### Added
