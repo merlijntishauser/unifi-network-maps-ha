@@ -5261,6 +5261,8 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
         return;
       }
     }
+    this._form.hass = this._hass;
+    this._form.computeLabel = (schema) => schema.label ?? schema.name;
     this._form.schema = this._buildFormSchema();
     this._form.data = {
       entry_id: this._config?.entry_id ?? "",

@@ -6,7 +6,12 @@ export class UnifiNetworkMapEditor extends HTMLElement {
   private _config?: CardConfig;
   private _hass?: Hass;
   private _entries: ConfigEntry[] = [];
-  private _form?: HTMLElement & { schema: unknown; data: Record<string, unknown> };
+  private _form?: HTMLElement & {
+    schema: unknown;
+    data: Record<string, unknown>;
+    hass?: Hass;
+    computeLabel?: (schema: FormSchemaEntry) => string;
+  };
   private _boundOnChange = (event: Event) => this._onChange(event);
 
   set hass(hass: Hass) {
@@ -51,6 +56,8 @@ export class UnifiNetworkMapEditor extends HTMLElement {
         return;
       }
     }
+    this._form.hass = this._hass;
+    this._form.computeLabel = (schema: FormSchemaEntry) => schema.label ?? schema.name;
     this._form.schema = this._buildFormSchema();
     this._form.data = {
       entry_id: this._config?.entry_id ?? "",
