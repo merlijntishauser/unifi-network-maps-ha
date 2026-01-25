@@ -115,6 +115,12 @@ export function annotateNodeIds(svg: SVGElement, nodeNames: string[]): void {
   }
 }
 
+export function removeSvgTitles(svg: SVGElement): void {
+  // Remove <title> elements to prevent native browser tooltips
+  // (we show custom tooltips instead)
+  svg.querySelectorAll("title").forEach((el) => el.remove());
+}
+
 function buildTextMap(svg: SVGElement, selector: "text" | "title"): Map<string, Element[]> {
   const map = new Map<string, Element[]>();
   for (const el of svg.querySelectorAll(selector)) {

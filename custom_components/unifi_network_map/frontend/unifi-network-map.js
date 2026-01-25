@@ -1375,6 +1375,9 @@ function annotateNodeIds(svg3, nodeNames) {
     holder.setAttribute("data-node-id", name);
   }
 }
+function removeSvgTitles(svg3) {
+  svg3.querySelectorAll("title").forEach((el) => el.remove());
+}
 function buildTextMap(svg3, selector) {
   const map = /* @__PURE__ */ new Map();
   for (const el of svg3.querySelectorAll(selector)) {
@@ -5548,6 +5551,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     const callbacks = this._viewportCallbacks();
     applyTransform(svg3, this._viewportState.viewTransform, this._viewportState.isPanning);
     annotateNodeIds(svg3, Object.keys(this._payload?.node_types ?? {}));
+    removeSvgTitles(svg3);
     this._highlightSelectedNode(svg3);
     this._annotateEdges(svg3);
     this._wireControls(svg3);

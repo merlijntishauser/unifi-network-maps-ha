@@ -14,6 +14,7 @@ import {
   highlightSelectedNode,
   inferNodeName,
   markNodeSelected,
+  removeSvgTitles,
   resolveNodeName,
 } from "../interaction/node";
 import {
@@ -758,6 +759,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
     const callbacks = this._viewportCallbacks();
     applyTransform(svg, this._viewportState.viewTransform, this._viewportState.isPanning);
     annotateNodeIds(svg, Object.keys(this._payload?.node_types ?? {}));
+    removeSvgTitles(svg);
     this._highlightSelectedNode(svg);
     this._annotateEdges(svg);
     this._wireControls(svg);
