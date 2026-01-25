@@ -87,8 +87,8 @@ Methods to break down for readability:
 - **Threat detection overlay** - Highlight suspicious traffic patterns
 - **Bandwidth usage trends** - Daily/weekly graphs per device
 - **Connection quality metrics** - Signal strength, retry rates for wireless
-- ** Tighter DNS integration** - Show DNS records for clients
-- ** VLAN/IP overview ** Maybe a sepentity cards?
+- **Tighter DNS integration** - Show DNS records for clients
+- **VLAN/IP overview** - Maybe as a new lovelace card?
 
 ## Recently Completed
 
