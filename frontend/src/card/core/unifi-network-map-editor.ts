@@ -1,11 +1,13 @@
 import { DOMAIN } from "../shared/constants";
 import { buildFormSchema, normalizeTheme } from "../shared/editor-helpers";
+import { createLocalize } from "../shared/localize";
 import type { CardConfig, ConfigEntry, FormSchemaEntry, Hass } from "./types";
 
 export class UnifiNetworkMapEditor extends HTMLElement {
   private _config?: CardConfig;
   private _hass?: Hass;
   private _entries: ConfigEntry[] = [];
+  private _localize = createLocalize();
   private _form?: HTMLElement & {
     schema: unknown;
     data: Record<string, unknown>;
@@ -16,6 +18,7 @@ export class UnifiNetworkMapEditor extends HTMLElement {
 
   set hass(hass: Hass) {
     this._hass = hass;
+    this._localize = createLocalize(hass);
     this._loadEntries();
   }
 
@@ -57,7 +60,8 @@ export class UnifiNetworkMapEditor extends HTMLElement {
       }
     }
     this._form.hass = this._hass;
-    this._form.computeLabel = (schema: FormSchemaEntry) => schema.label ?? schema.name;
+    this._form.computeLabel = (schema: FormSchemaEntry) =>
+      schema.label ?? this._localize(`editor.${schema.name}`) ?? schema.name;
     this._form.schema = this._buildFormSchema();
     this._form.data = {
       entry_id: this._config?.entry_id ?? "",
@@ -70,7 +74,7 @@ export class UnifiNetworkMapEditor extends HTMLElement {
     this.innerHTML = `
       <div style="padding: 16px;">
         <p style="color: var(--secondary-text-color);">
-          No UniFi Network Map integrations found. Please add one first.
+          ${this._localize("editor.no_entries")}
         </p>
       </div>
     `;
@@ -94,7 +98,7 @@ export class UnifiNetworkMapEditor extends HTMLElement {
   }
 
   private _buildFormSchema(): FormSchemaEntry[] {
-    return buildFormSchema(this._entries);
+    return buildFormSchema(this._entries, this._localize);
   }
 
   private _onChange(e: Event) {

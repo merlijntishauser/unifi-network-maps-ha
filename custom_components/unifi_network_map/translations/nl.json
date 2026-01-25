@@ -1,0 +1,77 @@
+{
+  "title": "UniFi Network Map",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Verbinden met UniFi",
+        "description": "Voer je UniFi-controllergegevens in.",
+        "data": {
+          "url": "Controller-URL",
+          "username": "Gebruikersnaam",
+          "password": "Wachtwoord",
+          "site": "Site",
+          "verify_ssl": "SSL verifiëren"
+        }
+      },
+      "init": {
+        "title": "Kaartopties",
+        "description": "Kies wat op de kaart verschijnt en hoe deze wordt weergegeven.",
+        "data": {
+          "include_ports": "Poortlabels tonen",
+          "include_clients": "Clients tonen",
+          "client_scope": "Clientbereik",
+          "only_unifi": "Alleen UniFi-apparaten",
+          "svg_isometric": "Isometrische lay-out",
+          "svg_width": "SVG-breedte (px)",
+          "svg_height": "SVG-hoogte (px)",
+          "use_cache": "Gerenderde kaart cachen"
+        },
+        "data_description": {
+          "include_ports": "Voegt switchpoortlabels toe aan verbindingen.",
+          "include_clients": "Voegt clientapparaten toe aan de topologie.",
+          "client_scope": "Kies bekabelde, draadloze of alle clients.",
+          "only_unifi": "Verberg niet-UniFi-apparaten in de topologie.",
+          "svg_isometric": "Render een 3D-achtige weergave.",
+          "svg_width": "Laat leeg voor automatisch formaat.",
+          "svg_height": "Laat leeg voor automatisch formaat.",
+          "use_cache": "Hergebruik de laatste render tussen polls."
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "Voer een geldige controller-URL in inclusief http of https.",
+      "url_has_credentials": "Voeg geen gebruikersnaam of wachtwoord toe aan de URL. Gebruik de aparte velden hieronder."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Kaartopties",
+        "description": "Kies wat op de kaart verschijnt en hoe deze wordt weergegeven.",
+        "data": {
+          "include_ports": "Poortlabels tonen",
+          "include_clients": "Clients tonen",
+          "client_scope": "Clientbereik",
+          "only_unifi": "Alleen UniFi-apparaten",
+          "svg_isometric": "Isometrische lay-out",
+          "svg_width": "SVG-breedte (px)",
+          "svg_height": "SVG-hoogte (px)",
+          "use_cache": "Gerenderde kaart cachen"
+        },
+        "data_description": {
+          "include_ports": "Voegt switchpoortlabels toe aan verbindingen.",
+          "include_clients": "Voegt clientapparaten toe aan de topologie.",
+          "client_scope": "Kies bekabelde, draadloze of alle clients.",
+          "only_unifi": "Verberg niet-UniFi-apparaten in de topologie.",
+          "svg_isometric": "Render een 3D-achtige weergave.",
+          "svg_width": "Laat leeg voor automatisch formaat.",
+          "svg_height": "Laat leeg voor automatisch formaat.",
+          "use_cache": "Hergebruik de laatste render tussen polls."
+        }
+      }
+    },
+    "error": {
+      "expected_int": "Voer een geheel aantal pixels in of laat het veld leeg."
+    }
+  }
+}

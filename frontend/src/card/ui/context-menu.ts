@@ -9,6 +9,7 @@ export type ContextMenuRenderOptions = {
   getIcon: (
     name: "menu-details" | "menu-copy" | "menu-copy-ip" | "menu-restart" | "menu-ports",
   ) => string;
+  localize: (key: string, replacements?: Record<string, string | number>) => string;
 };
 
 export type ContextMenuAction =
@@ -49,7 +50,7 @@ export function renderContextMenu(options: ContextMenuRenderOptions): string {
     items.push(`
       <button type="button" class="context-menu__item" data-context-action="details">
         <span class="context-menu__icon">${options.getIcon("menu-details")}</span>
-        <span>View Details</span>
+        <span>${options.localize("context_menu.view_details")}</span>
       </button>
     `);
   }
@@ -58,7 +59,7 @@ export function renderContextMenu(options: ContextMenuRenderOptions): string {
     items.push(`
       <button type="button" class="context-menu__item" data-context-action="copy-mac" data-mac="${escapeHtml(mac)}">
         <span class="context-menu__icon">${options.getIcon("menu-copy")}</span>
-        <span>Copy MAC Address</span>
+        <span>${options.localize("context_menu.copy_mac")}</span>
       </button>
     `);
   }
@@ -66,7 +67,7 @@ export function renderContextMenu(options: ContextMenuRenderOptions): string {
     items.push(`
       <button type="button" class="context-menu__item" data-context-action="copy-ip" data-ip="${escapeHtml(ip)}">
         <span class="context-menu__icon">${options.getIcon("menu-copy-ip")}</span>
-        <span>Copy IP Address</span>
+        <span>${options.localize("context_menu.copy_ip")}</span>
       </button>
     `);
   }
@@ -77,7 +78,7 @@ export function renderContextMenu(options: ContextMenuRenderOptions): string {
     items.push(`
       <button type="button" class="context-menu__item" data-context-action="view-ports">
         <span class="context-menu__icon">${options.getIcon("menu-ports")}</span>
-        <span>View Ports</span>
+        <span>${options.localize("context_menu.view_ports")}</span>
       </button>
     `);
   }
@@ -90,7 +91,7 @@ export function renderContextMenu(options: ContextMenuRenderOptions): string {
     items.push(`
       <button type="button" class="context-menu__item" data-context-action="restart" ${!entityId ? "disabled" : ""}>
         <span class="context-menu__icon">${options.getIcon("menu-restart")}</span>
-        <span>Restart Device</span>
+        <span>${options.localize("context_menu.restart")}</span>
       </button>
     `);
   }

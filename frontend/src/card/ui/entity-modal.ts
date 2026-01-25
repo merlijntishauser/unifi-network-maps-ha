@@ -8,6 +8,7 @@ export type EntityModalContext = {
   theme: "dark" | "light" | "unifi" | "unifi-dark";
   getNodeTypeIcon: (nodeType: string) => string;
   formatLastChanged: (value: string | null | undefined) => string;
+  localize: (key: string, replacements?: Record<string, string | number>) => string;
 };
 
 export function renderEntityModal(context: EntityModalContext): string {
@@ -25,7 +26,7 @@ export function renderEntityModal(context: EntityModalContext): string {
   if (mac) {
     infoRows.push(`
       <div class="entity-modal__info-row">
-        <span class="entity-modal__info-label">MAC Address</span>
+        <span class="entity-modal__info-label">${context.localize("entity_modal.mac")}</span>
         <span class="entity-modal__info-value">${escapeHtml(mac)}</span>
       </div>
     `);
@@ -35,7 +36,7 @@ export function renderEntityModal(context: EntityModalContext): string {
   if (ipEntity?.ip) {
     infoRows.push(`
       <div class="entity-modal__info-row">
-        <span class="entity-modal__info-label">IP Address</span>
+        <span class="entity-modal__info-label">${context.localize("entity_modal.ip")}</span>
         <span class="entity-modal__info-value">${escapeHtml(ipEntity.ip)}</span>
       </div>
     `);
@@ -43,10 +44,14 @@ export function renderEntityModal(context: EntityModalContext): string {
 
   if (status?.state) {
     const stateDisplay =
-      status.state === "online" ? "Online" : status.state === "offline" ? "Offline" : "Unknown";
+      status.state === "online"
+        ? context.localize("entity_modal.status_online")
+        : status.state === "offline"
+          ? context.localize("entity_modal.status_offline")
+          : context.localize("entity_modal.status_unknown");
     infoRows.push(`
       <div class="entity-modal__info-row">
-        <span class="entity-modal__info-label">Status</span>
+        <span class="entity-modal__info-label">${context.localize("entity_modal.status")}</span>
         <span class="entity-modal__info-value">${stateDisplay}</span>
       </div>
     `);
@@ -55,7 +60,7 @@ export function renderEntityModal(context: EntityModalContext): string {
   if (status?.last_changed) {
     infoRows.push(`
       <div class="entity-modal__info-row">
-        <span class="entity-modal__info-label">Last Changed</span>
+        <span class="entity-modal__info-label">${context.localize("entity_modal.last_changed")}</span>
         <span class="entity-modal__info-value">${context.formatLastChanged(status.last_changed)}</span>
       </div>
     `);
@@ -63,7 +68,7 @@ export function renderEntityModal(context: EntityModalContext): string {
 
   infoRows.push(`
     <div class="entity-modal__info-row">
-      <span class="entity-modal__info-label">Device Type</span>
+      <span class="entity-modal__info-label">${context.localize("entity_modal.device_type")}</span>
       <span class="entity-modal__info-value">${escapeHtml(nodeType)}</span>
     </div>
   `);
@@ -84,7 +89,7 @@ export function renderEntityModal(context: EntityModalContext): string {
         </div>
         <div class="entity-modal__body">
           <div class="entity-modal__section">
-            <div class="entity-modal__section-title">Device Information</div>
+            <div class="entity-modal__section-title">${context.localize("entity_modal.device_info")}</div>
             <div class="entity-modal__info-grid">
               ${infoRows.join("")}
             </div>
@@ -93,7 +98,7 @@ export function renderEntityModal(context: EntityModalContext): string {
             relatedEntities.length > 0
               ? `
             <div class="entity-modal__section">
-              <div class="entity-modal__section-title">Related Entities (${relatedEntities.length})</div>
+              <div class="entity-modal__section-title">${context.localize("entity_modal.related_entities_count", { count: relatedEntities.length })}</div>
               <div class="entity-modal__entity-list">
                 ${entityItems}
               </div>
@@ -101,8 +106,8 @@ export function renderEntityModal(context: EntityModalContext): string {
           `
               : `
             <div class="entity-modal__section">
-              <div class="entity-modal__section-title">Related Entities</div>
-              <div class="panel-empty__text">No Home Assistant entities found for this device</div>
+              <div class="entity-modal__section-title">${context.localize("entity_modal.related_entities")}</div>
+              <div class="panel-empty__text">${context.localize("entity_modal.no_entities")}</div>
             </div>
           `
           }

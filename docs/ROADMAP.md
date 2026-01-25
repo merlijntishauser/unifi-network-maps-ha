@@ -91,6 +91,6 @@ Methods to break down for readability:
 
 
 ## Recently Completed
-- Filter by device type: Show only APs, only clients, etc.
+- Added translations
 
 See [CHANGELOG.md](CHANGELOG.md) for full history.

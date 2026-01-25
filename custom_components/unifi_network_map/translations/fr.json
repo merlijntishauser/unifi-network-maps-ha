@@ -1,0 +1,77 @@
+{
+  "title": "UniFi Network Map",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connexion à UniFi",
+        "description": "Saisissez les informations de votre contrôleur UniFi.",
+        "data": {
+          "url": "URL du contrôleur",
+          "username": "Nom d’utilisateur",
+          "password": "Mot de passe",
+          "site": "Site",
+          "verify_ssl": "Vérifier le SSL"
+        }
+      },
+      "init": {
+        "title": "Options de la carte",
+        "description": "Choisissez ce qui apparaît sur la carte et la façon dont elle est rendue.",
+        "data": {
+          "include_ports": "Afficher les étiquettes de ports",
+          "include_clients": "Afficher les clients",
+          "client_scope": "Portée des clients",
+          "only_unifi": "Uniquement les appareils UniFi",
+          "svg_isometric": "Disposition isométrique",
+          "svg_width": "Largeur SVG (px)",
+          "svg_height": "Hauteur SVG (px)",
+          "use_cache": "Mettre en cache la carte rendue"
+        },
+        "data_description": {
+          "include_ports": "Ajoute les étiquettes de ports de switch aux liens.",
+          "include_clients": "Inclut les appareils clients dans la topologie.",
+          "client_scope": "Choisissez les clients filaires, sans fil ou tous.",
+          "only_unifi": "Masque les appareils non UniFi dans la topologie.",
+          "svg_isometric": "Rend une vue de style 3D.",
+          "svg_width": "Laissez vide pour un dimensionnement automatique.",
+          "svg_height": "Laissez vide pour un dimensionnement automatique.",
+          "use_cache": "Réutilise le dernier rendu entre les sondages."
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "Saisissez une URL de contrôleur valide incluant http ou https.",
+      "url_has_credentials": "N’incluez pas le nom d’utilisateur ou le mot de passe dans l’URL. Utilisez les champs séparés ci-dessous."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options de la carte",
+        "description": "Choisissez ce qui apparaît sur la carte et la façon dont elle est rendue.",
+        "data": {
+          "include_ports": "Afficher les étiquettes de ports",
+          "include_clients": "Afficher les clients",
+          "client_scope": "Portée des clients",
+          "only_unifi": "Uniquement les appareils UniFi",
+          "svg_isometric": "Disposition isométrique",
+          "svg_width": "Largeur SVG (px)",
+          "svg_height": "Hauteur SVG (px)",
+          "use_cache": "Mettre en cache la carte rendue"
+        },
+        "data_description": {
+          "include_ports": "Ajoute les étiquettes de ports de switch aux liens.",
+          "include_clients": "Inclut les appareils clients dans la topologie.",
+          "client_scope": "Choisissez les clients filaires, sans fil ou tous.",
+          "only_unifi": "Masque les appareils non UniFi dans la topologie.",
+          "svg_isometric": "Rend une vue de style 3D.",
+          "svg_width": "Laissez vide pour un dimensionnement automatique.",
+          "svg_height": "Laissez vide pour un dimensionnement automatique.",
+          "use_cache": "Réutilise le dernier rendu entre les sondages."
+        }
+      }
+    },
+    "error": {
+      "expected_int": "Saisissez un nombre entier de pixels ou laissez le champ vide."
+    }
+  }
+}

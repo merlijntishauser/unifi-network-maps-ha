@@ -1,6 +1,7 @@
 import type { ConfigEntry, FormSchemaEntry } from "../core/types";
+import type { LocalizeFunc } from "./localize";
 
-export function buildFormSchema(entries: ConfigEntry[]): FormSchemaEntry[] {
+export function buildFormSchema(entries: ConfigEntry[], localize: LocalizeFunc): FormSchemaEntry[] {
   const entryOptions = entries.map((entry) => ({
     label: entry.title,
     value: entry.entry_id,
@@ -10,7 +11,7 @@ export function buildFormSchema(entries: ConfigEntry[]): FormSchemaEntry[] {
       name: "entry_id",
       required: true,
       selector: { select: { mode: "dropdown", options: entryOptions } },
-      label: "UniFi Network Map Instance",
+      label: localize("editor.entry_id"),
     },
     {
       name: "theme",
@@ -18,14 +19,14 @@ export function buildFormSchema(entries: ConfigEntry[]): FormSchemaEntry[] {
         select: {
           mode: "dropdown",
           options: [
-            { label: "Dark (default)", value: "dark" },
-            { label: "Light", value: "light" },
-            { label: "UniFi", value: "unifi" },
-            { label: "UniFi Dark", value: "unifi-dark" },
+            { label: localize("editor.theme.dark"), value: "dark" },
+            { label: localize("editor.theme.light"), value: "light" },
+            { label: localize("editor.theme.unifi"), value: "unifi" },
+            { label: localize("editor.theme.unifi_dark"), value: "unifi-dark" },
           ],
         },
       },
-      label: "Theme",
+      label: localize("editor.theme"),
     },
     {
       name: "card_height",
@@ -35,7 +36,7 @@ export function buildFormSchema(entries: ConfigEntry[]): FormSchemaEntry[] {
           suffix: "px",
         },
       },
-      label: "Card height (optional)",
+      label: localize("editor.card_height"),
     },
   ];
 }

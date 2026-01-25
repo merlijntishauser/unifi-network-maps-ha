@@ -1,0 +1,77 @@
+{
+  "title": "UniFi Network Map",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Conectar a UniFi",
+        "description": "Introduce los detalles de tu controlador UniFi.",
+        "data": {
+          "url": "URL del controlador",
+          "username": "Nombre de usuario",
+          "password": "Contraseña",
+          "site": "Sitio",
+          "verify_ssl": "Verificar SSL"
+        }
+      },
+      "init": {
+        "title": "Opciones del mapa",
+        "description": "Elige qué aparece en el mapa y cómo se representa.",
+        "data": {
+          "include_ports": "Mostrar etiquetas de puertos",
+          "include_clients": "Mostrar clientes",
+          "client_scope": "Ámbito de clientes",
+          "only_unifi": "Solo dispositivos UniFi",
+          "svg_isometric": "Diseño isométrico",
+          "svg_width": "Ancho de SVG (px)",
+          "svg_height": "Alto de SVG (px)",
+          "use_cache": "Guardar en caché el mapa renderizado"
+        },
+        "data_description": {
+          "include_ports": "Añade etiquetas de puertos de switch a los enlaces.",
+          "include_clients": "Incluye dispositivos cliente en la topología.",
+          "client_scope": "Elige clientes cableados, inalámbricos o todos.",
+          "only_unifi": "Oculta dispositivos que no sean UniFi en la topología.",
+          "svg_isometric": "Renderiza una vista con estilo 3D.",
+          "svg_width": "Deja en blanco para tamaño automático.",
+          "svg_height": "Deja en blanco para tamaño automático.",
+          "use_cache": "Reutiliza el último renderizado entre actualizaciones."
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "Introduce una URL de controlador válida que incluya http o https.",
+      "url_has_credentials": "No incluyas usuario ni contraseña en la URL. Usa los campos separados de abajo."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opciones del mapa",
+        "description": "Elige qué aparece en el mapa y cómo se representa.",
+        "data": {
+          "include_ports": "Mostrar etiquetas de puertos",
+          "include_clients": "Mostrar clientes",
+          "client_scope": "Ámbito de clientes",
+          "only_unifi": "Solo dispositivos UniFi",
+          "svg_isometric": "Diseño isométrico",
+          "svg_width": "Ancho de SVG (px)",
+          "svg_height": "Alto de SVG (px)",
+          "use_cache": "Guardar en caché el mapa renderizado"
+        },
+        "data_description": {
+          "include_ports": "Añade etiquetas de puertos de switch a los enlaces.",
+          "include_clients": "Incluye dispositivos cliente en la topología.",
+          "client_scope": "Elige clientes cableados, inalámbricos o todos.",
+          "only_unifi": "Oculta dispositivos que no sean UniFi en la topología.",
+          "svg_isometric": "Renderiza una vista con estilo 3D.",
+          "svg_width": "Deja en blanco para tamaño automático.",
+          "svg_height": "Deja en blanco para tamaño automático.",
+          "use_cache": "Reutiliza el último renderizado entre actualizaciones."
+        }
+      }
+    },
+    "error": {
+      "expected_int": "Introduce un número entero de píxeles o deja el campo en blanco."
+    }
+  }
+}

@@ -29,6 +29,7 @@ import { fetchWithAuth } from "../data/auth";
 import { showToast } from "../shared/feedback";
 import { loadPayload, loadSvg } from "../data/data";
 import { normalizeConfig, startPolling, stopPolling } from "./state";
+import { createLocalize } from "../shared/localize";
 import {
   closeContextMenu,
   createContextMenuController,
@@ -117,6 +118,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
     const prevToken = this._hass?.auth?.data?.access_token;
     const newToken = hass?.auth?.data?.access_token;
     this._hass = hass;
+    this._localize = createLocalize(hass);
 
     // Only re-render when:
     // 1. hass is set for the first time (allows _loadSvg to check auth)
@@ -163,6 +165,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
   private _error?: string;
   private _loading = false;
   private _dataLoading = false;
+  private _localize = createLocalize();
   private _showLoadingOverlay = false;
   private _loadingOverlayTimeout?: ReturnType<typeof setTimeout>;
   private _viewportState = createDefaultViewportState();
@@ -246,13 +249,16 @@ export class UnifiNetworkMapCard extends HTMLElement {
   private _render() {
     const theme = this._config?.theme ?? "dark";
     if (!this._config) {
-      this._setCardBody('<div style="padding:16px;">Missing configuration</div>', theme);
+      this._setCardBody(
+        `<div style="padding:16px;">${this._localize("card.error.missing_config")}</div>`,
+        theme,
+      );
       return;
     }
 
     if (!this._config.svg_url) {
       this._setCardBody(
-        '<div style="padding:16px;">Select a UniFi Network Map instance in the card settings.</div>',
+        `<div style="padding:16px;">${this._localize("card.error.missing_entry")}</div>`,
         theme,
       );
       return;
@@ -412,8 +418,8 @@ export class UnifiNetworkMapCard extends HTMLElement {
   private _renderLoading(): string {
     return `
       <div class="unifi-network-map__loading">
-        <div class="unifi-network-map__spinner" role="progressbar" aria-label="Loading"></div>
-        <div class="unifi-network-map__loading-text">Loading map...</div>
+        <div class="unifi-network-map__spinner" role="progressbar" aria-label="${this._localize("card.loading.aria")}"></div>
+        <div class="unifi-network-map__loading-text">${this._localize("card.loading.map")}</div>
       </div>
     `;
   }
@@ -421,10 +427,28 @@ export class UnifiNetworkMapCard extends HTMLElement {
   private _renderError(): string {
     return `
       <div class="unifi-network-map__error">
-        <div class="unifi-network-map__error-text">${escapeHtml(this._error ?? "Unknown error")}</div>
-        <button type="button" class="unifi-network-map__retry" data-action="retry">Retry</button>
+        <div class="unifi-network-map__error-text">${escapeHtml(this._formatErrorMessage(this._error))}</div>
+        <button type="button" class="unifi-network-map__retry" data-action="retry">${this._localize("card.error.retry")}</button>
       </div>
     `;
+  }
+
+  private _formatErrorMessage(error?: string): string {
+    if (!error) {
+      return this._localize("card.error.unknown");
+    }
+    if (error === "Missing auth token") {
+      return this._localize("card.error.missing_auth");
+    }
+    const svgMatch = error.match(/^Failed to load SVG \((.+)\)$/);
+    if (svgMatch) {
+      return this._localize("card.error.load_svg", { error: svgMatch[1] });
+    }
+    const payloadMatch = error.match(/^Failed to load payload \((.+)\)$/);
+    if (payloadMatch) {
+      return this._localize("card.error.load_payload", { error: payloadMatch[1] });
+    }
+    return error;
   }
 
   private _renderLayout(): string {
@@ -433,9 +457,9 @@ export class UnifiNetworkMapCard extends HTMLElement {
       <div class="unifi-network-map__layout">
         <div class="unifi-network-map__viewport">
           <div class="unifi-network-map__controls">
-            <button type="button" data-action="zoom-in" title="Zoom in">+</button>
-            <button type="button" data-action="zoom-out" title="Zoom out">-</button>
-            <button type="button" data-action="reset" title="Reset view">Reset</button>
+            <button type="button" data-action="zoom-in" title="${this._localize("card.controls.zoom_in")}">+</button>
+            <button type="button" data-action="zoom-out" title="${this._localize("card.controls.zoom_out")}">-</button>
+            <button type="button" data-action="reset" title="${this._localize("card.controls.reset_view")}">${this._localize("card.controls.reset")}</button>
           </div>
           ${this._renderLoadingOverlay()}
           ${safeSvg}
@@ -459,11 +483,11 @@ export class UnifiNetworkMapCard extends HTMLElement {
     const theme = this._config?.theme ?? "dark";
 
     const labels: Record<DeviceType, string> = {
-      gateway: "Gateways",
-      switch: "Switches",
-      ap: "APs",
-      client: "Clients",
-      other: "Other",
+      gateway: this._localize("panel.device_type.gateways"),
+      switch: this._localize("panel.device_type.switches"),
+      ap: this._localize("panel.device_type.access_points"),
+      client: this._localize("panel.device_type.clients"),
+      other: this._localize("panel.device_type.other"),
     };
 
     const deviceTypes: DeviceType[] = ["gateway", "switch", "ap", "client", "other"];
@@ -481,8 +505,8 @@ export class UnifiNetworkMapCard extends HTMLElement {
       button.dataset.filterType = type;
 
       // Dynamic tooltip based on current state
-      const actionVerb = active ? "Hide" : "Show";
-      button.title = `${actionVerb} ${labels[type]}`;
+      const titleKey = active ? "card.filter.hide" : "card.filter.show";
+      button.title = this._localize(titleKey, { label: labels[type] });
 
       // Use nodeTypeIcon which returns heroicons for unifi themes, emojis otherwise
       const icon = nodeTypeIcon(type, theme);
@@ -509,7 +533,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
     return `
       <div class="unifi-network-map__loading-overlay">
         <div class="unifi-network-map__spinner"></div>
-        <div class="unifi-network-map__loading-text">Refreshing data...</div>
+        <div class="unifi-network-map__loading-text">${this._localize("card.loading.refresh")}</div>
       </div>
     `;
   }
@@ -586,6 +610,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
       getStatusBadgeHtml: (state: "online" | "offline" | "unknown") =>
         this._getStatusBadgeHtml(state),
       formatLastChanged: (value: string | null | undefined) => this._formatLastChanged(value),
+      localize: this._localize,
     };
   }
 
@@ -601,28 +626,28 @@ export class UnifiNetworkMapCard extends HTMLElement {
 
   private _getStatusBadgeHtml(state: "online" | "offline" | "unknown"): string {
     const labels: Record<string, string> = {
-      online: "Online",
-      offline: "Offline",
-      unknown: "Unknown",
+      online: this._localize("panel.status.online"),
+      offline: this._localize("panel.status.offline"),
+      unknown: this._localize("panel.status.unknown"),
     };
     return `<span class="status-badge status-badge--${state}">${labels[state]}</span>`;
   }
 
   private _formatLastChanged(isoString: string | null | undefined): string {
-    if (!isoString) return "Unknown";
+    if (!isoString) return this._localize("card.time.unknown");
     try {
       const date = new Date(isoString);
       const now = new Date();
       const diffMs = now.getTime() - date.getTime();
       const diffMin = Math.floor(diffMs / 60000);
-      if (diffMin < 1) return "Just now";
-      if (diffMin < 60) return `${diffMin}m ago`;
+      if (diffMin < 1) return this._localize("card.time.just_now");
+      if (diffMin < 60) return this._localize("card.time.minutes_ago", { count: diffMin });
       const diffHours = Math.floor(diffMin / 60);
-      if (diffHours < 24) return `${diffHours}h ago`;
+      if (diffHours < 24) return this._localize("card.time.hours_ago", { count: diffHours });
       const diffDays = Math.floor(diffHours / 24);
-      return `${diffDays}d ago`;
+      return this._localize("card.time.days_ago", { count: diffDays });
     } catch {
-      return "Unknown";
+      return this._localize("card.time.unknown");
     }
   }
 
@@ -697,7 +722,11 @@ export class UnifiNetworkMapCard extends HTMLElement {
       svg,
       state: this._viewportState,
       options,
-      handlers: createDefaultViewportHandlers(this._payload?.edges, (name) => this._getIcon(name)),
+      handlers: createDefaultViewportHandlers(
+        this._payload?.edges,
+        (name) => this._getIcon(name),
+        this._localize,
+      ),
       callbacks,
       bindings: {
         tooltip,
@@ -822,7 +851,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
         const textEl = copyButton.querySelector(".action-button__text");
         if (textEl) {
           const original = textEl.textContent;
-          textEl.textContent = "Copied!";
+          textEl.textContent = this._localize("toast.copied");
           setTimeout(() => {
             textEl.textContent = original;
           }, 1500);
@@ -851,6 +880,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
       theme: this._config?.theme ?? "dark",
       getNodeTypeIcon: (nodeType: string) => this._getNodeTypeIcon(nodeType),
       formatLastChanged: (value: string | null | undefined) => this._formatLastChanged(value),
+      localize: this._localize,
       onEntityDetails: (entityId) => this._openEntityDetails(entityId),
     });
   }
@@ -893,6 +923,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
       theme: this._config?.theme ?? "dark",
       getNodeTypeIcon: (nodeType: string) => this._getNodeTypeIcon(nodeType),
       getIcon: (name) => this._getIcon(name),
+      localize: this._localize,
     });
   }
 
@@ -911,7 +942,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
       case "copy-mac":
         if (mac) {
           navigator.clipboard.writeText(mac).then(() => {
-            this._showCopyFeedback("MAC address copied!");
+            this._showCopyFeedback(this._localize("toast.copy_mac"));
           });
         }
         this._removeContextMenu();
@@ -919,7 +950,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
       case "copy-ip":
         if (ip) {
           navigator.clipboard.writeText(ip).then(() => {
-            this._showCopyFeedback("IP address copied!");
+            this._showCopyFeedback(this._localize("toast.copy_ip"));
           });
         }
         this._removeContextMenu();
@@ -947,6 +978,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
       payload: this._payload,
       theme: this._config?.theme ?? "dark",
       getNodeTypeIcon: (nodeType: string) => this._getNodeTypeIcon(nodeType),
+      localize: this._localize,
       onClose: () => this._removePortModal(),
       onDeviceClick: (deviceName) => {
         this._removePortModal();
@@ -969,7 +1001,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
       this._payload?.node_entities?.[nodeName] ?? this._payload?.device_entities?.[nodeName];
 
     if (!entityId) {
-      this._showActionError("No entity found for this device");
+      this._showActionError(this._localize("toast.no_entity"));
       return;
     }
 
@@ -985,7 +1017,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
       }),
     );
 
-    this._showActionFeedback("Restart command sent");
+    this._showActionFeedback(this._localize("toast.restart_sent"));
   }
 
   private _showActionFeedback(message: string): void {
@@ -1084,7 +1116,11 @@ export class UnifiNetworkMapCard extends HTMLElement {
       svg,
       this._viewportState,
       this._viewportOptions(),
-      createDefaultViewportHandlers(this._payload?.edges, (name) => this._getIcon(name)),
+      createDefaultViewportHandlers(
+        this._payload?.edges,
+        (name) => this._getIcon(name),
+        this._localize,
+      ),
       this._viewportCallbacks(),
       tooltip,
     );
@@ -1144,7 +1180,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _renderEdgeTooltip(edge: Edge): string {
-    return renderEdgeTooltip(edge, (name) => this._getIcon(name));
+    return renderEdgeTooltip(edge, (name) => this._getIcon(name), this._localize);
   }
 
   private _isControlTarget(target: Element | null): boolean {

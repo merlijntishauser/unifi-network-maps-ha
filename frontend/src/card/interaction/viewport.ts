@@ -1,6 +1,7 @@
 import type { Edge, Point, ViewBox, ViewTransform } from "../core/types";
 import type { IconName } from "../ui/icons";
 import { findEdgeFromTarget, renderEdgeTooltip } from "../data/svg";
+import type { LocalizeFunc } from "../shared/localize";
 import { resolveNodeName } from "./node";
 
 export type ViewportState = {
@@ -463,10 +464,11 @@ export function createDefaultViewportState(): ViewportState {
 export function createDefaultViewportHandlers(
   edges: Edge[] | undefined,
   getIcon: (name: IconName) => string,
+  localize: LocalizeFunc,
 ): ViewportHandlers {
   return {
     resolveNodeName: (event) => resolveNodeName(event),
     findEdge: (target) => (edges ? findEdgeFromTarget(target, edges) : null),
-    renderEdgeTooltip: (edge) => renderEdgeTooltip(edge, getIcon),
+    renderEdgeTooltip: (edge) => renderEdgeTooltip(edge, getIcon, localize),
   };
 }

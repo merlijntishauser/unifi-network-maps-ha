@@ -1,0 +1,77 @@
+{
+  "title": "UniFi Network Map",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Mit UniFi verbinden",
+        "description": "Gib die Daten deines UniFi-Controllers ein.",
+        "data": {
+          "url": "Controller-URL",
+          "username": "Benutzername",
+          "password": "Passwort",
+          "site": "Site",
+          "verify_ssl": "SSL überprüfen"
+        }
+      },
+      "init": {
+        "title": "Kartenoptionen",
+        "description": "Wähle, was auf der Karte erscheint und wie sie gerendert wird.",
+        "data": {
+          "include_ports": "Port-Beschriftungen anzeigen",
+          "include_clients": "Clients anzeigen",
+          "client_scope": "Client-Bereich",
+          "only_unifi": "Nur UniFi-Geräte",
+          "svg_isometric": "Isometrisches Layout",
+          "svg_width": "SVG-Breite (px)",
+          "svg_height": "SVG-Höhe (px)",
+          "use_cache": "Gerenderte Karte cachen"
+        },
+        "data_description": {
+          "include_ports": "Fügt Switch-Port-Beschriftungen zu den Verbindungen hinzu.",
+          "include_clients": "Fügt Client-Geräte zur Topologie hinzu.",
+          "client_scope": "Wähle kabelgebundene, drahtlose oder alle Clients.",
+          "only_unifi": "Blendet Nicht-UniFi-Geräte in der Topologie aus.",
+          "svg_isometric": "Rendert eine 3D-ähnliche Ansicht.",
+          "svg_width": "Leer lassen für automatische Größe.",
+          "svg_height": "Leer lassen für automatische Größe.",
+          "use_cache": "Letztes Rendering zwischen Abfragen wiederverwenden."
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "Gib eine gültige Controller-URL inklusive http oder https ein.",
+      "url_has_credentials": "Füge keinen Benutzernamen oder kein Passwort in die URL ein. Verwende die separaten Felder unten."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Kartenoptionen",
+        "description": "Wähle, was auf der Karte erscheint und wie sie gerendert wird.",
+        "data": {
+          "include_ports": "Port-Beschriftungen anzeigen",
+          "include_clients": "Clients anzeigen",
+          "client_scope": "Client-Bereich",
+          "only_unifi": "Nur UniFi-Geräte",
+          "svg_isometric": "Isometrisches Layout",
+          "svg_width": "SVG-Breite (px)",
+          "svg_height": "SVG-Höhe (px)",
+          "use_cache": "Gerenderte Karte cachen"
+        },
+        "data_description": {
+          "include_ports": "Fügt Switch-Port-Beschriftungen zu den Verbindungen hinzu.",
+          "include_clients": "Fügt Client-Geräte zur Topologie hinzu.",
+          "client_scope": "Wähle kabelgebundene, drahtlose oder alle Clients.",
+          "only_unifi": "Blendet Nicht-UniFi-Geräte in der Topologie aus.",
+          "svg_isometric": "Rendert eine 3D-ähnliche Ansicht.",
+          "svg_width": "Leer lassen für automatische Größe.",
+          "svg_height": "Leer lassen für automatische Größe.",
+          "use_cache": "Letztes Rendering zwischen Abfragen wiederverwenden."
+        }
+      }
+    },
+    "error": {
+      "expected_int": "Gib eine ganze Anzahl von Pixeln ein oder lasse das Feld leer."
+    }
+  }
+}

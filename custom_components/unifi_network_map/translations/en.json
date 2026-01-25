@@ -39,7 +39,8 @@
       }
     },
     "error": {
-      "invalid_url": "Enter a valid controller URL including http or https."
+      "invalid_url": "Enter a valid controller URL including http or https.",
+      "url_has_credentials": "Do not include username or password in the URL. Use the separate fields below."
     }
   },
   "options": {

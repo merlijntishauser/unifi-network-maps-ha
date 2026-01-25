@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Added
+- Filter by device type: Show only APs, only clients, etc.
+- Translations (French, German, Spanish and Dutch)
+
+### Fixed
+- Labels in lovelace editor not showing up
+
 ## [0.1.7] - 2026-01-24
 ### Added
 - An "unifi" theme (both light as dark mode)

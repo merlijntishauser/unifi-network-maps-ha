@@ -16,6 +16,7 @@ export function openEntityModal(params: {
   theme: "dark" | "light" | "unifi" | "unifi-dark";
   getNodeTypeIcon: (nodeType: string) => string;
   formatLastChanged: (value: string | null | undefined) => string;
+  localize: (key: string, replacements?: Record<string, string | number>) => string;
   onEntityDetails: (entityId: string) => void;
 }): void {
   closeEntityModal(params.controller);
@@ -26,6 +27,7 @@ export function openEntityModal(params: {
     theme: params.theme,
     getNodeTypeIcon: params.getNodeTypeIcon,
     formatLastChanged: params.formatLastChanged,
+    localize: params.localize,
   });
 
   const container = document.createElement("div");

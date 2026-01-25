@@ -16,10 +16,20 @@ export function openPortModal(params: {
   payload: MapPayload | undefined;
   theme: IconTheme;
   getNodeTypeIcon: (nodeType: string) => string;
+  localize: (key: string, replacements?: Record<string, string | number>) => string;
   onClose: () => void;
   onDeviceClick: (deviceName: string) => void;
 }): void {
-  const { controller, nodeName, payload, theme, getNodeTypeIcon, onClose, onDeviceClick } = params;
+  const {
+    controller,
+    nodeName,
+    payload,
+    theme,
+    getNodeTypeIcon,
+    localize,
+    onClose,
+    onDeviceClick,
+  } = params;
 
   if (!payload) return;
 
@@ -35,7 +45,7 @@ export function openPortModal(params: {
   const overlay = document.createElement("div");
   overlay.className = "port-modal-overlay";
   overlay.dataset.theme = theme;
-  overlay.innerHTML = renderPortModal(controller.state, theme, getNodeTypeIcon);
+  overlay.innerHTML = renderPortModal(controller.state, theme, getNodeTypeIcon, localize);
 
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) {
@@ -123,6 +133,7 @@ function renderPortModal(
   state: PortModalState,
   theme: IconTheme,
   getNodeTypeIcon: (nodeType: string) => string,
+  localize: (key: string, replacements?: Record<string, string | number>) => string,
 ): string {
   const { nodeName, nodeType, ports } = state;
   const nodeIcon = getNodeTypeIcon(nodeType);
@@ -135,7 +146,7 @@ function renderPortModal(
 
       return `
         <div class="port-row ${isConnected ? "port-row--connected" : "port-row--empty"}">
-          <span class="port-row__number">Port ${port.port}</span>
+          <span class="port-row__number">${localize("port_modal.port", { port: port.port })}</span>
           <div class="port-row__device">
             ${
               isConnected
@@ -143,11 +154,11 @@ function renderPortModal(
                   <span class="port-row__device-icon">${deviceIcon}</span>
                   <a href="#" class="port-row__device-name" data-device-name="${escapeAttr(port.connectedDevice!)}">${escapeHtml(deviceName)}</a>
                 `
-                : `<span class="port-row__empty">—</span>`
+                : `<span class="port-row__empty">${localize("port_modal.empty")}</span>`
             }
           </div>
           <span class="port-row__badges">
-            ${port.poe ? '<span class="badge badge--poe">PoE</span>' : ""}
+            ${port.poe ? `<span class="badge badge--poe">${localize("panel.badge.poe")}</span>` : ""}
             ${port.speed ? `<span class="badge badge--speed">${formatSpeed(port.speed)}</span>` : ""}
           </span>
         </div>
@@ -164,10 +175,10 @@ function renderPortModal(
         </div>
         <button type="button" class="port-modal__close">&times;</button>
       </div>
-      <div class="port-modal__subtitle">Port Overview</div>
+      <div class="port-modal__subtitle">${localize("port_modal.title")}</div>
       <div class="port-modal__body">
         <div class="port-list">
-          ${portRows || '<div class="port-modal__empty">No port information available</div>'}
+          ${portRows || `<div class="port-modal__empty">${localize("port_modal.no_ports")}</div>`}
         </div>
       </div>
     </div>

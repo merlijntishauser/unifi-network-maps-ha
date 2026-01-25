@@ -21,6 +21,7 @@ export type PanelHelpers = {
   formatLastChanged: (value: string | null | undefined) => string;
   getIcon: (name: IconName) => string;
   getDomainIcon: (domain: string) => string;
+  localize: (key: string, replacements?: Record<string, string | number>) => string;
 };
 
 export function renderPanelContent(context: PanelContext, helpers: PanelHelpers): string {
@@ -35,7 +36,7 @@ function renderMapOverview(context: PanelContext, helpers: PanelHelpers): string
     return `
       <div class="panel-empty">
         <div class="panel-empty__icon">${helpers.getIcon("network")}</div>
-        <div class="panel-empty__text">Loading network data...</div>
+        <div class="panel-empty__text">${helpers.localize("panel.loading")}</div>
       </div>
     `;
   }
@@ -49,14 +50,14 @@ function renderMapOverview(context: PanelContext, helpers: PanelHelpers): string
 
   return `
     <div class="panel-header">
-      <div class="panel-header__title">Network Overview</div>
+      <div class="panel-header__title">${helpers.localize("panel.overview")}</div>
     </div>
-    ${renderOverviewStatsGrid(nodes.length, edges.length)}
-    ${renderOverviewStatusSection(statusCounts)}
+    ${renderOverviewStatsGrid(nodes.length, edges.length, helpers)}
+    ${renderOverviewStatusSection(statusCounts, helpers)}
     ${renderOverviewDeviceBreakdown(deviceCounts, helpers)}
     <div class="panel-hint">
       <span class="panel-hint__icon">${helpers.getIcon("hint")}</span>
-      Click a node in the map to see details
+      ${helpers.localize("panel.hint")}
     </div>
   `;
 }
@@ -70,7 +71,7 @@ function renderNodePanel(context: PanelContext, name: string, helpers: PanelHelp
         <div class="panel-header__title">${safeName}</div>
       </div>
       <div class="panel-empty">
-        <div class="panel-empty__text">No data available</div>
+        <div class="panel-empty__text">${helpers.localize("panel.no_data")}</div>
       </div>
     `;
   }
@@ -92,9 +93,9 @@ function renderNodePanel(context: PanelContext, name: string, helpers: PanelHelp
       </div>
     </div>
     <div class="panel-tabs">
-      <button type="button" class="panel-tab ${context.activeTab === "overview" ? "panel-tab--active" : ""}" data-tab="overview">Overview</button>
-      <button type="button" class="panel-tab ${context.activeTab === "stats" ? "panel-tab--active" : ""}" data-tab="stats">Stats</button>
-      <button type="button" class="panel-tab ${context.activeTab === "actions" ? "panel-tab--active" : ""}" data-tab="actions">Actions</button>
+      <button type="button" class="panel-tab ${context.activeTab === "overview" ? "panel-tab--active" : ""}" data-tab="overview">${helpers.localize("panel.tabs.overview")}</button>
+      <button type="button" class="panel-tab ${context.activeTab === "stats" ? "panel-tab--active" : ""}" data-tab="stats">${helpers.localize("panel.tabs.stats")}</button>
+      <button type="button" class="panel-tab ${context.activeTab === "actions" ? "panel-tab--active" : ""}" data-tab="actions">${helpers.localize("panel.tabs.actions")}</button>
     </div>
     <div class="panel-tab-content">
       ${renderTabContent(context, name, helpers)}
@@ -146,15 +147,15 @@ function renderOverviewTab(context: PanelContext, name: string, helpers: PanelHe
           <div class="neighbor-item">
             <span class="neighbor-item__name">${helpers.escapeHtml(n.name)}</span>
             <span class="neighbor-item__badges">
-              ${n.poe ? '<span class="badge badge--poe">PoE</span>' : ""}
-              ${n.wireless ? '<span class="badge badge--wireless">WiFi</span>' : ""}
+              ${n.poe ? `<span class="badge badge--poe">${helpers.localize("panel.badge.poe")}</span>` : ""}
+              ${n.wireless ? `<span class="badge badge--wireless">${helpers.localize("panel.badge.wifi")}</span>` : ""}
               ${n.label ? `<span class="badge badge--port">${helpers.escapeHtml(n.label)}</span>` : ""}
             </span>
           </div>
         `,
         )
         .join("")
-    : '<div class="panel-empty__text">No connections</div>';
+    : `<div class="panel-empty__text">${helpers.localize("panel.no_connections")}</div>`;
 
   const relatedEntitiesSection = renderRelatedEntitiesSection(context, name, helpers);
   const vlanSection = renderVlanSection(context, name, helpers);
@@ -162,7 +163,7 @@ function renderOverviewTab(context: PanelContext, name: string, helpers: PanelHe
   return `
     ${vlanSection}
     <div class="panel-section">
-      <div class="panel-section__title">Connected Devices</div>
+      <div class="panel-section__title">${helpers.localize("panel.connected_devices")}</div>
       <div class="neighbor-list">${neighborList}</div>
     </div>
     ${relatedEntitiesSection}
@@ -177,14 +178,14 @@ function renderVlanSection(context: PanelContext, name: string, helpers: PanelHe
 
   return `
     <div class="panel-section">
-      <div class="panel-section__title">Network</div>
+      <div class="panel-section__title">${helpers.localize("panel.network")}</div>
       <div class="stats-list">
         <div class="stats-row">
-          <span class="stats-row__label">VLAN</span>
+          <span class="stats-row__label">${helpers.localize("panel.vlan")}</span>
           <span class="stats-row__value">${helpers.escapeHtml(vlanInfo.name)}</span>
         </div>
         <div class="stats-row">
-          <span class="stats-row__label">VLAN ID</span>
+          <span class="stats-row__label">${helpers.localize("panel.vlan_id")}</span>
           <span class="stats-row__value">${vlanInfo.id}</span>
         </div>
       </div>
@@ -207,7 +208,7 @@ function renderRelatedEntitiesSection(
       const icon = helpers.getDomainIcon(entity.domain);
       const displayName = entity.friendly_name ?? entity.entity_id;
       const stateClass = getEntityStateClass(entity.state);
-      const stateLabel = normalizeStateLabel(entity.state, entity.domain);
+      const stateLabel = normalizeStateLabel(entity.state, entity.domain, helpers.localize);
 
       return `
         <div class="entity-item" data-entity-id="${helpers.escapeHtml(entity.entity_id)}">
@@ -224,20 +225,24 @@ function renderRelatedEntitiesSection(
 
   return `
     <div class="panel-section">
-      <div class="panel-section__title">Home Assistant Entities</div>
+      <div class="panel-section__title">${helpers.localize("panel.entities")}</div>
       <div class="entity-list">${entityItems}</div>
     </div>
   `;
 }
 
-function normalizeStateLabel(state: string | null, domain: string): string {
-  if (!state) return "Unknown";
+function normalizeStateLabel(
+  state: string | null,
+  domain: string,
+  localize: (key: string) => string,
+): string {
+  if (!state) return localize("panel.status.unknown");
   const lower = state.toLowerCase();
 
   // Normalize device_tracker states to Online/Offline
   if (domain === "device_tracker") {
-    if (lower === "home" || lower === "connected") return "Online";
-    if (lower === "not_home" || lower === "disconnected") return "Offline";
+    if (lower === "home" || lower === "connected") return localize("panel.status.online");
+    if (lower === "not_home" || lower === "disconnected") return localize("panel.status.offline");
   }
 
   // Capitalize first letter for other states
@@ -289,7 +294,7 @@ function renderStatsTab(context: PanelContext, name: string, helpers: PanelHelpe
 
   return `
     ${renderStatsLiveStatus(status, helpers)}
-    ${renderStatsConnectionSection(nodeEdges)}
+    ${renderStatsConnectionSection(nodeEdges, helpers)}
     ${renderStatsNetworkInfo(vlanInfo, helpers)}
     ${renderStatsDeviceInfo(mac, ip, helpers)}
   `;
@@ -301,14 +306,14 @@ function renderStatsLiveStatus(status: NodeStatus | undefined, helpers: PanelHel
   }
   return `
     <div class="panel-section">
-      <div class="panel-section__title">Live Status</div>
+      <div class="panel-section__title">${helpers.localize("panel.status.live")}</div>
       <div class="stats-list">
         <div class="stats-row">
-          <span class="stats-row__label">Status</span>
+          <span class="stats-row__label">${helpers.localize("panel.status.status")}</span>
           <span class="stats-row__value">${helpers.getStatusBadgeHtml(status.state)}</span>
         </div>
         <div class="stats-row">
-          <span class="stats-row__label">Last Changed</span>
+          <span class="stats-row__label">${helpers.localize("panel.status.last_changed")}</span>
           <span class="stats-row__value">${helpers.formatLastChanged(status.last_changed)}</span>
         </div>
       </div>
@@ -318,29 +323,30 @@ function renderStatsLiveStatus(status: NodeStatus | undefined, helpers: PanelHel
 
 function renderStatsConnectionSection(
   nodeEdges: Array<{ wireless?: boolean | null; poe?: boolean | null }>,
+  helpers: PanelHelpers,
 ): string {
   const wirelessCount = nodeEdges.filter((e) => e.wireless).length;
   const wiredCount = nodeEdges.length - wirelessCount;
   const poeCount = nodeEdges.filter((e) => e.poe).length;
   const poeRow =
     poeCount > 0
-      ? `<div class="stats-row"><span class="stats-row__label">PoE Powered</span><span class="stats-row__value">${poeCount}</span></div>`
+      ? `<div class="stats-row"><span class="stats-row__label">${helpers.localize("panel.stats.connection_poe")}</span><span class="stats-row__value">${poeCount}</span></div>`
       : "";
 
   return `
     <div class="panel-section">
-      <div class="panel-section__title">Connection Stats</div>
+      <div class="panel-section__title">${helpers.localize("panel.stats.connection")}</div>
       <div class="stats-list">
         <div class="stats-row">
-          <span class="stats-row__label">Total Connections</span>
+          <span class="stats-row__label">${helpers.localize("panel.stats.total_connections")}</span>
           <span class="stats-row__value">${nodeEdges.length}</span>
         </div>
         <div class="stats-row">
-          <span class="stats-row__label">Wired</span>
+          <span class="stats-row__label">${helpers.localize("panel.stats.wired")}</span>
           <span class="stats-row__value">${wiredCount}</span>
         </div>
         <div class="stats-row">
-          <span class="stats-row__label">Wireless</span>
+          <span class="stats-row__label">${helpers.localize("panel.stats.wireless")}</span>
           <span class="stats-row__value">${wirelessCount}</span>
         </div>
         ${poeRow}
@@ -355,14 +361,14 @@ function renderStatsNetworkInfo(vlanInfo: VlanInfo | null, helpers: PanelHelpers
   }
   return `
     <div class="panel-section">
-      <div class="panel-section__title">Network Info</div>
+      <div class="panel-section__title">${helpers.localize("panel.network_info")}</div>
       <div class="stats-list">
         <div class="stats-row">
-          <span class="stats-row__label">Network</span>
+          <span class="stats-row__label">${helpers.localize("panel.network")}</span>
           <span class="stats-row__value">${helpers.escapeHtml(vlanInfo.name)}</span>
         </div>
         <div class="stats-row">
-          <span class="stats-row__label">VLAN ID</span>
+          <span class="stats-row__label">${helpers.localize("panel.vlan_id")}</span>
           <span class="stats-row__value">${vlanInfo.id}</span>
         </div>
       </div>
@@ -381,7 +387,7 @@ function renderStatsDeviceInfo(
   const macRow = mac
     ? `
       <div class="info-row">
-        <span class="info-row__label">MAC Address</span>
+        <span class="info-row__label">${helpers.localize("panel.stats.mac")}</span>
         <code class="info-row__value">${helpers.escapeHtml(mac)}</code>
       </div>
     `
@@ -389,14 +395,14 @@ function renderStatsDeviceInfo(
   const ipRow = ip
     ? `
       <div class="info-row">
-        <span class="info-row__label">IP Address</span>
+        <span class="info-row__label">${helpers.localize("panel.stats.ip")}</span>
         <code class="info-row__value">${helpers.escapeHtml(ip)}</code>
       </div>
     `
     : "";
   return `
     <div class="panel-section">
-      <div class="panel-section__title">Device Info</div>
+      <div class="panel-section__title">${helpers.localize("panel.device_info")}</div>
       ${macRow}
       ${ipRow}
     </div>
@@ -423,24 +429,24 @@ function renderActionsTab(context: PanelContext, name: string, helpers: PanelHel
 
   return `
     <div class="panel-section">
-      <div class="panel-section__title">Quick Actions</div>
+      <div class="panel-section__title">${helpers.localize("panel.actions.title")}</div>
       <div class="actions-list">
         ${
           entityId
             ? `
             <button type="button" class="action-button" data-entity-id="${safeEntityId}">
               <span class="action-button__icon">${helpers.getIcon("action-details")}</span>
-              <span class="action-button__text">View Entity Details</span>
+              <span class="action-button__text">${helpers.localize("panel.actions.view_entity")}</span>
             </button>
           `
-            : `<div class="panel-empty__text">No Home Assistant entity linked</div>`
+            : `<div class="panel-empty__text">${helpers.localize("panel.actions.no_entity")}</div>`
         }
         ${
           hasPortInfo
             ? `
             <button type="button" class="action-button" data-action="view-ports" data-node-name="${safeName}">
               <span class="action-button__icon">${helpers.getIcon("action-ports")}</span>
-              <span class="action-button__text">View Port Overview</span>
+              <span class="action-button__text">${helpers.localize("panel.actions.view_ports")}</span>
             </button>
           `
             : ""
@@ -450,7 +456,7 @@ function renderActionsTab(context: PanelContext, name: string, helpers: PanelHel
             ? `
             <button type="button" class="action-button" data-action="copy" data-copy-value="${safeMac}">
               <span class="action-button__icon">${helpers.getIcon("action-copy")}</span>
-              <span class="action-button__text">Copy MAC Address</span>
+              <span class="action-button__text">${helpers.localize("panel.actions.copy_mac")}</span>
             </button>
           `
             : ""
@@ -460,7 +466,7 @@ function renderActionsTab(context: PanelContext, name: string, helpers: PanelHel
             ? `
             <button type="button" class="action-button" data-action="copy" data-copy-value="${safeIp}">
               <span class="action-button__icon">${helpers.getIcon("action-copy")}</span>
-              <span class="action-button__text">Copy IP Address</span>
+              <span class="action-button__text">${helpers.localize("panel.actions.copy_ip")}</span>
             </button>
           `
             : ""
@@ -471,7 +477,7 @@ function renderActionsTab(context: PanelContext, name: string, helpers: PanelHel
       entityId
         ? `
       <div class="panel-section">
-        <div class="panel-section__title">Entity</div>
+        <div class="panel-section__title">${helpers.localize("panel.actions.entity")}</div>
         <code class="entity-id">${safeEntityId}</code>
       </div>
     `
@@ -480,31 +486,35 @@ function renderActionsTab(context: PanelContext, name: string, helpers: PanelHel
   `;
 }
 
-function renderOverviewStatsGrid(nodeCount: number, edgeCount: number): string {
+function renderOverviewStatsGrid(
+  nodeCount: number,
+  edgeCount: number,
+  helpers: PanelHelpers,
+): string {
   return `
     <div class="panel-stats-grid">
       <div class="stat-card">
         <div class="stat-card__value">${nodeCount}</div>
-        <div class="stat-card__label">Total Nodes</div>
+        <div class="stat-card__label">${helpers.localize("panel.overview.total_nodes")}</div>
       </div>
       <div class="stat-card">
         <div class="stat-card__value">${edgeCount}</div>
-        <div class="stat-card__label">Connections</div>
+        <div class="stat-card__label">${helpers.localize("panel.overview.connections")}</div>
       </div>
     </div>
   `;
 }
 
-function renderOverviewStatusSection(counts: StatusCounts): string {
+function renderOverviewStatusSection(counts: StatusCounts, helpers: PanelHelpers): string {
   if (!counts.hasStatus) {
     return "";
   }
   return `
     <div class="panel-section">
-      <div class="panel-section__title">Live Status</div>
+      <div class="panel-section__title">${helpers.localize("panel.status.live")}</div>
       <div class="device-list">
-        <div class="device-row"><span class="status-dot status-dot--online"></span><span class="device-row__label">Online</span><span class="device-row__count">${counts.online}</span></div>
-        <div class="device-row"><span class="status-dot status-dot--offline"></span><span class="device-row__label">Offline</span><span class="device-row__count">${counts.offline}</span></div>
+        <div class="device-row"><span class="status-dot status-dot--online"></span><span class="device-row__label">${helpers.localize("panel.status.online")}</span><span class="device-row__count">${counts.online}</span></div>
+        <div class="device-row"><span class="status-dot status-dot--offline"></span><span class="device-row__label">${helpers.localize("panel.status.offline")}</span><span class="device-row__count">${counts.offline}</span></div>
       </div>
     </div>
   `;
@@ -512,11 +522,31 @@ function renderOverviewStatusSection(counts: StatusCounts): string {
 
 function renderOverviewDeviceBreakdown(counts: DeviceCounts, helpers: PanelHelpers): string {
   const items: Array<{ key: keyof DeviceCounts; icon: string; label: string }> = [
-    { key: "gateways", icon: helpers.getIcon("node-gateway"), label: "Gateways" },
-    { key: "switches", icon: helpers.getIcon("node-switch"), label: "Switches" },
-    { key: "aps", icon: helpers.getIcon("node-ap"), label: "Access Points" },
-    { key: "clients", icon: helpers.getIcon("node-client"), label: "Clients" },
-    { key: "other", icon: helpers.getIcon("node-other"), label: "Other" },
+    {
+      key: "gateways",
+      icon: helpers.getIcon("node-gateway"),
+      label: helpers.localize("panel.device_type.gateways"),
+    },
+    {
+      key: "switches",
+      icon: helpers.getIcon("node-switch"),
+      label: helpers.localize("panel.device_type.switches"),
+    },
+    {
+      key: "aps",
+      icon: helpers.getIcon("node-ap"),
+      label: helpers.localize("panel.device_type.access_points"),
+    },
+    {
+      key: "clients",
+      icon: helpers.getIcon("node-client"),
+      label: helpers.localize("panel.device_type.clients"),
+    },
+    {
+      key: "other",
+      icon: helpers.getIcon("node-other"),
+      label: helpers.localize("panel.device_type.other"),
+    },
   ];
   const rows = items
     .filter((item) => counts[item.key] > 0)
@@ -527,7 +557,7 @@ function renderOverviewDeviceBreakdown(counts: DeviceCounts, helpers: PanelHelpe
     .join("");
   return `
     <div class="panel-section">
-      <div class="panel-section__title">Device Breakdown</div>
+      <div class="panel-section__title">${helpers.localize("panel.device_breakdown")}</div>
       <div class="device-list">${rows}</div>
     </div>
   `;

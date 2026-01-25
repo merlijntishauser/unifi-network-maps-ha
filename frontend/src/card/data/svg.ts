@@ -1,6 +1,7 @@
 import { escapeHtml } from "./sanitize";
 import type { Edge } from "../core/types";
 import type { IconName } from "../ui/icons";
+import type { LocalizeFunc } from "../shared/localize";
 
 export function annotateEdges(svg: SVGElement, edges: Edge[]): void {
   const edgesByKey = buildEdgeLookup(edges);
@@ -27,8 +28,14 @@ export function findEdgeFromTarget(target: Element | null, edges: Edge[]): Edge 
   return lookup.get(edgeKey(left, right)) ?? null;
 }
 
-export function renderEdgeTooltip(edge: Edge, getIcon: (name: IconName) => string): string {
-  const connectionType = edge.wireless ? "Wireless" : "Wired";
+export function renderEdgeTooltip(
+  edge: Edge,
+  getIcon: (name: IconName) => string,
+  localize: LocalizeFunc,
+): string {
+  const connectionType = edge.wireless
+    ? localize("edge_tooltip.wireless")
+    : localize("edge_tooltip.wired");
   const icon = edge.wireless ? getIcon("edge-wireless") : getIcon("edge-wired");
   const rows: string[] = [];
   rows.push(
@@ -44,17 +51,17 @@ export function renderEdgeTooltip(edge: Edge, getIcon: (name: IconName) => strin
   }
   if (edge.poe) {
     rows.push(
-      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">${getIcon("edge-poe")}</span><span class="tooltip-edge__label">PoE Powered</span></div>`,
+      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">${getIcon("edge-poe")}</span><span class="tooltip-edge__label">${localize("edge_tooltip.poe")}</span></div>`,
     );
   }
   if (edge.speed) {
     rows.push(
-      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">${getIcon("edge-speed")}</span><span class="tooltip-edge__label">${formatSpeed(edge.speed)}</span></div>`,
+      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">${getIcon("edge-speed")}</span><span class="tooltip-edge__label">${formatSpeed(edge.speed, localize)}</span></div>`,
     );
   }
   if (edge.channel) {
     rows.push(
-      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">${getIcon("edge-channel")}</span><span class="tooltip-edge__label">${formatChannel(edge.channel)}</span></div>`,
+      `<div class="tooltip-edge__row"><span class="tooltip-edge__icon">${getIcon("edge-channel")}</span><span class="tooltip-edge__label">${formatChannel(edge.channel, localize)}</span></div>`,
     );
   }
   return rows.join("");
@@ -86,29 +93,29 @@ function ensureEdgeHitbox(path: SVGPathElement, edge: Edge): void {
   path.after(hitbox);
 }
 
-function formatSpeed(speedMbps: number): string {
+function formatSpeed(speedMbps: number, localize: LocalizeFunc): string {
   if (speedMbps >= 1000) {
     const gbps = (speedMbps / 1000).toFixed(1).replace(/\.0$/, "");
-    return `${gbps} Gbps`;
+    return localize("edge_tooltip.speed_gbps", { speed: gbps });
   }
-  return `${speedMbps} Mbps`;
+  return localize("edge_tooltip.speed_mbps", { speed: speedMbps });
 }
 
-function formatChannel(channel: number): string {
-  const band = channelBand(channel);
+function formatChannel(channel: number, localize: LocalizeFunc): string {
+  const band = channelBand(channel, localize);
   const suffix = band ? ` (${band})` : "";
-  return `Channel ${channel}${suffix}`;
+  return localize("edge_tooltip.channel", { channel, suffix });
 }
 
-function channelBand(channel: number): string | null {
+function channelBand(channel: number, localize: LocalizeFunc): string | null {
   if (channel >= 1 && channel <= 14) {
-    return "2.4GHz";
+    return localize("edge_tooltip.band_24");
   }
   if (channel >= 36 && channel <= 177) {
-    return "5GHz";
+    return localize("edge_tooltip.band_5");
   }
   if (channel >= 1) {
-    return "6GHz";
+    return localize("edge_tooltip.band_6");
   }
   return null;
 }
