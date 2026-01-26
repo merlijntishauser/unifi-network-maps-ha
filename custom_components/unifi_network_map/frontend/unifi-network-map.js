@@ -5934,8 +5934,6 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       reset.onclick = (event) => {
         event.preventDefault();
         resetPan(svg3, this._viewportState, callbacks);
-        clearSelectedNode(this._selection);
-        this._render();
       };
     }
   }

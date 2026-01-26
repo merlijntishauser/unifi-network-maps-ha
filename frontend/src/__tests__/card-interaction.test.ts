@@ -437,7 +437,8 @@ describe("unifi-network-map editor", () => {
     zoomOut.click();
     reset.click();
     expect(svg.getAttribute("viewBox")).toBe("0 0 100 100");
-    expect(card._selection?.selectedNode).toBeUndefined();
+    // Reset only resets view, not selection
+    expect(card._selection?.selectedNode).toBe("Gateway");
   });
 
   it("updates pan state on pointer move", () => {
