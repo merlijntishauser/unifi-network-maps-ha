@@ -11,6 +11,9 @@
           "password": "Password",
           "site": "Site",
           "verify_ssl": "Verify SSL"
+        },
+        "data_description": {
+          "verify_ssl": "UniFi controllers use self-signed certificates by default, which will fail verification. Only enable if you have installed a trusted certificate."
         }
       },
       "init": {
