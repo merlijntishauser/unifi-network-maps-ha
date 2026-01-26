@@ -52,6 +52,7 @@
         "title": "Map Options",
         "description": "Choose what appears on the map and how it renders.",
         "data": {
+          "scan_interval": "Update interval (minutes)",
           "include_ports": "Show port labels",
           "include_clients": "Show clients",
           "client_scope": "Client scope",
@@ -62,6 +63,7 @@
           "use_cache": "Cache rendered map"
         },
         "data_description": {
+          "scan_interval": "How often to refresh data from the UniFi controller.",
           "include_ports": "Adds switch port labels to links.",
           "include_clients": "Includes client devices on the topology.",
           "client_scope": "Choose wired, wireless, or all clients.",

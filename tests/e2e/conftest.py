@@ -752,12 +752,24 @@ def entry_id(ha_client: httpx.Client, mock_unifi_credentials: dict[str, str]) ->
     if options_flow_response.status_code == 200:
         options_flow_id = options_flow_response.json().get("flow_id")
         if options_flow_id:
-            ha_client.post(
+            # Provide all required options fields (matching _options_schema_fields)
+            options_result = ha_client.post(
                 f"/api/config/config_entries/options/flow/{options_flow_id}",
                 json={
+                    "scan_interval": 10,
+                    "include_ports": False,
                     "include_clients": True,
                     "client_scope": "all",
+                    "only_unifi": False,
+                    "svg_isometric": False,
+                    "use_cache": False,
                 },
             )
+            # Options update triggers _async_options_updated which refreshes automatically
+            # But if entry is in error state, listener may not fire - force a reload
+            if options_result.status_code == 200:
+                # Reload the config entry to ensure options are applied
+                ha_client.post(f"/api/config/config_entries/entry/{entry_id}/reload")
+                time.sleep(3)  # Allow time for reload to complete
 
     return entry_id

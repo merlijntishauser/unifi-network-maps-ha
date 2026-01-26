@@ -49,9 +49,10 @@ def _create_test_card(page: Page, entry_id: str, auth_token: str) -> None:
     }""",
         [entry_id, auth_token, HA_URL],
     )
-    # Wait for SVG to load
+    # Wait for SVG to load and nodes to be annotated
     page.wait_for_selector("#test-card svg", timeout=10000)
-    page.wait_for_timeout(1000)  # Extra time for payload to load
+    page.wait_for_selector("#test-card [data-node-id]", timeout=10000)
+    page.wait_for_timeout(500)  # Extra time for full initialization
 
 
 def _create_test_card_in_ha_card(page: Page, entry_id: str, auth_token: str) -> None:
@@ -102,9 +103,10 @@ def _create_test_card_in_ha_card(page: Page, entry_id: str, auth_token: str) -> 
     }""",
         [entry_id, auth_token],
     )
-    # Wait for SVG to load
+    # Wait for SVG to load and nodes to be annotated
     page.wait_for_selector("#test-card svg", timeout=10000)
-    page.wait_for_timeout(1000)  # Extra time for payload to load
+    page.wait_for_selector("#test-card [data-node-id]", timeout=10000)
+    page.wait_for_timeout(500)  # Extra time for full initialization
 
 
 def _node_locator(page: Page, node_name: str) -> "Locator":
