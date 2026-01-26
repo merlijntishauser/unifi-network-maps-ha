@@ -329,8 +329,7 @@ function renderStatsConnectionSection(
   apWirelessClients: number | undefined,
   helpers: PanelHelpers,
 ): string {
-  const wirelessCount = nodeEdges.filter((e) => e.wireless).length;
-  const wiredCount = nodeEdges.length - wirelessCount;
+  const wiredCount = nodeEdges.filter((e) => !e.wireless).length;
   const poeCount = nodeEdges.filter((e) => e.poe).length;
   const poeRow =
     poeCount > 0
@@ -355,10 +354,6 @@ function renderStatsConnectionSection(
         <div class="stats-row">
           <span class="stats-row__label">${helpers.localize("panel.stats.wired")}</span>
           <span class="stats-row__value">${wiredCount}</span>
-        </div>
-        <div class="stats-row">
-          <span class="stats-row__label">${helpers.localize("panel.stats.wireless")}</span>
-          <span class="stats-row__value">${wirelessCount}</span>
         </div>
         ${poeRow}
         ${wirelessClientsRow}

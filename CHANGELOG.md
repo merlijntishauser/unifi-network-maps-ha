@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Diagnostics timestamp added to show data freshness
 - Diagnostics now includes an anonymized clients list
 - Picture added to custom card preview in Lovelace card picker
+- Dropped redundant and confusing wireless field, as Wireless clients is more accurate
 
 ### Changed
 - Tooltip boundary detection: Prevent off-screen tooltips
