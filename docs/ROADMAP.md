@@ -87,10 +87,5 @@ Methods to break down for readability:
 - **VLAN/IP overview** - Maybe as a new lovelace card?
 
 ## Recently Completed
-- **Separate reset vs clear selection** - Reset view shouldn't clear panel
-- **Diagnostics timestamp** - Add timestamp to show data freshness
-- **Diagnostics include clients list** (anonymized) - Include counts + sample names
-- **Tooltip boundary detection** - Prevent off-screen tooltips
-- **Add picture to custom card chooser** - Show preview in Lovelace card picker
 
 See [CHANGELOG.md](CHANGELOG.md) for full history.
