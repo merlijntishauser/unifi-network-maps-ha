@@ -24,7 +24,7 @@ interface CustomCardInfo {
   name: "UniFi Network Map",
   description: "Displays your UniFi network topology as an interactive SVG map",
   preview: true,
-  documentationURL: "https://github.com/merlijn-v/unifi-network-map-ha",
+  documentationURL: "https://github.com/merlijntishauser/unifi-network-maps",
 });
 
 console.info(`unifi-network-map card loaded v${CARD_VERSION}`);

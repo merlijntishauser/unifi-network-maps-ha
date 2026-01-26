@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.4.9] - 2023-01-26
 ### Added
 - Diagnostics timestamp added to show data freshness
-- Diagnostics includes now an anonymized clients list
+- Diagnostics now includes an anonymized clients list
 - Picture added to custom card preview in Lovelace card picker
 
 ### Changed
