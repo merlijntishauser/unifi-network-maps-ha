@@ -147,6 +147,7 @@ def _register_frontend_assets(hass: HomeAssistant) -> None:
         _register_static_asset(hass, _preview_image_url(), preview_path)
     LOGGER.debug("Attempting Lovelace resource registration for %s", _frontend_bundle_url())
     _schedule_lovelace_resource_registration(hass)
+    _create_install_notification(hass)
     _set_flag(data, "frontend_registered")
 
 
@@ -156,6 +157,20 @@ def _flag_is_set(data: dict[str, object], key: str) -> bool:
 
 def _set_flag(data: dict[str, object], key: str) -> None:
     data[key] = True
+
+
+def _create_install_notification(hass: HomeAssistant) -> None:
+    """Create a one-time notification about card availability after install."""
+    hass.components.persistent_notification.async_create(
+        title="UniFi Network Map Installed",
+        message=(
+            "The UniFi Network Map card has been installed. "
+            "If you don't see it in the Lovelace card picker, "
+            "**clear your browser cache** or do a **hard refresh** "
+            "(Ctrl+Shift+R on Windows/Linux, Cmd+Shift+R on Mac)."
+        ),
+        notification_id=f"{DOMAIN}_install",
+    )
 
 
 def _frontend_bundle_path() -> Path:

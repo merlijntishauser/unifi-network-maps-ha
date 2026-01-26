@@ -26,11 +26,25 @@ class _FakeHttp:
                 self.registered.append(path)
 
 
+class _FakePersistentNotification:
+    def __init__(self) -> None:
+        self.notifications: list[dict[str, object]] = []
+
+    def async_create(self, **kwargs: object) -> None:
+        self.notifications.append(kwargs)
+
+
+class _FakeComponents:
+    def __init__(self) -> None:
+        self.persistent_notification = _FakePersistentNotification()
+
+
 class _FakeHass:
     def __init__(self) -> None:
         self.data: dict[str, object] = {}
         self.http = _FakeHttp()
         self.is_running = True
+        self.components = _FakeComponents()
 
     def async_create_task(self, _coro) -> None:
         if hasattr(_coro, "close"):

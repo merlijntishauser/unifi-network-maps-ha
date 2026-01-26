@@ -10,7 +10,7 @@
 - no issues
 
 ### Quick Wins (Low effort, high impact)
-- **Card availability after install** - Warn users to hard-refresh when card isn't listed after install
+- no issues
 
 ### Medium Effort
 - **Search/filter in detail panel** - Find clients/devices quickly
