@@ -2152,8 +2152,7 @@ function renderStatsLiveStatus(status, helpers) {
   `;
 }
 function renderStatsConnectionSection(nodeEdges, nodeType, apWirelessClients, helpers) {
-  const wirelessCount = nodeEdges.filter((e) => e.wireless).length;
-  const wiredCount = nodeEdges.length - wirelessCount;
+  const wiredCount = nodeEdges.filter((e) => !e.wireless).length;
   const poeCount = nodeEdges.filter((e) => e.poe).length;
   const poeRow = poeCount > 0 ? `<div class="stats-row"><span class="stats-row__label">${helpers.localize("panel.stats.connection_poe")}</span><span class="stats-row__value">${poeCount}</span></div>` : "";
   const isAp = nodeType === "ap" || nodeType === "access_point";
@@ -2169,10 +2168,6 @@ function renderStatsConnectionSection(nodeEdges, nodeType, apWirelessClients, he
         <div class="stats-row">
           <span class="stats-row__label">${helpers.localize("panel.stats.wired")}</span>
           <span class="stats-row__value">${wiredCount}</span>
-        </div>
-        <div class="stats-row">
-          <span class="stats-row__label">${helpers.localize("panel.stats.wireless")}</span>
-          <span class="stats-row__value">${wirelessCount}</span>
         </div>
         ${poeRow}
         ${wirelessClientsRow}
