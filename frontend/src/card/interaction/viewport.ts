@@ -329,14 +329,48 @@ function hideTooltip(tooltip: HTMLElement): void {
 function positionTooltip(tooltip: HTMLElement, event: PointerEvent, offset: number): void {
   const viewport =
     (event.currentTarget as HTMLElement | null) ?? tooltip.closest(".unifi-network-map__viewport");
-  const rect = viewport?.getBoundingClientRect();
-  if (!rect) {
+  const viewportRect = viewport?.getBoundingClientRect();
+  if (!viewportRect) {
     tooltip.style.left = `${event.clientX + offset}px`;
     tooltip.style.top = `${event.clientY + offset}px`;
     return;
   }
-  tooltip.style.left = `${event.clientX - rect.left + offset}px`;
-  tooltip.style.top = `${event.clientY - rect.top + offset}px`;
+
+  // Calculate cursor position relative to viewport
+  const cursorX = event.clientX - viewportRect.left;
+  const cursorY = event.clientY - viewportRect.top;
+
+  // Initial position (to the right and below cursor)
+  let left = cursorX + offset;
+  let top = cursorY + offset;
+
+  // Get tooltip dimensions (need to briefly show it to measure)
+  const tooltipRect = tooltip.getBoundingClientRect();
+  const tooltipWidth = tooltipRect.width || 150; // fallback width
+  const tooltipHeight = tooltipRect.height || 40; // fallback height
+
+  // Check right boundary - flip to left of cursor if needed
+  if (left + tooltipWidth > viewportRect.width) {
+    left = cursorX - tooltipWidth - offset;
+  }
+
+  // Check bottom boundary - flip to above cursor if needed
+  if (top + tooltipHeight > viewportRect.height) {
+    top = cursorY - tooltipHeight - offset;
+  }
+
+  // Ensure tooltip doesn't go off left edge
+  if (left < 0) {
+    left = offset;
+  }
+
+  // Ensure tooltip doesn't go off top edge
+  if (top < 0) {
+    top = offset;
+  }
+
+  tooltip.style.left = `${left}px`;
+  tooltip.style.top = `${top}px`;
 }
 
 function isControlTarget(target: Element | null, controls: HTMLElement | null): boolean {

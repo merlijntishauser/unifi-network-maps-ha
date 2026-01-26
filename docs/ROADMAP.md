@@ -9,7 +9,7 @@
 ## P3 - UX Polish (User-facing)
 
 ### Quick Wins (Low effort, high impact)
-- **Tooltip boundary detection** - Prevent off-screen tooltips
+
 - **Separate reset vs clear selection** - Reset view shouldn't clear panel
 - **Card availability after install** - Warn users to hard-refresh when card isn't listed after install
 
@@ -72,7 +72,6 @@ Methods to break down for readability:
 ### Integration & Performance
 | Feature | Description | Effort |
 |---------|-------------|--------|
-| WebSocket updates | Replace polling with push updates | L |
 | HA theme sync | Auto dark/light based on HA theme | S |
 | Full-screen mode | Expand card to full viewport | S |
 | Custom node icons | Use HA entity pictures for client icons | M |
@@ -92,5 +91,6 @@ Methods to break down for readability:
 ## Recently Completed
 - **Diagnostics timestamp** - Add timestamp to show data freshness
 - **Diagnostics include clients list** (anonymized) - Include counts + sample names
+- **Tooltip boundary detection** - Prevent off-screen tooltips
 
 See [CHANGELOG.md](CHANGELOG.md) for full history.

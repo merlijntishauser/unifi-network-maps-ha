@@ -3512,14 +3512,33 @@ function hideTooltip(tooltip) {
 }
 function positionTooltip(tooltip, event, offset) {
   const viewport = event.currentTarget ?? tooltip.closest(".unifi-network-map__viewport");
-  const rect = viewport?.getBoundingClientRect();
-  if (!rect) {
+  const viewportRect = viewport?.getBoundingClientRect();
+  if (!viewportRect) {
     tooltip.style.left = `${event.clientX + offset}px`;
     tooltip.style.top = `${event.clientY + offset}px`;
     return;
   }
-  tooltip.style.left = `${event.clientX - rect.left + offset}px`;
-  tooltip.style.top = `${event.clientY - rect.top + offset}px`;
+  const cursorX = event.clientX - viewportRect.left;
+  const cursorY = event.clientY - viewportRect.top;
+  let left = cursorX + offset;
+  let top = cursorY + offset;
+  const tooltipRect = tooltip.getBoundingClientRect();
+  const tooltipWidth = tooltipRect.width || 150;
+  const tooltipHeight = tooltipRect.height || 40;
+  if (left + tooltipWidth > viewportRect.width) {
+    left = cursorX - tooltipWidth - offset;
+  }
+  if (top + tooltipHeight > viewportRect.height) {
+    top = cursorY - tooltipHeight - offset;
+  }
+  if (left < 0) {
+    left = offset;
+  }
+  if (top < 0) {
+    top = offset;
+  }
+  tooltip.style.left = `${left}px`;
+  tooltip.style.top = `${top}px`;
 }
 function isControlTarget(target, controls) {
   if (target?.closest(".filter-bar") || target?.closest(".filter-bar-container")) {
