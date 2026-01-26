@@ -143,21 +143,64 @@ def resolve_related_entities(
         normalized = _normalize_mac(mac)
         entities = mac_to_entities.get(normalized, [])
         if entities:
-            result[node_name] = [_entity_state_details(hass, eid) for eid in entities]
+            related = [_entity_state_details(hass, eid) for eid in entities]
+            result[node_name] = _sort_related_entities(related)
     return result
 
 
+def _sort_related_entities(entities: list[RelatedEntity]) -> list[RelatedEntity]:
+    """Sort related entities by domain priority and then by entity_id."""
+    domain_priority = {
+        "device_tracker": 0,
+        "sensor": 1,
+        "binary_sensor": 2,
+        "switch": 3,
+        "button": 4,
+        "update": 5,
+        "image": 6,
+    }
+
+    def sort_key(entity: RelatedEntity) -> tuple[int, str]:
+        domain = entity.get("domain") or ""
+        priority = domain_priority.get(domain, 99)
+        entity_id = entity.get("entity_id") or ""
+        return (priority, entity_id)
+
+    return sorted(entities, key=sort_key)
+
+
 def _build_mac_to_all_entities_index(hass: HomeAssistant) -> dict[str, list[str]]:
-    """Build index mapping MAC addresses to ALL related entity IDs."""
+    """Build index mapping MAC addresses to ALL related entity IDs.
+
+    This enhanced version finds all entities belonging to a device once we
+    identify the device's MAC address. This ensures sensors, switches,
+    device_trackers, and other entity types are all included.
+    """
     entity_registry = er.async_get(hass)
     device_registry = dr.async_get(hass)
     mac_to_entities: dict[str, list[str]] = {}
 
+    # First pass: build device_id -> MAC mapping from entities with known MACs
+    device_to_mac: dict[str, str] = {}
     for entry in _iter_unifi_entity_entries(hass, entity_registry):
         mac = mac_from_entity_entry(hass, entry, device_registry)
-        if mac:
-            mac_to_entities.setdefault(mac, []).append(entry.entity_id)
+        if mac and entry.device_id:
+            device_to_mac[entry.device_id] = mac
 
+    # Second pass: add ALL entities belonging to devices with known MACs
+    for entry in _iter_unifi_entity_entries(hass, entity_registry):
+        mac = None
+        # Try direct MAC lookup first
+        mac = mac_from_entity_entry(hass, entry, device_registry)
+        # Fall back to device's MAC if entity doesn't have one directly
+        if not mac and entry.device_id:
+            mac = device_to_mac.get(entry.device_id)
+        if mac:
+            entities = mac_to_entities.setdefault(mac, [])
+            if entry.entity_id not in entities:
+                entities.append(entry.entity_id)
+
+    # Also check state-based MACs for non-registry entities
     for state in _iter_state_entries(hass):
         if not _is_state_mac_candidate(state):
             continue

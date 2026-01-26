@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Warn users to hard-refresh when the custom lovelace card isn't listed after installation
+- Improvement of listing related entities for a node/client
 
 ### Changed
 - SSL verification checkbox is unchecked by default, UniFi controllers ship with self-signed certificates that would cause connection failures if verification is    

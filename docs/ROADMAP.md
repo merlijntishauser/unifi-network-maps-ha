@@ -62,7 +62,6 @@ Methods to break down for readability:
 ### Detail Panel Enhancements
 | Feature | Description | Effort |
 |---------|-------------|--------|
-| Show all related HA entities | List device_tracker, sensors, switches | S |
 | Mini-graphs over time | Sparklines for bandwidth/signal history | L |
 | Quick actions | Restart device, block client, open controller | M |
 | Connection history | Show when client was last seen, connection duration | M |
