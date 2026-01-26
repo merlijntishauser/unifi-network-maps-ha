@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
 import hashlib
 
@@ -35,10 +36,33 @@ async def async_get_config_entry_diagnostics(
         },
         "coordinator": {
             "last_update_success": getattr(coordinator, "last_update_success", None),
+            "last_update_success_time": _format_timestamp(
+                getattr(coordinator, "last_update_success_time", None)
+            ),
             "last_exception": str(getattr(coordinator, "last_exception", "")) or None,
+            "data_age_seconds": _calculate_data_age(
+                getattr(coordinator, "last_update_success_time", None)
+            ),
         },
         "map_summary": _summarize_map_data(hass, data),
     }
+
+
+def _format_timestamp(dt: datetime | None) -> str | None:
+    """Format a datetime as ISO 8601 string."""
+    if dt is None:
+        return None
+    return dt.isoformat()
+
+
+def _calculate_data_age(dt: datetime | None) -> float | None:
+    """Calculate age of data in seconds."""
+    if dt is None:
+        return None
+    now = datetime.now(timezone.utc)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return (now - dt).total_seconds()
 
 
 def _summarize_map_data(
@@ -51,6 +75,7 @@ def _summarize_map_data(
     edges = payload.get("edges") or []
     client_macs = payload.get("client_macs") or {}
     device_macs = payload.get("device_macs") or {}
+    ap_client_counts = payload.get("ap_client_counts") or {}
     client_entities = resolve_client_entity_map(hass, client_macs)
     entity_stats = get_unifi_entity_mac_stats(hass)
     payload_mac_set = _normalize_mac_values(client_macs) | _normalize_mac_values(device_macs)
@@ -72,8 +97,73 @@ def _summarize_map_data(
         "state_mac_count": len(state_mac_set),
         "state_mac_overlap_count": len(state_overlap),
         "state_mac_hashes": _hash_mac_samples(state_mac_set),
+        "clients": _summarize_clients(node_types, edges, client_macs),
+        "ap_wireless_client_counts": _summarize_ap_client_counts(ap_client_counts),
         **entity_stats,
     }
+
+
+def _summarize_clients(
+    node_types: dict[str, str],
+    edges: list[dict[str, Any]],
+    client_macs: dict[str, str],
+) -> dict[str, Any]:
+    """Summarize client information with anonymized sample names."""
+    # Find all client nodes
+    client_names = [name for name, ntype in node_types.items() if ntype == "client"]
+
+    # Count wired vs wireless clients from edges
+    wired_clients: list[str] = []
+    wireless_clients: list[str] = []
+
+    for edge in edges:
+        left = edge.get("left", "")
+        right = edge.get("right", "")
+        is_wireless = edge.get("wireless", False)
+
+        # Check if either end is a client
+        for name in [left, right]:
+            if name in client_names:
+                if is_wireless:
+                    if name not in wireless_clients:
+                        wireless_clients.append(name)
+                else:
+                    if name not in wired_clients:
+                        wired_clients.append(name)
+
+    return {
+        "total_count": len(client_names),
+        "wired_count": len(wired_clients),
+        "wireless_count": len(wireless_clients),
+        "with_mac_count": len(client_macs),
+        "sample_names_hashed": _hash_name_samples(client_names),
+        "wired_sample_hashed": _hash_name_samples(wired_clients),
+        "wireless_sample_hashed": _hash_name_samples(wireless_clients),
+    }
+
+
+def _summarize_ap_client_counts(ap_client_counts: dict[str, int]) -> dict[str, Any]:
+    """Summarize AP client counts with anonymized AP names."""
+    if not ap_client_counts:
+        return {"ap_count": 0, "total_wireless_clients": 0}
+
+    total_clients = sum(ap_client_counts.values())
+    ap_names = list(ap_client_counts.keys())
+
+    return {
+        "ap_count": len(ap_client_counts),
+        "total_wireless_clients": total_clients,
+        "ap_sample_hashed": [
+            {"name_hash": _hash_value(name), "client_count": ap_client_counts[name]}
+            for name in sorted(ap_names)[:5]
+        ],
+    }
+
+
+def _hash_name_samples(names: list[str], sample_size: int = 5) -> list[str]:
+    """Hash a sample of names for anonymized diagnostics."""
+    samples = sorted(names)[:sample_size]
+    return [_hash_value(name) for name in samples]
 
 
 def _normalize_mac_values(mac_map: dict[str, Any]) -> set[str]:

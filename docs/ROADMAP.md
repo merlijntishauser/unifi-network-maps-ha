@@ -4,8 +4,7 @@
 - no issues
 
 ## P2 - Bugs & Correctness (High Impact)
-- **Diagnostics timestamp** - Add timestamp to show data freshness
-- **Diagnostics include clients list** (anonymized) - Include counts + sample names
+- no issues
 
 ## P3 - UX Polish (User-facing)
 
@@ -91,5 +90,7 @@ Methods to break down for readability:
 - **VLAN/IP overview** - Maybe as a new lovelace card?
 
 ## Recently Completed
+- **Diagnostics timestamp** - Add timestamp to show data freshness
+- **Diagnostics include clients list** (anonymized) - Include counts + sample names
 
 See [CHANGELOG.md](CHANGELOG.md) for full history.
