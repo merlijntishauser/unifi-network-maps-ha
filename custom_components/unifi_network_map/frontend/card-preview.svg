@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" fill="none">
+  <rect width="400" height="300" fill="#1e293b"/>
+
+  <!-- Gateway -->
+  <rect x="170" y="30" width="60" height="40" rx="6" fill="#3b82f6"/>
+  <text x="200" y="55" text-anchor="middle" fill="white" font-size="10" font-family="system-ui">Gateway</text>
+
+  <!-- Switch -->
+  <rect x="170" y="120" width="60" height="40" rx="6" fill="#8b5cf6"/>
+  <text x="200" y="145" text-anchor="middle" fill="white" font-size="10" font-family="system-ui">Switch</text>
+
+  <!-- APs -->
+  <rect x="60" y="210" width="60" height="40" rx="6" fill="#10b981"/>
+  <text x="90" y="235" text-anchor="middle" fill="white" font-size="10" font-family="system-ui">AP 1</text>
+
+  <rect x="170" y="210" width="60" height="40" rx="6" fill="#10b981"/>
+  <text x="200" y="235" text-anchor="middle" fill="white" font-size="10" font-family="system-ui">AP 2</text>
+
+  <rect x="280" y="210" width="60" height="40" rx="6" fill="#10b981"/>
+  <text x="310" y="235" text-anchor="middle" fill="white" font-size="10" font-family="system-ui">AP 3</text>
+
+  <!-- Connections -->
+  <line x1="200" y1="70" x2="200" y2="120" stroke="#475569" stroke-width="2"/>
+  <line x1="200" y1="160" x2="90" y2="210" stroke="#475569" stroke-width="2"/>
+  <line x1="200" y1="160" x2="200" y2="210" stroke="#475569" stroke-width="2"/>
+  <line x1="200" y1="160" x2="310" y2="210" stroke="#475569" stroke-width="2"/>
+
+  <!-- Title -->
+  <text x="200" y="285" text-anchor="middle" fill="#94a3b8" font-size="12" font-family="system-ui">UniFi Network Map</text>
+</svg>

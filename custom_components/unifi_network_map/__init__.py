@@ -141,7 +141,10 @@ def _register_frontend_assets(hass: HomeAssistant) -> None:
     if not js_path.exists():
         LOGGER.warning("Frontend bundle missing at %s", js_path)
         return
-    _register_static_asset(hass, js_path)
+    _register_static_asset(hass, _frontend_bundle_url(), js_path)
+    preview_path = _preview_image_path()
+    if preview_path.exists():
+        _register_static_asset(hass, _preview_image_url(), preview_path)
     LOGGER.debug("Attempting Lovelace resource registration for %s", _frontend_bundle_url())
     _schedule_lovelace_resource_registration(hass)
     _set_flag(data, "frontend_registered")
@@ -163,53 +166,60 @@ def _frontend_bundle_url() -> str:
     return "/unifi-network-map/unifi-network-map.js"
 
 
-def _register_static_asset(hass: HomeAssistant, js_path: Path) -> None:
+def _preview_image_path() -> Path:
+    return Path(__file__).resolve().parent / "frontend" / "card-preview.svg"
+
+
+def _preview_image_url() -> str:
+    return "/unifi-network-map/card-preview.svg"
+
+
+def _register_static_asset(hass: HomeAssistant, url_path: str, file_path: Path) -> None:
     if hasattr(hass.http, "register_static_path"):
         hass.http.register_static_path(
-            _frontend_bundle_url(),
-            str(js_path),
+            url_path,
+            str(file_path),
             cache_headers=True,
         )
         return
     if hasattr(hass.http, "async_register_static_paths"):
-        configs = _build_static_path_configs(js_path)
+        configs = _build_static_path_configs(url_path, file_path)
         result = hass.http.async_register_static_paths(configs)
         if hasattr(result, "__await__"):
             hass.async_create_task(result)
         return
-    LOGGER.warning("Unable to register frontend bundle; HTTP static path API missing")
+    LOGGER.warning("Unable to register static asset %s; HTTP static path API missing", url_path)
 
 
-def _build_static_path_configs(js_path: Path) -> list[object]:
+def _build_static_path_configs(url_path: str, file_path: Path) -> list[object]:
     try:
         from homeassistant.components.http import StaticPathConfig
     except Exception:  # pragma: no cover - fallback for older HA
         StaticPathConfig = None
 
     if StaticPathConfig is not None:
-        config = _make_static_path_config(StaticPathConfig, js_path)
+        config = _make_static_path_config(StaticPathConfig, url_path, file_path)
         if config is not None:
             return [config]
     return [
         {
-            "path": _frontend_bundle_url(),
-            "file_path": str(js_path),
+            "path": url_path,
+            "file_path": str(file_path),
             "cache_headers": True,
         }
     ]
 
 
 def _make_static_path_config(
-    static_path_config: Callable[..., object], js_path: Path
+    static_path_config: Callable[..., object], url_path: str, file_path: Path
 ) -> object | None:
-    url_path = _frontend_bundle_url()
-    file_path = str(js_path)
+    file_path_str = str(file_path)
     strategies: list[Callable[[], object | None]] = [
-        lambda: static_path_config(url_path=url_path, file_path=file_path, cache_headers=True),
-        lambda: static_path_config(url_path=url_path, path=file_path, cache_headers=True),
-        lambda: static_path_config(url_path, file_path, True),
-        lambda: static_path_config(url_path, file_path),
-        lambda: _make_config_from_signature(static_path_config, url_path, file_path),
+        lambda: static_path_config(url_path=url_path, file_path=file_path_str, cache_headers=True),
+        lambda: static_path_config(url_path=url_path, path=file_path_str, cache_headers=True),
+        lambda: static_path_config(url_path, file_path_str, True),
+        lambda: static_path_config(url_path, file_path_str),
+        lambda: _make_config_from_signature(static_path_config, url_path, file_path_str),
     ]
     for strategy in strategies:
         try:

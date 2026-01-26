@@ -16,6 +16,7 @@ export const de = {
   "card.loading.aria": "Laden",
   "card.loading.map": "Karte wird geladen...",
   "card.loading.refresh": "Daten werden aktualisiert...",
+  "card.preview.alt": "UniFi Network Map Vorschau",
   "card.time.days_ago": "vor {count}d",
   "card.time.hours_ago": "vor {count}h",
   "card.time.just_now": "Gerade eben",

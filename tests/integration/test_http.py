@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Callable, cast
 
@@ -477,13 +478,17 @@ def test_resolve_svg_theme_handles_missing(monkeypatch: pytest.MonkeyPatch) -> N
     assert resolve_svg_theme("dark") is None
 
 
-def test_resolve_svg_theme_loads_theme(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_resolve_svg_theme_loads_theme(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    # Create a real temp file for the mock to return
+    mock_theme = tmp_path / "theme.yaml"
+    mock_theme.write_text("test: true")
+
     class _Context:
         def __init__(self, path: object) -> None:
             self._path = path
 
         def __enter__(self):
-            return self._path
+            return Path(self._path) if isinstance(self._path, str) else self._path
 
         def __exit__(self, *_args: object) -> None:
             return None
@@ -491,15 +496,19 @@ def test_resolve_svg_theme_loads_theme(monkeypatch: pytest.MonkeyPatch) -> None:
     def _resolve_theme_file(_name: str) -> str:
         return "theme.yaml"
 
-    def _as_file(path: object) -> _Context:
-        return _Context(path)
+    def _as_file(_path: object) -> _Context:
+        return _Context(mock_theme)
 
     def _resolve_themes(_path: object) -> tuple[None, object]:
         return (None, object())
 
+    def _shutil_copy(_src: object, _dst: object) -> None:
+        pass
+
     monkeypatch.setattr(http_module, "_resolve_theme_file", _resolve_theme_file)
     monkeypatch.setattr(http_module.importlib_resources, "as_file", _as_file)
     monkeypatch.setattr(http_module, "resolve_themes", _resolve_themes)
+    monkeypatch.setattr(http_module.shutil, "copy", _shutil_copy)
     resolve_svg_theme = cast(
         Callable[[str], object | None], getattr(http_module, "_resolve_svg_theme")
     )

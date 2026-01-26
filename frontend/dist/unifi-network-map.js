@@ -2569,6 +2569,7 @@ var de = {
   "card.loading.aria": "Laden",
   "card.loading.map": "Karte wird geladen...",
   "card.loading.refresh": "Daten werden aktualisiert...",
+  "card.preview.alt": "UniFi Network Map Vorschau",
   "card.time.days_ago": "vor {count}d",
   "card.time.hours_ago": "vor {count}h",
   "card.time.just_now": "Gerade eben",
@@ -2683,6 +2684,7 @@ var en = {
   "card.loading.aria": "Loading",
   "card.loading.map": "Loading map...",
   "card.loading.refresh": "Refreshing data...",
+  "card.preview.alt": "UniFi Network Map preview",
   "card.time.days_ago": "{count}d ago",
   "card.time.hours_ago": "{count}h ago",
   "card.time.just_now": "Just now",
@@ -2797,6 +2799,7 @@ var es = {
   "card.loading.aria": "Cargando",
   "card.loading.map": "Cargando mapa...",
   "card.loading.refresh": "Actualizando datos...",
+  "card.preview.alt": "Vista previa de UniFi Network Map",
   "card.time.days_ago": "hace {count}d",
   "card.time.hours_ago": "hace {count}h",
   "card.time.just_now": "Justo ahora",
@@ -2911,6 +2914,7 @@ var fr = {
   "card.loading.aria": "Chargement",
   "card.loading.map": "Chargement de la carte...",
   "card.loading.refresh": "Actualisation des donn\xE9es...",
+  "card.preview.alt": "Aper\xE7u de UniFi Network Map",
   "card.time.days_ago": "il y a {count}j",
   "card.time.hours_ago": "il y a {count}h",
   "card.time.just_now": "\xC0 l\u2019instant",
@@ -3025,6 +3029,7 @@ var nl = {
   "card.loading.aria": "Laden",
   "card.loading.map": "Kaart laden...",
   "card.loading.refresh": "Gegevens verversen...",
+  "card.preview.alt": "UniFi Network Map voorbeeld",
   "card.time.days_ago": "{count}d geleden",
   "card.time.hours_ago": "{count}u geleden",
   "card.time.just_now": "Zojuist",
@@ -3877,6 +3882,28 @@ var CARD_STYLES = `
   }
   @keyframes unifi-spin {
     to { transform: rotate(360deg); }
+  }
+
+  /* Preview */
+  .unifi-network-map__preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    gap: 12px;
+    min-height: 200px;
+  }
+  .unifi-network-map__preview img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 8px;
+    opacity: 0.9;
+  }
+  .unifi-network-map__preview-text {
+    font-size: 12px;
+    color: #94a3b8;
+    text-align: center;
   }
 
   /* Info Row */
@@ -5226,10 +5253,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       return;
     }
     if (!this._config.svg_url) {
-      this._setCardBody(
-        `<div style="padding:16px;">${this._localize("card.error.missing_entry")}</div>`,
-        theme
-      );
+      this._setCardBody(this._renderPreview(), theme);
       return;
     }
     const token = this._getAuthToken();
@@ -5362,6 +5386,14 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     if (!this._isLoading()) {
       this._showLoadingOverlay = false;
     }
+  }
+  _renderPreview() {
+    return `
+      <div class="unifi-network-map__preview">
+        <img src="/unifi-network-map/card-preview.svg" alt="${this._localize("card.preview.alt")}" />
+        <div class="unifi-network-map__preview-text">${this._localize("card.error.missing_entry")}</div>
+      </div>
+    `;
   }
   _renderLoading() {
     return `
@@ -6218,7 +6250,9 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "unifi-network-map",
   name: "UniFi Network Map",
-  description: "Displays your UniFi network topology as an interactive SVG map"
+  description: "Displays your UniFi network topology as an interactive SVG map",
+  preview: true,
+  documentationURL: "https://github.com/merlijn-v/unifi-network-map-ha"
 });
 console.info(`unifi-network-map card loaded v${CARD_VERSION}`);
 /*! Bundled license information:

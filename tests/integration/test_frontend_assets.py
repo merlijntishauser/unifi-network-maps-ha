@@ -87,15 +87,16 @@ def test_build_static_path_configs_falls_back_to_dict(tmp_path: Path) -> None:
     setattr(unifi_network_map, "_make_static_path_config", _make_config)
     try:
         build_configs = cast(
-            Callable[[Path], list[object]],
+            Callable[[str, Path], list[object]],
             getattr(unifi_network_map, "_build_static_path_configs"),
         )
-        configs = build_configs(js_path)
+        test_url = "/test/path.js"
+        configs = build_configs(test_url, js_path)
     finally:
         setattr(unifi_network_map, "_make_static_path_config", original_make_config)
 
     assert isinstance(configs[0], dict)
-    assert configs[0]["path"] == "/unifi-network-map/unifi-network-map.js"
+    assert configs[0]["path"] == test_url
 
 
 def test_register_frontend_assets_skips_when_already_registered() -> None:

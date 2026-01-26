@@ -303,10 +303,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
     }
 
     if (!this._config.svg_url) {
-      this._setCardBody(
-        `<div style="padding:16px;">${this._localize("card.error.missing_entry")}</div>`,
-        theme,
-      );
+      this._setCardBody(this._renderPreview(), theme);
       return;
     }
 
@@ -459,6 +456,15 @@ export class UnifiNetworkMapCard extends HTMLElement {
     if (!this._isLoading()) {
       this._showLoadingOverlay = false;
     }
+  }
+
+  private _renderPreview(): string {
+    return `
+      <div class="unifi-network-map__preview">
+        <img src="/unifi-network-map/card-preview.svg" alt="${this._localize("card.preview.alt")}" />
+        <div class="unifi-network-map__preview-text">${this._localize("card.error.missing_entry")}</div>
+      </div>
+    `;
   }
 
   private _renderLoading(): string {

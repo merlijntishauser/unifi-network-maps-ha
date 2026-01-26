@@ -7,6 +7,7 @@
 - no issues
 
 ## P3 - UX Polish (User-facing)
+- no issues
 
 ### Quick Wins (Low effort, high impact)
 - **Card availability after install** - Warn users to hard-refresh when card isn't listed after install
@@ -14,7 +15,6 @@
 ### Medium Effort
 - **Search/filter in detail panel** - Find clients/devices quickly
 - **Keyboard navigation** - Arrow keys to navigate nodes, Escape to deselect
-- **Add picture to custom card chooser** - Show preview in Lovelace card picker
 - **Export current view as PNG, SVG or mermaid** - Download button for documentation/sharing
 - **Dashboard layout guidance** - Recommend sections view or 4-column layout for wide cards
 - **"infinite" background plane** - (make way larger...)
@@ -91,5 +91,6 @@ Methods to break down for readability:
 - **Diagnostics timestamp** - Add timestamp to show data freshness
 - **Diagnostics include clients list** (anonymized) - Include counts + sample names
 - **Tooltip boundary detection** - Prevent off-screen tooltips
+- **Add picture to custom card chooser** - Show preview in Lovelace card picker
 
 See [CHANGELOG.md](CHANGELOG.md) for full history.

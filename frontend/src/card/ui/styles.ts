@@ -232,6 +232,28 @@ export const CARD_STYLES = `
     to { transform: rotate(360deg); }
   }
 
+  /* Preview */
+  .unifi-network-map__preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    gap: 12px;
+    min-height: 200px;
+  }
+  .unifi-network-map__preview img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 8px;
+    opacity: 0.9;
+  }
+  .unifi-network-map__preview-text {
+    font-size: 12px;
+    color: #94a3b8;
+    text-align: center;
+  }
+
   /* Info Row */
   .info-row { display: flex; flex-direction: column; gap: 4px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; margin-bottom: 8px; }
   .info-row:last-child { margin-bottom: 0; }

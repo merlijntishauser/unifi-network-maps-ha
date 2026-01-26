@@ -15,6 +15,7 @@ export const nl = {
   "card.loading.aria": "Laden",
   "card.loading.map": "Kaart laden...",
   "card.loading.refresh": "Gegevens verversen...",
+  "card.preview.alt": "UniFi Network Map voorbeeld",
   "card.time.days_ago": "{count}d geleden",
   "card.time.hours_ago": "{count}u geleden",
   "card.time.just_now": "Zojuist",

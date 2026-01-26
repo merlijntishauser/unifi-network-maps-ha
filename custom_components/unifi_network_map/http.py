@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from aiohttp import web
+from pathlib import Path
 import re
+import shutil
+import tempfile
 from importlib import resources as importlib_resources
 
 from homeassistant.helpers import device_registry as dr
@@ -425,8 +428,15 @@ def _resolve_svg_theme(theme_name: str) -> SvgTheme | None:
     if theme_file is None:
         return None
     with importlib_resources.as_file(theme_file) as path:
-        _mermaid_theme, svg_theme = resolve_themes(path)
-        return svg_theme
+        # Copy theme to /tmp to satisfy unifi-network-maps path security check
+        # (library requires theme files to be within /config, /root, or /tmp)
+        tmp_path = Path(tempfile.gettempdir()) / f"unifi_theme_{path.name}"
+        shutil.copy(path, tmp_path)
+        try:
+            _mermaid_theme, svg_theme = resolve_themes(tmp_path)
+            return svg_theme
+        finally:
+            tmp_path.unlink(missing_ok=True)
 
 
 def _resolve_theme_file(theme_name: str):

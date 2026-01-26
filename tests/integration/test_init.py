@@ -297,13 +297,13 @@ def test_make_static_path_config_uses_supported_signature() -> None:
             self.cache_headers = cache_headers
 
     make_static_path_config = cast(
-        Callable[[type[object], object], object],
+        Callable[[type[object], str, Path], object],
         getattr(init_module, "_make_static_path_config"),
     )
-    frontend_bundle_path = cast(object, getattr(init_module, "_frontend_bundle_path")())
+    frontend_bundle_path = cast(Path, getattr(init_module, "_frontend_bundle_path")())
     frontend_bundle_url = cast(str, getattr(init_module, "_frontend_bundle_url")())
 
-    result = make_static_path_config(StaticPathConfig, frontend_bundle_path)
+    result = make_static_path_config(StaticPathConfig, frontend_bundle_url, frontend_bundle_path)
 
     assert result is not None
     assert result.url_path == frontend_bundle_url
@@ -328,15 +328,16 @@ def test_register_refresh_service_registers_once() -> None:
 def test_register_static_asset_uses_sync_http() -> None:
     hass = FakeHass()
     register_static_asset = cast(
-        Callable[[FakeHass, Path], None], getattr(init_module, "_register_static_asset")
+        Callable[[FakeHass, str, Path], None], getattr(init_module, "_register_static_asset")
     )
     js_path = Path(__file__)
+    test_url = "/test/path.js"
 
-    register_static_asset(hass, js_path)
+    register_static_asset(hass, test_url, js_path)
 
     assert hass.http.static_calls
     url_path, file_path, cache_headers = hass.http.static_calls[0]
-    assert url_path == "/unifi-network-map/unifi-network-map.js"
+    assert url_path == test_url
     assert file_path == str(js_path)
     assert cache_headers is True
 
@@ -356,11 +357,12 @@ def test_register_static_asset_schedules_async_paths() -> None:
     hass = FakeHass()
     hass.http = _AsyncOnlyHttp()
     register_static_asset = cast(
-        Callable[[FakeHass, Path], None], getattr(init_module, "_register_static_asset")
+        Callable[[FakeHass, str, Path], None], getattr(init_module, "_register_static_asset")
     )
     js_path = Path(__file__)
+    test_url = "/test/path.js"
 
-    register_static_asset(hass, js_path)
+    register_static_asset(hass, test_url, js_path)
 
     assert hass.http.registered
     assert hass.created_tasks
@@ -373,13 +375,14 @@ def test_register_static_asset_warns_when_no_http_api(caplog: pytest.LogCaptureF
     hass = FakeHass()
     hass.http = _NoHttpApi()
     register_static_asset = cast(
-        Callable[[FakeHass, Path], None], getattr(init_module, "_register_static_asset")
+        Callable[[FakeHass, str, Path], None], getattr(init_module, "_register_static_asset")
     )
+    test_url = "/test/path.js"
 
     caplog.set_level("WARNING")
-    register_static_asset(hass, Path(__file__))
+    register_static_asset(hass, test_url, Path(__file__))
 
-    assert "Unable to register frontend bundle" in caplog.text
+    assert "Unable to register static asset" in caplog.text
 
 
 def test_make_config_from_signature_maps_args() -> None:
@@ -404,7 +407,7 @@ def test_make_config_from_signature_maps_args() -> None:
 
 def test_make_static_path_config_returns_none_when_all_fail() -> None:
     make_static_path_config = cast(
-        Callable[[Callable[..., object], Path], object | None],
+        Callable[[Callable[..., object], str, Path], object | None],
         getattr(init_module, "_make_static_path_config"),
     )
 
@@ -412,7 +415,7 @@ def test_make_static_path_config_returns_none_when_all_fail() -> None:
         def __init__(self) -> None:
             raise TypeError("no args supported")
 
-    result = make_static_path_config(StaticPathConfig, Path(__file__))
+    result = make_static_path_config(StaticPathConfig, "/test/url", Path(__file__))
 
     assert result is None
 
