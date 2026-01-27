@@ -1,5 +1,11 @@
 target-version = "py313"
 line-length = 100
 
+[lint]
+extend-select = ["C90"]
+
+[lint.mccabe]
+max-complexity = 20
+
 [format]
 quote-style = "double"

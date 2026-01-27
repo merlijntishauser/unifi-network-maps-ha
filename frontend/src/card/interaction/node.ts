@@ -26,30 +26,19 @@ export function inferNodeName(target: Element | null): string | null {
   if (!target) {
     return null;
   }
-  const node = target.closest("[data-node-id]") as Element | null;
-  if (node?.getAttribute("data-node-id")) {
-    return node.getAttribute("data-node-id")?.trim() ?? null;
-  }
-  const labelled = target.closest("[aria-label]") as Element | null;
-  if (labelled?.getAttribute("aria-label")) {
-    return labelled.getAttribute("aria-label")?.trim() ?? null;
-  }
-  const textNode = target.closest("text");
-  if (textNode?.textContent) {
-    return textNode.textContent.trim();
-  }
-  const group = target.closest("g");
-  const title = group?.querySelector("title");
-  if (title?.textContent) {
-    return title.textContent.trim();
-  }
-  const groupText = group?.querySelector("text");
-  if (groupText?.textContent) {
-    return groupText.textContent.trim();
-  }
-  const idHolder = target.closest("[id]") as Element | null;
-  if (idHolder?.getAttribute("id")) {
-    return idHolder.getAttribute("id")?.trim() ?? null;
+  const resolvers = [
+    resolveFromDataNodeId,
+    resolveFromAriaLabel,
+    resolveFromText,
+    resolveFromGroupTitle,
+    resolveFromGroupText,
+    resolveFromElementId,
+  ];
+  for (const resolver of resolvers) {
+    const value = resolver(target);
+    if (value) {
+      return value;
+    }
   }
   return null;
 }
@@ -159,4 +148,36 @@ function findByTitleElement(svg: SVGElement, nodeName: string): Element | null {
     }
   }
   return null;
+}
+
+function resolveFromDataNodeId(target: Element): string | null {
+  const node = target.closest("[data-node-id]") as Element | null;
+  return node?.getAttribute("data-node-id")?.trim() ?? null;
+}
+
+function resolveFromAriaLabel(target: Element): string | null {
+  const labelled = target.closest("[aria-label]") as Element | null;
+  return labelled?.getAttribute("aria-label")?.trim() ?? null;
+}
+
+function resolveFromText(target: Element): string | null {
+  const textNode = target.closest("text");
+  return textNode?.textContent?.trim() ?? null;
+}
+
+function resolveFromGroupTitle(target: Element): string | null {
+  const group = target.closest("g");
+  const title = group?.querySelector("title");
+  return title?.textContent?.trim() ?? null;
+}
+
+function resolveFromGroupText(target: Element): string | null {
+  const group = target.closest("g");
+  const groupText = group?.querySelector("text");
+  return groupText?.textContent?.trim() ?? null;
+}
+
+function resolveFromElementId(target: Element): string | null {
+  const idHolder = target.closest("[id]") as Element | null;
+  return idHolder?.getAttribute("id")?.trim() ?? null;
 }

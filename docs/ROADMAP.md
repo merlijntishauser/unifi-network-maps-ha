@@ -37,7 +37,7 @@ Focus: Fix critical bugs and improve performance before adding new features.
 - [x] Re-subscribe WebSocket on config change; cleanup on disconnect
 - [x] Add 30s timeout to UniFi API calls
 - [x] Fix exponential backoff calculation
-- [ ] Use deep copy for payload modifications
+- [x] Use deep copy for payload modifications
 
 ### 1.2 Performance
 - [ ] Cache entity registry index; rebuild only on entity changes

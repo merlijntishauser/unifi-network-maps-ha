@@ -18,6 +18,7 @@ export default [
       "@typescript-eslint": tseslint,
     },
     rules: {
+      complexity: ["error", 20],
       "@typescript-eslint/consistent-type-imports": "error",
       "@typescript-eslint/no-unused-vars": [
         "error",

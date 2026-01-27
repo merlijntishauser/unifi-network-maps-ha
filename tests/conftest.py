@@ -26,52 +26,45 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 
-def _install_homeassistant_stubs() -> None:
-    homeassistant = cast(Any, ModuleType("homeassistant"))
-    homeassistant.__path__ = []  # mark as package for submodule imports
-    config_entries = cast(Any, ModuleType("homeassistant.config_entries"))
-    core = cast(Any, ModuleType("homeassistant.core"))
-    const = cast(Any, ModuleType("homeassistant.const"))
-    components = cast(Any, ModuleType("homeassistant.components"))
-    components_http = cast(Any, ModuleType("homeassistant.components.http"))
-    components_diagnostics = cast(Any, ModuleType("homeassistant.components.diagnostics"))
-    components_sensor = cast(Any, ModuleType("homeassistant.components.sensor"))
-    components_websocket_api = cast(Any, ModuleType("homeassistant.components.websocket_api"))
-    helpers = cast(Any, ModuleType("homeassistant.helpers"))
-    helpers_update = cast(Any, ModuleType("homeassistant.helpers.update_coordinator"))
-    selector = cast(Any, ModuleType("homeassistant.helpers.selector"))
-    device_registry = cast(Any, ModuleType("homeassistant.helpers.device_registry"))
-    entity_registry = cast(Any, ModuleType("homeassistant.helpers.entity_registry"))
-    exceptions = cast(Any, ModuleType("homeassistant.exceptions"))
+def _create_module(name: str) -> Any:
+    return cast(Any, ModuleType(name))
+
+
+def _create_homeassistant_modules() -> dict[str, Any]:
+    return {
+        "homeassistant": _create_module("homeassistant"),
+        "homeassistant.config_entries": _create_module("homeassistant.config_entries"),
+        "homeassistant.core": _create_module("homeassistant.core"),
+        "homeassistant.const": _create_module("homeassistant.const"),
+        "homeassistant.components": _create_module("homeassistant.components"),
+        "homeassistant.components.http": _create_module("homeassistant.components.http"),
+        "homeassistant.components.diagnostics": _create_module(
+            "homeassistant.components.diagnostics"
+        ),
+        "homeassistant.components.sensor": _create_module("homeassistant.components.sensor"),
+        "homeassistant.components.websocket_api": _create_module(
+            "homeassistant.components.websocket_api"
+        ),
+        "homeassistant.helpers": _create_module("homeassistant.helpers"),
+        "homeassistant.helpers.update_coordinator": _create_module(
+            "homeassistant.helpers.update_coordinator"
+        ),
+        "homeassistant.helpers.selector": _create_module("homeassistant.helpers.selector"),
+        "homeassistant.helpers.device_registry": _create_module(
+            "homeassistant.helpers.device_registry"
+        ),
+        "homeassistant.helpers.entity_registry": _create_module(
+            "homeassistant.helpers.entity_registry"
+        ),
+        "homeassistant.exceptions": _create_module("homeassistant.exceptions"),
+    }
+
+
+def _register_config_entry_stubs(modules: dict[str, Any]) -> None:
+    config_entries = modules["homeassistant.config_entries"]
 
     class ConfigEntry:  # minimal stub for imports
         pass
-
-    class HomeAssistant:  # minimal stub for imports
-        async def async_add_executor_job(self, func, *args: object):
-            return func(*args)
-
-    def callback(func):
-        """Stub callback decorator."""
-        return func
-
-    def async_redact_data(data: dict[str, object], _keys: set[str]) -> dict[str, object]:
-        return dict(data)
-
-    class SensorEntity:  # minimal stub for imports
-        pass
-
-    class CoordinatorEntity:  # minimal stub for imports
-        def __init__(self, coordinator: object) -> None:
-            self.coordinator = coordinator
-
-        @classmethod
-        def __class_getitem__(cls, _item: object):
-            return cls
-
-    class ServiceCall:  # minimal stub for imports
-        def __init__(self, data: dict[str, object] | None = None) -> None:
-            self.data = data or {}
 
     class ConfigFlow:  # minimal stub for imports
         def __init_subclass__(cls, **_kwargs: object) -> None:
@@ -106,6 +99,48 @@ def _install_homeassistant_stubs() -> None:
         def async_create_entry(self, *, title: str, data: dict[str, object]):
             return {"type": "create_entry", "title": title, "data": data}
 
+    config_entries.ConfigEntry = ConfigEntry
+    config_entries.ConfigFlow = ConfigFlow
+    config_entries.OptionsFlow = OptionsFlow
+
+
+def _register_core_stubs(modules: dict[str, Any]) -> None:
+    core = modules["homeassistant.core"]
+    const = modules["homeassistant.const"]
+
+    class HomeAssistant:  # minimal stub for imports
+        async def async_add_executor_job(self, func, *args: object):
+            return func(*args)
+
+    class ServiceCall:  # minimal stub for imports
+        def __init__(self, data: dict[str, object] | None = None) -> None:
+            self.data = data or {}
+
+    def callback(func):
+        """Stub callback decorator."""
+        return func
+
+    core.HomeAssistant = HomeAssistant
+    core.ServiceCall = ServiceCall
+    core.callback = callback
+    const.CONF_PASSWORD = "password"
+    const.CONF_URL = "url"
+    const.CONF_USERNAME = "username"
+    const.EVENT_HOMEASSISTANT_START = "homeassistant_start"
+
+
+def _register_helpers_stubs(modules: dict[str, Any]) -> None:
+    helpers_update = modules["homeassistant.helpers.update_coordinator"]
+    exceptions = modules["homeassistant.exceptions"]
+
+    class CoordinatorEntity:  # minimal stub for imports
+        def __init__(self, coordinator: object) -> None:
+            self.coordinator = coordinator
+
+        @classmethod
+        def __class_getitem__(cls, _item: object):
+            return cls
+
     class DataUpdateCoordinator:  # minimal stub for imports
         def __init__(self, *args: object, **kwargs: object) -> None:
             self.hass = args[0] if args else None
@@ -117,6 +152,42 @@ def _install_homeassistant_stubs() -> None:
     class UpdateFailed(Exception):
         pass
 
+    helpers_update.DataUpdateCoordinator = DataUpdateCoordinator
+    helpers_update.UpdateFailed = UpdateFailed
+    helpers_update.CoordinatorEntity = CoordinatorEntity
+    exceptions.HomeAssistantError = Exception
+
+
+def _register_registry_stubs(modules: dict[str, Any]) -> None:
+    device_registry = modules["homeassistant.helpers.device_registry"]
+    entity_registry = modules["homeassistant.helpers.entity_registry"]
+
+    class DeviceEntryType:  # minimal stub for imports
+        SERVICE = "service"
+
+    class DeviceInfo(dict[str, object]):  # minimal stub for imports
+        def __init__(self, **kwargs: object) -> None:
+            super().__init__(kwargs)
+
+    device_registry.CONNECTION_NETWORK_MAC = "mac"
+    device_registry.async_get = _async_get_stub
+    device_registry.format_mac = _format_mac
+    device_registry.DeviceEntryType = DeviceEntryType
+    device_registry.DeviceInfo = DeviceInfo
+    entity_registry.async_get = _async_get_stub
+
+
+def _register_components_stubs(modules: dict[str, Any]) -> None:
+    components_http = modules["homeassistant.components.http"]
+    components_diagnostics = modules["homeassistant.components.diagnostics"]
+    components_sensor = modules["homeassistant.components.sensor"]
+
+    def async_redact_data(data: dict[str, object], _keys: set[str]) -> dict[str, object]:
+        return dict(data)
+
+    class SensorEntity:  # minimal stub for imports
+        pass
+
     class HomeAssistantView:  # minimal stub for imports
         url = ""
         name = ""
@@ -126,6 +197,15 @@ def _install_homeassistant_stubs() -> None:
         url_path: str
         path: str
         cache_headers: bool
+
+    components_http.HomeAssistantView = HomeAssistantView
+    components_http.StaticPathConfig = StaticPathConfig
+    components_diagnostics.async_redact_data = async_redact_data
+    components_sensor.SensorEntity = SensorEntity
+
+
+def _register_selector_stubs(modules: dict[str, Any]) -> None:
+    selector = modules["homeassistant.helpers.selector"]
 
     class BooleanSelector:  # minimal stub for imports
         def __init__(self) -> None:
@@ -167,40 +247,22 @@ def _install_homeassistant_stubs() -> None:
         def __init__(self, *_args: object, **_kwargs: object) -> None:
             pass
 
-    config_entries.ConfigEntry = ConfigEntry
-    config_entries.ConfigFlow = ConfigFlow
-    config_entries.OptionsFlow = OptionsFlow
-    core.HomeAssistant = HomeAssistant
-    core.ServiceCall = ServiceCall
-    core.callback = callback
-    const.CONF_PASSWORD = "password"
-    const.CONF_URL = "url"
-    const.CONF_USERNAME = "username"
-    const.EVENT_HOMEASSISTANT_START = "homeassistant_start"
-    helpers_update.DataUpdateCoordinator = DataUpdateCoordinator
-    helpers_update.UpdateFailed = UpdateFailed
-    helpers_update.CoordinatorEntity = CoordinatorEntity
-    exceptions.HomeAssistantError = Exception
+    selector.BooleanSelector = BooleanSelector
+    selector.SelectSelector = SelectSelector
+    selector.SelectSelectorConfig = SelectSelectorConfig
+    selector.SelectOptionDict = SelectOptionDict
+    selector.SelectSelectorMode = SelectSelectorMode
+    selector.NumberSelector = NumberSelector
+    selector.NumberSelectorConfig = NumberSelectorConfig
+    selector.NumberSelectorMode = NumberSelectorMode
+    selector.TextSelector = TextSelector
+    selector.TextSelectorConfig = TextSelectorConfig
+    selector.TextSelectorType = TextSelectorType
 
-    class DeviceEntryType:  # minimal stub for imports
-        SERVICE = "service"
 
-    class DeviceInfo(dict[str, object]):  # minimal stub for imports
-        def __init__(self, **kwargs: object) -> None:
-            super().__init__(kwargs)
+def _register_websocket_stubs(modules: dict[str, Any]) -> None:
+    components_websocket_api = modules["homeassistant.components.websocket_api"]
 
-    device_registry.CONNECTION_NETWORK_MAC = "mac"
-    device_registry.async_get = _async_get_stub
-    device_registry.format_mac = _format_mac
-    device_registry.DeviceEntryType = DeviceEntryType
-    device_registry.DeviceInfo = DeviceInfo
-    entity_registry.async_get = _async_get_stub
-    components_http.HomeAssistantView = HomeAssistantView
-    components_http.StaticPathConfig = StaticPathConfig
-    components_diagnostics.async_redact_data = async_redact_data
-    components_sensor.SensorEntity = SensorEntity
-
-    # WebSocket API stubs
     def websocket_command(_schema: dict[str, object]):
         def decorator(func):
             return func
@@ -231,33 +293,24 @@ def _install_homeassistant_stubs() -> None:
     components_websocket_api.async_register_command = async_register_command
     components_websocket_api.event_message = event_message
     components_websocket_api.ActiveConnection = ActiveConnection
-    selector.BooleanSelector = BooleanSelector
-    selector.SelectSelector = SelectSelector
-    selector.SelectSelectorConfig = SelectSelectorConfig
-    selector.SelectOptionDict = SelectOptionDict
-    selector.SelectSelectorMode = SelectSelectorMode
-    selector.NumberSelector = NumberSelector
-    selector.NumberSelectorConfig = NumberSelectorConfig
-    selector.NumberSelectorMode = NumberSelectorMode
-    selector.TextSelector = TextSelector
-    selector.TextSelectorConfig = TextSelectorConfig
-    selector.TextSelectorType = TextSelectorType
 
-    sys.modules.setdefault("homeassistant", homeassistant)
-    sys.modules.setdefault("homeassistant.components", components)
-    sys.modules.setdefault("homeassistant.components.http", components_http)
-    sys.modules.setdefault("homeassistant.components.diagnostics", components_diagnostics)
-    sys.modules.setdefault("homeassistant.components.sensor", components_sensor)
-    sys.modules.setdefault("homeassistant.components.websocket_api", components_websocket_api)
-    sys.modules.setdefault("homeassistant.config_entries", config_entries)
-    sys.modules.setdefault("homeassistant.core", core)
-    sys.modules.setdefault("homeassistant.const", const)
-    sys.modules.setdefault("homeassistant.helpers", helpers)
-    sys.modules.setdefault("homeassistant.helpers.selector", selector)
-    sys.modules.setdefault("homeassistant.helpers.device_registry", device_registry)
-    sys.modules.setdefault("homeassistant.helpers.entity_registry", entity_registry)
-    sys.modules.setdefault("homeassistant.helpers.update_coordinator", helpers_update)
-    sys.modules.setdefault("homeassistant.exceptions", exceptions)
+
+def _register_modules(modules: dict[str, Any]) -> None:
+    for name, module in modules.items():
+        sys.modules.setdefault(name, module)
+
+
+def _install_homeassistant_stubs() -> None:
+    modules = _create_homeassistant_modules()
+    modules["homeassistant"].__path__ = []
+    _register_config_entry_stubs(modules)
+    _register_core_stubs(modules)
+    _register_helpers_stubs(modules)
+    _register_registry_stubs(modules)
+    _register_components_stubs(modules)
+    _register_selector_stubs(modules)
+    _register_websocket_stubs(modules)
+    _register_modules(modules)
 
 
 def _install_aiohttp_stubs() -> None:

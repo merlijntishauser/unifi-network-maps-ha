@@ -281,24 +281,12 @@ function extractPortInfo(label: string | null | undefined, isLeft: boolean): str
 }
 
 function renderStatsTab(context: PanelContext, name: string, helpers: PanelHelpers): string {
-  const edges = context.payload?.edges ?? [];
-  const nodeEdges = edges.filter((edge) => edge.left === name || edge.right === name);
-  const mac = context.payload?.client_macs?.[name] ?? context.payload?.device_macs?.[name] ?? null;
-  const ip =
-    context.payload?.client_ips?.[name] ??
-    context.payload?.device_ips?.[name] ??
-    context.payload?.related_entities?.[name]?.find((e) => e.ip)?.ip ??
-    null;
-  const status = context.payload?.node_status?.[name];
-  const vlanInfo = getNodeVlanInfo(name, context.payload);
-  const nodeType = context.payload?.node_types?.[name];
-  const apWirelessClients = context.payload?.ap_client_counts?.[name];
-
+  const data = getStatsTabData(context, name);
   return `
-    ${renderStatsLiveStatus(status, helpers)}
-    ${renderStatsConnectionSection(nodeEdges, nodeType, apWirelessClients, helpers)}
-    ${renderStatsNetworkInfo(vlanInfo, helpers)}
-    ${renderStatsDeviceInfo(mac, ip, helpers)}
+    ${renderStatsLiveStatus(data.status, helpers)}
+    ${renderStatsConnectionSection(data.nodeEdges, data.nodeType, data.apWirelessClients, helpers)}
+    ${renderStatsNetworkInfo(data.vlanInfo, helpers)}
+    ${renderStatsDeviceInfo(data.mac, data.ip, helpers)}
   `;
 }
 
@@ -417,80 +405,161 @@ function renderStatsDeviceInfo(
 }
 
 function renderActionsTab(context: PanelContext, name: string, helpers: PanelHelpers): string {
-  const entityId =
-    context.payload?.node_entities?.[name] ??
-    context.payload?.client_entities?.[name] ??
-    context.payload?.device_entities?.[name];
-  const mac = context.payload?.client_macs?.[name] ?? context.payload?.device_macs?.[name] ?? null;
-  const ip =
-    context.payload?.client_ips?.[name] ??
-    context.payload?.device_ips?.[name] ??
-    context.payload?.related_entities?.[name]?.find((e) => e.ip)?.ip ??
-    null;
-  const nodeType = context.payload?.node_types?.[name] ?? "unknown";
-  const hasPortInfo = nodeType === "switch" || nodeType === "gateway";
-  const safeEntityId = entityId ? helpers.escapeHtml(entityId) : "";
-  const safeMac = mac ? helpers.escapeHtml(mac) : "";
-  const safeIp = ip ? helpers.escapeHtml(ip) : "";
-  const safeName = helpers.escapeHtml(name);
-
+  const data = getActionsTabData(context, name, helpers);
+  const actionItems = buildActionItems(data, helpers);
   return `
     <div class="panel-section">
       <div class="panel-section__title">${helpers.localize("panel.actions.title")}</div>
       <div class="actions-list">
-        ${
-          entityId
-            ? `
-            <button type="button" class="action-button" data-entity-id="${safeEntityId}">
-              <span class="action-button__icon">${helpers.getIcon("action-details")}</span>
-              <span class="action-button__text">${helpers.localize("panel.actions.view_entity")}</span>
-            </button>
-          `
-            : `<div class="panel-empty__text">${helpers.localize("panel.actions.no_entity")}</div>`
-        }
-        ${
-          hasPortInfo
-            ? `
-            <button type="button" class="action-button" data-action="view-ports" data-node-name="${safeName}">
-              <span class="action-button__icon">${helpers.getIcon("action-ports")}</span>
-              <span class="action-button__text">${helpers.localize("panel.actions.view_ports")}</span>
-            </button>
-          `
-            : ""
-        }
-        ${
-          mac
-            ? `
-            <button type="button" class="action-button" data-action="copy" data-copy-value="${safeMac}">
-              <span class="action-button__icon">${helpers.getIcon("action-copy")}</span>
-              <span class="action-button__text">${helpers.localize("panel.actions.copy_mac")}</span>
-            </button>
-          `
-            : ""
-        }
-        ${
-          ip
-            ? `
-            <button type="button" class="action-button" data-action="copy" data-copy-value="${safeIp}">
-              <span class="action-button__icon">${helpers.getIcon("action-copy")}</span>
-              <span class="action-button__text">${helpers.localize("panel.actions.copy_ip")}</span>
-            </button>
-          `
-            : ""
-        }
+        ${actionItems.join("")}
       </div>
     </div>
-    ${
-      entityId
-        ? `
-      <div class="panel-section">
-        <div class="panel-section__title">${helpers.localize("panel.actions.entity")}</div>
-        <code class="entity-id">${safeEntityId}</code>
-      </div>
-    `
-        : ""
-    }
+    ${renderEntityIdSection(data, helpers)}
   `;
+}
+
+type StatsTabData = {
+  nodeEdges: Array<{ wireless?: boolean | null; poe?: boolean | null }>;
+  mac: string | null;
+  ip: string | null;
+  status: NodeStatus | undefined;
+  vlanInfo: VlanInfo | null;
+  nodeType: string | undefined;
+  apWirelessClients: number | undefined;
+};
+
+function getStatsTabData(context: PanelContext, name: string): StatsTabData {
+  const edges = context.payload?.edges ?? [];
+  return {
+    nodeEdges: edges.filter((edge) => edge.left === name || edge.right === name),
+    mac: getNodeMac(context.payload, name),
+    ip: getNodeIp(context.payload, name),
+    status: context.payload?.node_status?.[name],
+    vlanInfo: getNodeVlanInfo(name, context.payload),
+    nodeType: getNodeType(context.payload, name),
+    apWirelessClients: context.payload?.ap_client_counts?.[name],
+  };
+}
+
+type ActionsTabData = {
+  entityId: string | null;
+  hasPortInfo: boolean;
+  safeEntityId: string;
+  safeMac: string;
+  safeIp: string;
+  safeName: string;
+};
+
+function getActionsTabData(
+  context: PanelContext,
+  name: string,
+  helpers: PanelHelpers,
+): ActionsTabData {
+  const entityId = getNodeEntityId(context.payload, name);
+  const mac = getNodeMac(context.payload, name);
+  const ip = getNodeIp(context.payload, name);
+  const nodeType = getNodeType(context.payload, name);
+  return {
+    entityId,
+    hasPortInfo: nodeType === "switch" || nodeType === "gateway",
+    safeEntityId: entityId ? helpers.escapeHtml(entityId) : "",
+    safeMac: mac ? helpers.escapeHtml(mac) : "",
+    safeIp: ip ? helpers.escapeHtml(ip) : "",
+    safeName: helpers.escapeHtml(name),
+  };
+}
+
+function buildActionItems(data: ActionsTabData, helpers: PanelHelpers): string[] {
+  const items: string[] = [];
+  pushIf(items, renderEntityAction(data, helpers));
+  pushIf(items, renderPortsAction(data, helpers));
+  pushIf(items, renderCopyAction("copy_mac", data.safeMac, helpers));
+  pushIf(items, renderCopyAction("copy_ip", data.safeIp, helpers));
+  return items;
+}
+
+function renderEntityAction(data: ActionsTabData, helpers: PanelHelpers): string {
+  if (!data.entityId) {
+    return `<div class="panel-empty__text">${helpers.localize("panel.actions.no_entity")}</div>`;
+  }
+  return `
+    <button type="button" class="action-button" data-entity-id="${data.safeEntityId}">
+      <span class="action-button__icon">${helpers.getIcon("action-details")}</span>
+      <span class="action-button__text">${helpers.localize("panel.actions.view_entity")}</span>
+    </button>
+  `;
+}
+
+function renderPortsAction(data: ActionsTabData, helpers: PanelHelpers): string | null {
+  if (!data.hasPortInfo) {
+    return null;
+  }
+  return `
+    <button type="button" class="action-button" data-action="view-ports" data-node-name="${data.safeName}">
+      <span class="action-button__icon">${helpers.getIcon("action-ports")}</span>
+      <span class="action-button__text">${helpers.localize("panel.actions.view_ports")}</span>
+    </button>
+  `;
+}
+
+function renderCopyAction(
+  labelKey: "copy_mac" | "copy_ip",
+  value: string,
+  helpers: PanelHelpers,
+): string | null {
+  if (!value) {
+    return null;
+  }
+  return `
+    <button type="button" class="action-button" data-action="copy" data-copy-value="${value}">
+      <span class="action-button__icon">${helpers.getIcon("action-copy")}</span>
+      <span class="action-button__text">${helpers.localize(`panel.actions.${labelKey}`)}</span>
+    </button>
+  `;
+}
+
+function renderEntityIdSection(data: ActionsTabData, helpers: PanelHelpers): string {
+  if (!data.entityId) {
+    return "";
+  }
+  return `
+    <div class="panel-section">
+      <div class="panel-section__title">${helpers.localize("panel.actions.entity")}</div>
+      <code class="entity-id">${data.safeEntityId}</code>
+    </div>
+  `;
+}
+
+function pushIf(items: string[], value: string | null): void {
+  if (value) {
+    items.push(value);
+  }
+}
+
+function getNodeType(payload: PanelContext["payload"], name: string): string {
+  return payload?.node_types?.[name] ?? "unknown";
+}
+
+function getNodeMac(payload: PanelContext["payload"], name: string): string | null {
+  return payload?.client_macs?.[name] ?? payload?.device_macs?.[name] ?? null;
+}
+
+function getNodeIp(payload: PanelContext["payload"], name: string): string | null {
+  return (
+    payload?.client_ips?.[name] ??
+    payload?.device_ips?.[name] ??
+    payload?.related_entities?.[name]?.find((e) => e.ip)?.ip ??
+    null
+  );
+}
+
+function getNodeEntityId(payload: PanelContext["payload"], name: string): string | null {
+  return (
+    payload?.node_entities?.[name] ??
+    payload?.client_entities?.[name] ??
+    payload?.device_entities?.[name] ??
+    null
+  );
 }
 
 function renderOverviewStatsGrid(

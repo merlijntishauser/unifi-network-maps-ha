@@ -1338,30 +1338,19 @@ function inferNodeName(target) {
   if (!target) {
     return null;
   }
-  const node = target.closest("[data-node-id]");
-  if (node?.getAttribute("data-node-id")) {
-    return node.getAttribute("data-node-id")?.trim() ?? null;
-  }
-  const labelled = target.closest("[aria-label]");
-  if (labelled?.getAttribute("aria-label")) {
-    return labelled.getAttribute("aria-label")?.trim() ?? null;
-  }
-  const textNode = target.closest("text");
-  if (textNode?.textContent) {
-    return textNode.textContent.trim();
-  }
-  const group = target.closest("g");
-  const title = group?.querySelector("title");
-  if (title?.textContent) {
-    return title.textContent.trim();
-  }
-  const groupText = group?.querySelector("text");
-  if (groupText?.textContent) {
-    return groupText.textContent.trim();
-  }
-  const idHolder = target.closest("[id]");
-  if (idHolder?.getAttribute("id")) {
-    return idHolder.getAttribute("id")?.trim() ?? null;
+  const resolvers = [
+    resolveFromDataNodeId,
+    resolveFromAriaLabel,
+    resolveFromText,
+    resolveFromGroupTitle,
+    resolveFromGroupText,
+    resolveFromElementId
+  ];
+  for (const resolver of resolvers) {
+    const value = resolver(target);
+    if (value) {
+      return value;
+    }
   }
   return null;
 }
@@ -1452,6 +1441,32 @@ function findByTitleElement(svg3, nodeName) {
     }
   }
   return null;
+}
+function resolveFromDataNodeId(target) {
+  const node = target.closest("[data-node-id]");
+  return node?.getAttribute("data-node-id")?.trim() ?? null;
+}
+function resolveFromAriaLabel(target) {
+  const labelled = target.closest("[aria-label]");
+  return labelled?.getAttribute("aria-label")?.trim() ?? null;
+}
+function resolveFromText(target) {
+  const textNode = target.closest("text");
+  return textNode?.textContent?.trim() ?? null;
+}
+function resolveFromGroupTitle(target) {
+  const group = target.closest("g");
+  const title = group?.querySelector("title");
+  return title?.textContent?.trim() ?? null;
+}
+function resolveFromGroupText(target) {
+  const group = target.closest("g");
+  const groupText = group?.querySelector("text");
+  return groupText?.textContent?.trim() ?? null;
+}
+function resolveFromElementId(target) {
+  const idHolder = target.closest("[id]");
+  return idHolder?.getAttribute("id")?.trim() ?? null;
 }
 
 // src/card/ui/icons.ts
@@ -1606,47 +1621,13 @@ function renderEntityModal(context) {
   const status = context.payload?.node_status?.[context.nodeName];
   const relatedEntities = context.payload?.related_entities?.[context.nodeName] ?? [];
   const typeIcon = context.getNodeTypeIcon(nodeType);
-  const infoRows = [];
-  if (mac) {
-    infoRows.push(`
-      <div class="entity-modal__info-row">
-        <span class="entity-modal__info-label">${context.localize("entity_modal.mac")}</span>
-        <span class="entity-modal__info-value">${escapeHtml(mac)}</span>
-      </div>
-    `);
-  }
-  const ipEntity = relatedEntities.find((entity) => entity.ip);
-  if (ipEntity?.ip) {
-    infoRows.push(`
-      <div class="entity-modal__info-row">
-        <span class="entity-modal__info-label">${context.localize("entity_modal.ip")}</span>
-        <span class="entity-modal__info-value">${escapeHtml(ipEntity.ip)}</span>
-      </div>
-    `);
-  }
-  if (status?.state) {
-    const stateDisplay = status.state === "online" ? context.localize("entity_modal.status_online") : status.state === "offline" ? context.localize("entity_modal.status_offline") : context.localize("entity_modal.status_unknown");
-    infoRows.push(`
-      <div class="entity-modal__info-row">
-        <span class="entity-modal__info-label">${context.localize("entity_modal.status")}</span>
-        <span class="entity-modal__info-value">${stateDisplay}</span>
-      </div>
-    `);
-  }
-  if (status?.last_changed) {
-    infoRows.push(`
-      <div class="entity-modal__info-row">
-        <span class="entity-modal__info-label">${context.localize("entity_modal.last_changed")}</span>
-        <span class="entity-modal__info-value">${context.formatLastChanged(status.last_changed)}</span>
-      </div>
-    `);
-  }
-  infoRows.push(`
-    <div class="entity-modal__info-row">
-      <span class="entity-modal__info-label">${context.localize("entity_modal.device_type")}</span>
-      <span class="entity-modal__info-value">${escapeHtml(nodeType)}</span>
-    </div>
-  `);
+  const infoRows = buildEntityInfoRows({
+    mac,
+    status,
+    nodeType,
+    relatedEntities,
+    context
+  });
   const entityItems = relatedEntities.map((entity) => renderEntityItem(entity, context.theme)).join("");
   return `
     <div class="entity-modal-overlay" data-modal-overlay data-theme="${escapeHtml(context.theme)}">
@@ -1665,19 +1646,7 @@ function renderEntityModal(context) {
               ${infoRows.join("")}
             </div>
           </div>
-          ${relatedEntities.length > 0 ? `
-            <div class="entity-modal__section">
-              <div class="entity-modal__section-title">${context.localize("entity_modal.related_entities_count", { count: relatedEntities.length })}</div>
-              <div class="entity-modal__entity-list">
-                ${entityItems}
-              </div>
-            </div>
-          ` : `
-            <div class="entity-modal__section">
-              <div class="entity-modal__section-title">${context.localize("entity_modal.related_entities")}</div>
-              <div class="panel-empty__text">${context.localize("entity_modal.no_entities")}</div>
-            </div>
-          `}
+          ${renderRelatedEntitiesSection(relatedEntities, entityItems, context)}
         </div>
       </div>
     </div>
@@ -1712,6 +1681,101 @@ function getStateBadgeClass(state) {
     return `entity-modal__state-badge--${state}`;
   }
   return "entity-modal__state-badge--default";
+}
+function buildEntityInfoRows(input) {
+  const { mac, status, nodeType, relatedEntities, context } = input;
+  const infoRows = [];
+  pushIf(infoRows, renderMacRow(mac, context));
+  pushIf(infoRows, renderIpRow(relatedEntities, context));
+  pushIf(infoRows, renderStatusRow(status, context));
+  pushIf(infoRows, renderLastChangedRow(status, context));
+  infoRows.push(renderDeviceTypeRow(nodeType, context));
+  return infoRows;
+}
+function renderMacRow(mac, context) {
+  if (!mac) {
+    return null;
+  }
+  return `
+    <div class="entity-modal__info-row">
+      <span class="entity-modal__info-label">${context.localize("entity_modal.mac")}</span>
+      <span class="entity-modal__info-value">${escapeHtml(mac)}</span>
+    </div>
+  `;
+}
+function renderIpRow(relatedEntities, context) {
+  const ipEntity = relatedEntities.find((entity) => entity.ip);
+  if (!ipEntity?.ip) {
+    return null;
+  }
+  return `
+    <div class="entity-modal__info-row">
+      <span class="entity-modal__info-label">${context.localize("entity_modal.ip")}</span>
+      <span class="entity-modal__info-value">${escapeHtml(ipEntity.ip)}</span>
+    </div>
+  `;
+}
+function renderStatusRow(status, context) {
+  if (!status?.state) {
+    return null;
+  }
+  return `
+    <div class="entity-modal__info-row">
+      <span class="entity-modal__info-label">${context.localize("entity_modal.status")}</span>
+      <span class="entity-modal__info-value">${getStatusLabel(status.state, context)}</span>
+    </div>
+  `;
+}
+function renderLastChangedRow(status, context) {
+  if (!status?.last_changed) {
+    return null;
+  }
+  return `
+    <div class="entity-modal__info-row">
+      <span class="entity-modal__info-label">${context.localize("entity_modal.last_changed")}</span>
+      <span class="entity-modal__info-value">${context.formatLastChanged(status.last_changed)}</span>
+    </div>
+  `;
+}
+function renderDeviceTypeRow(nodeType, context) {
+  return `
+    <div class="entity-modal__info-row">
+      <span class="entity-modal__info-label">${context.localize("entity_modal.device_type")}</span>
+      <span class="entity-modal__info-value">${escapeHtml(nodeType)}</span>
+    </div>
+  `;
+}
+function getStatusLabel(state, context) {
+  if (state === "online") {
+    return context.localize("entity_modal.status_online");
+  }
+  if (state === "offline") {
+    return context.localize("entity_modal.status_offline");
+  }
+  return context.localize("entity_modal.status_unknown");
+}
+function renderRelatedEntitiesSection(relatedEntities, entityItems, context) {
+  if (!relatedEntities.length) {
+    return `
+      <div class="entity-modal__section">
+        <div class="entity-modal__section-title">${context.localize("entity_modal.related_entities")}</div>
+        <div class="panel-empty__text">${context.localize("entity_modal.no_entities")}</div>
+      </div>
+    `;
+  }
+  return `
+    <div class="entity-modal__section">
+      <div class="entity-modal__section-title">${context.localize("entity_modal.related_entities_count", { count: relatedEntities.length })}</div>
+      <div class="entity-modal__entity-list">
+        ${entityItems}
+      </div>
+    </div>
+  `;
+}
+function pushIf(items, value) {
+  if (value) {
+    items.push(value);
+  }
 }
 
 // src/card/interaction/entity-modal-state.ts
@@ -2024,7 +2088,7 @@ function renderOverviewTab(context, name, helpers) {
           </div>
         `
   ).join("") : `<div class="panel-empty__text">${helpers.localize("panel.no_connections")}</div>`;
-  const relatedEntitiesSection = renderRelatedEntitiesSection(context, name, helpers);
+  const relatedEntitiesSection = renderRelatedEntitiesSection2(context, name, helpers);
   const vlanSection = renderVlanSection(context, name, helpers);
   return `
     ${vlanSection}
@@ -2056,7 +2120,7 @@ function renderVlanSection(context, name, helpers) {
     </div>
   `;
 }
-function renderRelatedEntitiesSection(context, name, helpers) {
+function renderRelatedEntitiesSection2(context, name, helpers) {
   const relatedEntities = context.payload?.related_entities?.[name] ?? [];
   if (relatedEntities.length === 0) {
     return "";
@@ -2116,19 +2180,12 @@ function extractPortInfo(label, isLeft) {
   return portMatch ? portMatch[0] : label;
 }
 function renderStatsTab(context, name, helpers) {
-  const edges = context.payload?.edges ?? [];
-  const nodeEdges = edges.filter((edge) => edge.left === name || edge.right === name);
-  const mac = context.payload?.client_macs?.[name] ?? context.payload?.device_macs?.[name] ?? null;
-  const ip = context.payload?.client_ips?.[name] ?? context.payload?.device_ips?.[name] ?? context.payload?.related_entities?.[name]?.find((e) => e.ip)?.ip ?? null;
-  const status = context.payload?.node_status?.[name];
-  const vlanInfo = getNodeVlanInfo(name, context.payload);
-  const nodeType = context.payload?.node_types?.[name];
-  const apWirelessClients = context.payload?.ap_client_counts?.[name];
+  const data = getStatsTabData(context, name);
   return `
-    ${renderStatsLiveStatus(status, helpers)}
-    ${renderStatsConnectionSection(nodeEdges, nodeType, apWirelessClients, helpers)}
-    ${renderStatsNetworkInfo(vlanInfo, helpers)}
-    ${renderStatsDeviceInfo(mac, ip, helpers)}
+    ${renderStatsLiveStatus(data.status, helpers)}
+    ${renderStatsConnectionSection(data.nodeEdges, data.nodeType, data.apWirelessClients, helpers)}
+    ${renderStatsNetworkInfo(data.vlanInfo, helpers)}
+    ${renderStatsDeviceInfo(data.mac, data.ip, helpers)}
   `;
 }
 function renderStatsLiveStatus(status, helpers) {
@@ -2220,52 +2277,112 @@ function renderStatsDeviceInfo(mac, ip, helpers) {
   `;
 }
 function renderActionsTab(context, name, helpers) {
-  const entityId = context.payload?.node_entities?.[name] ?? context.payload?.client_entities?.[name] ?? context.payload?.device_entities?.[name];
-  const mac = context.payload?.client_macs?.[name] ?? context.payload?.device_macs?.[name] ?? null;
-  const ip = context.payload?.client_ips?.[name] ?? context.payload?.device_ips?.[name] ?? context.payload?.related_entities?.[name]?.find((e) => e.ip)?.ip ?? null;
-  const nodeType = context.payload?.node_types?.[name] ?? "unknown";
-  const hasPortInfo = nodeType === "switch" || nodeType === "gateway";
-  const safeEntityId = entityId ? helpers.escapeHtml(entityId) : "";
-  const safeMac = mac ? helpers.escapeHtml(mac) : "";
-  const safeIp = ip ? helpers.escapeHtml(ip) : "";
-  const safeName = helpers.escapeHtml(name);
+  const data = getActionsTabData(context, name, helpers);
+  const actionItems = buildActionItems(data, helpers);
   return `
     <div class="panel-section">
       <div class="panel-section__title">${helpers.localize("panel.actions.title")}</div>
       <div class="actions-list">
-        ${entityId ? `
-            <button type="button" class="action-button" data-entity-id="${safeEntityId}">
-              <span class="action-button__icon">${helpers.getIcon("action-details")}</span>
-              <span class="action-button__text">${helpers.localize("panel.actions.view_entity")}</span>
-            </button>
-          ` : `<div class="panel-empty__text">${helpers.localize("panel.actions.no_entity")}</div>`}
-        ${hasPortInfo ? `
-            <button type="button" class="action-button" data-action="view-ports" data-node-name="${safeName}">
-              <span class="action-button__icon">${helpers.getIcon("action-ports")}</span>
-              <span class="action-button__text">${helpers.localize("panel.actions.view_ports")}</span>
-            </button>
-          ` : ""}
-        ${mac ? `
-            <button type="button" class="action-button" data-action="copy" data-copy-value="${safeMac}">
-              <span class="action-button__icon">${helpers.getIcon("action-copy")}</span>
-              <span class="action-button__text">${helpers.localize("panel.actions.copy_mac")}</span>
-            </button>
-          ` : ""}
-        ${ip ? `
-            <button type="button" class="action-button" data-action="copy" data-copy-value="${safeIp}">
-              <span class="action-button__icon">${helpers.getIcon("action-copy")}</span>
-              <span class="action-button__text">${helpers.localize("panel.actions.copy_ip")}</span>
-            </button>
-          ` : ""}
+        ${actionItems.join("")}
       </div>
     </div>
-    ${entityId ? `
-      <div class="panel-section">
-        <div class="panel-section__title">${helpers.localize("panel.actions.entity")}</div>
-        <code class="entity-id">${safeEntityId}</code>
-      </div>
-    ` : ""}
+    ${renderEntityIdSection(data, helpers)}
   `;
+}
+function getStatsTabData(context, name) {
+  const edges = context.payload?.edges ?? [];
+  return {
+    nodeEdges: edges.filter((edge) => edge.left === name || edge.right === name),
+    mac: getNodeMac(context.payload, name),
+    ip: getNodeIp(context.payload, name),
+    status: context.payload?.node_status?.[name],
+    vlanInfo: getNodeVlanInfo(name, context.payload),
+    nodeType: getNodeType(context.payload, name),
+    apWirelessClients: context.payload?.ap_client_counts?.[name]
+  };
+}
+function getActionsTabData(context, name, helpers) {
+  const entityId = getNodeEntityId(context.payload, name);
+  const mac = getNodeMac(context.payload, name);
+  const ip = getNodeIp(context.payload, name);
+  const nodeType = getNodeType(context.payload, name);
+  return {
+    entityId,
+    hasPortInfo: nodeType === "switch" || nodeType === "gateway",
+    safeEntityId: entityId ? helpers.escapeHtml(entityId) : "",
+    safeMac: mac ? helpers.escapeHtml(mac) : "",
+    safeIp: ip ? helpers.escapeHtml(ip) : "",
+    safeName: helpers.escapeHtml(name)
+  };
+}
+function buildActionItems(data, helpers) {
+  const items = [];
+  pushIf2(items, renderEntityAction(data, helpers));
+  pushIf2(items, renderPortsAction(data, helpers));
+  pushIf2(items, renderCopyAction("copy_mac", data.safeMac, helpers));
+  pushIf2(items, renderCopyAction("copy_ip", data.safeIp, helpers));
+  return items;
+}
+function renderEntityAction(data, helpers) {
+  if (!data.entityId) {
+    return `<div class="panel-empty__text">${helpers.localize("panel.actions.no_entity")}</div>`;
+  }
+  return `
+    <button type="button" class="action-button" data-entity-id="${data.safeEntityId}">
+      <span class="action-button__icon">${helpers.getIcon("action-details")}</span>
+      <span class="action-button__text">${helpers.localize("panel.actions.view_entity")}</span>
+    </button>
+  `;
+}
+function renderPortsAction(data, helpers) {
+  if (!data.hasPortInfo) {
+    return null;
+  }
+  return `
+    <button type="button" class="action-button" data-action="view-ports" data-node-name="${data.safeName}">
+      <span class="action-button__icon">${helpers.getIcon("action-ports")}</span>
+      <span class="action-button__text">${helpers.localize("panel.actions.view_ports")}</span>
+    </button>
+  `;
+}
+function renderCopyAction(labelKey, value, helpers) {
+  if (!value) {
+    return null;
+  }
+  return `
+    <button type="button" class="action-button" data-action="copy" data-copy-value="${value}">
+      <span class="action-button__icon">${helpers.getIcon("action-copy")}</span>
+      <span class="action-button__text">${helpers.localize(`panel.actions.${labelKey}`)}</span>
+    </button>
+  `;
+}
+function renderEntityIdSection(data, helpers) {
+  if (!data.entityId) {
+    return "";
+  }
+  return `
+    <div class="panel-section">
+      <div class="panel-section__title">${helpers.localize("panel.actions.entity")}</div>
+      <code class="entity-id">${data.safeEntityId}</code>
+    </div>
+  `;
+}
+function pushIf2(items, value) {
+  if (value) {
+    items.push(value);
+  }
+}
+function getNodeType(payload, name) {
+  return payload?.node_types?.[name] ?? "unknown";
+}
+function getNodeMac(payload, name) {
+  return payload?.client_macs?.[name] ?? payload?.device_macs?.[name] ?? null;
+}
+function getNodeIp(payload, name) {
+  return payload?.client_ips?.[name] ?? payload?.device_ips?.[name] ?? payload?.related_entities?.[name]?.find((e) => e.ip)?.ip ?? null;
+}
+function getNodeEntityId(payload, name) {
+  return payload?.node_entities?.[name] ?? payload?.client_entities?.[name] ?? payload?.device_entities?.[name] ?? null;
 }
 function renderOverviewStatsGrid(nodeCount, edgeCount, helpers) {
   return `
@@ -2363,63 +2480,13 @@ function getNodeVlanInfo(name, payload) {
 
 // src/card/ui/context-menu.ts
 function renderContextMenu(options) {
-  const safeName = escapeHtml(options.nodeName);
-  const nodeType = options.payload?.node_types?.[options.nodeName] ?? "unknown";
-  const typeIcon = options.getNodeTypeIcon(nodeType);
-  const mac = options.payload?.client_macs?.[options.nodeName] ?? options.payload?.device_macs?.[options.nodeName];
-  const entityId = options.payload?.node_entities?.[options.nodeName] ?? options.payload?.client_entities?.[options.nodeName] ?? options.payload?.device_entities?.[options.nodeName];
-  const isDevice = nodeType !== "client";
-  const ip = options.payload?.client_ips?.[options.nodeName] ?? options.payload?.device_ips?.[options.nodeName] ?? options.payload?.related_entities?.[options.nodeName]?.find((entity) => entity.ip)?.ip ?? null;
-  const items = [];
-  if (entityId) {
-    items.push(`
-      <button type="button" class="context-menu__item" data-context-action="details">
-        <span class="context-menu__icon">${options.getIcon("menu-details")}</span>
-        <span>${options.localize("context_menu.view_details")}</span>
-      </button>
-    `);
-  }
-  if (mac) {
-    items.push(`
-      <button type="button" class="context-menu__item" data-context-action="copy-mac" data-mac="${escapeHtml(mac)}">
-        <span class="context-menu__icon">${options.getIcon("menu-copy")}</span>
-        <span>${options.localize("context_menu.copy_mac")}</span>
-      </button>
-    `);
-  }
-  if (ip) {
-    items.push(`
-      <button type="button" class="context-menu__item" data-context-action="copy-ip" data-ip="${escapeHtml(ip)}">
-        <span class="context-menu__icon">${options.getIcon("menu-copy-ip")}</span>
-        <span>${options.localize("context_menu.copy_ip")}</span>
-      </button>
-    `);
-  }
-  const hasPortInfo = nodeType === "switch" || nodeType === "gateway";
-  if (hasPortInfo) {
-    items.push(`
-      <button type="button" class="context-menu__item" data-context-action="view-ports">
-        <span class="context-menu__icon">${options.getIcon("menu-ports")}</span>
-        <span>${options.localize("context_menu.view_ports")}</span>
-      </button>
-    `);
-  }
-  if (items.length > 0) {
-    items.push('<div class="context-menu__divider"></div>');
-  }
-  if (isDevice) {
-    items.push(`
-      <button type="button" class="context-menu__item" data-context-action="restart" ${!entityId ? "disabled" : ""}>
-        <span class="context-menu__icon">${options.getIcon("menu-restart")}</span>
-        <span>${options.localize("context_menu.restart")}</span>
-      </button>
-    `);
-  }
+  const data = buildContextMenuData(options);
+  const items = buildContextMenuItems(data, options);
   return `
-    <div class="context-menu" data-theme="${escapeHtml(options.theme)}" data-context-node="${safeName}">
+    <div class="context-menu" data-theme="${escapeHtml(options.theme)}" data-context-node="${data.safeName}">
       <div class="context-menu__header">
-        <div class="context-menu__title">${typeIcon} ${safeName}</div>
-        <div class="context-menu__type">${escapeHtml(nodeType)}</div>
+        <div class="context-menu__title">${data.typeIcon} ${data.safeName}</div>
+        <div class="context-menu__type">${escapeHtml(data.nodeType)}</div>
       </div>
       ${items.join("")}
     </div>
@@ -2441,6 +2508,106 @@ function parseContextMenuAction(target) {
 }
 function isContextMenuAction(action) {
   return action === "details" || action === "copy-mac" || action === "copy-ip" || action === "restart" || action === "view-ports";
+}
+function buildContextMenuData(options) {
+  const nodeType = getNodeType2(options.payload, options.nodeName);
+  const mac = getNodeMac2(options.payload, options.nodeName);
+  const entityId = getNodeEntityId2(options.payload, options.nodeName);
+  const ip = getNodeIp2(options.payload, options.nodeName);
+  return {
+    safeName: escapeHtml(options.nodeName),
+    nodeType,
+    typeIcon: options.getNodeTypeIcon(nodeType),
+    mac,
+    ip,
+    entityId,
+    isDevice: nodeType !== "client",
+    hasPortInfo: nodeType === "switch" || nodeType === "gateway"
+  };
+}
+function buildContextMenuItems(data, options) {
+  const items = [];
+  pushIf3(items, renderDetailsItem(data, options));
+  pushIf3(items, renderCopyMacItem(data, options));
+  pushIf3(items, renderCopyIpItem(data, options));
+  pushIf3(items, renderPortsItem(data, options));
+  if (items.length > 0) {
+    items.push('<div class="context-menu__divider"></div>');
+  }
+  pushIf3(items, renderRestartItem(data, options));
+  return items;
+}
+function renderDetailsItem(data, options) {
+  if (!data.entityId) {
+    return null;
+  }
+  return `
+    <button type="button" class="context-menu__item" data-context-action="details">
+      <span class="context-menu__icon">${options.getIcon("menu-details")}</span>
+      <span>${options.localize("context_menu.view_details")}</span>
+    </button>
+  `;
+}
+function renderCopyMacItem(data, options) {
+  if (!data.mac) {
+    return null;
+  }
+  return `
+    <button type="button" class="context-menu__item" data-context-action="copy-mac" data-mac="${escapeHtml(data.mac)}">
+      <span class="context-menu__icon">${options.getIcon("menu-copy")}</span>
+      <span>${options.localize("context_menu.copy_mac")}</span>
+    </button>
+  `;
+}
+function renderCopyIpItem(data, options) {
+  if (!data.ip) {
+    return null;
+  }
+  return `
+    <button type="button" class="context-menu__item" data-context-action="copy-ip" data-ip="${escapeHtml(data.ip)}">
+      <span class="context-menu__icon">${options.getIcon("menu-copy-ip")}</span>
+      <span>${options.localize("context_menu.copy_ip")}</span>
+    </button>
+  `;
+}
+function renderPortsItem(data, options) {
+  if (!data.hasPortInfo) {
+    return null;
+  }
+  return `
+    <button type="button" class="context-menu__item" data-context-action="view-ports">
+      <span class="context-menu__icon">${options.getIcon("menu-ports")}</span>
+      <span>${options.localize("context_menu.view_ports")}</span>
+    </button>
+  `;
+}
+function renderRestartItem(data, options) {
+  if (!data.isDevice) {
+    return null;
+  }
+  return `
+    <button type="button" class="context-menu__item" data-context-action="restart" ${!data.entityId ? "disabled" : ""}>
+      <span class="context-menu__icon">${options.getIcon("menu-restart")}</span>
+      <span>${options.localize("context_menu.restart")}</span>
+    </button>
+  `;
+}
+function pushIf3(items, value) {
+  if (value) {
+    items.push(value);
+  }
+}
+function getNodeType2(payload, nodeName) {
+  return payload?.node_types?.[nodeName] ?? "unknown";
+}
+function getNodeMac2(payload, nodeName) {
+  return payload?.client_macs?.[nodeName] ?? payload?.device_macs?.[nodeName] ?? null;
+}
+function getNodeEntityId2(payload, nodeName) {
+  return payload?.node_entities?.[nodeName] ?? payload?.client_entities?.[nodeName] ?? payload?.device_entities?.[nodeName] ?? null;
+}
+function getNodeIp2(payload, nodeName) {
+  return payload?.client_ips?.[nodeName] ?? payload?.device_ips?.[nodeName] ?? payload?.related_entities?.[nodeName]?.find((entity) => entity.ip)?.ip ?? null;
 }
 
 // src/card/data/auth.ts
@@ -5108,6 +5275,8 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._filterState = createFilterState();
     this._wsSubscribed = false;
     this._wsSubscriptionVersion = 0;
+    this._svgRequestId = 0;
+    this._payloadRequestId = 0;
   }
   static getLayoutOptions() {
     return { grid_columns: 4, grid_rows: 3, grid_min_columns: 2, grid_min_rows: 2 };
@@ -5322,6 +5491,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     }
     this._svgAbortController?.abort();
     this._svgAbortController = new AbortController();
+    const requestId = ++this._svgRequestId;
     const currentUrl = this._config.svg_url;
     this._loading = true;
     const isRefresh = !!this._svgContent;
@@ -5336,6 +5506,9 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       currentUrl,
       this._svgAbortController.signal
     );
+    if (requestId !== this._svgRequestId) {
+      return;
+    }
     if ("aborted" in result) {
       return;
     }
@@ -5362,6 +5535,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     }
     this._payloadAbortController?.abort();
     this._payloadAbortController = new AbortController();
+    const requestId = ++this._payloadRequestId;
     const currentUrl = this._config.data_url;
     this._dataLoading = true;
     const isRefresh = !!this._payload;
@@ -5373,6 +5547,9 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       currentUrl,
       this._payloadAbortController.signal
     );
+    if (requestId !== this._payloadRequestId) {
+      return;
+    }
     if ("aborted" in result) {
       return;
     }
