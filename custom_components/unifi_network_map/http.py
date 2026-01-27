@@ -180,15 +180,17 @@ def _build_mac_to_all_entities_index(hass: HomeAssistant) -> dict[str, list[str]
     device_registry = dr.async_get(hass)
     mac_to_entities: dict[str, list[str]] = {}
 
+    entries = list(_iter_unifi_entity_entries(hass, entity_registry))
+
     # First pass: build device_id -> MAC mapping from entities with known MACs
     device_to_mac: dict[str, str] = {}
-    for entry in _iter_unifi_entity_entries(hass, entity_registry):
+    for entry in entries:
         mac = mac_from_entity_entry(hass, entry, device_registry)
         if mac and entry.device_id:
             device_to_mac[entry.device_id] = mac
 
     # Second pass: add ALL entities belonging to devices with known MACs
-    for entry in _iter_unifi_entity_entries(hass, entity_registry):
+    for entry in entries:
         mac = None
         # Try direct MAC lookup first
         mac = mac_from_entity_entry(hass, entry, device_registry)
