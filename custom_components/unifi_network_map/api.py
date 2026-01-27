@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import logging
+import os
 from time import monotonic
 
 from unifi_network_maps.adapters.config import Config
@@ -17,6 +18,7 @@ from .const import DEFAULT_RENDER_CACHE_SECONDS
 SSL_WARNING_MESSAGE = (
     "SSL certificate verification is disabled. This is not recommended for production use."
 )
+DEFAULT_REQUEST_TIMEOUT_SECONDS = 30.0
 
 _ssl_warning_filter_added = False
 _ssl_warning_filter: logging.Filter | None = None
@@ -30,11 +32,13 @@ class UniFiNetworkMapClient:
     site: str
     verify_ssl: bool
     settings: RenderSettings
+    request_timeout_seconds: float | None = None
     _cache_data: UniFiNetworkMapData | None = field(default=None, init=False)
     _cache_time: float | None = field(default=None, init=False)
 
     def fetch_map(self) -> UniFiNetworkMapData:
         _ensure_unifi_ssl_warning_filter(self.verify_ssl)
+        _ensure_unifi_request_timeout(self.request_timeout_seconds)
         cached = self._get_cached_map()
         if cached is not None:
             return cached
@@ -73,6 +77,7 @@ def validate_unifi_credentials(
     verify_ssl: bool,
 ) -> None:
     _ensure_unifi_ssl_warning_filter(verify_ssl)
+    _ensure_unifi_request_timeout(None)
     config = _build_config(base_url, username, password, site, verify_ssl)
     auth_error = _load_unifi_auth_error()
     _assert_unifi_connectivity(config, site, auth_error)
@@ -98,12 +103,20 @@ def _load_unifi_auth_error():
     return UnifiAuthenticationError
 
 
+def _ensure_unifi_request_timeout(timeout_seconds: float | None) -> None:
+    value = DEFAULT_REQUEST_TIMEOUT_SECONDS if timeout_seconds is None else timeout_seconds
+    if value <= 0:
+        os.environ.pop("UNIFI_REQUEST_TIMEOUT_SECONDS", None)
+        return
+    os.environ["UNIFI_REQUEST_TIMEOUT_SECONDS"] = str(value)
+
+
 def _assert_unifi_connectivity(config: Config, site: str, auth_error) -> None:
     try:
         fetch_devices(config, site=site, detailed=False, use_cache=False)
     except auth_error as exc:
         raise InvalidAuth("Authentication failed") from exc
-    except (OSError, RequestException, RuntimeError, ValueError) as exc:
+    except (OSError, RequestException, RuntimeError, TimeoutError, ValueError) as exc:
         raise CannotConnect("Unable to connect") from exc
 
 
@@ -112,7 +125,7 @@ def _render_map_payload(config: Config, settings: RenderSettings) -> UniFiNetwor
         return UniFiNetworkMapRenderer().render(config, settings)
     except _unifi_auth_error() as exc:
         raise _map_auth_error(exc) from exc
-    except (OSError, RequestException, RuntimeError) as exc:
+    except (OSError, RequestException, RuntimeError, TimeoutError) as exc:
         raise CannotConnect("Unable to connect") from exc
 
 

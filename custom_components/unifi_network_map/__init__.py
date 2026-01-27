@@ -161,7 +161,13 @@ def _set_flag(data: dict[str, object], key: str) -> None:
 
 def _create_install_notification(hass: HomeAssistant) -> None:
     """Create a one-time notification about card availability after install."""
-    hass.components.persistent_notification.async_create(
+    persistent_notification = getattr(
+        getattr(hass, "components", None), "persistent_notification", None
+    )
+    if persistent_notification is None:
+        LOGGER.debug("Persistent notification component not available")
+        return
+    persistent_notification.async_create(
         title="UniFi Network Map Installed",
         message=(
             "The UniFi Network Map card has been installed. "

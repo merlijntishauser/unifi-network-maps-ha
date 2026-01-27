@@ -119,7 +119,19 @@ export class UnifiNetworkMapCard extends HTMLElement {
   }
 
   setConfig(config: CardConfig) {
+    const prevEntryId = this._config?.entry_id;
     this._config = normalizeConfig(config);
+    const nextEntryId = this._config?.entry_id;
+    const entryChanged = prevEntryId !== nextEntryId;
+    if (entryChanged) {
+      this._stopWebSocketSubscription();
+      this._stopStatusPolling();
+      this._payload = undefined;
+      this._lastDataUrl = undefined;
+      if (this.isConnected) {
+        void this._startWebSocketSubscription();
+      }
+    }
     this._render();
   }
 
@@ -171,11 +183,20 @@ export class UnifiNetworkMapCard extends HTMLElement {
       return;
     }
 
-    const result = await subscribeMapUpdates(this._hass, this._config.entry_id, (payload) => {
+    const entryId = this._config.entry_id;
+    const subscriptionVersion = ++this._wsSubscriptionVersion;
+    const result = await subscribeMapUpdates(this._hass, entryId, (payload) => {
       this._payload = payload;
       this._lastDataUrl = this._config?.data_url;
       this._render();
     });
+
+    if (subscriptionVersion !== this._wsSubscriptionVersion || entryId !== this._config?.entry_id) {
+      if (result.subscribed) {
+        result.unsubscribe();
+      }
+      return;
+    }
 
     if (result.subscribed) {
       this._wsSubscribed = true;
@@ -188,6 +209,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _stopWebSocketSubscription() {
+    this._wsSubscriptionVersion += 1;
     if (this._wsUnsubscribe) {
       this._wsUnsubscribe();
       this._wsUnsubscribe = undefined;
@@ -224,6 +246,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
   private _filterState: DeviceTypeFilters = createFilterState();
   private _wsUnsubscribe?: UnsubscribeFunc;
   private _wsSubscribed = false;
+  private _wsSubscriptionVersion = 0;
   get _viewTransform() {
     return this._viewportState.viewTransform;
   }

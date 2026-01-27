@@ -24,6 +24,7 @@
           "svg_isometric": "Diseño isométrico",
           "svg_width": "Ancho de SVG (px)",
           "svg_height": "Alto de SVG (px)",
+          "request_timeout_seconds": "Tiempo de espera de solicitud (segundos)",
           "use_cache": "Guardar en caché el mapa renderizado"
         },
         "data_description": {
@@ -34,6 +35,7 @@
           "svg_isometric": "Renderiza una vista con estilo 3D.",
           "svg_width": "Deja en blanco para tamaño automático.",
           "svg_height": "Deja en blanco para tamaño automático.",
+          "request_timeout_seconds": "Interrumpe las llamadas a la API de UniFi después de este número de segundos.",
           "use_cache": "Reutiliza el último renderizado entre actualizaciones."
         }
       }
@@ -56,6 +58,7 @@
           "svg_isometric": "Diseño isométrico",
           "svg_width": "Ancho de SVG (px)",
           "svg_height": "Alto de SVG (px)",
+          "request_timeout_seconds": "Tiempo de espera de solicitud (segundos)",
           "use_cache": "Guardar en caché el mapa renderizado"
         },
         "data_description": {
@@ -66,6 +69,7 @@
           "svg_isometric": "Renderiza una vista con estilo 3D.",
           "svg_width": "Deja en blanco para tamaño automático.",
           "svg_height": "Deja en blanco para tamaño automático.",
+          "request_timeout_seconds": "Interrumpe las llamadas a la API de UniFi después de este número de segundos.",
           "use_cache": "Reutiliza el último renderizado entre actualizaciones."
         }
       }

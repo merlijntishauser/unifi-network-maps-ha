@@ -24,6 +24,7 @@
           "svg_isometric": "Isometrische lay-out",
           "svg_width": "SVG-breedte (px)",
           "svg_height": "SVG-hoogte (px)",
+          "request_timeout_seconds": "Time-out verzoek (seconden)",
           "use_cache": "Gerenderde kaart cachen"
         },
         "data_description": {
@@ -34,6 +35,7 @@
           "svg_isometric": "Render een 3D-achtige weergave.",
           "svg_width": "Laat leeg voor automatisch formaat.",
           "svg_height": "Laat leeg voor automatisch formaat.",
+          "request_timeout_seconds": "Breek UniFi API-aanroepen af na dit aantal seconden.",
           "use_cache": "Hergebruik de laatste render tussen polls."
         }
       }
@@ -56,6 +58,7 @@
           "svg_isometric": "Isometrische lay-out",
           "svg_width": "SVG-breedte (px)",
           "svg_height": "SVG-hoogte (px)",
+          "request_timeout_seconds": "Time-out verzoek (seconden)",
           "use_cache": "Gerenderde kaart cachen"
         },
         "data_description": {
@@ -66,6 +69,7 @@
           "svg_isometric": "Render een 3D-achtige weergave.",
           "svg_width": "Laat leeg voor automatisch formaat.",
           "svg_height": "Laat leeg voor automatisch formaat.",
+          "request_timeout_seconds": "Breek UniFi API-aanroepen af na dit aantal seconden.",
           "use_cache": "Hergebruik de laatste render tussen polls."
         }
       }

@@ -14,6 +14,7 @@ from .const import (
     CONF_INCLUDE_CLIENTS,
     CONF_INCLUDE_PORTS,
     CONF_ONLY_UNIFI,
+    CONF_REQUEST_TIMEOUT_SECONDS,
     CONF_SCAN_INTERVAL,
     CONF_SITE,
     CONF_SVG_HEIGHT,
@@ -25,6 +26,7 @@ from .const import (
     DEFAULT_INCLUDE_CLIENTS,
     DEFAULT_INCLUDE_PORTS,
     DEFAULT_ONLY_UNIFI,
+    DEFAULT_REQUEST_TIMEOUT_SECONDS,
     DEFAULT_SCAN_INTERVAL_MINUTES,
     DEFAULT_SVG_ISOMETRIC,
     DEFAULT_USE_CACHE,
@@ -144,6 +146,9 @@ def _build_client(hass: HomeAssistant, entry: ConfigEntry) -> UniFiNetworkMapCli
         site=data[CONF_SITE],
         verify_ssl=data.get(CONF_VERIFY_SSL, True),
         settings=_build_settings(entry),
+        request_timeout_seconds=entry.options.get(
+            CONF_REQUEST_TIMEOUT_SECONDS, DEFAULT_REQUEST_TIMEOUT_SECONDS
+        ),
     )
 
 

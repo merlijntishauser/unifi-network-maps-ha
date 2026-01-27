@@ -5107,6 +5107,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._portModal = createPortModalController();
     this._filterState = createFilterState();
     this._wsSubscribed = false;
+    this._wsSubscriptionVersion = 0;
   }
   static getLayoutOptions() {
     return { grid_columns: 4, grid_rows: 3, grid_min_columns: 2, grid_min_rows: 2 };
@@ -5125,7 +5126,19 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     return { entry_id: "", theme: "unifi" };
   }
   setConfig(config) {
+    const prevEntryId = this._config?.entry_id;
     this._config = normalizeConfig(config);
+    const nextEntryId = this._config?.entry_id;
+    const entryChanged = prevEntryId !== nextEntryId;
+    if (entryChanged) {
+      this._stopWebSocketSubscription();
+      this._stopStatusPolling();
+      this._payload = void 0;
+      this._lastDataUrl = void 0;
+      if (this.isConnected) {
+        void this._startWebSocketSubscription();
+      }
+    }
     this._render();
   }
   set hass(hass) {
@@ -5165,11 +5178,19 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       this._startStatusPolling();
       return;
     }
-    const result = await subscribeMapUpdates(this._hass, this._config.entry_id, (payload) => {
+    const entryId = this._config.entry_id;
+    const subscriptionVersion = ++this._wsSubscriptionVersion;
+    const result = await subscribeMapUpdates(this._hass, entryId, (payload) => {
       this._payload = payload;
       this._lastDataUrl = this._config?.data_url;
       this._render();
     });
+    if (subscriptionVersion !== this._wsSubscriptionVersion || entryId !== this._config?.entry_id) {
+      if (result.subscribed) {
+        result.unsubscribe();
+      }
+      return;
+    }
     if (result.subscribed) {
       this._wsSubscribed = true;
       this._wsUnsubscribe = result.unsubscribe;
@@ -5180,6 +5201,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     }
   }
   _stopWebSocketSubscription() {
+    this._wsSubscriptionVersion += 1;
     if (this._wsUnsubscribe) {
       this._wsUnsubscribe();
       this._wsUnsubscribe = void 0;

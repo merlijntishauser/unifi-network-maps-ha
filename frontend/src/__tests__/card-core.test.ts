@@ -155,6 +155,50 @@ describe("unifi-network-map card core", () => {
     );
   });
 
+  it("resubscribes websocket when entry_id changes", async () => {
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: () => Promise.resolve("<svg></svg>"),
+      json: () => Promise.resolve({ edges: [], node_types: {} }),
+    });
+    (globalThis as { fetch?: typeof fetch }).fetch = fetchMock;
+
+    const unsubscribeFirst = jest.fn();
+    const unsubscribeSecond = jest.fn();
+    const subscribeMessage = jest
+      .fn()
+      .mockResolvedValueOnce(unsubscribeFirst)
+      .mockResolvedValueOnce(unsubscribeSecond);
+
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    document.body.appendChild(element);
+    element.hass = {
+      auth: { data: { access_token: "token" } },
+      connection: { subscribeMessage },
+    } as ConfigurableCard["hass"] & { connection: { subscribeMessage: typeof subscribeMessage } };
+
+    element.setConfig({ entry_id: "entry-1" });
+    element.connectedCallback?.();
+    await flushPromises();
+
+    element.setConfig({ entry_id: "entry-2" });
+    await flushPromises();
+    await flushPromises();
+
+    expect(subscribeMessage).toHaveBeenCalledWith(
+      expect.any(Function),
+      { type: "unifi_network_map/subscribe", entry_id: "entry-1" },
+      { resubscribe: true },
+    );
+    expect(subscribeMessage).toHaveBeenCalledWith(
+      expect.any(Function),
+      { type: "unifi_network_map/subscribe", entry_id: "entry-2" },
+      { resubscribe: true },
+    );
+    expect(unsubscribeFirst).toHaveBeenCalledTimes(1);
+  });
+
   it("skips payload loading when auth token is missing", async () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     const card = element as unknown as {

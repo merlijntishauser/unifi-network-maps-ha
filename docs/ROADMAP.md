@@ -27,8 +27,6 @@
 
 | Priority | Issue | Impact |
 |----------|-------|--------|
-| Critical | WebSocket subscription memory leak on config change | Long-running cards accumulate stale subscriptions |
-| Critical | No timeout on UniFi API calls (`api.py:36`) | Hung controller can hang HA |
 | High | Backoff calculation bug (`coordinator.py:113`) | Aggressive retry on auth failure |
 | High | Filter bar DOM churn on every update | Performance degrades on large networks |
 | High | Entity registry iterated twice per request | Slow payload responses |
@@ -42,9 +40,9 @@
 Focus: Fix critical bugs and improve performance before adding new features.
 
 ### 1.1 Bug Fixes
-- [ ] Fix Lovelace retry race condition with proper locking
-- [ ] Re-subscribe WebSocket on config change; cleanup on disconnect
-- [ ] Add 30s timeout to UniFi API calls
+- [x] Fix Lovelace retry race condition with proper locking
+- [x] Re-subscribe WebSocket on config change; cleanup on disconnect
+- [x] Add 30s timeout to UniFi API calls
 - [ ] Fix exponential backoff calculation
 - [ ] Use deep copy for payload modifications
 

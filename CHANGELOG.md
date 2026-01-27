@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Possible race condition in Lovelace resource retry
+- Prevent stale WebSocket subscriptions on config changes
+- Add 30s timeout for UniFi API calls to avoid hangs
 
 ## [1.4.9] - 2023-01-26
 ### Added

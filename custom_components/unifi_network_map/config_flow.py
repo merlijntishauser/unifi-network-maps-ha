@@ -14,6 +14,7 @@ from .const import (
     CONF_INCLUDE_CLIENTS,
     CONF_INCLUDE_PORTS,
     CONF_ONLY_UNIFI,
+    CONF_REQUEST_TIMEOUT_SECONDS,
     CONF_SCAN_INTERVAL,
     CONF_SITE,
     CONF_SVG_HEIGHT,
@@ -25,6 +26,7 @@ from .const import (
     DEFAULT_INCLUDE_CLIENTS,
     DEFAULT_INCLUDE_PORTS,
     DEFAULT_ONLY_UNIFI,
+    DEFAULT_REQUEST_TIMEOUT_SECONDS,
     DEFAULT_SCAN_INTERVAL_MINUTES,
     DEFAULT_SITE,
     DEFAULT_SVG_ISOMETRIC,
@@ -132,6 +134,9 @@ def _options_schema_fields(options: dict[str, Any]) -> dict[vol.Marker, object]:
 
     return {
         opt(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_MINUTES): _scan_interval_selector(),
+        opt(
+            CONF_REQUEST_TIMEOUT_SECONDS, DEFAULT_REQUEST_TIMEOUT_SECONDS
+        ): _request_timeout_selector(),
         opt(CONF_INCLUDE_PORTS, DEFAULT_INCLUDE_PORTS): _boolean_selector(),
         opt(CONF_INCLUDE_CLIENTS, DEFAULT_INCLUDE_CLIENTS): _boolean_selector(),
         opt(CONF_CLIENT_SCOPE, DEFAULT_CLIENT_SCOPE): _client_scope_selector(),
@@ -157,6 +162,18 @@ def _scan_interval_selector() -> selector.NumberSelector:
     )
 
 
+def _request_timeout_selector() -> selector.NumberSelector:
+    return selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=5,
+            max=120,
+            step=1,
+            unit_of_measurement="seconds",
+            mode=selector.NumberSelectorMode.BOX,
+        )
+    )
+
+
 def _client_scope_selector() -> selector.SelectSelector:
     return selector.SelectSelector(
         selector.SelectSelectorConfig(
@@ -173,7 +190,7 @@ def _client_scope_selector() -> selector.SelectSelector:
 def _normalize_options(user_input: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]]:
     cleaned = dict(user_input)
     errors: dict[str, str] = {}
-    for key in (CONF_SVG_WIDTH, CONF_SVG_HEIGHT):
+    for key in (CONF_SVG_WIDTH, CONF_SVG_HEIGHT, CONF_REQUEST_TIMEOUT_SECONDS):
         value = cleaned.get(key)
         if value in ("", None):
             cleaned.pop(key, None)

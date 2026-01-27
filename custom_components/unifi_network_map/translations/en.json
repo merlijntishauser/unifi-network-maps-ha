@@ -24,6 +24,7 @@
           "svg_isometric": "Isometric layout",
           "svg_width": "SVG width (px)",
           "svg_height": "SVG height (px)",
+          "request_timeout_seconds": "Request timeout (seconds)",
           "use_cache": "Cache rendered map"
         },
         "data_description": {
@@ -34,6 +35,7 @@
           "svg_isometric": "Render a 3D-style view.",
           "svg_width": "Leave blank to auto-size.",
           "svg_height": "Leave blank to auto-size.",
+          "request_timeout_seconds": "Abort UniFi API calls after this many seconds.",
           "use_cache": "Re-use the last render between polls."
         }
       }
@@ -56,6 +58,7 @@
           "svg_isometric": "Isometric layout",
           "svg_width": "SVG width (px)",
           "svg_height": "SVG height (px)",
+          "request_timeout_seconds": "Request timeout (seconds)",
           "use_cache": "Cache rendered map"
         },
         "data_description": {
@@ -66,6 +69,7 @@
           "svg_isometric": "Render a 3D-style view.",
           "svg_width": "Leave blank to auto-size.",
           "svg_height": "Leave blank to auto-size.",
+          "request_timeout_seconds": "Abort UniFi API calls after this many seconds.",
           "use_cache": "Re-use the last render between polls."
         }
       }
