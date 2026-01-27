@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [1.4.10] - 2026-01-27
+## [0.1.10] - 2026-01-27
 ### Added
 - Added to Hacs/default, w00p w00p!
 - Warn users to hard-refresh when the custom lovelace card isn't listed after installation
@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Possible race condition in Lovelace resource retry
 - Prevent stale WebSocket subscriptions on config changes
 
-## [1.4.9] - 2023-01-26
+## [0.1.9] - 2026-01-26
 ### Added
 - Diagnostics timestamp added to show data freshness
 - Diagnostics now includes an anonymized clients list
@@ -41,7 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - regression caused by safe path handling in unifi-network-maps 1.4.13
 
-## [1.4.8] - 2023-01-25
+## [0.1.8] - 2026-01-25
 ### Added
 - Filter by device type: Show only APs, only clients, etc.
 - Translations (French, German, Spanish and Dutch)
@@ -128,7 +128,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2026-01-17
 - Initial public release.
 
-[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.1.8...HEAD
+[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.1.10...HEAD
+[0.1.10]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.1.10
+[0.1.9]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.1.9
 [0.1.8]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.1.8
 [0.1.7]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.1.7
 [0.1.6]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.1.6
