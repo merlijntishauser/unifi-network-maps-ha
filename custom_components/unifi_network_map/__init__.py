@@ -41,6 +41,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     from .http import register_unifi_http_views
 
     _suppress_unifi_api_info_logs(hass)
+    _register_websocket_api(hass)
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
     await _initialize_coordinator(coordinator)
     _store_coordinator(hass, entry.entry_id, coordinator)
@@ -96,11 +97,14 @@ def _store_coordinator(
 def _register_runtime_services(
     hass: HomeAssistant, register_views: Callable[[HomeAssistant], None]
 ) -> None:
-    from .websocket import async_register_websocket_api
-
     register_views(hass)
     _register_frontend_assets(hass)
     _register_refresh_service(hass)
+
+
+def _register_websocket_api(hass: HomeAssistant) -> None:
+    from .websocket import async_register_websocket_api
+
     async_register_websocket_api(hass)
 
 

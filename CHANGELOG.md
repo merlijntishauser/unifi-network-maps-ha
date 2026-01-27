@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SSL verification checkbox is unchecked by default, UniFi controllers ship with self-signed certificates that would cause connection failures if verification is    
   enabled
 - Switched the default theme from "dark" to "UniFi"
+- Logging at the info level is reduced
 
 ### Fixed
 - Possible race condition in Lovelace resource retry
