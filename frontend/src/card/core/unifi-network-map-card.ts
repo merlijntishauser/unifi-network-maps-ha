@@ -247,6 +247,8 @@ export class UnifiNetworkMapCard extends HTMLElement {
   private _wsUnsubscribe?: UnsubscribeFunc;
   private _wsSubscribed = false;
   private _wsSubscriptionVersion = 0;
+  private _svgRequestId = 0;
+  private _payloadRequestId = 0;
   get _viewTransform() {
     return this._viewportState.viewTransform;
   }
@@ -390,6 +392,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
 
     this._svgAbortController?.abort();
     this._svgAbortController = new AbortController();
+    const requestId = ++this._svgRequestId;
     const currentUrl = this._config.svg_url;
 
     this._loading = true;
@@ -406,6 +409,9 @@ export class UnifiNetworkMapCard extends HTMLElement {
       this._svgAbortController.signal,
     );
 
+    if (requestId !== this._svgRequestId) {
+      return;
+    }
     if ("aborted" in result) {
       return;
     }
@@ -434,6 +440,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
 
     this._payloadAbortController?.abort();
     this._payloadAbortController = new AbortController();
+    const requestId = ++this._payloadRequestId;
     const currentUrl = this._config.data_url;
 
     this._dataLoading = true;
@@ -447,6 +454,9 @@ export class UnifiNetworkMapCard extends HTMLElement {
       this._payloadAbortController.signal,
     );
 
+    if (requestId !== this._payloadRequestId) {
+      return;
+    }
     if ("aborted" in result) {
       return;
     }

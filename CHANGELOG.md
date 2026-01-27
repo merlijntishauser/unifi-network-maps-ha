@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Warn users to hard-refresh when the custom lovelace card isn't listed after installation
 - Improvement of listing related entities for a node/client
 - (Configurable) 30s timeout for UniFi API calls to avoid hangs
+- Added request IDs for SVG and payload fetches so stale responses can’t overwrite fresh data if concurrent fetches resolve out of order
 
 ### Changed
 - SSL verification checkbox is unchecked by default, UniFi controllers ship with self-signed certificates that would cause connection failures if verification is    

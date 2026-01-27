@@ -26,8 +26,7 @@
 ### Known Issues to Fix
 
 | Priority | Issue | Impact |
-|----------|-------|--------|
-| Medium | AbortController race in concurrent fetches | Stale data can overwrite fresh data |
+| no known issues |
 | Medium | Shallow copy of payload dict | Potential data corruption risk |
 
 ---
