@@ -118,7 +118,7 @@ describe("unifi-network-map card core", () => {
   it("shows configuration prompt when svg_url is missing", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     element.setConfig({ theme: "dark" });
-    expect(element.innerHTML).toContain("Select a UniFi Network Map instance");
+    expect(element.innerHTML).toContain("card-preview.svg");
   });
 
   it("strips javascript: URLs from svg attributes", () => {

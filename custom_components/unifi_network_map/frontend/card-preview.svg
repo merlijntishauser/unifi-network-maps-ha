@@ -1,5 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" fill="none">
-  <rect width="400" height="300" fill="#1e293b"/>
+  <defs>
+    <clipPath id="preview-rounded">
+      <rect width="400" height="300" rx="16" ry="16"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#preview-rounded)">
+    <rect width="400" height="300" rx="16" ry="16" fill="#1e293b"/>
 
   <!-- Gateway -->
   <rect x="170" y="30" width="60" height="40" rx="6" fill="#3b82f6"/>
@@ -27,4 +33,5 @@
 
   <!-- Title -->
   <text x="200" y="285" text-anchor="middle" fill="#94a3b8" font-size="12" font-family="system-ui">UniFi Network Map</text>
+</g>
 </svg>

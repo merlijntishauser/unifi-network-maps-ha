@@ -37,7 +37,7 @@ export class UnifiNetworkMapEditor extends HTMLElement {
         domain: DOMAIN,
       });
       this._entries = entries;
-      if (!this._config?.entry_id && this._entries.length === 1) {
+      if (!this._config?.entry_id && this._entries.length > 0) {
         this._updateConfigEntry(this._entries[0].entry_id);
         return;
       }

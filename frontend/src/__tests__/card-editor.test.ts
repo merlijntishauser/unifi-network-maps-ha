@@ -38,7 +38,7 @@ describe("unifi-network-map editor", () => {
     expect(form.data?.theme).toBe("light");
   });
 
-  it("auto-selects when only one entry is available", async () => {
+  it("auto-selects the first entry when entries are available", async () => {
     const element = document.createElement("unifi-network-map-editor") as EditorElement;
     const entries: ConfigEntry[] = [
       { entry_id: "only-entry", title: "UniFi", domain: "unifi_network_map" },
@@ -51,6 +51,21 @@ describe("unifi-network-map editor", () => {
     expect(handler).toHaveBeenCalled();
     const detail = (handler.mock.calls[0][0] as CustomEvent).detail;
     expect(detail.config.entry_id).toBe("only-entry");
+  });
+
+  it("auto-selects the first entry when multiple entries exist", async () => {
+    const element = document.createElement("unifi-network-map-editor") as EditorElement;
+    const entries: ConfigEntry[] = [
+      { entry_id: "entry-1", title: "Site 1", domain: "unifi_network_map" },
+      { entry_id: "entry-2", title: "Site 2", domain: "unifi_network_map" },
+    ];
+    const callWS = jest.fn().mockResolvedValue(entries);
+    const handler = jest.fn();
+    element.addEventListener("config-changed", handler);
+    element.hass = { callWS };
+    await flushPromises();
+    const detail = (handler.mock.calls[0][0] as CustomEvent).detail;
+    expect(detail.config.entry_id).toBe("entry-1");
   });
 
   it("normalizes theme values on change", async () => {
