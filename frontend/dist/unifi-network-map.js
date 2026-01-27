@@ -1145,32 +1145,7 @@ function annotatePoeIcons(svg3) {
   }
 }
 function findNearestEdgePath(label, svg3) {
-  const parentGroup = label.closest("g");
-  if (parentGroup) {
-    const siblingPath = parentGroup.querySelector("path[data-edge-left][data-edge-right]");
-    if (siblingPath) return siblingPath;
-    const grandparent = parentGroup.parentElement;
-    if (grandparent) {
-      const nearbyPath = grandparent.querySelector("path[data-edge-left][data-edge-right]");
-      if (nearbyPath) return nearbyPath;
-    }
-  }
-  const labelText = label.textContent?.trim() ?? "";
-  if (labelText) {
-    const paths = svg3.querySelectorAll("path[data-edge-left][data-edge-right]");
-    for (const path of paths) {
-      const left = path.getAttribute("data-edge-left") ?? "";
-      const right = path.getAttribute("data-edge-right") ?? "";
-      if (labelText.includes(left) || labelText.includes(right)) {
-        return path;
-      }
-    }
-  }
-  const labelTransform = getLabelPosition(label);
-  if (labelTransform) {
-    return findClosestEdgeByPosition(svg3, labelTransform);
-  }
-  return null;
+  return findEdgePathInGroup(label) ?? findEdgePathByLabelText(label, svg3) ?? findEdgePathByPosition(label, svg3);
 }
 function getLabelPosition(element) {
   let current = element;
@@ -1219,6 +1194,43 @@ function findClosestEdgeByPosition(svg3, pos) {
     }
   }
   return minDist < 150 ? closest : null;
+}
+function findEdgePathInGroup(label) {
+  const parentGroup = label.closest("g");
+  if (!parentGroup) {
+    return null;
+  }
+  const siblingPath = parentGroup.querySelector("path[data-edge-left][data-edge-right]");
+  if (siblingPath) {
+    return siblingPath;
+  }
+  const grandparent = parentGroup.parentElement;
+  if (!grandparent) {
+    return null;
+  }
+  return grandparent.querySelector("path[data-edge-left][data-edge-right]");
+}
+function findEdgePathByLabelText(label, svg3) {
+  const labelText = label.textContent?.trim() ?? "";
+  if (!labelText) {
+    return null;
+  }
+  const paths = svg3.querySelectorAll("path[data-edge-left][data-edge-right]");
+  for (const path of paths) {
+    const left = path.getAttribute("data-edge-left") ?? "";
+    const right = path.getAttribute("data-edge-right") ?? "";
+    if (labelText.includes(left) || labelText.includes(right)) {
+      return path;
+    }
+  }
+  return null;
+}
+function findEdgePathByPosition(label, svg3) {
+  const labelTransform = getLabelPosition(label);
+  if (!labelTransform) {
+    return null;
+  }
+  return findClosestEdgeByPosition(svg3, labelTransform);
 }
 function findEdgeFromTarget(target, edges) {
   if (!target) return null;
@@ -1615,42 +1627,8 @@ function svg2(paths, circles = []) {
 
 // src/card/ui/entity-modal.ts
 function renderEntityModal(context) {
-  const safeName = escapeHtml(context.nodeName);
-  const mac = context.payload?.client_macs?.[context.nodeName] ?? context.payload?.device_macs?.[context.nodeName];
-  const nodeType = context.payload?.node_types?.[context.nodeName] ?? "unknown";
-  const status = context.payload?.node_status?.[context.nodeName];
-  const relatedEntities = context.payload?.related_entities?.[context.nodeName] ?? [];
-  const typeIcon = context.getNodeTypeIcon(nodeType);
-  const infoRows = buildEntityInfoRows({
-    mac,
-    status,
-    nodeType,
-    relatedEntities,
-    context
-  });
-  const entityItems = relatedEntities.map((entity) => renderEntityItem(entity, context.theme)).join("");
-  return `
-    <div class="entity-modal-overlay" data-modal-overlay data-theme="${escapeHtml(context.theme)}">
-      <div class="entity-modal">
-        <div class="entity-modal__header">
-          <div class="entity-modal__title">
-            <span>${typeIcon}</span>
-            <span>${safeName}</span>
-          </div>
-          <button type="button" class="entity-modal__close" data-action="close-modal">&times;</button>
-        </div>
-        <div class="entity-modal__body">
-          <div class="entity-modal__section">
-            <div class="entity-modal__section-title">${context.localize("entity_modal.device_info")}</div>
-            <div class="entity-modal__info-grid">
-              ${infoRows.join("")}
-            </div>
-          </div>
-          ${renderRelatedEntitiesSection(relatedEntities, entityItems, context)}
-        </div>
-      </div>
-    </div>
-  `;
+  const data = buildEntityModalData(context);
+  return renderEntityModalMarkup(data, context);
 }
 function renderEntityItem(entity, theme) {
   const domainIconMarkup = domainIcon(entity.domain, theme);
@@ -1682,6 +1660,47 @@ function getStateBadgeClass(state) {
   }
   return "entity-modal__state-badge--default";
 }
+function buildEntityModalData(context) {
+  const nodeName = context.nodeName;
+  const mac = getNodeMac(context.payload, nodeName);
+  const nodeType = getNodeType(context.payload, nodeName);
+  const status = context.payload?.node_status?.[nodeName];
+  const relatedEntities = context.payload?.related_entities?.[nodeName] ?? [];
+  return {
+    safeName: escapeHtml(nodeName),
+    nodeType,
+    status,
+    relatedEntities,
+    typeIcon: context.getNodeTypeIcon(nodeType),
+    infoRows: buildEntityInfoRows({ mac, status, nodeType, relatedEntities, context }),
+    entityItems: relatedEntities.map((entity) => renderEntityItem(entity, context.theme)).join(""),
+    theme: context.theme
+  };
+}
+function renderEntityModalMarkup(data, context) {
+  return `
+    <div class="entity-modal-overlay" data-modal-overlay data-theme="${escapeHtml(data.theme)}">
+      <div class="entity-modal">
+        <div class="entity-modal__header">
+          <div class="entity-modal__title">
+            <span>${data.typeIcon}</span>
+            <span>${data.safeName}</span>
+          </div>
+          <button type="button" class="entity-modal__close" data-action="close-modal">&times;</button>
+        </div>
+        <div class="entity-modal__body">
+          <div class="entity-modal__section">
+            <div class="entity-modal__section-title">${context.localize("entity_modal.device_info")}</div>
+            <div class="entity-modal__info-grid">
+              ${data.infoRows.join("")}
+            </div>
+          </div>
+          ${renderRelatedEntitiesSection(data.relatedEntities, data.entityItems, context)}
+        </div>
+      </div>
+    </div>
+  `;
+}
 function buildEntityInfoRows(input) {
   const { mac, status, nodeType, relatedEntities, context } = input;
   const infoRows = [];
@@ -1691,6 +1710,12 @@ function buildEntityInfoRows(input) {
   pushIf(infoRows, renderLastChangedRow(status, context));
   infoRows.push(renderDeviceTypeRow(nodeType, context));
   return infoRows;
+}
+function getNodeMac(payload, nodeName) {
+  return payload?.client_macs?.[nodeName] ?? payload?.device_macs?.[nodeName];
+}
+function getNodeType(payload, nodeName) {
+  return payload?.node_types?.[nodeName] ?? "unknown";
 }
 function renderMacRow(mac, context) {
   if (!mac) {
@@ -2293,19 +2318,19 @@ function getStatsTabData(context, name) {
   const edges = context.payload?.edges ?? [];
   return {
     nodeEdges: edges.filter((edge) => edge.left === name || edge.right === name),
-    mac: getNodeMac(context.payload, name),
+    mac: getNodeMac2(context.payload, name),
     ip: getNodeIp(context.payload, name),
     status: context.payload?.node_status?.[name],
     vlanInfo: getNodeVlanInfo(name, context.payload),
-    nodeType: getNodeType(context.payload, name),
+    nodeType: getNodeType2(context.payload, name),
     apWirelessClients: context.payload?.ap_client_counts?.[name]
   };
 }
 function getActionsTabData(context, name, helpers) {
   const entityId = getNodeEntityId(context.payload, name);
-  const mac = getNodeMac(context.payload, name);
+  const mac = getNodeMac2(context.payload, name);
   const ip = getNodeIp(context.payload, name);
-  const nodeType = getNodeType(context.payload, name);
+  const nodeType = getNodeType2(context.payload, name);
   return {
     entityId,
     hasPortInfo: nodeType === "switch" || nodeType === "gateway",
@@ -2372,10 +2397,10 @@ function pushIf2(items, value) {
     items.push(value);
   }
 }
-function getNodeType(payload, name) {
+function getNodeType2(payload, name) {
   return payload?.node_types?.[name] ?? "unknown";
 }
-function getNodeMac(payload, name) {
+function getNodeMac2(payload, name) {
   return payload?.client_macs?.[name] ?? payload?.device_macs?.[name] ?? null;
 }
 function getNodeIp(payload, name) {
@@ -2510,8 +2535,8 @@ function isContextMenuAction(action) {
   return action === "details" || action === "copy-mac" || action === "copy-ip" || action === "restart" || action === "view-ports";
 }
 function buildContextMenuData(options) {
-  const nodeType = getNodeType2(options.payload, options.nodeName);
-  const mac = getNodeMac2(options.payload, options.nodeName);
+  const nodeType = getNodeType3(options.payload, options.nodeName);
+  const mac = getNodeMac3(options.payload, options.nodeName);
   const entityId = getNodeEntityId2(options.payload, options.nodeName);
   const ip = getNodeIp2(options.payload, options.nodeName);
   return {
@@ -2597,10 +2622,10 @@ function pushIf3(items, value) {
     items.push(value);
   }
 }
-function getNodeType2(payload, nodeName) {
+function getNodeType3(payload, nodeName) {
   return payload?.node_types?.[nodeName] ?? "unknown";
 }
-function getNodeMac2(payload, nodeName) {
+function getNodeMac3(payload, nodeName) {
   return payload?.client_macs?.[nodeName] ?? payload?.device_macs?.[nodeName] ?? null;
 }
 function getNodeEntityId2(payload, nodeName) {
@@ -5649,51 +5674,16 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     const nodeTypes = this._payload?.node_types ?? {};
     const counts = countDeviceTypes(nodeTypes);
     const theme = this._config?.theme ?? "dark";
-    const labels = {
-      gateway: this._localize("panel.device_type.gateways"),
-      switch: this._localize("panel.device_type.switches"),
-      ap: this._localize("panel.device_type.access_points"),
-      client: this._localize("panel.device_type.clients"),
-      other: this._localize("panel.device_type.other")
-    };
-    const deviceTypes = ["gateway", "switch", "ap", "client", "other"];
-    let filterBar = container.querySelector(".filter-bar");
-    if (!filterBar) {
-      filterBar = document.createElement("div");
-      filterBar.className = "filter-bar";
-      container.appendChild(filterBar);
-    }
-    for (const type of deviceTypes) {
-      const count = counts[type] ?? 0;
-      const active = this._filterState[type];
-      const titleKey = active ? "card.filter.hide" : "card.filter.show";
-      const icon = nodeTypeIcon(type, theme);
-      let button = filterBar.querySelector(
-        `button[data-filter-type="${type}"]`
-      );
-      if (!button) {
-        button = document.createElement("button");
-        button.type = "button";
-        button.dataset.filterType = type;
-        button.innerHTML = `<span class="filter-button__icon"></span><span class="filter-button__count"></span>`;
-        button.onclick = (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          this._filterState = toggleFilter(this._filterState, type);
-          this._updateFilterDisplay();
-        };
-        filterBar.appendChild(button);
-      }
-      button.className = `filter-button ${active ? "filter-button--active" : "filter-button--inactive"}`;
-      button.title = this._localize(titleKey, { label: labels[type] });
-      const iconSpan = button.querySelector(".filter-button__icon");
-      if (iconSpan) {
-        iconSpan.innerHTML = icon;
-      }
-      const countSpan = button.querySelector(".filter-button__count");
-      if (countSpan) {
-        countSpan.textContent = String(count);
-      }
+    const labels = this._getFilterLabels();
+    const filterBar = this._getFilterBar(container);
+    for (const type of this._filterDeviceTypes()) {
+      const button = this._getFilterButton(filterBar, type);
+      this._updateFilterButton(button, {
+        type,
+        count: counts[type] ?? 0,
+        theme,
+        label: labels[type]
+      });
     }
   }
   _renderLoadingOverlay() {
@@ -5772,6 +5762,62 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       formatLastChanged: (value) => this._formatLastChanged(value),
       localize: this._localize
     };
+  }
+  _filterDeviceTypes() {
+    return ["gateway", "switch", "ap", "client", "other"];
+  }
+  _getFilterLabels() {
+    return {
+      gateway: this._localize("panel.device_type.gateways"),
+      switch: this._localize("panel.device_type.switches"),
+      ap: this._localize("panel.device_type.access_points"),
+      client: this._localize("panel.device_type.clients"),
+      other: this._localize("panel.device_type.other")
+    };
+  }
+  _getFilterBar(container) {
+    let filterBar = container.querySelector(".filter-bar");
+    if (!filterBar) {
+      filterBar = document.createElement("div");
+      filterBar.className = "filter-bar";
+      container.appendChild(filterBar);
+    }
+    return filterBar;
+  }
+  _getFilterButton(filterBar, type) {
+    let button = filterBar.querySelector(
+      `button[data-filter-type="${type}"]`
+    );
+    if (!button) {
+      button = document.createElement("button");
+      button.type = "button";
+      button.dataset.filterType = type;
+      button.innerHTML = `<span class="filter-button__icon"></span><span class="filter-button__count"></span>`;
+      button.onclick = (event) => this._onFilterButtonClick(event, type);
+      filterBar.appendChild(button);
+    }
+    return button;
+  }
+  _onFilterButtonClick(event, type) {
+    event.preventDefault();
+    event.stopPropagation();
+    this._filterState = toggleFilter(this._filterState, type);
+    this._updateFilterDisplay();
+  }
+  _updateFilterButton(button, data) {
+    const active = this._filterState[data.type];
+    const titleKey = active ? "card.filter.hide" : "card.filter.show";
+    const icon = nodeTypeIcon(data.type, data.theme);
+    button.className = `filter-button ${active ? "filter-button--active" : "filter-button--inactive"}`;
+    button.title = this._localize(titleKey, { label: data.label });
+    const iconSpan = button.querySelector(".filter-button__icon");
+    if (iconSpan) {
+      iconSpan.innerHTML = icon;
+    }
+    const countSpan = button.querySelector(".filter-button__count");
+    if (countSpan) {
+      countSpan.textContent = String(data.count);
+    }
   }
   _getNodeTypeIcon(nodeType) {
     const theme = this._config?.theme ?? "dark";
@@ -6418,15 +6464,11 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
     return buildFormSchema(this._entries, this._localize);
   }
   _onChange(e) {
-    const detail = e.detail;
-    const entryId = detail.value?.entry_id ?? this._config?.entry_id ?? "";
-    const themeValue = detail.value?.theme ?? this._config?.theme ?? "unifi";
-    const cardHeight = detail.value?.card_height ?? this._config?.card_height;
-    const theme = normalizeTheme(themeValue);
-    if (this._config?.entry_id === entryId && this._config?.theme === theme && this._config?.card_height === cardHeight) {
+    const update = this._getConfigUpdate(e);
+    if (!update || this._isConfigUnchanged(update)) {
       return;
     }
-    this._updateConfig({ entry_id: entryId, theme, card_height: cardHeight });
+    this._updateConfig(update);
   }
   _updateConfigEntry(entryId) {
     const selectedTheme = this._config?.theme ?? "unifi";
@@ -6447,6 +6489,20 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
         composed: true
       })
     );
+  }
+  _getConfigUpdate(e) {
+    const detail = e.detail;
+    const entryId = detail.value?.entry_id ?? this._config?.entry_id ?? "";
+    const themeValue = detail.value?.theme ?? this._config?.theme ?? "unifi";
+    const cardHeight = detail.value?.card_height ?? this._config?.card_height;
+    return {
+      entry_id: entryId,
+      theme: normalizeTheme(themeValue),
+      card_height: cardHeight
+    };
+  }
+  _isConfigUnchanged(update) {
+    return this._config?.entry_id === update.entry_id && this._config?.theme === update.theme && this._config?.card_height === update.card_height;
   }
 };
 
