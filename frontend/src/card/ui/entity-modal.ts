@@ -12,47 +12,8 @@ export type EntityModalContext = {
 };
 
 export function renderEntityModal(context: EntityModalContext): string {
-  const safeName = escapeHtml(context.nodeName);
-  const mac =
-    context.payload?.client_macs?.[context.nodeName] ??
-    context.payload?.device_macs?.[context.nodeName];
-  const nodeType = context.payload?.node_types?.[context.nodeName] ?? "unknown";
-  const status = context.payload?.node_status?.[context.nodeName];
-  const relatedEntities = context.payload?.related_entities?.[context.nodeName] ?? [];
-  const typeIcon = context.getNodeTypeIcon(nodeType);
-  const infoRows = buildEntityInfoRows({
-    mac,
-    status,
-    nodeType,
-    relatedEntities,
-    context,
-  });
-  const entityItems = relatedEntities
-    .map((entity) => renderEntityItem(entity, context.theme))
-    .join("");
-
-  return `
-    <div class="entity-modal-overlay" data-modal-overlay data-theme="${escapeHtml(context.theme)}">
-      <div class="entity-modal">
-        <div class="entity-modal__header">
-          <div class="entity-modal__title">
-            <span>${typeIcon}</span>
-            <span>${safeName}</span>
-          </div>
-          <button type="button" class="entity-modal__close" data-action="close-modal">&times;</button>
-        </div>
-        <div class="entity-modal__body">
-          <div class="entity-modal__section">
-            <div class="entity-modal__section-title">${context.localize("entity_modal.device_info")}</div>
-            <div class="entity-modal__info-grid">
-              ${infoRows.join("")}
-            </div>
-          </div>
-          ${renderRelatedEntitiesSection(relatedEntities, entityItems, context)}
-        </div>
-      </div>
-    </div>
-  `;
+  const data = buildEntityModalData(context);
+  return renderEntityModalMarkup(data, context);
 }
 
 function renderEntityItem(
@@ -99,6 +60,60 @@ type InfoRowsContext = {
   context: EntityModalContext;
 };
 
+type EntityModalData = {
+  safeName: string;
+  nodeType: string;
+  status: NodeStatus | undefined;
+  relatedEntities: RelatedEntity[];
+  typeIcon: string;
+  infoRows: string[];
+  entityItems: string;
+  theme: EntityModalContext["theme"];
+};
+
+function buildEntityModalData(context: EntityModalContext): EntityModalData {
+  const nodeName = context.nodeName;
+  const mac = getNodeMac(context.payload, nodeName);
+  const nodeType = getNodeType(context.payload, nodeName);
+  const status = context.payload?.node_status?.[nodeName];
+  const relatedEntities = context.payload?.related_entities?.[nodeName] ?? [];
+  return {
+    safeName: escapeHtml(nodeName),
+    nodeType,
+    status,
+    relatedEntities,
+    typeIcon: context.getNodeTypeIcon(nodeType),
+    infoRows: buildEntityInfoRows({ mac, status, nodeType, relatedEntities, context }),
+    entityItems: relatedEntities.map((entity) => renderEntityItem(entity, context.theme)).join(""),
+    theme: context.theme,
+  };
+}
+
+function renderEntityModalMarkup(data: EntityModalData, context: EntityModalContext): string {
+  return `
+    <div class="entity-modal-overlay" data-modal-overlay data-theme="${escapeHtml(data.theme)}">
+      <div class="entity-modal">
+        <div class="entity-modal__header">
+          <div class="entity-modal__title">
+            <span>${data.typeIcon}</span>
+            <span>${data.safeName}</span>
+          </div>
+          <button type="button" class="entity-modal__close" data-action="close-modal">&times;</button>
+        </div>
+        <div class="entity-modal__body">
+          <div class="entity-modal__section">
+            <div class="entity-modal__section-title">${context.localize("entity_modal.device_info")}</div>
+            <div class="entity-modal__info-grid">
+              ${data.infoRows.join("")}
+            </div>
+          </div>
+          ${renderRelatedEntitiesSection(data.relatedEntities, data.entityItems, context)}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function buildEntityInfoRows(input: InfoRowsContext): string[] {
   const { mac, status, nodeType, relatedEntities, context } = input;
   const infoRows: string[] = [];
@@ -108,6 +123,14 @@ function buildEntityInfoRows(input: InfoRowsContext): string[] {
   pushIf(infoRows, renderLastChangedRow(status, context));
   infoRows.push(renderDeviceTypeRow(nodeType, context));
   return infoRows;
+}
+
+function getNodeMac(payload: MapPayload | undefined, nodeName: string): string | undefined {
+  return payload?.client_macs?.[nodeName] ?? payload?.device_macs?.[nodeName];
+}
+
+function getNodeType(payload: MapPayload | undefined, nodeName: string): string {
+  return payload?.node_types?.[nodeName] ?? "unknown";
 }
 
 function renderMacRow(mac: string | undefined, context: EntityModalContext): string | null {

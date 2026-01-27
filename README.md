@@ -1,5 +1,6 @@
 # UniFi Network Map for Home Assistant
 
+[![HACS](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/integration)
 [![CI](https://github.com/merlijntishauser/unifi-network-maps-ha/actions/workflows/ci.yml/badge.svg)](https://github.com/merlijntishauser/unifi-network-maps-ha/actions/workflows/ci.yml)
 [![E2E](https://github.com/merlijntishauser/unifi-network-maps-ha/actions/workflows/e2e.yml/badge.svg)](https://github.com/merlijntishauser/unifi-network-maps-ha/actions/workflows/e2e.yml)
 [![CodeQL](https://github.com/merlijntishauser/unifi-network-maps-ha/actions/workflows/codeql.yml/badge.svg)](https://github.com/merlijntishauser/unifi-network-maps-ha/actions/workflows/codeql.yml)

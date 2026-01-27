@@ -66,41 +66,11 @@ function annotatePoeIcons(svg: SVGElement): void {
 }
 
 function findNearestEdgePath(label: Element, svg: SVGElement): Element | null {
-  // Strategy 1: Check if label is inside an edge group with a path
-  const parentGroup = label.closest("g");
-  if (parentGroup) {
-    const siblingPath = parentGroup.querySelector("path[data-edge-left][data-edge-right]");
-    if (siblingPath) return siblingPath;
-
-    // Check parent's siblings
-    const grandparent = parentGroup.parentElement;
-    if (grandparent) {
-      const nearbyPath = grandparent.querySelector("path[data-edge-left][data-edge-right]");
-      if (nearbyPath) return nearbyPath;
-    }
-  }
-
-  // Strategy 2: Find by label text content matching edge endpoints
-  const labelText = label.textContent?.trim() ?? "";
-  if (labelText) {
-    const paths = svg.querySelectorAll("path[data-edge-left][data-edge-right]");
-    for (const path of paths) {
-      const left = path.getAttribute("data-edge-left") ?? "";
-      const right = path.getAttribute("data-edge-right") ?? "";
-      // Check if label contains node names or port info
-      if (labelText.includes(left) || labelText.includes(right)) {
-        return path;
-      }
-    }
-  }
-
-  // Strategy 3: Use position-based matching (find closest path by transform)
-  const labelTransform = getLabelPosition(label);
-  if (labelTransform) {
-    return findClosestEdgeByPosition(svg, labelTransform);
-  }
-
-  return null;
+  return (
+    findEdgePathInGroup(label) ??
+    findEdgePathByLabelText(label, svg) ??
+    findEdgePathByPosition(label, svg)
+  );
 }
 
 function getLabelPosition(element: Element): { x: number; y: number } | null {
@@ -163,6 +133,46 @@ function findClosestEdgeByPosition(svg: SVGElement, pos: { x: number; y: number 
 
   // Only return if reasonably close (within 150px - edges can be long)
   return minDist < 150 ? closest : null;
+}
+
+function findEdgePathInGroup(label: Element): Element | null {
+  const parentGroup = label.closest("g");
+  if (!parentGroup) {
+    return null;
+  }
+  const siblingPath = parentGroup.querySelector("path[data-edge-left][data-edge-right]");
+  if (siblingPath) {
+    return siblingPath;
+  }
+  const grandparent = parentGroup.parentElement;
+  if (!grandparent) {
+    return null;
+  }
+  return grandparent.querySelector("path[data-edge-left][data-edge-right]");
+}
+
+function findEdgePathByLabelText(label: Element, svg: SVGElement): Element | null {
+  const labelText = label.textContent?.trim() ?? "";
+  if (!labelText) {
+    return null;
+  }
+  const paths = svg.querySelectorAll("path[data-edge-left][data-edge-right]");
+  for (const path of paths) {
+    const left = path.getAttribute("data-edge-left") ?? "";
+    const right = path.getAttribute("data-edge-right") ?? "";
+    if (labelText.includes(left) || labelText.includes(right)) {
+      return path;
+    }
+  }
+  return null;
+}
+
+function findEdgePathByPosition(label: Element, svg: SVGElement): Element | null {
+  const labelTransform = getLabelPosition(label);
+  if (!labelTransform) {
+    return null;
+  }
+  return findClosestEdgeByPosition(svg, labelTransform);
 }
 
 export function findEdgeFromTarget(target: Element | null, edges: Edge[]): Edge | null {

@@ -24,6 +24,7 @@ import {
 } from "../interaction/entity-modal-state";
 import { closePortModal, createPortModalController, openPortModal } from "../ui/port-modal";
 import { domainIcon, iconMarkup, nodeTypeIcon } from "../ui/icons";
+import type { IconTheme } from "../ui/icons";
 import { renderPanelContent, renderTabContent } from "../ui/panel";
 import { renderContextMenu } from "../ui/context-menu";
 import { fetchWithAuth } from "../data/auth";
@@ -566,58 +567,17 @@ export class UnifiNetworkMapCard extends HTMLElement {
     const counts = countDeviceTypes(nodeTypes);
     const theme = this._config?.theme ?? "dark";
 
-    const labels: Record<DeviceType, string> = {
-      gateway: this._localize("panel.device_type.gateways"),
-      switch: this._localize("panel.device_type.switches"),
-      ap: this._localize("panel.device_type.access_points"),
-      client: this._localize("panel.device_type.clients"),
-      other: this._localize("panel.device_type.other"),
-    };
+    const labels = this._getFilterLabels();
+    const filterBar = this._getFilterBar(container);
 
-    const deviceTypes: DeviceType[] = ["gateway", "switch", "ap", "client", "other"];
-
-    let filterBar = container.querySelector(".filter-bar") as HTMLDivElement | null;
-    if (!filterBar) {
-      filterBar = document.createElement("div");
-      filterBar.className = "filter-bar";
-      container.appendChild(filterBar);
-    }
-
-    for (const type of deviceTypes) {
-      const count = counts[type] ?? 0;
-      const active = this._filterState[type];
-      const titleKey = active ? "card.filter.hide" : "card.filter.show";
-      const icon = nodeTypeIcon(type, theme);
-
-      let button = filterBar.querySelector(
-        `button[data-filter-type="${type}"]`,
-      ) as HTMLButtonElement | null;
-
-      if (!button) {
-        button = document.createElement("button");
-        button.type = "button";
-        button.dataset.filterType = type;
-        button.innerHTML = `<span class="filter-button__icon"></span><span class="filter-button__count"></span>`;
-        button.onclick = (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          this._filterState = toggleFilter(this._filterState, type);
-          this._updateFilterDisplay();
-        };
-        filterBar.appendChild(button);
-      }
-
-      button.className = `filter-button ${active ? "filter-button--active" : "filter-button--inactive"}`;
-      button.title = this._localize(titleKey, { label: labels[type] });
-
-      const iconSpan = button.querySelector(".filter-button__icon") as HTMLElement | null;
-      if (iconSpan) {
-        iconSpan.innerHTML = icon;
-      }
-      const countSpan = button.querySelector(".filter-button__count") as HTMLElement | null;
-      if (countSpan) {
-        countSpan.textContent = String(count);
-      }
+    for (const type of this._filterDeviceTypes()) {
+      const button = this._getFilterButton(filterBar, type);
+      this._updateFilterButton(button, {
+        type,
+        count: counts[type] ?? 0,
+        theme,
+        label: labels[type],
+      });
     }
   }
 
@@ -707,6 +667,73 @@ export class UnifiNetworkMapCard extends HTMLElement {
       formatLastChanged: (value: string | null | undefined) => this._formatLastChanged(value),
       localize: this._localize,
     };
+  }
+
+  private _filterDeviceTypes(): DeviceType[] {
+    return ["gateway", "switch", "ap", "client", "other"];
+  }
+
+  private _getFilterLabels(): Record<DeviceType, string> {
+    return {
+      gateway: this._localize("panel.device_type.gateways"),
+      switch: this._localize("panel.device_type.switches"),
+      ap: this._localize("panel.device_type.access_points"),
+      client: this._localize("panel.device_type.clients"),
+      other: this._localize("panel.device_type.other"),
+    };
+  }
+
+  private _getFilterBar(container: Element): HTMLDivElement {
+    let filterBar = container.querySelector(".filter-bar") as HTMLDivElement | null;
+    if (!filterBar) {
+      filterBar = document.createElement("div");
+      filterBar.className = "filter-bar";
+      container.appendChild(filterBar);
+    }
+    return filterBar;
+  }
+
+  private _getFilterButton(filterBar: Element, type: DeviceType): HTMLButtonElement {
+    let button = filterBar.querySelector(
+      `button[data-filter-type="${type}"]`,
+    ) as HTMLButtonElement | null;
+    if (!button) {
+      button = document.createElement("button");
+      button.type = "button";
+      button.dataset.filterType = type;
+      button.innerHTML = `<span class="filter-button__icon"></span><span class="filter-button__count"></span>`;
+      button.onclick = (event) => this._onFilterButtonClick(event, type);
+      filterBar.appendChild(button);
+    }
+    return button;
+  }
+
+  private _onFilterButtonClick(event: MouseEvent, type: DeviceType) {
+    event.preventDefault();
+    event.stopPropagation();
+    this._filterState = toggleFilter(this._filterState, type);
+    this._updateFilterDisplay();
+  }
+
+  private _updateFilterButton(
+    button: HTMLButtonElement,
+    data: { type: DeviceType; count: number; theme: IconTheme; label: string },
+  ) {
+    const active = this._filterState[data.type];
+    const titleKey = active ? "card.filter.hide" : "card.filter.show";
+    const icon = nodeTypeIcon(data.type, data.theme);
+
+    button.className = `filter-button ${active ? "filter-button--active" : "filter-button--inactive"}`;
+    button.title = this._localize(titleKey, { label: data.label });
+
+    const iconSpan = button.querySelector(".filter-button__icon") as HTMLElement | null;
+    if (iconSpan) {
+      iconSpan.innerHTML = icon;
+    }
+    const countSpan = button.querySelector(".filter-button__count") as HTMLElement | null;
+    if (countSpan) {
+      countSpan.textContent = String(data.count);
+    }
   }
 
   private _getNodeTypeIcon(nodeType: string): string {
