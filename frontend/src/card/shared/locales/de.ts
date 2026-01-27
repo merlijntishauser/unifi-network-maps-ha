@@ -32,9 +32,9 @@ export const de = {
   "editor.no_entries":
     "Keine UniFi Network Map-Integrationen gefunden. Bitte zuerst eine hinzufügen.",
   "editor.theme": "Thema",
-  "editor.theme.dark": "Dunkel (Standard)",
+  "editor.theme.dark": "Dunkel",
   "editor.theme.light": "Hell",
-  "editor.theme.unifi": "UniFi",
+  "editor.theme.unifi": "UniFi (Standard)",
   "editor.theme.unifi_dark": "UniFi Dunkel",
   "edge_tooltip.band_24": "2.4GHz",
   "edge_tooltip.band_5": "5GHz",

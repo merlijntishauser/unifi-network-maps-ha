@@ -27,7 +27,6 @@
 
 | Priority | Issue | Impact |
 |----------|-------|--------|
-| Critical | Race condition in Lovelace resource retry (`__init__.py:324`) | Registration may fail silently |
 | Critical | WebSocket subscription memory leak on config change | Long-running cards accumulate stale subscriptions |
 | Critical | No timeout on UniFi API calls (`api.py:36`) | Hung controller can hang HA |
 | High | Backoff calculation bug (`coordinator.py:113`) | Aggressive retry on auth failure |
@@ -275,5 +274,6 @@ Priority areas for contribution:
 
 
 ## Recently Completed
+- 
 
 See [CHANGELOG.md](CHANGELOG.md) for full history.

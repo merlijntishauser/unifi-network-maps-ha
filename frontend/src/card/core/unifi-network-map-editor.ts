@@ -65,7 +65,7 @@ export class UnifiNetworkMapEditor extends HTMLElement {
     this._form.schema = this._buildFormSchema();
     this._form.data = {
       entry_id: this._config?.entry_id ?? "",
-      theme: this._config?.theme ?? "dark",
+      theme: this._config?.theme ?? "unifi",
       card_height: this._config?.card_height ?? "",
     };
   }
@@ -108,7 +108,7 @@ export class UnifiNetworkMapEditor extends HTMLElement {
       }>
     ).detail;
     const entryId = detail.value?.entry_id ?? this._config?.entry_id ?? "";
-    const themeValue = detail.value?.theme ?? this._config?.theme ?? "dark";
+    const themeValue = detail.value?.theme ?? this._config?.theme ?? "unifi";
     const cardHeight = detail.value?.card_height ?? this._config?.card_height;
     const theme = normalizeTheme(themeValue);
     if (
@@ -122,7 +122,7 @@ export class UnifiNetworkMapEditor extends HTMLElement {
   }
 
   private _updateConfigEntry(entryId: string) {
-    const selectedTheme = this._config?.theme ?? "dark";
+    const selectedTheme = this._config?.theme ?? "unifi";
     this._updateConfig({ entry_id: entryId, theme: selectedTheme });
   }
 

@@ -2521,7 +2521,7 @@ async function subscribeMapUpdates(hass, entryId, onUpdate) {
 // src/card/core/state.ts
 function normalizeConfig(config) {
   if (config.entry_id) {
-    const theme = config.theme ?? "dark";
+    const theme = config.theme ?? "unifi";
     const themeSuffix = `?theme=${theme}`;
     return {
       entry_id: config.entry_id,
@@ -2579,9 +2579,9 @@ var de = {
   "editor.entry_id": "UniFi Network Map-Instanz",
   "editor.no_entries": "Keine UniFi Network Map-Integrationen gefunden. Bitte zuerst eine hinzuf\xFCgen.",
   "editor.theme": "Thema",
-  "editor.theme.dark": "Dunkel (Standard)",
+  "editor.theme.dark": "Dunkel",
   "editor.theme.light": "Hell",
-  "editor.theme.unifi": "UniFi",
+  "editor.theme.unifi": "UniFi (Standard)",
   "editor.theme.unifi_dark": "UniFi Dunkel",
   "edge_tooltip.band_24": "2.4GHz",
   "edge_tooltip.band_5": "5GHz",
@@ -2694,9 +2694,9 @@ var en = {
   "editor.entry_id": "UniFi Network Map Instance",
   "editor.no_entries": "No UniFi Network Map integrations found. Please add one first.",
   "editor.theme": "Theme",
-  "editor.theme.dark": "Dark (default)",
+  "editor.theme.dark": "Dark",
   "editor.theme.light": "Light",
-  "editor.theme.unifi": "UniFi",
+  "editor.theme.unifi": "UniFi (default)",
   "editor.theme.unifi_dark": "UniFi Dark",
   "edge_tooltip.band_24": "2.4GHz",
   "edge_tooltip.band_5": "5GHz",
@@ -2809,9 +2809,9 @@ var es = {
   "editor.entry_id": "Instancia de UniFi Network Map",
   "editor.no_entries": "No se encontraron integraciones de UniFi Network Map. A\xF1ade una primero.",
   "editor.theme": "Tema",
-  "editor.theme.dark": "Oscuro (predeterminado)",
+  "editor.theme.dark": "Oscuro",
   "editor.theme.light": "Claro",
-  "editor.theme.unifi": "UniFi",
+  "editor.theme.unifi": "UniFi (predeterminado)",
   "editor.theme.unifi_dark": "UniFi oscuro",
   "edge_tooltip.band_24": "2.4GHz",
   "edge_tooltip.band_5": "5GHz",
@@ -2924,9 +2924,9 @@ var fr = {
   "editor.entry_id": "Instance UniFi Network Map",
   "editor.no_entries": "Aucune int\xE9gration UniFi Network Map trouv\xE9e. Ajoutez-en une d\u2019abord.",
   "editor.theme": "Th\xE8me",
-  "editor.theme.dark": "Sombre (par d\xE9faut)",
+  "editor.theme.dark": "Sombre",
   "editor.theme.light": "Clair",
-  "editor.theme.unifi": "UniFi",
+  "editor.theme.unifi": "UniFi (par d\xE9faut)",
   "editor.theme.unifi_dark": "UniFi sombre",
   "edge_tooltip.band_24": "2.4GHz",
   "edge_tooltip.band_5": "5GHz",
@@ -3039,9 +3039,9 @@ var nl = {
   "editor.entry_id": "UniFi Network Map-instantie",
   "editor.no_entries": "Geen UniFi Network Map-integraties gevonden. Voeg er eerst \xE9\xE9n toe.",
   "editor.theme": "Thema",
-  "editor.theme.dark": "Donker (standaard)",
+  "editor.theme.dark": "Donker",
   "editor.theme.light": "Licht",
-  "editor.theme.unifi": "UniFi",
+  "editor.theme.unifi": "UniFi (standaard)",
   "editor.theme.unifi_dark": "UniFi Donker",
   "edge_tooltip.band_24": "2.4GHz",
   "edge_tooltip.band_5": "5GHz",
@@ -5122,7 +5122,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     return document.createElement("unifi-network-map-editor");
   }
   static getStubConfig() {
-    return { entry_id: "", theme: "dark" };
+    return { entry_id: "", theme: "unifi" };
   }
   setConfig(config) {
     this._config = normalizeConfig(config);
@@ -6118,7 +6118,7 @@ function normalizeTheme(value) {
   if (value === "light") return "light";
   if (value === "unifi") return "unifi";
   if (value === "unifi-dark") return "unifi-dark";
-  return "dark";
+  return "unifi";
 }
 
 // src/card/core/unifi-network-map-editor.ts
@@ -6174,7 +6174,7 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
     this._form.schema = this._buildFormSchema();
     this._form.data = {
       entry_id: this._config?.entry_id ?? "",
-      theme: this._config?.theme ?? "dark",
+      theme: this._config?.theme ?? "unifi",
       card_height: this._config?.card_height ?? ""
     };
   }
@@ -6207,7 +6207,7 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
   _onChange(e) {
     const detail = e.detail;
     const entryId = detail.value?.entry_id ?? this._config?.entry_id ?? "";
-    const themeValue = detail.value?.theme ?? this._config?.theme ?? "dark";
+    const themeValue = detail.value?.theme ?? this._config?.theme ?? "unifi";
     const cardHeight = detail.value?.card_height ?? this._config?.card_height;
     const theme = normalizeTheme(themeValue);
     if (this._config?.entry_id === entryId && this._config?.theme === theme && this._config?.card_height === cardHeight) {
@@ -6216,7 +6216,7 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
     this._updateConfig({ entry_id: entryId, theme, card_height: cardHeight });
   }
   _updateConfigEntry(entryId) {
-    const selectedTheme = this._config?.theme ?? "dark";
+    const selectedTheme = this._config?.theme ?? "unifi";
     this._updateConfig({ entry_id: entryId, theme: selectedTheme });
   }
   _updateConfig(update) {

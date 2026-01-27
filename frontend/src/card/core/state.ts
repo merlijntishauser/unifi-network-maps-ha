@@ -3,7 +3,7 @@ import type { CardConfig } from "./types";
 
 export function normalizeConfig(config: CardConfig): CardConfig {
   if (config.entry_id) {
-    const theme = config.theme ?? "dark";
+    const theme = config.theme ?? "unifi";
     const themeSuffix = `?theme=${theme}`;
     return {
       entry_id: config.entry_id,

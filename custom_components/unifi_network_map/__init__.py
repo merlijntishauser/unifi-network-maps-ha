@@ -268,41 +268,47 @@ def _make_config_from_signature(
 
 
 async def _ensure_lovelace_resource(hass: HomeAssistant) -> None:
-    if _lovelace_resource_registered(hass):
-        return
+    lock = _get_lovelace_resource_lock(hass)
+    async with lock:
+        if _lovelace_resource_registered(hass):
+            return
 
-    data = hass.data.setdefault(DOMAIN, {})
-    attempts = data.get("lovelace_resource_attempts", 0)
-    LOGGER.debug("_ensure_lovelace_resource attempt %d", attempts + 1)
+        data = hass.data.setdefault(DOMAIN, {})
+        attempts = data.get("lovelace_resource_attempts", 0) + 1
+        data["lovelace_resource_attempts"] = attempts
+        LOGGER.debug("_ensure_lovelace_resource attempt %d", attempts)
+        if attempts > 6:
+            _log_lovelace_registration_failure(hass, attempts)
+            return
 
-    resources = _load_lovelace_resources()
-    if resources is None:
-        LOGGER.debug("Lovelace resources module not available yet")
-        _schedule_lovelace_resource_retry(hass)
-        return
+        resources = _load_lovelace_resources()
+        if resources is None:
+            LOGGER.debug("Lovelace resources module not available yet")
+            _schedule_lovelace_resource_retry(hass)
+            return
 
-    LOGGER.debug("Lovelace resources module loaded, fetching items")
-    items = await _fetch_lovelace_items(hass, resources)
-    if items is None:
-        LOGGER.debug("Lovelace resources list not ready yet")
-        _schedule_lovelace_resource_retry(hass)
-        return
+        LOGGER.debug("Lovelace resources module loaded, fetching items")
+        items = await _fetch_lovelace_items(hass, resources)
+        if items is None:
+            LOGGER.debug("Lovelace resources list not ready yet")
+            _schedule_lovelace_resource_retry(hass)
+            return
 
-    resource_url = _frontend_bundle_url()
-    LOGGER.debug("Got %d existing resources, checking for %s", len(items), resource_url)
+        resource_url = _frontend_bundle_url()
+        LOGGER.debug("Got %d existing resources, checking for %s", len(items), resource_url)
 
-    if any(item.get("url") == resource_url for item in items):
-        LOGGER.debug("Lovelace resource already registered: %s", resource_url)
-        _mark_lovelace_resource_registered(hass)
-        return
+        if any(item.get("url") == resource_url for item in items):
+            LOGGER.debug("Lovelace resource already registered: %s", resource_url)
+            _mark_lovelace_resource_registered(hass)
+            return
 
-    LOGGER.debug("Creating Lovelace resource")
-    created = await _create_lovelace_resource(hass, resources, resource_url)
-    if created:
-        _mark_lovelace_resource_registered(hass)
-    else:
-        LOGGER.debug("Lovelace resource creation failed, will retry")
-        _schedule_lovelace_resource_retry(hass)
+        LOGGER.debug("Creating Lovelace resource")
+        created = await _create_lovelace_resource(hass, resources, resource_url)
+        if created:
+            _mark_lovelace_resource_registered(hass)
+        else:
+            LOGGER.debug("Lovelace resource creation failed, will retry")
+            _schedule_lovelace_resource_retry(hass)
 
 
 def _schedule_lovelace_resource_registration(hass: HomeAssistant) -> None:
@@ -323,14 +329,16 @@ async def _retry_lovelace_resource(hass: HomeAssistant, delay_seconds: int) -> N
 
 def _schedule_lovelace_resource_retry(hass: HomeAssistant) -> None:
     data = hass.data.setdefault(DOMAIN, {})
-    # Increment first to avoid race condition where multiple concurrent calls
-    # could all read the same value before any of them increments
-    attempts = data.get("lovelace_resource_attempts", 0) + 1
-    data["lovelace_resource_attempts"] = attempts
-    if attempts > 6:
-        _log_lovelace_registration_failure(hass, attempts)
+    task = data.get("lovelace_resource_retry_task")
+    if task and not task.done():
         return
-    hass.async_create_task(_retry_lovelace_resource(hass, 10))
+    retry_task = hass.async_create_task(_retry_lovelace_resource(hass, 10))
+    data["lovelace_resource_retry_task"] = retry_task
+
+    def _on_retry_done(_task: asyncio.Task[None]) -> None:
+        _clear_lovelace_retry_task(hass, retry_task)
+
+    retry_task.add_done_callback(_on_retry_done)
 
 
 def _log_lovelace_registration_failure(hass: HomeAssistant, attempts: int) -> None:
@@ -355,6 +363,25 @@ def _lovelace_resource_registered(hass: HomeAssistant) -> bool:
 def _mark_lovelace_resource_registered(hass: HomeAssistant) -> None:
     data = hass.data.setdefault(DOMAIN, {})
     data["lovelace_resource_registered"] = True
+    data["lovelace_resource_attempts"] = 0
+    data.pop("lovelace_resource_failed", None)
+    data.pop("lovelace_resource_retry_task", None)
+
+
+def _clear_lovelace_retry_task(hass: HomeAssistant, task: asyncio.Task[None]) -> None:
+    data = hass.data.setdefault(DOMAIN, {})
+    if data.get("lovelace_resource_retry_task") is task:
+        data.pop("lovelace_resource_retry_task", None)
+
+
+def _get_lovelace_resource_lock(hass: HomeAssistant) -> asyncio.Lock:
+    data = hass.data.setdefault(DOMAIN, {})
+    lock = data.get("lovelace_resource_lock")
+    if isinstance(lock, asyncio.Lock):
+        return lock
+    lock = asyncio.Lock()
+    data["lovelace_resource_lock"] = lock
+    return lock
 
 
 def _load_lovelace_resources() -> ModuleType | LovelaceResourcesModule | None:

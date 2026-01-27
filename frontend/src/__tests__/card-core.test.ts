@@ -250,14 +250,14 @@ describe("unifi-network-map card core", () => {
     const stub = cardClass.getStubConfig();
     expect(layout.grid_columns).toBe(4);
     expect(editor.tagName.toLowerCase()).toBe("unifi-network-map-editor");
-    expect(stub.theme).toBe("dark");
+    expect(stub.theme).toBe("unifi");
   });
 
-  it("defaults to dark theme when entry_id config has no theme", () => {
+  it("defaults to unifi theme when entry_id config has no theme", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     element.setConfig({ entry_id: "entry-2" });
     const config = (element as unknown as { _config?: { svg_url?: string } })._config;
-    expect(config?.svg_url).toBe("/api/unifi_network_map/entry-2/svg?theme=dark");
+    expect(config?.svg_url).toBe("/api/unifi_network_map/entry-2/svg?theme=unifi");
   });
 
   it("normalizes entry_id config into URLs", () => {

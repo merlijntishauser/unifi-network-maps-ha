@@ -21,10 +21,31 @@ class _FakeHass:
 
     def async_create_task(self, coro: object) -> object:
         """Create a task from a coroutine."""
-        self.tasks.append(coro)
+        task = _FakeTask(coro)
+        self.tasks.append(task)
         if hasattr(coro, "close"):
             coro.close()
-        return coro
+        return task
+
+
+class _FakeTask:
+    """Minimal task shim for retry scheduling."""
+
+    def __init__(self, coro: object) -> None:
+        self._coro = coro
+        self._done = False
+        self._callbacks: list[Callable[[object], None]] = []
+
+    def done(self) -> bool:
+        return self._done
+
+    def add_done_callback(self, callback: Callable[[object], None]) -> None:
+        self._callbacks.append(callback)
+
+    def set_done(self) -> None:
+        self._done = True
+        for callback in list(self._callbacks):
+            callback(self)
 
 
 class _FakeBus:
@@ -244,25 +265,27 @@ def test_ensure_lovelace_resource_handles_missing_lovelace_data() -> None:
         setattr(unifi_network_map, "_load_lovelace_resources", original_load)
 
 
-def test_schedule_lovelace_resource_retry_increments_attempts() -> None:
+def test_schedule_lovelace_resource_retry_schedules_once() -> None:
     hass = _FakeHass()
     hass.data["unifi_network_map"] = {"lovelace_resource_attempts": 1}
 
     schedule_retry = getattr(unifi_network_map, "_schedule_lovelace_resource_retry")
     schedule_retry(hass)
+    schedule_retry(hass)
 
-    assert hass.data["unifi_network_map"]["lovelace_resource_attempts"] == 2
+    assert hass.data["unifi_network_map"]["lovelace_resource_attempts"] == 1
     assert len(hass.tasks) == 1
 
 
-def test_schedule_lovelace_resource_retry_logs_failure(caplog: pytest.LogCaptureFixture) -> None:
+def test_ensure_lovelace_resource_logs_failure_after_attempts(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     hass = _FakeHass()
     hass.data["unifi_network_map"] = {"lovelace_resource_attempts": 6}
 
     caplog.set_level("ERROR")
-    schedule_retry = getattr(unifi_network_map, "_schedule_lovelace_resource_retry")
-    schedule_retry(hass)
-    schedule_retry(hass)
+    ensure_resource = getattr(unifi_network_map, "_ensure_lovelace_resource")
+    asyncio.run(ensure_resource(hass))
 
     assert "Lovelace auto-registration failed after" in caplog.text
     assert hass.data["unifi_network_map"]["lovelace_resource_failed"] is True
@@ -330,6 +353,51 @@ def test_ensure_lovelace_resource_retries_when_create_fails() -> None:
 
     assert hass.data["unifi_network_map"]["lovelace_resource_attempts"] == 1
     assert hass.tasks
+
+
+def test_ensure_lovelace_resource_serializes_concurrent_calls() -> None:
+    hass = _FakeHass()
+    hass.data["unifi_network_map"] = {}
+    resources = _ResourcesModule()
+    calls: list[str] = []
+    gate = asyncio.Event()
+
+    async def _fetch(_hass: _FakeHass, _resources: object):
+        calls.append("fetch")
+        await gate.wait()
+        return []
+
+    async def _create(_hass: _FakeHass, _resources: object, _url: str) -> bool:
+        return True
+
+    original_load = getattr(unifi_network_map, "_load_lovelace_resources")
+    original_fetch = getattr(unifi_network_map, "_fetch_lovelace_items")
+    original_create = getattr(unifi_network_map, "_create_lovelace_resource")
+
+    setattr(unifi_network_map, "_load_lovelace_resources", lambda: resources)
+    setattr(unifi_network_map, "_fetch_lovelace_items", _fetch)
+    setattr(unifi_network_map, "_create_lovelace_resource", _create)
+
+    async def _run() -> None:
+        ensure_resource = getattr(unifi_network_map, "_ensure_lovelace_resource")
+        task1 = asyncio.create_task(ensure_resource(hass))
+        await asyncio.sleep(0)
+        task2 = asyncio.create_task(ensure_resource(hass))
+        await asyncio.sleep(0)
+        assert calls == ["fetch"]
+        gate.set()
+        await asyncio.gather(task1, task2)
+
+    try:
+        asyncio.run(_run())
+    finally:
+        setattr(unifi_network_map, "_load_lovelace_resources", original_load)
+        setattr(unifi_network_map, "_fetch_lovelace_items", original_fetch)
+        setattr(unifi_network_map, "_create_lovelace_resource", original_create)
+
+    assert calls == ["fetch"]
+    assert hass.data["unifi_network_map"]["lovelace_resource_registered"] is True
+    assert hass.data["unifi_network_map"]["lovelace_resource_attempts"] == 0
 
 
 def test_retry_lovelace_resource_calls_ensure(monkeypatch: pytest.MonkeyPatch) -> None:

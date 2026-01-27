@@ -47,5 +47,5 @@ export function normalizeTheme(
   if (value === "light") return "light";
   if (value === "unifi") return "unifi";
   if (value === "unifi-dark") return "unifi-dark";
-  return "dark";
+  return "unifi";
 }

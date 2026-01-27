@@ -115,7 +115,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
   }
 
   static getStubConfig() {
-    return { entry_id: "", theme: "dark" };
+    return { entry_id: "", theme: "unifi" };
   }
 
   setConfig(config: CardConfig) {

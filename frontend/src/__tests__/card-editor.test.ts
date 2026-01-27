@@ -70,7 +70,7 @@ describe("unifi-network-map editor", () => {
       }),
     );
     const detail = (handler.mock.calls[0][0] as CustomEvent).detail;
-    expect(detail.config.theme).toBe("dark");
+    expect(detail.config.theme).toBe("unifi");
   });
 
   it("skips loading entries when hass callWS is missing", async () => {
@@ -83,7 +83,7 @@ describe("unifi-network-map editor", () => {
 
   it("keeps config when entry and theme are unchanged", async () => {
     const element = document.createElement("unifi-network-map-editor") as EditorElement;
-    element.setConfig({ entry_id: "entry-1", theme: "dark" });
+    element.setConfig({ entry_id: "entry-1", theme: "unifi" });
     const callWS = jest
       .fn()
       .mockResolvedValue([{ entry_id: "entry-1", title: "Site", domain: "unifi_network_map" }]);
@@ -94,7 +94,7 @@ describe("unifi-network-map editor", () => {
     const form = element.querySelector("ha-form") as HTMLElement;
     form.dispatchEvent(
       new CustomEvent("value-changed", {
-        detail: { value: { entry_id: "entry-1", theme: "dark" } },
+        detail: { value: { entry_id: "entry-1", theme: "unifi" } },
       }),
     );
     expect(handler).not.toHaveBeenCalled();
