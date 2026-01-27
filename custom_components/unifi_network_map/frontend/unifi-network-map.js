@@ -5480,29 +5480,44 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       other: this._localize("panel.device_type.other")
     };
     const deviceTypes = ["gateway", "switch", "ap", "client", "other"];
-    const filterBar = document.createElement("div");
-    filterBar.className = "filter-bar";
+    let filterBar = container.querySelector(".filter-bar");
+    if (!filterBar) {
+      filterBar = document.createElement("div");
+      filterBar.className = "filter-bar";
+      container.appendChild(filterBar);
+    }
     for (const type of deviceTypes) {
       const count = counts[type] ?? 0;
       const active = this._filterState[type];
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = `filter-button ${active ? "filter-button--active" : "filter-button--inactive"}`;
-      button.dataset.filterType = type;
       const titleKey = active ? "card.filter.hide" : "card.filter.show";
-      button.title = this._localize(titleKey, { label: labels[type] });
       const icon = nodeTypeIcon(type, theme);
-      button.innerHTML = `<span class="filter-button__icon">${icon}</span><span class="filter-button__count">${count}</span>`;
-      button.onclick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this._filterState = toggleFilter(this._filterState, type);
-        this._updateFilterDisplay();
-      };
-      filterBar.appendChild(button);
+      let button = filterBar.querySelector(
+        `button[data-filter-type="${type}"]`
+      );
+      if (!button) {
+        button = document.createElement("button");
+        button.type = "button";
+        button.dataset.filterType = type;
+        button.innerHTML = `<span class="filter-button__icon"></span><span class="filter-button__count"></span>`;
+        button.onclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this._filterState = toggleFilter(this._filterState, type);
+          this._updateFilterDisplay();
+        };
+        filterBar.appendChild(button);
+      }
+      button.className = `filter-button ${active ? "filter-button--active" : "filter-button--inactive"}`;
+      button.title = this._localize(titleKey, { label: labels[type] });
+      const iconSpan = button.querySelector(".filter-button__icon");
+      if (iconSpan) {
+        iconSpan.innerHTML = icon;
+      }
+      const countSpan = button.querySelector(".filter-button__count");
+      if (countSpan) {
+        countSpan.textContent = String(count);
+      }
     }
-    container.innerHTML = "";
-    container.appendChild(filterBar);
   }
   _renderLoadingOverlay() {
     if (!this._showLoadingOverlay || !this._isLoading()) {
