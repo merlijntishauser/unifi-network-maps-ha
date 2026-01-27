@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Warn users to hard-refresh when the custom lovelace card isn't listed after installation
 - Improvement of listing related entities for a node/client
+- (Configurable) 30s timeout for UniFi API calls to avoid hangs
 
 ### Changed
 - SSL verification checkbox is unchecked by default, UniFi controllers ship with self-signed certificates that would cause connection failures if verification is    
@@ -17,11 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Logging at the info level is reduced
 - When adding the custom card to Lovelace, the first known site is selected by default
 - Reverted the (login) backoff to a proper exponential sequence (current delay, then double for next retry)
+- Update filter buttons incrementally instead of full rebuild
 
 ### Fixed
 - Possible race condition in Lovelace resource retry
 - Prevent stale WebSocket subscriptions on config changes
-- Add 30s timeout for UniFi API calls to avoid hangs
 
 ## [1.4.9] - 2023-01-26
 ### Added

@@ -566,38 +566,49 @@ export class UnifiNetworkMapCard extends HTMLElement {
 
     const deviceTypes: DeviceType[] = ["gateway", "switch", "ap", "client", "other"];
 
-    const filterBar = document.createElement("div");
-    filterBar.className = "filter-bar";
+    let filterBar = container.querySelector(".filter-bar") as HTMLDivElement | null;
+    if (!filterBar) {
+      filterBar = document.createElement("div");
+      filterBar.className = "filter-bar";
+      container.appendChild(filterBar);
+    }
 
     for (const type of deviceTypes) {
       const count = counts[type] ?? 0;
       const active = this._filterState[type];
-
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = `filter-button ${active ? "filter-button--active" : "filter-button--inactive"}`;
-      button.dataset.filterType = type;
-
-      // Dynamic tooltip based on current state
       const titleKey = active ? "card.filter.hide" : "card.filter.show";
+      const icon = nodeTypeIcon(type, theme);
+
+      let button = filterBar.querySelector(
+        `button[data-filter-type="${type}"]`,
+      ) as HTMLButtonElement | null;
+
+      if (!button) {
+        button = document.createElement("button");
+        button.type = "button";
+        button.dataset.filterType = type;
+        button.innerHTML = `<span class="filter-button__icon"></span><span class="filter-button__count"></span>`;
+        button.onclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this._filterState = toggleFilter(this._filterState, type);
+          this._updateFilterDisplay();
+        };
+        filterBar.appendChild(button);
+      }
+
+      button.className = `filter-button ${active ? "filter-button--active" : "filter-button--inactive"}`;
       button.title = this._localize(titleKey, { label: labels[type] });
 
-      // Use nodeTypeIcon which returns heroicons for unifi themes, emojis otherwise
-      const icon = nodeTypeIcon(type, theme);
-      button.innerHTML = `<span class="filter-button__icon">${icon}</span><span class="filter-button__count">${count}</span>`;
-
-      button.onclick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this._filterState = toggleFilter(this._filterState, type);
-        this._updateFilterDisplay();
-      };
-
-      filterBar.appendChild(button);
+      const iconSpan = button.querySelector(".filter-button__icon") as HTMLElement | null;
+      if (iconSpan) {
+        iconSpan.innerHTML = icon;
+      }
+      const countSpan = button.querySelector(".filter-button__count") as HTMLElement | null;
+      if (countSpan) {
+        countSpan.textContent = String(count);
+      }
     }
-
-    container.innerHTML = "";
-    container.appendChild(filterBar);
   }
 
   private _renderLoadingOverlay(): string {

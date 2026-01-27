@@ -27,7 +27,6 @@
 
 | Priority | Issue | Impact |
 |----------|-------|--------|
-| High | Filter bar DOM churn on every update | Performance degrades on large networks |
 | Medium | AbortController race in concurrent fetches | Stale data can overwrite fresh data |
 | Medium | Shallow copy of payload dict | Potential data corruption risk |
 
@@ -46,7 +45,7 @@ Focus: Fix critical bugs and improve performance before adding new features.
 
 ### 1.2 Performance
 - [ ] Cache entity registry index; rebuild only on entity changes
-- [ ] Update filter buttons incrementally instead of full rebuild
+- [x] Update filter buttons incrementally instead of full rebuild
 - [ ] Cache SVG annotations; only re-annotate when content changes
 - [ ] Add payload caching with configurable TTL
 
