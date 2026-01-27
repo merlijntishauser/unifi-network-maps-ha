@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import inspect
 import importlib
+import logging
 from types import ModuleType
 
 from homeassistant.config_entries import ConfigEntry
@@ -20,6 +21,12 @@ from .coordinator import UniFiNetworkMapCoordinator
 
 
 ResourceItem = Mapping[str, Any]
+_unifi_api_info_filter_added = False
+
+
+class _UnifiApiInfoFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        return record.levelno != logging.INFO
 
 
 class LovelaceResourcesModule(Protocol):
@@ -33,6 +40,7 @@ class LovelaceResourcesModule(Protocol):
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     from .http import register_unifi_http_views
 
+    _suppress_unifi_api_info_logs(hass)
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
     await _initialize_coordinator(coordinator)
     _store_coordinator(hass, entry.entry_id, coordinator)
@@ -57,6 +65,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok:
         hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
     return unload_ok
+
+
+def _suppress_unifi_api_info_logs(hass: HomeAssistant) -> None:
+    global _unifi_api_info_filter_added
+    if _unifi_api_info_filter_added or getattr(getattr(hass, "config", None), "debug", False):
+        return
+    logging.getLogger("unifi_controller_api.api_client").addFilter(_UnifiApiInfoFilter())
+    _unifi_api_info_filter_added = True
 
 
 def _register_refresh_service(hass: HomeAssistant) -> None:
