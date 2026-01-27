@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - When adding the custom card to Lovelace, the first known site is selected by default
 - Reverted the (login) backoff to a proper exponential sequence (current delay, then double for next retry)
 - Update filter buttons incrementally instead of full rebuild
+- Addressed shallow payload copy by switching to deepcopy for payloads in both HTTP and WebSocket paths to prevent mutation of nested structures
 
 ### Fixed
 - Possible race condition in Lovelace resource retry

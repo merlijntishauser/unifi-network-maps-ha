@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+from copy import deepcopy
 
 import voluptuous as vol
 from homeassistant.components import websocket_api
@@ -83,7 +84,7 @@ def _build_payload(hass: HomeAssistant, coordinator: UniFiNetworkMapCoordinator)
     if data is None:
         return {}
 
-    payload = dict(data.payload)
+    payload = deepcopy(data.payload)
     client_macs = payload.get("client_macs", {})
     device_macs = payload.get("device_macs", {})
 

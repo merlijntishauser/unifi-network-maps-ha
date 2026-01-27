@@ -13,21 +13,18 @@
 ## Current State (v1.4.x)
 
 ### Core Features
-- [x] Interactive SVG topology map with pan/zoom
-- [x] Device filtering by type (gateway, switch, AP, client)
-- [x] WebSocket push updates (no polling)
-- [x] Node selection with detail panel
-- [x] Entity linking (MAC addresses to HA entities)
-- [x] VLAN visualization
-- [x] Port utilization display
-- [x] Theme support (dark, light, unifi, unifi-dark)
-- [x] Mobile touch gestures
+- Interactive SVG topology map with pan/zoom
+- Device filtering by type (gateway, switch, AP, client)
+- WebSocket push updates (no polling)
+- Node selection with detail panel
+- Entity linking (MAC addresses to HA entities)
+- VLAN visualization
+- Port utilization display
+- Theme support (dark, light, unifi, unifi-dark)
+- Mobile touch gestures
 
 ### Known Issues to Fix
-
-| Priority | Issue | Impact |
-| no known issues |
-| Medium | Shallow copy of payload dict | Potential data corruption risk |
+- no known critical bugs
 
 ---
 

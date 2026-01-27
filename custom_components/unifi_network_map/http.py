@@ -5,6 +5,7 @@ from pathlib import Path
 import re
 import shutil
 import tempfile
+from copy import deepcopy
 from importlib import resources as importlib_resources
 
 from homeassistant.helpers import device_registry as dr
@@ -71,7 +72,7 @@ class UniFiNetworkMapPayloadView(HomeAssistantView):
         data = _get_data(_get_coordinator(hass, entry_id))
         if data is None:
             raise web.HTTPNotFound()
-        payload = dict(data.payload)
+        payload = deepcopy(data.payload)
         client_macs = payload.get("client_macs", {})
         device_macs = payload.get("device_macs", {})
         client_entities = resolve_client_entity_map(hass, client_macs)
