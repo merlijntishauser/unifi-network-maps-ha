@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   enabled
 - Switched the default theme from "dark" to "UniFi"
 - Logging at the info level is reduced
+- When adding the custom card to Lovelace, the first known site is selected by default
+- Reverted the (login) backoff to a proper exponential sequence (current delay, then double for next retry)
 
 ### Fixed
 - Possible race condition in Lovelace resource retry

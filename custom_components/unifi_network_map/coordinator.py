@@ -114,12 +114,13 @@ class UniFiNetworkMapCoordinator(DataUpdateCoordinator[UniFiNetworkMapData]):
         now = monotonic_seconds()
         delay = min(self._auth_backoff_seconds, AUTH_BACKOFF_MAX_SECONDS)
         self._auth_backoff_until = now + delay
+        next_delay = min(self._auth_backoff_seconds * 2, AUTH_BACKOFF_MAX_SECONDS)
         LOGGER.warning(
             "Auth backoff activated: waiting %ds before retry (next delay: %ds)",
             delay,
-            min(delay * 2, AUTH_BACKOFF_MAX_SECONDS),
+            next_delay,
         )
-        self._auth_backoff_seconds = min(delay * 2, AUTH_BACKOFF_MAX_SECONDS)
+        self._auth_backoff_seconds = next_delay
 
     def _reset_auth_backoff(self) -> None:
         if self._auth_backoff_until is not None:
