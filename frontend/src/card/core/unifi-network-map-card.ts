@@ -28,6 +28,7 @@ import type { IconTheme } from "../ui/icons";
 import { renderPanelContent, renderTabContent } from "../ui/panel";
 import { renderContextMenu } from "../ui/context-menu";
 import { fetchWithAuth } from "../data/auth";
+import type { AuthFetchResult } from "../data/auth";
 import { showToast } from "../shared/feedback";
 import { loadPayload, loadSvg } from "../data/data";
 import { subscribeMapUpdates } from "../data/websocket";
@@ -379,97 +380,46 @@ export class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private async _loadSvg() {
-    if (!this._config?.svg_url || !this._hass) {
+    if (!this._shouldLoadSvg()) {
       return;
     }
-    if (this._loading || this._config.svg_url === this._lastSvgUrl) {
+    if (!this._ensureAuthForSvg()) {
       return;
     }
-    if (!this._getAuthToken()) {
-      this._error = "Missing auth token";
-      this._render();
+    const request = this._beginSvgRequest();
+    if (!request) {
       return;
     }
-
-    this._svgAbortController?.abort();
-    this._svgAbortController = new AbortController();
-    const requestId = ++this._svgRequestId;
-    const currentUrl = this._config.svg_url;
-
-    this._loading = true;
-    const isRefresh = !!this._svgContent;
-    if (!isRefresh) {
-      this._showLoadingOverlay = true;
-      this._render();
-    } else {
-      this._scheduleLoadingOverlay();
-    }
+    this._prepareSvgLoadingOverlay(request.isRefresh);
     const result = await loadSvg(
       this._fetchWithAuth.bind(this),
-      currentUrl,
-      this._svgAbortController.signal,
+      request.url,
+      request.controller.signal,
     );
-
-    if (requestId !== this._svgRequestId) {
+    if (!this._isActiveSvgRequest(request.id, result)) {
       return;
     }
-    if ("aborted" in result) {
-      return;
-    }
-    if ("error" in result) {
-      this._error = `Failed to load SVG (${result.error})`;
-    } else {
-      this._svgContent = result.data;
-      this._error = undefined;
-    }
-    this._lastSvgUrl = currentUrl;
-    this._loading = false;
-    this._clearLoadingOverlay();
-    this._render();
+    this._finalizeSvgRequest(result, request.url);
   }
 
   private async _loadPayload() {
-    if (!this._config?.data_url || !this._hass) {
+    if (!this._shouldLoadPayload()) {
       return;
     }
-    if (this._dataLoading || this._config.data_url === this._lastDataUrl) {
+    const request = this._beginPayloadRequest();
+    if (!request) {
       return;
     }
-    if (!this._getAuthToken()) {
-      return;
-    }
-
-    this._payloadAbortController?.abort();
-    this._payloadAbortController = new AbortController();
-    const requestId = ++this._payloadRequestId;
-    const currentUrl = this._config.data_url;
-
-    this._dataLoading = true;
-    const isRefresh = !!this._payload;
-    if (!isRefresh) {
-      this._scheduleLoadingOverlay();
-    }
+    this._preparePayloadLoadingOverlay(request.isRefresh);
     const result = await loadPayload<MapPayload>(
       this._fetchWithAuth.bind(this),
-      currentUrl,
-      this._payloadAbortController.signal,
+      request.url,
+      request.controller.signal,
     );
-
-    if (requestId !== this._payloadRequestId) {
+    if (!this._isActivePayloadRequest(request.id, result)) {
       return;
     }
-    if ("aborted" in result) {
-      return;
-    }
-    if ("error" in result) {
-      this._error = `Failed to load payload (${result.error})`;
-    } else {
-      this._payload = result.data;
-    }
-    this._lastDataUrl = currentUrl;
-    this._dataLoading = false;
-    this._clearLoadingOverlay();
-    this._render();
+    this._finalizePayloadRequest(result, request.url);
   }
 
   private _scheduleLoadingOverlay(): void {
@@ -490,6 +440,120 @@ export class UnifiNetworkMapCard extends HTMLElement {
     if (!this._isLoading()) {
       this._showLoadingOverlay = false;
     }
+  }
+
+  private _shouldLoadSvg(): boolean {
+    if (!this._config?.svg_url || !this._hass) {
+      return false;
+    }
+    return !(this._loading || this._config.svg_url === this._lastSvgUrl);
+  }
+
+  private _ensureAuthForSvg(): boolean {
+    if (this._getAuthToken()) {
+      return true;
+    }
+    this._error = "Missing auth token";
+    this._render();
+    return false;
+  }
+
+  private _beginSvgRequest(): {
+    id: number;
+    url: string;
+    controller: AbortController;
+    isRefresh: boolean;
+  } | null {
+    const url = this._config?.svg_url;
+    if (!url) {
+      return null;
+    }
+    this._svgAbortController?.abort();
+    const controller = new AbortController();
+    this._svgAbortController = controller;
+    this._loading = true;
+    return { id: ++this._svgRequestId, url, controller, isRefresh: !!this._svgContent };
+  }
+
+  private _prepareSvgLoadingOverlay(isRefresh: boolean): void {
+    if (!isRefresh) {
+      this._showLoadingOverlay = true;
+      this._render();
+      return;
+    }
+    this._scheduleLoadingOverlay();
+  }
+
+  private _isActiveSvgRequest(requestId: number, result: AuthFetchResult<string>): boolean {
+    if (requestId !== this._svgRequestId) {
+      return false;
+    }
+    return !("aborted" in result);
+  }
+
+  private _finalizeSvgRequest(result: AuthFetchResult<string>, url: string): void {
+    if ("error" in result && result.error) {
+      this._error = `Failed to load SVG (${result.error})`;
+    } else if ("data" in result) {
+      this._svgContent = result.data ?? "";
+      this._error = undefined;
+    }
+    this._lastSvgUrl = url;
+    this._loading = false;
+    this._clearLoadingOverlay();
+    this._render();
+  }
+
+  private _shouldLoadPayload(): boolean {
+    if (!this._config?.data_url || !this._hass) {
+      return false;
+    }
+    if (this._dataLoading || this._config.data_url === this._lastDataUrl) {
+      return false;
+    }
+    return !!this._getAuthToken();
+  }
+
+  private _beginPayloadRequest(): {
+    id: number;
+    url: string;
+    controller: AbortController;
+    isRefresh: boolean;
+  } | null {
+    const url = this._config?.data_url;
+    if (!url) {
+      return null;
+    }
+    this._payloadAbortController?.abort();
+    const controller = new AbortController();
+    this._payloadAbortController = controller;
+    this._dataLoading = true;
+    return { id: ++this._payloadRequestId, url, controller, isRefresh: !!this._payload };
+  }
+
+  private _preparePayloadLoadingOverlay(isRefresh: boolean): void {
+    if (!isRefresh) {
+      this._scheduleLoadingOverlay();
+    }
+  }
+
+  private _isActivePayloadRequest(requestId: number, result: AuthFetchResult<MapPayload>): boolean {
+    if (requestId !== this._payloadRequestId) {
+      return false;
+    }
+    return !("aborted" in result);
+  }
+
+  private _finalizePayloadRequest(result: AuthFetchResult<MapPayload>, url: string): void {
+    if ("error" in result && result.error) {
+      this._error = `Failed to load payload (${result.error})`;
+    } else if ("data" in result) {
+      this._payload = result.data;
+    }
+    this._lastDataUrl = url;
+    this._dataLoading = false;
+    this._clearLoadingOverlay();
+    this._render();
   }
 
   private _renderPreview(): string {

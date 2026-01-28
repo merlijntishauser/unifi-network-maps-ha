@@ -88,18 +88,10 @@ export function annotateNodeIds(svg: SVGElement, nodeNames: string[]): void {
   const titleMap = buildTextMap(svg, "title");
 
   for (const name of nodeNames) {
-    if (!name) continue;
-    if (svg.querySelector(`[data-node-id="${CSS.escape(name)}"]`)) {
+    const holder = findNodeHolder(svg, name, textMap, titleMap);
+    if (!holder) {
       continue;
     }
-    const ariaMatch = svg.querySelector(`[aria-label="${CSS.escape(name)}"]`);
-    const textMatch = textMap.get(name)?.[0] ?? null;
-    const titleMatch = titleMap.get(name)?.[0] ?? null;
-    const target = (ariaMatch ?? textMatch ?? titleMatch) as Element | null;
-    if (!target) {
-      continue;
-    }
-    const holder = target.closest("g") ?? target;
     holder.setAttribute("data-node-id", name);
   }
 }
@@ -120,6 +112,39 @@ function buildTextMap(svg: SVGElement, selector: "text" | "title"): Map<string, 
     map.set(text, list);
   }
   return map;
+}
+
+function findNodeHolder(
+  svg: SVGElement,
+  name: string,
+  textMap: Map<string, Element[]>,
+  titleMap: Map<string, Element[]>,
+): Element | null {
+  if (!name) {
+    return null;
+  }
+  if (svg.querySelector(`[data-node-id="${CSS.escape(name)}"]`)) {
+    return null;
+  }
+  const target = findNodeTarget(svg, name, textMap, titleMap);
+  if (!target) {
+    return null;
+  }
+  return target.closest("g") ?? target;
+}
+
+function findNodeTarget(
+  svg: SVGElement,
+  name: string,
+  textMap: Map<string, Element[]>,
+  titleMap: Map<string, Element[]>,
+): Element | null {
+  return (
+    svg.querySelector(`[aria-label="${CSS.escape(name)}"]`) ??
+    textMap.get(name)?.[0] ??
+    titleMap.get(name)?.[0] ??
+    null
+  );
 }
 
 function findByDataNodeId(svg: SVGElement, nodeName: string): Element | null {

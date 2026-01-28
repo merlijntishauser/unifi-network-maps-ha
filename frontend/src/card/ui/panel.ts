@@ -7,6 +7,7 @@ import type {
   VlanInfo,
 } from "../core/types";
 import type { IconName } from "./icons";
+import { getNodeIpFromPayload } from "../shared/node-utils";
 
 export type PanelContext = {
   payload?: MapPayload;
@@ -545,12 +546,7 @@ function getNodeMac(payload: PanelContext["payload"], name: string): string | nu
 }
 
 function getNodeIp(payload: PanelContext["payload"], name: string): string | null {
-  return (
-    payload?.client_ips?.[name] ??
-    payload?.device_ips?.[name] ??
-    payload?.related_entities?.[name]?.find((e) => e.ip)?.ip ??
-    null
-  );
+  return getNodeIpFromPayload(payload, name);
 }
 
 function getNodeEntityId(payload: PanelContext["payload"], name: string): string | null {

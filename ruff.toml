@@ -5,7 +5,7 @@ line-length = 100
 extend-select = ["C90"]
 
 [lint.mccabe]
-max-complexity = 13
+max-complexity = 11
 
 [format]
 quote-style = "double"

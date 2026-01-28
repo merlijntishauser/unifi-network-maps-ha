@@ -145,14 +145,38 @@ export class UnifiNetworkMapEditor extends HTMLElement {
         value?: { entry_id?: string; theme?: string; card_height?: string | number };
       }>
     ).detail;
-    const entryId = detail.value?.entry_id ?? this._config?.entry_id ?? "";
-    const themeValue = detail.value?.theme ?? this._config?.theme ?? "unifi";
-    const cardHeight = detail.value?.card_height ?? this._config?.card_height;
+    const entryId = this._resolveEntryId(detail.value);
+    const themeValue = this._resolveTheme(detail.value);
+    const cardHeight = this._resolveCardHeight(detail.value);
     return {
       entry_id: entryId,
       theme: normalizeTheme(themeValue),
       card_height: cardHeight,
     };
+  }
+
+  private _resolveEntryId(value?: {
+    entry_id?: string;
+    theme?: string;
+    card_height?: string | number;
+  }): string {
+    return value?.entry_id ?? this._config?.entry_id ?? "";
+  }
+
+  private _resolveTheme(value?: {
+    entry_id?: string;
+    theme?: string;
+    card_height?: string | number;
+  }): string {
+    return value?.theme ?? this._config?.theme ?? "unifi";
+  }
+
+  private _resolveCardHeight(value?: {
+    entry_id?: string;
+    theme?: string;
+    card_height?: string | number;
+  }): string | number | undefined {
+    return value?.card_height ?? this._config?.card_height;
   }
 
   private _isConfigUnchanged(update: {

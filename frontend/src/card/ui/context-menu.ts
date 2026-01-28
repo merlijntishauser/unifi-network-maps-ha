@@ -1,5 +1,6 @@
 import { escapeHtml } from "../data/sanitize";
 import type { MapPayload } from "../core/types";
+import { getNodeIpFromPayload } from "../shared/node-utils";
 
 export type ContextMenuRenderOptions = {
   nodeName: string;
@@ -200,10 +201,5 @@ function getNodeEntityId(payload: MapPayload | undefined, nodeName: string): str
 }
 
 function getNodeIp(payload: MapPayload | undefined, nodeName: string): string | null {
-  return (
-    payload?.client_ips?.[nodeName] ??
-    payload?.device_ips?.[nodeName] ??
-    payload?.related_entities?.[nodeName]?.find((entity) => entity.ip)?.ip ??
-    null
-  );
+  return getNodeIpFromPayload(payload, nodeName);
 }
