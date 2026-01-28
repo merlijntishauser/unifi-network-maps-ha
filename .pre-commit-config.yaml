@@ -37,6 +37,11 @@ repos:
         entry: bash -c '.venv/bin/ruff check custom_components tests'
         language: system
         pass_filenames: false
+      - id: radon-cc
+        name: radon cyclomatic complexity + MI
+        entry: bash -c 'python scripts/radon_report.py'
+        language: system
+        pass_filenames: false
       - id: frontend-test
         name: frontend test
         entry: bash -c 'make frontend-test'

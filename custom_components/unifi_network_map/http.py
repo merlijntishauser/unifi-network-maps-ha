@@ -183,38 +183,70 @@ def _build_mac_to_all_entities_index(hass: HomeAssistant) -> dict[str, list[str]
 
     entries = list(_iter_unifi_entity_entries(hass, entity_registry))
 
-    # First pass: build device_id -> MAC mapping from entities with known MACs
+    device_to_mac = _build_device_mac_map(hass, entries, device_registry)
+    _add_entities_from_registry(entries, device_to_mac, hass, device_registry, mac_to_entities)
+    _add_entities_from_states(hass, mac_to_entities)
+
+    return mac_to_entities
+
+
+def _build_device_mac_map(
+    hass: HomeAssistant,
+    entries: list[er.RegistryEntry],
+    device_registry: dr.DeviceRegistry,
+) -> dict[str, str]:
+    """Map device_id -> MAC from registry entries that expose a MAC."""
     device_to_mac: dict[str, str] = {}
     for entry in entries:
         mac = mac_from_entity_entry(hass, entry, device_registry)
         if mac and entry.device_id:
             device_to_mac[entry.device_id] = mac
+    return device_to_mac
 
-    # Second pass: add ALL entities belonging to devices with known MACs
+
+def _add_entities_from_registry(
+    entries: list[er.RegistryEntry],
+    device_to_mac: dict[str, str],
+    hass: HomeAssistant,
+    device_registry: dr.DeviceRegistry,
+    mac_to_entities: dict[str, list[str]],
+) -> None:
+    """Add entity_ids from registry entries using direct or device MAC lookup."""
     for entry in entries:
-        mac = None
-        # Try direct MAC lookup first
-        mac = mac_from_entity_entry(hass, entry, device_registry)
-        # Fall back to device's MAC if entity doesn't have one directly
-        if not mac and entry.device_id:
-            mac = device_to_mac.get(entry.device_id)
+        mac = _resolve_entry_mac(hass, entry, device_registry, device_to_mac)
         if mac:
-            entities = mac_to_entities.setdefault(mac, [])
-            if entry.entity_id not in entities:
-                entities.append(entry.entity_id)
+            _append_unique_entity(mac_to_entities, mac, entry.entity_id)
 
-    # Also check state-based MACs for non-registry entities
+
+def _resolve_entry_mac(
+    hass: HomeAssistant,
+    entry: er.RegistryEntry,
+    device_registry: dr.DeviceRegistry,
+    device_to_mac: dict[str, str],
+) -> str | None:
+    mac = mac_from_entity_entry(hass, entry, device_registry)
+    if mac:
+        return mac
+    if entry.device_id:
+        return device_to_mac.get(entry.device_id)
+    return None
+
+
+def _add_entities_from_states(hass: HomeAssistant, mac_to_entities: dict[str, list[str]]) -> None:
+    """Add entity_ids found via state-based MAC candidates."""
     for state in _iter_state_entries(hass):
         if not _is_state_mac_candidate(state):
             continue
         mac = _mac_from_state_entry(state)
         entity_id = getattr(state, "entity_id", None)
         if mac and entity_id:
-            entities = mac_to_entities.setdefault(mac, [])
-            if entity_id not in entities:
-                entities.append(entity_id)
+            _append_unique_entity(mac_to_entities, mac, entity_id)
 
-    return mac_to_entities
+
+def _append_unique_entity(mac_to_entities: dict[str, list[str]], mac: str, entity_id: str) -> None:
+    entities = mac_to_entities.setdefault(mac, [])
+    if entity_id not in entities:
+        entities.append(entity_id)
 
 
 def _entity_state_details(hass: HomeAssistant, entity_id: str) -> RelatedEntity:
