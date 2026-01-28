@@ -35,6 +35,8 @@ For the best experience, install the official Home Assistant UniFi integration f
 
 ## Installation
 
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=merlijntishauser&repository=unifi-network-maps-ha)
+
 The integration is available through HACS (Home Assistant Community Store). Open HACS, go to Integrations, search for "UniFi Network Map", and install it. After installation, restart Home Assistant.
 
 **Manual HACS installation**: If the integration is not yet listed in the default HACS repository, you can add it manually. In HACS, click the three-dot menu in the top right, select Custom repositories, and add `https://github.com/merlijntishauser/unifi-network-maps-ha` with category Integration. The integration will then appear in the HACS integration list.
