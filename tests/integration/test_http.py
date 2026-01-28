@@ -13,6 +13,7 @@ from custom_components.unifi_network_map import http as http_module
 from aiohttp import web
 from custom_components.unifi_network_map.data import UniFiNetworkMapData
 from custom_components.unifi_network_map.renderer import RenderSettings
+from tests.helpers import build_settings
 from unifi_network_maps.model.topology import Edge
 
 
@@ -100,19 +101,6 @@ def _run(coro):
     return asyncio.run(coro)
 
 
-def _build_settings() -> RenderSettings:
-    return RenderSettings(
-        include_ports=False,
-        include_clients=False,
-        client_scope="wired",
-        only_unifi=False,
-        svg_isometric=False,
-        svg_width=None,
-        svg_height=None,
-        use_cache=False,
-    )
-
-
 def test_resolve_node_status_map_filters_non_trackers() -> None:
     now = datetime(2026, 1, 17, tzinfo=timezone.utc)
     hass = FakeHass(
@@ -174,16 +162,7 @@ def test_svg_view_returns_404_when_missing_data() -> None:
 
 
 def test_svg_view_renders_theme_when_requested(monkeypatch: pytest.MonkeyPatch) -> None:
-    settings = RenderSettings(
-        include_ports=False,
-        include_clients=False,
-        client_scope="wired",
-        only_unifi=False,
-        svg_isometric=False,
-        svg_width=None,
-        svg_height=None,
-        use_cache=False,
-    )
+    settings = build_settings()
     data = UniFiNetworkMapData(svg="<svg />", payload={"edges": [{"left": "a", "right": "b"}]})
     coordinator = FakeCoordinator(settings=settings)
     hass = FakeHassWithHttp({})
@@ -212,7 +191,7 @@ def test_payload_view_returns_mapped_entities(monkeypatch: pytest.MonkeyPatch) -
         svg="<svg />",
         payload={"client_macs": {"One": "aa"}, "device_macs": {"Two": "bb"}},
     )
-    coordinator = FakeCoordinator(settings=_build_settings())
+    coordinator = FakeCoordinator(settings=build_settings())
     coordinator.data = data
     hass = FakeHassWithHttp({})
     hass.data["unifi_network_map"] = {"entry-1": coordinator}
@@ -302,16 +281,7 @@ def test_payload_view_returns_404_when_missing_data() -> None:
 
 
 def test_render_svg_with_theme_paths(monkeypatch: pytest.MonkeyPatch) -> None:
-    settings = RenderSettings(
-        include_ports=False,
-        include_clients=False,
-        client_scope="wired",
-        only_unifi=False,
-        svg_isometric=False,
-        svg_width=None,
-        svg_height=None,
-        use_cache=False,
-    )
+    settings = build_settings()
     data = UniFiNetworkMapData(
         svg="<svg />",
         payload={
@@ -340,16 +310,7 @@ def test_render_svg_with_theme_paths(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_render_svg_with_theme_returns_original_on_missing_edges() -> None:
-    settings = RenderSettings(
-        include_ports=False,
-        include_clients=False,
-        client_scope="wired",
-        only_unifi=False,
-        svg_isometric=True,
-        svg_width=None,
-        svg_height=None,
-        use_cache=False,
-    )
+    settings = build_settings(svg_isometric=True)
     data = UniFiNetworkMapData(svg="<svg />", payload={"edges": [], "node_types": {}})
     coordinator = cast(http_module.UniFiNetworkMapCoordinator, FakeCoordinator(settings=settings))
 
@@ -370,7 +331,7 @@ def test_render_svg_with_theme_returns_original_on_missing_theme(
         payload={"edges": [{"left": "a", "right": "b"}], "node_types": {"a": "gateway"}},
     )
     coordinator = cast(
-        http_module.UniFiNetworkMapCoordinator, FakeCoordinator(settings=_build_settings())
+        http_module.UniFiNetworkMapCoordinator, FakeCoordinator(settings=build_settings())
     )
 
     def _resolve_svg_theme(_name: str) -> object | None:
@@ -395,7 +356,7 @@ def test_render_svg_with_theme_returns_original_on_invalid_edges(
         payload={"edges": [{"left": "a"}], "node_types": {"a": "gateway"}},
     )
     coordinator = cast(
-        http_module.UniFiNetworkMapCoordinator, FakeCoordinator(settings=_build_settings())
+        http_module.UniFiNetworkMapCoordinator, FakeCoordinator(settings=build_settings())
     )
 
     def _resolve_svg_theme(_name: str) -> object:
@@ -413,16 +374,7 @@ def test_render_svg_with_theme_returns_original_on_invalid_edges(
 
 
 def test_render_svg_with_theme_isometric_branch(monkeypatch: pytest.MonkeyPatch) -> None:
-    settings = RenderSettings(
-        include_ports=False,
-        include_clients=False,
-        client_scope="wired",
-        only_unifi=False,
-        svg_isometric=True,
-        svg_width=None,
-        svg_height=None,
-        use_cache=False,
-    )
+    settings = build_settings(svg_isometric=True)
     data = UniFiNetworkMapData(
         svg="<svg />",
         payload={

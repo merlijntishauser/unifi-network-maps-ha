@@ -12,6 +12,7 @@ from requests.exceptions import HTTPError, RequestException
 from custom_components.unifi_network_map import api as api_module
 from custom_components.unifi_network_map.errors import CannotConnect, InvalidAuth
 from custom_components.unifi_network_map.renderer import RenderSettings
+from tests.helpers import build_settings
 
 
 @dataclass
@@ -25,29 +26,11 @@ class FakeRenderer:
 
 
 def _build_settings() -> RenderSettings:
-    return RenderSettings(
-        include_ports=False,
-        include_clients=False,
-        client_scope="wired",
-        only_unifi=False,
-        svg_isometric=False,
-        svg_width=None,
-        svg_height=None,
-        use_cache=False,
-    )
+    return build_settings()
 
 
 def _build_cache_settings() -> RenderSettings:
-    return RenderSettings(
-        include_ports=False,
-        include_clients=False,
-        client_scope="wired",
-        only_unifi=False,
-        svg_isometric=False,
-        svg_width=None,
-        svg_height=None,
-        use_cache=True,
-    )
+    return build_settings(use_cache=True)
 
 
 def test_client_cache_returns_cached(monkeypatch: pytest.MonkeyPatch) -> None:

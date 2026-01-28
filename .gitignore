@@ -188,6 +188,7 @@ __pycache__/
 .venv/
 .pytest_cache/
 .coverage
+.pylint_cache/
 
 ### E2E test artifacts
 test-results/

@@ -1,19 +1,11 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
 
 from custom_components.unifi_network_map import sensor
 from custom_components.unifi_network_map.coordinator import UniFiNetworkMapCoordinator
 from custom_components.unifi_network_map.data import UniFiNetworkMapData
-
-
-@dataclass
-class FakeEntry:
-    entry_id: str
-    title: str
-    data: dict[str, object]
-    options: dict[str, object]
+from tests.helpers import build_entry
 
 
 class FakeHass:
@@ -24,23 +16,9 @@ class FakeHass:
         return func(*args)
 
 
-def _build_entry() -> FakeEntry:
-    return FakeEntry(
-        entry_id="entry-1",
-        title="Controller",
-        data={
-            "url": "https://controller.local",
-            "username": "user",
-            "password": "pass",
-            "site": "default",
-        },
-        options={},
-    )
-
-
 def test_sensor_setup_skips_without_coordinator() -> None:
     hass = FakeHass()
-    entry = _build_entry()
+    entry = build_entry()
     added: list[object] = []
 
     def _add_entities(entities):
@@ -53,7 +31,7 @@ def test_sensor_setup_skips_without_coordinator() -> None:
 
 def test_sensor_state_and_attributes() -> None:
     hass = FakeHass()
-    entry = _build_entry()
+    entry = build_entry()
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
     coordinator.data = UniFiNetworkMapData(svg="<svg />", payload={})
     coordinator.last_exception = None
@@ -76,7 +54,7 @@ def test_sensor_state_and_attributes() -> None:
 
 def test_sensor_error_state() -> None:
     hass = FakeHass()
-    entry = _build_entry()
+    entry = build_entry()
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
     coordinator.data = None
     coordinator.last_exception = RuntimeError("boom")

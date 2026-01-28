@@ -11,13 +11,7 @@ from homeassistant.core import HomeAssistant, callback
 
 from .const import DOMAIN
 from .coordinator import UniFiNetworkMapCoordinator
-from .http import (
-    resolve_client_entity_map,
-    resolve_device_entity_map,
-    resolve_node_entity_map,
-    resolve_node_status_map,
-    resolve_related_entities,
-)
+from .http import build_enriched_payload
 
 
 def async_register_websocket_api(hass: HomeAssistant) -> None:
@@ -85,26 +79,4 @@ def _build_payload(hass: HomeAssistant, coordinator: UniFiNetworkMapCoordinator)
         return {}
 
     payload = deepcopy(data.payload)
-    client_macs = payload.get("client_macs", {})
-    device_macs = payload.get("device_macs", {})
-
-    client_entities = resolve_client_entity_map(hass, client_macs)
-    device_entities = resolve_device_entity_map(hass, device_macs)
-    node_entities = resolve_node_entity_map(client_entities, device_entities)
-
-    if client_entities:
-        payload["client_entities"] = client_entities
-    if device_entities:
-        payload["device_entities"] = device_entities
-    if node_entities:
-        payload["node_entities"] = node_entities
-
-    node_status = resolve_node_status_map(hass, node_entities)
-    if node_status:
-        payload["node_status"] = node_status
-
-    related_entities = resolve_related_entities(hass, client_macs, device_macs)
-    if related_entities:
-        payload["related_entities"] = related_entities
-
-    return payload
+    return build_enriched_payload(hass, payload)

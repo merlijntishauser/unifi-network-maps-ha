@@ -74,24 +74,7 @@ class UniFiNetworkMapPayloadView(HomeAssistantView):
         data = _get_data(_get_coordinator(hass, entry_id))
         if data is None:
             raise web.HTTPNotFound()
-        payload = deepcopy(data.payload)
-        client_macs = payload.get("client_macs", {})
-        device_macs = payload.get("device_macs", {})
-        client_entities = resolve_client_entity_map(hass, client_macs)
-        device_entities = resolve_device_entity_map(hass, device_macs)
-        node_entities = resolve_node_entity_map(client_entities, device_entities)
-        if client_entities:
-            payload["client_entities"] = client_entities
-        if device_entities:
-            payload["device_entities"] = device_entities
-        if node_entities:
-            payload["node_entities"] = node_entities
-        node_status = resolve_node_status_map(hass, node_entities)
-        if node_status:
-            payload["node_status"] = node_status
-        related_entities = resolve_related_entities(hass, client_macs, device_macs)
-        if related_entities:
-            payload["related_entities"] = related_entities
+        payload = build_enriched_payload(hass, deepcopy(data.payload))
         return web.json_response(payload)
 
 
@@ -128,6 +111,30 @@ def resolve_node_status_map(
             "last_changed": state.last_changed.isoformat() if state.last_changed else None,
         }
     return status_map
+
+
+def build_enriched_payload(hass: HomeAssistant, payload: dict[str, object]) -> dict[str, object]:
+    """Add entity, status, and related entity data to a map payload."""
+    client_macs = payload.get("client_macs", {})
+    device_macs = payload.get("device_macs", {})
+    if not isinstance(client_macs, dict) or not isinstance(device_macs, dict):
+        return payload
+    client_entities = resolve_client_entity_map(hass, client_macs)
+    device_entities = resolve_device_entity_map(hass, device_macs)
+    node_entities = resolve_node_entity_map(client_entities, device_entities)
+    _store_payload_field(payload, "client_entities", client_entities)
+    _store_payload_field(payload, "device_entities", device_entities)
+    _store_payload_field(payload, "node_entities", node_entities)
+    node_status = resolve_node_status_map(hass, node_entities)
+    _store_payload_field(payload, "node_status", node_status)
+    related_entities = resolve_related_entities(hass, client_macs, device_macs)
+    _store_payload_field(payload, "related_entities", related_entities)
+    return payload
+
+
+def _store_payload_field(payload: dict[str, object], key: str, value: object) -> None:
+    if value:
+        payload[key] = value
 
 
 RelatedEntity = dict[str, str | None]

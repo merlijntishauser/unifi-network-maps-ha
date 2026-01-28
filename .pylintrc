@@ -1,0 +1,10 @@
+[SIMILARITIES]
+min-similarity-lines=8
+ignore-comments=yes
+ignore-docstrings=yes
+ignore-imports=yes
+ignore-signatures=yes
+
+[MESSAGES CONTROL]
+disable=all
+enable=similarities

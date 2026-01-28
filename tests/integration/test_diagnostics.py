@@ -1,39 +1,17 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
 
 import pytest
 
 from custom_components.unifi_network_map import diagnostics
 from custom_components.unifi_network_map.data import UniFiNetworkMapData
-
-
-@dataclass
-class FakeEntry:
-    entry_id: str
-    title: str
-    data: dict[str, object]
-    options: dict[str, object]
+from tests.helpers import build_entry
 
 
 class FakeHass:
     def __init__(self) -> None:
         self.data: dict[str, object] = {}
-
-
-def _build_entry() -> FakeEntry:
-    return FakeEntry(
-        entry_id="entry-1",
-        title="Controller",
-        data={
-            "url": "https://controller.local",
-            "username": "user",
-            "password": "pass",
-            "site": "default",
-        },
-        options={},
-    )
 
 
 def _resolve_client_entity_map(_hass: FakeHass, _macs: dict[str, str]) -> dict[str, str]:
@@ -58,7 +36,7 @@ def _normalize_mac_value(value: str) -> str:
 
 def test_diagnostics_without_coordinator() -> None:
     hass = FakeHass()
-    entry = _build_entry()
+    entry = build_entry()
 
     result = asyncio.run(diagnostics.async_get_config_entry_diagnostics(hass, entry))
 
@@ -69,7 +47,7 @@ def test_diagnostics_without_coordinator() -> None:
 
 def test_diagnostics_summary_with_payload(monkeypatch: pytest.MonkeyPatch) -> None:
     hass = FakeHass()
-    entry = _build_entry()
+    entry = build_entry()
     data = UniFiNetworkMapData(
         svg="<svg />",
         payload={

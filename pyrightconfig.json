@@ -3,6 +3,7 @@
   "exclude": [".venv", "frontend", "brand_assets"],
   "typeCheckingMode": "strict",
   "reportMissingImports": false,
+  "reportMissingModuleSource": false,
   "reportMissingTypeStubs": false,
   "reportUnknownParameterType": false,
   "reportUnknownArgumentType": false,

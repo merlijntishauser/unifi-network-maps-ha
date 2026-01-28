@@ -8,3 +8,4 @@ yarl==1.22.0
 ruff==0.14.14
 types-requests==2.32.4.20260107
 radon==6.0.1
+pylint==3.2.7
