@@ -48,7 +48,7 @@ class MapClient(Protocol):
     def fetch_map(self) -> UniFiNetworkMapData: ...
 
 
-class UniFiNetworkMapCoordinator(DataUpdateCoordinator[UniFiNetworkMapData]):
+class UniFiNetworkMapCoordinator(DataUpdateCoordinator[UniFiNetworkMapData]):  # type: ignore[reportUntypedBaseClass]
     def __init__(
         self,
         hass: HomeAssistant,

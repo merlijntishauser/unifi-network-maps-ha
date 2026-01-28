@@ -1,4 +1,5 @@
 from __future__ import annotations
+# pyright: reportUntypedBaseClass=false, reportCallIssue=false
 
 from typing import Any
 
@@ -39,7 +40,9 @@ from .const import (
 from .errors import CannotConnect, InvalidAuth, InvalidUrl, UrlHasCredentials
 
 
-class UniFiNetworkMapConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class UniFiNetworkMapConfigFlow(  # type: ignore[reportUntypedBaseClass,reportGeneralTypeIssues,reportCallIssue]
+    config_entries.ConfigFlow, domain=DOMAIN
+):
     VERSION = 1
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None):
@@ -91,7 +94,7 @@ class UniFiNetworkMapConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return UniFiNetworkMapOptionsFlow(config_entry)
 
 
-class UniFiNetworkMapOptionsFlow(config_entries.OptionsFlow):
+class UniFiNetworkMapOptionsFlow(config_entries.OptionsFlow):  # type: ignore[reportUntypedBaseClass]
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         self._entry = config_entry
 

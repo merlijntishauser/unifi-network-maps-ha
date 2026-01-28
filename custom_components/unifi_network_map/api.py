@@ -111,7 +111,7 @@ def _ensure_unifi_request_timeout(timeout_seconds: float | None) -> None:
     os.environ["UNIFI_REQUEST_TIMEOUT_SECONDS"] = str(value)
 
 
-def _assert_unifi_connectivity(config: Config, site: str, auth_error) -> None:
+def _assert_unifi_connectivity(config: Config, site: str, auth_error: type[Exception]) -> None:
     try:
         fetch_devices(config, site=site, detailed=False, use_cache=False)
     except auth_error as exc:

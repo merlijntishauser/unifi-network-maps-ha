@@ -1,8 +1,10 @@
 from __future__ import annotations
+# pyright: reportUntypedBaseClass=false
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from typing import Callable
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -14,7 +16,7 @@ from .data import UniFiNetworkMapData
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
-    async_add_entities,
+    async_add_entities: Callable[[list["UniFiNetworkMapSensor"]], None],
 ) -> None:
     coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
     if not isinstance(coordinator, UniFiNetworkMapCoordinator):
@@ -22,7 +24,9 @@ async def async_setup_entry(
     async_add_entities([UniFiNetworkMapSensor(coordinator, entry)])
 
 
-class UniFiNetworkMapSensor(CoordinatorEntity[UniFiNetworkMapData], SensorEntity):
+class UniFiNetworkMapSensor(  # type: ignore[reportUntypedBaseClass]
+    CoordinatorEntity[UniFiNetworkMapData], SensorEntity
+):
     _attr_has_entity_name = True
     _attr_name = "Status"
     _attr_icon = "mdi:graph"

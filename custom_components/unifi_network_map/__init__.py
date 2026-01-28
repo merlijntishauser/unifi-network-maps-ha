@@ -8,7 +8,7 @@ from types import ModuleType
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
-from typing import Any, Awaitable, Callable, Mapping, Protocol
+from typing import Any, Awaitable, Callable, Mapping, Protocol, cast
 from homeassistant.const import EVENT_HOMEASSISTANT_START
 
 import asyncio
@@ -35,6 +35,18 @@ class LovelaceResourcesModule(Protocol):
     def async_create_item(
         self, hass: HomeAssistant, payload: Mapping[str, Any]
     ) -> Awaitable[None] | None: ...
+
+
+class LovelaceResourceCollection(Protocol):
+    def async_items(self) -> list[ResourceItem] | Awaitable[list[ResourceItem]]: ...
+
+    def async_create_item(self, payload: Mapping[str, Any]) -> Awaitable[None] | None: ...
+
+
+class LovelaceResourcesInfo(Protocol):
+    def async_get_info(self) -> object: ...
+
+    def async_create_item(self, payload: Mapping[str, Any]) -> Awaitable[None] | None: ...
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -342,7 +354,7 @@ def _schedule_lovelace_resource_registration(hass: HomeAssistant) -> None:
         hass.async_create_task(_ensure_lovelace_resource(hass))
         return
 
-    async def _on_start(_event) -> None:
+    async def _on_start(_event: object) -> None:
         await _ensure_lovelace_resource(hass)
 
     hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, _on_start)
@@ -436,13 +448,17 @@ async def _fetch_lovelace_items(
 
     # Fallback to old API
     try:
-        info = resources.async_get_info(hass)
+        if not hasattr(resources, "async_get_info"):
+            return None
+        resources_module = cast(LovelaceResourcesModule, resources)
+        info = resources_module.async_get_info(hass)
     except Exception as err:  # pragma: no cover - defensive
         LOGGER.debug("Unable to read Lovelace resources: %s", err)
         return None
     if hasattr(info, "async_get_info"):
         try:
-            result = info.async_get_info()
+            info_module = cast(LovelaceResourcesInfo, info)
+            result = info_module.async_get_info()
         except Exception as err:  # pragma: no cover - defensive
             LOGGER.debug("Unable to read Lovelace resources info: %s", err)
             return None
@@ -460,18 +476,19 @@ async def _fetch_lovelace_items_from_collection(
     resource_collection = _get_lovelace_resource_collection(lovelace_data)
     if resource_collection is None:
         return None
-    items_result = resource_collection.async_items()
-    items = await items_result if inspect.iscoroutine(items_result) else items_result
+    items = await _maybe_await_items(resource_collection.async_items())
     return list(items) if items else []
 
 
-def _get_lovelace_resource_collection(lovelace_data: object) -> object | None:
+def _get_lovelace_resource_collection(
+    lovelace_data: object,
+) -> LovelaceResourceCollection | None:
     if not hasattr(lovelace_data, "resources"):
         LOGGER.debug(
             "lovelace_data has no 'resources' attribute, available: %s", dir(lovelace_data)
         )
         return None
-    resource_collection = lovelace_data.resources
+    resource_collection = cast(Any, lovelace_data).resources
     if not resource_collection:
         LOGGER.debug("lovelace_data.resources is None")
         return None
@@ -480,7 +497,7 @@ def _get_lovelace_resource_collection(lovelace_data: object) -> object | None:
             "resource_collection has no 'async_items', available: %s", dir(resource_collection)
         )
         return None
-    return resource_collection
+    return cast(LovelaceResourceCollection, resource_collection)
 
 
 async def _create_lovelace_resource(
@@ -491,10 +508,12 @@ async def _create_lovelace_resource(
     # Try accessing the resource collection directly
     try:
         lovelace_data = hass.data.get("lovelace")
-        if lovelace_data and hasattr(lovelace_data, "resources"):
-            resource_collection = lovelace_data.resources
-            if resource_collection and hasattr(resource_collection, "async_create_item"):
-                await resource_collection.async_create_item(payload)
+        if lovelace_data:
+            resource_collection = _get_lovelace_resource_collection(lovelace_data)
+            if resource_collection is not None:
+                result = resource_collection.async_create_item(payload)
+                if inspect.iscoroutine(result):
+                    await result
                 LOGGER.debug("Registered Lovelace resource %s", resource_url)
                 return True
     except Exception as err:
@@ -507,7 +526,10 @@ async def _create_lovelace_resource(
         return True
 
     try:
-        info = resources.async_get_info(hass)
+        if not hasattr(resources, "async_get_info"):
+            return False
+        resources_module = cast(LovelaceResourcesModule, resources)
+        info = resources_module.async_get_info(hass)
     except Exception as err:  # pragma: no cover - defensive
         LOGGER.debug("Unable to read Lovelace resources for create: %s", err)
         return False
@@ -527,13 +549,19 @@ async def _create_lovelace_resource_with_module(
     if not hasattr(resources, "async_create_item"):
         return False
     try:
-        result = resources.async_create_item(hass, payload)
+        result = cast(
+            Callable[[HomeAssistant, Mapping[str, Any]], Awaitable[None] | None],
+            resources.async_create_item,
+        )(hass, payload)
         if inspect.iscoroutine(result):
             await result
         return True
     except TypeError:
         try:
-            result = resources.async_create_item(payload)
+            result = cast(
+                Callable[[Mapping[str, Any]], Awaitable[None] | None],
+                resources.async_create_item,
+            )(payload)
             if inspect.iscoroutine(result):
                 await result
             return True
@@ -551,7 +579,8 @@ async def _create_lovelace_resource_with_collection(
     if not hasattr(info, "async_create_item"):
         return False
     try:
-        result = info.async_create_item(payload)
+        collection = cast(LovelaceResourceCollection, info)
+        result = collection.async_create_item(payload)
         if inspect.iscoroutine(result):
             await result
         return True
@@ -564,6 +593,14 @@ async def _maybe_await_list(result: object) -> list[ResourceItem] | None:
     if inspect.iscoroutine(result):
         return _as_resource_list(await result)
     return _as_resource_list(result)
+
+
+async def _maybe_await_items(
+    result: list[ResourceItem] | Awaitable[list[ResourceItem]],
+) -> list[ResourceItem]:
+    if inspect.iscoroutine(result):
+        return await cast(Awaitable[list[ResourceItem]], result)
+    return cast(list[ResourceItem], result)
 
 
 def _as_resource_list(value: object) -> list[ResourceItem] | None:

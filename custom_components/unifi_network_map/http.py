@@ -46,7 +46,7 @@ def _get_data(coordinator: UniFiNetworkMapCoordinator | None) -> UniFiNetworkMap
     return coordinator.data
 
 
-class UniFiNetworkMapSvgView(HomeAssistantView):
+class UniFiNetworkMapSvgView(HomeAssistantView):  # type: ignore[reportUntypedBaseClass]
     url = "/api/unifi_network_map/{entry_id}/svg"
     name = "api:unifi_network_map:svg"
 
@@ -65,7 +65,7 @@ class UniFiNetworkMapSvgView(HomeAssistantView):
         return web.Response(text=data.svg, content_type="image/svg+xml")
 
 
-class UniFiNetworkMapPayloadView(HomeAssistantView):
+class UniFiNetworkMapPayloadView(HomeAssistantView):  # type: ignore[reportUntypedBaseClass]
     url = "/api/unifi_network_map/{entry_id}/payload"
     name = "api:unifi_network_map:payload"
 

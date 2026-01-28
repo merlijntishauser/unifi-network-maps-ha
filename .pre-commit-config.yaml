@@ -24,7 +24,7 @@ repos:
         pass_filenames: false
       - id: pyright
         name: pyright
-        entry: bash -c '.venv/bin/pyright'
+        entry: bash -c '.venv/bin/pyright -p pyrightconfig.json && .venv/bin/pyright -p tests/pyrightconfig.json'
         language: system
         pass_filenames: false
       - id: ruff-format

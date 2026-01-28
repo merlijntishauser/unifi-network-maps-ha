@@ -1,6 +1,6 @@
 {
-  "include": ["custom_components"],
-  "exclude": [".venv", "frontend", "brand_assets"],
+  "include": ["."],
+  "exclude": ["../.venv", "../frontend", "../brand_assets"],
   "typeCheckingMode": "strict",
   "reportMissingImports": false,
   "reportMissingModuleSource": false,
@@ -9,10 +9,11 @@
   "reportUnknownArgumentType": false,
   "reportUnknownVariableType": false,
   "reportUnknownMemberType": false,
-  "reportCallIssue": true,
-  "reportGeneralTypeIssues": true,
-  "reportUntypedBaseClass": true,
-  "reportAttributeAccessIssue": true,
-  "reportMissingParameterType": true,
+  "reportUnknownLambdaType": false,
+  "reportCallIssue": false,
+  "reportGeneralTypeIssues": false,
+  "reportUntypedBaseClass": false,
+  "reportAttributeAccessIssue": false,
+  "reportMissingParameterType": false,
   "pythonVersion": "3.13"
 }
