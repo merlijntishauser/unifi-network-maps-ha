@@ -7,6 +7,7 @@ import shutil
 import tempfile
 from copy import deepcopy
 from importlib import resources as importlib_resources
+from typing import Mapping
 
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
@@ -20,6 +21,7 @@ from unifi_network_maps.render.theme import resolve_themes
 from .const import DOMAIN
 from .coordinator import UniFiNetworkMapCoordinator
 from .data import UniFiNetworkMapData
+from .renderer import RenderSettings
 
 _VIEWS_REGISTERED = "views_registered"
 _MAC_ATTRIBUTE_KEYS = ("mac_address", "mac")
@@ -486,17 +488,42 @@ def _render_svg_with_theme(
     payload = data.payload or {}
     edges_payload = payload.get("edges") or []
     node_types = payload.get("node_types") or {}
-    if not edges_payload or not node_types:
+    if not _should_render_svg(edges_payload, node_types):
         return data.svg
     theme = _resolve_svg_theme(theme_name)
     if theme is None:
         return data.svg
-    edges = [_edge_from_payload(edge) for edge in edges_payload if _valid_edge_payload(edge)]
+    edges = _build_svg_edges(edges_payload)
     if not edges:
         return data.svg
-    settings = coordinator.settings
-    options = SvgOptions(width=settings.svg_width, height=settings.svg_height)
-    if settings.svg_isometric:
+    options = _svg_options_from_settings(coordinator.settings)
+    return _render_svg_variant(
+        edges, node_types, options, theme, coordinator.settings.svg_isometric
+    )
+
+
+def _should_render_svg(
+    edges_payload: list[Mapping[str, object]], node_types: dict[str, str]
+) -> bool:
+    return bool(edges_payload and node_types)
+
+
+def _build_svg_edges(edges_payload: list[Mapping[str, object]]) -> list[Edge]:
+    return [_edge_from_payload(edge) for edge in edges_payload if _valid_edge_payload(edge)]
+
+
+def _svg_options_from_settings(settings: RenderSettings) -> SvgOptions:
+    return SvgOptions(width=settings.svg_width, height=settings.svg_height)
+
+
+def _render_svg_variant(
+    edges: list[Edge],
+    node_types: dict[str, str],
+    options: SvgOptions,
+    theme: SvgTheme,
+    is_isometric: bool,
+) -> str:
+    if is_isometric:
         return render_svg_isometric(edges, node_types=node_types, options=options, theme=theme)
     return render_svg(edges, node_types=node_types, options=options, theme=theme)
 
@@ -537,7 +564,7 @@ def _valid_edge_payload(edge: object) -> bool:
     )
 
 
-def _edge_from_payload(edge: dict[str, object]) -> Edge:
+def _edge_from_payload(edge: Mapping[str, object]) -> Edge:
     label = edge.get("label")
     poe_value = edge.get("poe")
     wireless_value = edge.get("wireless")

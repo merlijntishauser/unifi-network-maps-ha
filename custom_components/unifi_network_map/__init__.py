@@ -428,31 +428,9 @@ async def _fetch_lovelace_items(
 ) -> list[ResourceItem] | None:
     # Try accessing the resource collection from hass.data["lovelace"].resources
     try:
-        lovelace_data = hass.data.get("lovelace")
-        if not lovelace_data:
-            LOGGER.debug("hass.data['lovelace'] is None or missing")
-            return None
-        if not hasattr(lovelace_data, "resources"):
-            LOGGER.debug(
-                "lovelace_data has no 'resources' attribute, available: %s", dir(lovelace_data)
-            )
-            return None
-        resource_collection = lovelace_data.resources
-        if not resource_collection:
-            LOGGER.debug("lovelace_data.resources is None")
-            return None
-        if not hasattr(resource_collection, "async_items"):
-            LOGGER.debug(
-                "resource_collection has no 'async_items', available: %s", dir(resource_collection)
-            )
-            return None
-        items_result = resource_collection.async_items()
-        # async_items() might return a list or a coroutine
-        if inspect.iscoroutine(items_result):
-            items = await items_result
-        else:
-            items = items_result
-        return list(items) if items else []
+        items = await _fetch_lovelace_items_from_collection(hass)
+        if items is not None:
+            return items
     except Exception as err:
         LOGGER.warning("Unable to access lovelace data: %s", err, exc_info=True)
 
@@ -470,6 +448,39 @@ async def _fetch_lovelace_items(
             return None
         return await _maybe_await_list(result)
     return _as_resource_list(info)
+
+
+async def _fetch_lovelace_items_from_collection(
+    hass: HomeAssistant,
+) -> list[ResourceItem] | None:
+    lovelace_data = hass.data.get("lovelace")
+    if not lovelace_data:
+        LOGGER.debug("hass.data['lovelace'] is None or missing")
+        return None
+    resource_collection = _get_lovelace_resource_collection(lovelace_data)
+    if resource_collection is None:
+        return None
+    items_result = resource_collection.async_items()
+    items = await items_result if inspect.iscoroutine(items_result) else items_result
+    return list(items) if items else []
+
+
+def _get_lovelace_resource_collection(lovelace_data: object) -> object | None:
+    if not hasattr(lovelace_data, "resources"):
+        LOGGER.debug(
+            "lovelace_data has no 'resources' attribute, available: %s", dir(lovelace_data)
+        )
+        return None
+    resource_collection = lovelace_data.resources
+    if not resource_collection:
+        LOGGER.debug("lovelace_data.resources is None")
+        return None
+    if not hasattr(resource_collection, "async_items"):
+        LOGGER.debug(
+            "resource_collection has no 'async_items', available: %s", dir(resource_collection)
+        )
+        return None
+    return resource_collection
 
 
 async def _create_lovelace_resource(

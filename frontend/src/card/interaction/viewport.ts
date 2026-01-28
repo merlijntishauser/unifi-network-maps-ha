@@ -161,54 +161,84 @@ export function onPointerMove(
   callbacks: ViewportCallbacks,
   tooltip: HTMLElement,
 ): void {
+  updateActivePointer(state, event);
+  if (handlePinchZoom(svg, state, options, callbacks)) {
+    return;
+  }
+  if (handlePan(svg, state, event, options, callbacks)) {
+    return;
+  }
+  handleHover(event, options, handlers, callbacks, tooltip);
+}
+
+function updateActivePointer(state: ViewportState, event: PointerEvent): void {
   if (state.activePointers.has(event.pointerId)) {
     state.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
   }
+}
 
+function handlePinchZoom(
+  svg: SVGElement,
+  state: ViewportState,
+  options: ViewportOptions,
+  callbacks: ViewportCallbacks,
+): boolean {
   if (
-    state.activePointers.size === 2 &&
-    state.pinchStartDistance !== null &&
-    state.pinchStartScale !== null
+    state.activePointers.size !== 2 ||
+    state.pinchStartDistance === null ||
+    state.pinchStartScale === null
   ) {
-    const [p1, p2] = Array.from(state.activePointers.values());
-    const currentDistance = getDistance(p1, p2);
-    const scaleFactor = currentDistance / state.pinchStartDistance;
-    const newScale = Math.min(
-      options.maxZoomScale,
-      Math.max(options.minZoomScale, state.pinchStartScale * scaleFactor),
-    );
-    state.viewTransform.scale = Number(newScale.toFixed(2));
+    return false;
+  }
+  const [p1, p2] = Array.from(state.activePointers.values());
+  const currentDistance = getDistance(p1, p2);
+  const scaleFactor = currentDistance / state.pinchStartDistance;
+  const newScale = Math.min(
+    options.maxZoomScale,
+    Math.max(options.minZoomScale, state.pinchStartScale * scaleFactor),
+  );
+  state.viewTransform.scale = Number(newScale.toFixed(2));
+  state.panMoved = true;
+  callbacks.onUpdateTransform(state.viewTransform);
+  applyTransform(svg, state.viewTransform, state.isPanning);
+  return true;
+}
+
+function handlePan(
+  svg: SVGElement,
+  state: ViewportState,
+  event: PointerEvent,
+  options: ViewportOptions,
+  callbacks: ViewportCallbacks,
+): boolean {
+  if (!state.isPanning || !state.panStart) {
+    return false;
+  }
+  const nextX = event.clientX - state.panStart.x;
+  const nextY = event.clientY - state.panStart.y;
+  if (
+    Math.abs(nextX - state.viewTransform.x) > options.minPanMovementThreshold ||
+    Math.abs(nextY - state.viewTransform.y) > options.minPanMovementThreshold
+  ) {
     state.panMoved = true;
-    callbacks.onUpdateTransform(state.viewTransform);
-    applyTransform(svg, state.viewTransform, state.isPanning);
-    return;
   }
+  state.viewTransform.x = nextX;
+  state.viewTransform.y = nextY;
+  callbacks.onUpdateTransform(state.viewTransform);
+  applyTransform(svg, state.viewTransform, state.isPanning);
+  return true;
+}
 
-  if (state.isPanning && state.panStart) {
-    const nextX = event.clientX - state.panStart.x;
-    const nextY = event.clientY - state.panStart.y;
-    if (
-      Math.abs(nextX - state.viewTransform.x) > options.minPanMovementThreshold ||
-      Math.abs(nextY - state.viewTransform.y) > options.minPanMovementThreshold
-    ) {
-      state.panMoved = true;
-    }
-    state.viewTransform.x = nextX;
-    state.viewTransform.y = nextY;
-    callbacks.onUpdateTransform(state.viewTransform);
-    applyTransform(svg, state.viewTransform, state.isPanning);
-    return;
-  }
-
+function handleHover(
+  event: PointerEvent,
+  options: ViewportOptions,
+  handlers: ViewportHandlers,
+  callbacks: ViewportCallbacks,
+  tooltip: HTMLElement,
+): void {
   const edge = handlers.findEdge(event.target as Element);
   if (edge) {
-    callbacks.onHoverEdge(edge);
-    callbacks.onHoverNode(null);
-    tooltip.hidden = false;
-    tooltip.classList.add("unifi-network-map__tooltip--edge");
-    tooltip.innerHTML = handlers.renderEdgeTooltip(edge);
-    tooltip.style.transform = "none";
-    positionTooltip(tooltip, event, options.tooltipOffsetPx);
+    showEdgeTooltip(edge, event, options, handlers, callbacks, tooltip);
     return;
   }
 
@@ -219,7 +249,33 @@ export function onPointerMove(
     hideTooltip(tooltip);
     return;
   }
+  showNodeTooltip(label, event, options, callbacks, tooltip);
+}
 
+function showEdgeTooltip(
+  edge: Edge,
+  event: PointerEvent,
+  options: ViewportOptions,
+  handlers: ViewportHandlers,
+  callbacks: ViewportCallbacks,
+  tooltip: HTMLElement,
+): void {
+  callbacks.onHoverEdge(edge);
+  callbacks.onHoverNode(null);
+  tooltip.hidden = false;
+  tooltip.classList.add("unifi-network-map__tooltip--edge");
+  tooltip.innerHTML = handlers.renderEdgeTooltip(edge);
+  tooltip.style.transform = "none";
+  positionTooltip(tooltip, event, options.tooltipOffsetPx);
+}
+
+function showNodeTooltip(
+  label: string,
+  event: PointerEvent,
+  options: ViewportOptions,
+  callbacks: ViewportCallbacks,
+  tooltip: HTMLElement,
+): void {
   callbacks.onHoverNode(label);
   tooltip.hidden = false;
   tooltip.classList.remove("unifi-network-map__tooltip--edge");

@@ -1129,19 +1129,30 @@ function annotateElementWithEdge(element, svg3) {
 function annotatePoeIcons(svg3) {
   const textElements = svg3.querySelectorAll("text");
   for (const text2 of textElements) {
-    const content = text2.textContent?.trim() ?? "";
-    if (content === "\u26A1" || content === "\u26A1\uFE0F" || content.toLowerCase() === "poe") {
-      annotateElementWithEdge(text2, svg3);
-      const parentGroup = text2.closest("g");
-      if (parentGroup && !parentGroup.hasAttribute("data-edge-left")) {
-        const left = text2.getAttribute("data-edge-left");
-        const right = text2.getAttribute("data-edge-right");
-        if (left && right) {
-          parentGroup.setAttribute("data-edge-left", left);
-          parentGroup.setAttribute("data-edge-right", right);
-        }
-      }
+    if (!isPoeLabel(text2.textContent)) {
+      continue;
     }
+    annotateElementWithEdge(text2, svg3);
+    annotatePoeParent(text2);
+  }
+}
+function isPoeLabel(text2) {
+  const content = text2?.trim() ?? "";
+  if (!content) {
+    return false;
+  }
+  return content === "\u26A1" || content === "\u26A1\uFE0F" || content.toLowerCase() === "poe";
+}
+function annotatePoeParent(text2) {
+  const parentGroup = text2.closest("g");
+  if (!parentGroup || parentGroup.hasAttribute("data-edge-left")) {
+    return;
+  }
+  const left = text2.getAttribute("data-edge-left");
+  const right = text2.getAttribute("data-edge-right");
+  if (left && right) {
+    parentGroup.setAttribute("data-edge-left", left);
+    parentGroup.setAttribute("data-edge-right", right);
   }
 }
 function findNearestEdgePath(label, svg3) {
@@ -1401,18 +1412,10 @@ function annotateNodeIds(svg3, nodeNames) {
   const textMap = buildTextMap(svg3, "text");
   const titleMap = buildTextMap(svg3, "title");
   for (const name of nodeNames) {
-    if (!name) continue;
-    if (svg3.querySelector(`[data-node-id="${CSS.escape(name)}"]`)) {
+    const holder = findNodeHolder(svg3, name, textMap, titleMap);
+    if (!holder) {
       continue;
     }
-    const ariaMatch = svg3.querySelector(`[aria-label="${CSS.escape(name)}"]`);
-    const textMatch = textMap.get(name)?.[0] ?? null;
-    const titleMatch = titleMap.get(name)?.[0] ?? null;
-    const target = ariaMatch ?? textMatch ?? titleMatch;
-    if (!target) {
-      continue;
-    }
-    const holder = target.closest("g") ?? target;
     holder.setAttribute("data-node-id", name);
   }
 }
@@ -1429,6 +1432,22 @@ function buildTextMap(svg3, selector) {
     map.set(text2, list);
   }
   return map;
+}
+function findNodeHolder(svg3, name, textMap, titleMap) {
+  if (!name) {
+    return null;
+  }
+  if (svg3.querySelector(`[data-node-id="${CSS.escape(name)}"]`)) {
+    return null;
+  }
+  const target = findNodeTarget(svg3, name, textMap, titleMap);
+  if (!target) {
+    return null;
+  }
+  return target.closest("g") ?? target;
+}
+function findNodeTarget(svg3, name, textMap, titleMap) {
+  return svg3.querySelector(`[aria-label="${CSS.escape(name)}"]`) ?? textMap.get(name)?.[0] ?? titleMap.get(name)?.[0] ?? null;
 }
 function findByDataNodeId(svg3, nodeName) {
   const el = svg3.querySelector(`[data-node-id="${CSS.escape(nodeName)}"]`);
@@ -2000,6 +2019,25 @@ function escapeAttr(str) {
   return str.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
+// src/card/shared/node-utils.ts
+function getNodeIpFromPayload(payload, nodeName) {
+  const direct = getDirectNodeIp(payload, nodeName);
+  if (direct) {
+    return direct;
+  }
+  return getRelatedNodeIp(payload, nodeName);
+}
+function getDirectNodeIp(payload, nodeName) {
+  return payload?.client_ips?.[nodeName] ?? payload?.device_ips?.[nodeName] ?? null;
+}
+function getRelatedNodeIp(payload, nodeName) {
+  const related = payload?.related_entities?.[nodeName];
+  if (!related) {
+    return null;
+  }
+  return related.find((entity) => entity.ip)?.ip ?? null;
+}
+
 // src/card/ui/panel.ts
 function renderPanelContent(context, helpers) {
   if (!context.selectedNode) {
@@ -2404,7 +2442,7 @@ function getNodeMac2(payload, name) {
   return payload?.client_macs?.[name] ?? payload?.device_macs?.[name] ?? null;
 }
 function getNodeIp(payload, name) {
-  return payload?.client_ips?.[name] ?? payload?.device_ips?.[name] ?? payload?.related_entities?.[name]?.find((e) => e.ip)?.ip ?? null;
+  return getNodeIpFromPayload(payload, name);
 }
 function getNodeEntityId(payload, name) {
   return payload?.node_entities?.[name] ?? payload?.client_entities?.[name] ?? payload?.device_entities?.[name] ?? null;
@@ -2632,7 +2670,7 @@ function getNodeEntityId2(payload, nodeName) {
   return payload?.node_entities?.[nodeName] ?? payload?.client_entities?.[nodeName] ?? payload?.device_entities?.[nodeName] ?? null;
 }
 function getNodeIp2(payload, nodeName) {
-  return payload?.client_ips?.[nodeName] ?? payload?.device_ips?.[nodeName] ?? payload?.related_entities?.[nodeName]?.find((entity) => entity.ip)?.ip ?? null;
+  return getNodeIpFromPayload(payload, nodeName);
 }
 
 // src/card/data/auth.ts
@@ -3587,44 +3625,56 @@ function onPointerDown(event, state, controls) {
   }
 }
 function onPointerMove(event, svg3, state, options, handlers, callbacks, tooltip) {
+  updateActivePointer(state, event);
+  if (handlePinchZoom(svg3, state, options, callbacks)) {
+    return;
+  }
+  if (handlePan(svg3, state, event, options, callbacks)) {
+    return;
+  }
+  handleHover(event, options, handlers, callbacks, tooltip);
+}
+function updateActivePointer(state, event) {
   if (state.activePointers.has(event.pointerId)) {
     state.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
   }
-  if (state.activePointers.size === 2 && state.pinchStartDistance !== null && state.pinchStartScale !== null) {
-    const [p1, p2] = Array.from(state.activePointers.values());
-    const currentDistance = getDistance(p1, p2);
-    const scaleFactor = currentDistance / state.pinchStartDistance;
-    const newScale = Math.min(
-      options.maxZoomScale,
-      Math.max(options.minZoomScale, state.pinchStartScale * scaleFactor)
-    );
-    state.viewTransform.scale = Number(newScale.toFixed(2));
+}
+function handlePinchZoom(svg3, state, options, callbacks) {
+  if (state.activePointers.size !== 2 || state.pinchStartDistance === null || state.pinchStartScale === null) {
+    return false;
+  }
+  const [p1, p2] = Array.from(state.activePointers.values());
+  const currentDistance = getDistance(p1, p2);
+  const scaleFactor = currentDistance / state.pinchStartDistance;
+  const newScale = Math.min(
+    options.maxZoomScale,
+    Math.max(options.minZoomScale, state.pinchStartScale * scaleFactor)
+  );
+  state.viewTransform.scale = Number(newScale.toFixed(2));
+  state.panMoved = true;
+  callbacks.onUpdateTransform(state.viewTransform);
+  applyTransform(svg3, state.viewTransform, state.isPanning);
+  return true;
+}
+function handlePan(svg3, state, event, options, callbacks) {
+  if (!state.isPanning || !state.panStart) {
+    return false;
+  }
+  const nextX = event.clientX - state.panStart.x;
+  const nextY = event.clientY - state.panStart.y;
+  if (Math.abs(nextX - state.viewTransform.x) > options.minPanMovementThreshold || Math.abs(nextY - state.viewTransform.y) > options.minPanMovementThreshold) {
     state.panMoved = true;
-    callbacks.onUpdateTransform(state.viewTransform);
-    applyTransform(svg3, state.viewTransform, state.isPanning);
-    return;
   }
-  if (state.isPanning && state.panStart) {
-    const nextX = event.clientX - state.panStart.x;
-    const nextY = event.clientY - state.panStart.y;
-    if (Math.abs(nextX - state.viewTransform.x) > options.minPanMovementThreshold || Math.abs(nextY - state.viewTransform.y) > options.minPanMovementThreshold) {
-      state.panMoved = true;
-    }
-    state.viewTransform.x = nextX;
-    state.viewTransform.y = nextY;
-    callbacks.onUpdateTransform(state.viewTransform);
-    applyTransform(svg3, state.viewTransform, state.isPanning);
-    return;
-  }
+  state.viewTransform.x = nextX;
+  state.viewTransform.y = nextY;
+  callbacks.onUpdateTransform(state.viewTransform);
+  applyTransform(svg3, state.viewTransform, state.isPanning);
+  return true;
+}
+function handleHover(event, options, handlers, callbacks, tooltip) {
   const edge = handlers.findEdge(event.target);
   if (edge) {
-    callbacks.onHoverEdge(edge);
-    callbacks.onHoverNode(null);
-    tooltip.hidden = false;
-    tooltip.classList.add("unifi-network-map__tooltip--edge");
-    tooltip.innerHTML = handlers.renderEdgeTooltip(edge);
-    tooltip.style.transform = "none";
-    positionTooltip(tooltip, event, options.tooltipOffsetPx);
+    showEdgeTooltip(edge, event, options, handlers, callbacks, tooltip);
     return;
   }
   callbacks.onHoverEdge(null);
@@ -3634,6 +3684,18 @@ function onPointerMove(event, svg3, state, options, handlers, callbacks, tooltip
     hideTooltip(tooltip);
     return;
   }
+  showNodeTooltip(label, event, options, callbacks, tooltip);
+}
+function showEdgeTooltip(edge, event, options, handlers, callbacks, tooltip) {
+  callbacks.onHoverEdge(edge);
+  callbacks.onHoverNode(null);
+  tooltip.hidden = false;
+  tooltip.classList.add("unifi-network-map__tooltip--edge");
+  tooltip.innerHTML = handlers.renderEdgeTooltip(edge);
+  tooltip.style.transform = "none";
+  positionTooltip(tooltip, event, options.tooltipOffsetPx);
+}
+function showNodeTooltip(label, event, options, callbacks, tooltip) {
   callbacks.onHoverNode(label);
   tooltip.hidden = false;
   tooltip.classList.remove("unifi-network-map__tooltip--edge");
@@ -5457,30 +5519,20 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   _render() {
     const theme = this._config?.theme ?? "dark";
     if (!this._config) {
-      this._setCardBody(
-        `<div style="padding:16px;">${this._localize("card.error.missing_config")}</div>`,
-        theme
-      );
+      this._renderMissingConfig(theme);
       return;
     }
     if (!this._config.svg_url) {
-      this._setCardBody(this._renderPreview(), theme);
+      this._renderPreviewCard(theme);
       return;
     }
     const token = this._getAuthToken();
-    if (token && this._error === "Missing auth token") {
-      this._error = void 0;
-    }
-    const body = this._error ? this._renderError() : this._svgContent ? this._renderLayout() : this._renderLoading();
-    this._setCardBody(body, theme);
-    if (!token && this._error === "Missing auth token") {
+    this._clearMissingAuthError(token);
+    this._setCardBody(this._renderBody(), theme);
+    if (!this._canFinishRender(token)) {
       return;
     }
-    this._ensureStyles();
-    this._wireRetry();
-    this._loadSvg();
-    this._loadPayload();
-    this._wireInteractions();
+    this._finalizeRender();
   }
   _setCardBody(body, theme) {
     const card = document.createElement("ha-card");
@@ -5488,6 +5540,39 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._applyCardHeight(card);
     card.innerHTML = sanitizeHtml(body);
     this.replaceChildren(card);
+  }
+  _renderMissingConfig(theme) {
+    this._setCardBody(
+      `<div style="padding:16px;">${this._localize("card.error.missing_config")}</div>`,
+      theme
+    );
+  }
+  _renderPreviewCard(theme) {
+    this._setCardBody(this._renderPreview(), theme);
+  }
+  _clearMissingAuthError(token) {
+    if (token && this._error === "Missing auth token") {
+      this._error = void 0;
+    }
+  }
+  _renderBody() {
+    if (this._error) {
+      return this._renderError();
+    }
+    if (this._svgContent) {
+      return this._renderLayout();
+    }
+    return this._renderLoading();
+  }
+  _canFinishRender(token) {
+    return !(!token && this._error === "Missing auth token");
+  }
+  _finalizeRender() {
+    this._ensureStyles();
+    this._wireRetry();
+    this._loadSvg();
+    this._loadPayload();
+    this._wireInteractions();
   }
   _applyCardHeight(card) {
     if (this.closest("hui-card-edit-mode")) {
@@ -5503,90 +5588,45 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     card.style.height = height;
   }
   async _loadSvg() {
-    if (!this._config?.svg_url || !this._hass) {
+    if (!this._shouldLoadSvg()) {
       return;
     }
-    if (this._loading || this._config.svg_url === this._lastSvgUrl) {
+    if (!this._ensureAuthForSvg()) {
       return;
     }
-    if (!this._getAuthToken()) {
-      this._error = "Missing auth token";
-      this._render();
+    const request = this._beginSvgRequest();
+    if (!request) {
       return;
     }
-    this._svgAbortController?.abort();
-    this._svgAbortController = new AbortController();
-    const requestId = ++this._svgRequestId;
-    const currentUrl = this._config.svg_url;
-    this._loading = true;
-    const isRefresh = !!this._svgContent;
-    if (!isRefresh) {
-      this._showLoadingOverlay = true;
-      this._render();
-    } else {
-      this._scheduleLoadingOverlay();
-    }
+    this._prepareSvgLoadingOverlay(request.isRefresh);
     const result = await loadSvg(
       this._fetchWithAuth.bind(this),
-      currentUrl,
-      this._svgAbortController.signal
+      request.url,
+      request.controller.signal
     );
-    if (requestId !== this._svgRequestId) {
+    if (!this._isActiveSvgRequest(request.id, result)) {
       return;
     }
-    if ("aborted" in result) {
-      return;
-    }
-    if ("error" in result) {
-      this._error = `Failed to load SVG (${result.error})`;
-    } else {
-      this._svgContent = result.data;
-      this._error = void 0;
-    }
-    this._lastSvgUrl = currentUrl;
-    this._loading = false;
-    this._clearLoadingOverlay();
-    this._render();
+    this._finalizeSvgRequest(result, request.url);
   }
   async _loadPayload() {
-    if (!this._config?.data_url || !this._hass) {
+    if (!this._shouldLoadPayload()) {
       return;
     }
-    if (this._dataLoading || this._config.data_url === this._lastDataUrl) {
+    const request = this._beginPayloadRequest();
+    if (!request) {
       return;
     }
-    if (!this._getAuthToken()) {
-      return;
-    }
-    this._payloadAbortController?.abort();
-    this._payloadAbortController = new AbortController();
-    const requestId = ++this._payloadRequestId;
-    const currentUrl = this._config.data_url;
-    this._dataLoading = true;
-    const isRefresh = !!this._payload;
-    if (!isRefresh) {
-      this._scheduleLoadingOverlay();
-    }
+    this._preparePayloadLoadingOverlay(request.isRefresh);
     const result = await loadPayload(
       this._fetchWithAuth.bind(this),
-      currentUrl,
-      this._payloadAbortController.signal
+      request.url,
+      request.controller.signal
     );
-    if (requestId !== this._payloadRequestId) {
+    if (!this._isActivePayloadRequest(request.id, result)) {
       return;
     }
-    if ("aborted" in result) {
-      return;
-    }
-    if ("error" in result) {
-      this._error = `Failed to load payload (${result.error})`;
-    } else {
-      this._payload = result.data;
-    }
-    this._lastDataUrl = currentUrl;
-    this._dataLoading = false;
-    this._clearLoadingOverlay();
-    this._render();
+    this._finalizePayloadRequest(result, request.url);
   }
   _scheduleLoadingOverlay() {
     if (this._loadingOverlayTimeout) return;
@@ -5605,6 +5645,99 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     if (!this._isLoading()) {
       this._showLoadingOverlay = false;
     }
+  }
+  _shouldLoadSvg() {
+    if (!this._config?.svg_url || !this._hass) {
+      return false;
+    }
+    return !(this._loading || this._config.svg_url === this._lastSvgUrl);
+  }
+  _ensureAuthForSvg() {
+    if (this._getAuthToken()) {
+      return true;
+    }
+    this._error = "Missing auth token";
+    this._render();
+    return false;
+  }
+  _beginSvgRequest() {
+    const url = this._config?.svg_url;
+    if (!url) {
+      return null;
+    }
+    this._svgAbortController?.abort();
+    const controller = new AbortController();
+    this._svgAbortController = controller;
+    this._loading = true;
+    return { id: ++this._svgRequestId, url, controller, isRefresh: !!this._svgContent };
+  }
+  _prepareSvgLoadingOverlay(isRefresh) {
+    if (!isRefresh) {
+      this._showLoadingOverlay = true;
+      this._render();
+      return;
+    }
+    this._scheduleLoadingOverlay();
+  }
+  _isActiveSvgRequest(requestId, result) {
+    if (requestId !== this._svgRequestId) {
+      return false;
+    }
+    return !("aborted" in result);
+  }
+  _finalizeSvgRequest(result, url) {
+    if ("error" in result && result.error) {
+      this._error = `Failed to load SVG (${result.error})`;
+    } else if ("data" in result) {
+      this._svgContent = result.data ?? "";
+      this._error = void 0;
+    }
+    this._lastSvgUrl = url;
+    this._loading = false;
+    this._clearLoadingOverlay();
+    this._render();
+  }
+  _shouldLoadPayload() {
+    if (!this._config?.data_url || !this._hass) {
+      return false;
+    }
+    if (this._dataLoading || this._config.data_url === this._lastDataUrl) {
+      return false;
+    }
+    return !!this._getAuthToken();
+  }
+  _beginPayloadRequest() {
+    const url = this._config?.data_url;
+    if (!url) {
+      return null;
+    }
+    this._payloadAbortController?.abort();
+    const controller = new AbortController();
+    this._payloadAbortController = controller;
+    this._dataLoading = true;
+    return { id: ++this._payloadRequestId, url, controller, isRefresh: !!this._payload };
+  }
+  _preparePayloadLoadingOverlay(isRefresh) {
+    if (!isRefresh) {
+      this._scheduleLoadingOverlay();
+    }
+  }
+  _isActivePayloadRequest(requestId, result) {
+    if (requestId !== this._payloadRequestId) {
+      return false;
+    }
+    return !("aborted" in result);
+  }
+  _finalizePayloadRequest(result, url) {
+    if ("error" in result && result.error) {
+      this._error = `Failed to load payload (${result.error})`;
+    } else if ("data" in result) {
+      this._payload = result.data;
+    }
+    this._lastDataUrl = url;
+    this._dataLoading = false;
+    this._clearLoadingOverlay();
+    this._render();
   }
   _renderPreview() {
     return `
@@ -6492,14 +6625,23 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
   }
   _getConfigUpdate(e) {
     const detail = e.detail;
-    const entryId = detail.value?.entry_id ?? this._config?.entry_id ?? "";
-    const themeValue = detail.value?.theme ?? this._config?.theme ?? "unifi";
-    const cardHeight = detail.value?.card_height ?? this._config?.card_height;
+    const entryId = this._resolveEntryId(detail.value);
+    const themeValue = this._resolveTheme(detail.value);
+    const cardHeight = this._resolveCardHeight(detail.value);
     return {
       entry_id: entryId,
       theme: normalizeTheme(themeValue),
       card_height: cardHeight
     };
+  }
+  _resolveEntryId(value) {
+    return value?.entry_id ?? this._config?.entry_id ?? "";
+  }
+  _resolveTheme(value) {
+    return value?.theme ?? this._config?.theme ?? "unifi";
+  }
+  _resolveCardHeight(value) {
+    return value?.card_height ?? this._config?.card_height;
   }
   _isConfigUnchanged(update) {
     return this._config?.entry_id === update.entry_id && this._config?.theme === update.theme && this._config?.card_height === update.card_height;

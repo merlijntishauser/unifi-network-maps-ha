@@ -7,7 +7,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parents[1]
 RADON_BIN = BASE_DIR / ".venv" / "bin" / "radon"
 TARGETS = ["custom_components"]
-MAX_COMPLEXITY = 11
+MAX_COMPLEXITY = 10
 
 
 def run(cmd: list[str]) -> str:

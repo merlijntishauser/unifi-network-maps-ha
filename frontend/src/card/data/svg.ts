@@ -47,21 +47,32 @@ function annotatePoeIcons(svg: SVGElement): void {
   // Find all text elements that might be PoE icons
   const textElements = svg.querySelectorAll("text");
   for (const text of textElements) {
-    const content = text.textContent?.trim() ?? "";
-    // Check for lightning bolt emoji or "PoE" text
-    if (content === "⚡" || content === "⚡️" || content.toLowerCase() === "poe") {
-      annotateElementWithEdge(text, svg);
-      // Also annotate parent group if present
-      const parentGroup = text.closest("g");
-      if (parentGroup && !parentGroup.hasAttribute("data-edge-left")) {
-        const left = text.getAttribute("data-edge-left");
-        const right = text.getAttribute("data-edge-right");
-        if (left && right) {
-          parentGroup.setAttribute("data-edge-left", left);
-          parentGroup.setAttribute("data-edge-right", right);
-        }
-      }
+    if (!isPoeLabel(text.textContent)) {
+      continue;
     }
+    annotateElementWithEdge(text, svg);
+    annotatePoeParent(text);
+  }
+}
+
+function isPoeLabel(text: string | null | undefined): boolean {
+  const content = text?.trim() ?? "";
+  if (!content) {
+    return false;
+  }
+  return content === "⚡" || content === "⚡️" || content.toLowerCase() === "poe";
+}
+
+function annotatePoeParent(text: Element): void {
+  const parentGroup = text.closest("g");
+  if (!parentGroup || parentGroup.hasAttribute("data-edge-left")) {
+    return;
+  }
+  const left = text.getAttribute("data-edge-left");
+  const right = text.getAttribute("data-edge-right");
+  if (left && right) {
+    parentGroup.setAttribute("data-edge-left", left);
+    parentGroup.setAttribute("data-edge-right", right);
   }
 }
 

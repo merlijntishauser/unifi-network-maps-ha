@@ -322,39 +322,22 @@ export class UnifiNetworkMapCard extends HTMLElement {
   private _render() {
     const theme = this._config?.theme ?? "dark";
     if (!this._config) {
-      this._setCardBody(
-        `<div style="padding:16px;">${this._localize("card.error.missing_config")}</div>`,
-        theme,
-      );
+      this._renderMissingConfig(theme);
       return;
     }
-
     if (!this._config.svg_url) {
-      this._setCardBody(this._renderPreview(), theme);
+      this._renderPreviewCard(theme);
       return;
     }
 
     const token = this._getAuthToken();
-    if (token && this._error === "Missing auth token") {
-      this._error = undefined;
-    }
+    this._clearMissingAuthError(token);
+    this._setCardBody(this._renderBody(), theme);
 
-    const body = this._error
-      ? this._renderError()
-      : this._svgContent
-        ? this._renderLayout()
-        : this._renderLoading();
-
-    this._setCardBody(body, theme);
-
-    if (!token && this._error === "Missing auth token") {
+    if (!this._canFinishRender(token)) {
       return;
     }
-    this._ensureStyles();
-    this._wireRetry();
-    this._loadSvg();
-    this._loadPayload();
-    this._wireInteractions();
+    this._finalizeRender();
   }
 
   private _setCardBody(body: string, theme: string) {
@@ -363,6 +346,45 @@ export class UnifiNetworkMapCard extends HTMLElement {
     this._applyCardHeight(card);
     card.innerHTML = sanitizeHtml(body);
     this.replaceChildren(card);
+  }
+
+  private _renderMissingConfig(theme: string): void {
+    this._setCardBody(
+      `<div style="padding:16px;">${this._localize("card.error.missing_config")}</div>`,
+      theme,
+    );
+  }
+
+  private _renderPreviewCard(theme: string): void {
+    this._setCardBody(this._renderPreview(), theme);
+  }
+
+  private _clearMissingAuthError(token?: string): void {
+    if (token && this._error === "Missing auth token") {
+      this._error = undefined;
+    }
+  }
+
+  private _renderBody(): string {
+    if (this._error) {
+      return this._renderError();
+    }
+    if (this._svgContent) {
+      return this._renderLayout();
+    }
+    return this._renderLoading();
+  }
+
+  private _canFinishRender(token?: string): boolean {
+    return !(!token && this._error === "Missing auth token");
+  }
+
+  private _finalizeRender(): void {
+    this._ensureStyles();
+    this._wireRetry();
+    this._loadSvg();
+    this._loadPayload();
+    this._wireInteractions();
   }
 
   private _applyCardHeight(card: HTMLElement) {
