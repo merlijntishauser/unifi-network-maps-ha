@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Callable
 
 from pytest import MonkeyPatch
 
@@ -15,10 +16,28 @@ class _FakeConfigEntries:
         return [object()] if domain in self._domains else []
 
 
+class _FakeBus:
+    def __init__(self) -> None:
+        self.listeners: dict[str, list[Callable[..., None]]] = {}
+
+    def async_listen(self, event_type: str, callback: Callable[..., None]) -> Callable[[], None]:
+        if event_type not in self.listeners:
+            self.listeners[event_type] = []
+        self.listeners[event_type].append(callback)
+
+        def unsub() -> None:
+            if event_type in self.listeners and callback in self.listeners[event_type]:
+                self.listeners[event_type].remove(callback)
+
+        return unsub
+
+
 class _FakeHass:
     def __init__(self, domains: set[str]) -> None:
         self.config_entries = _FakeConfigEntries(domains)
         self.states = _FakeStates({})
+        self.data: dict[str, object] = {}
+        self.bus = _FakeBus()
 
 
 class _FakeStates:

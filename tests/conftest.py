@@ -116,12 +116,21 @@ def _register_core_stubs(modules: dict[str, Any]) -> None:
         def __init__(self, data: dict[str, object] | None = None) -> None:
             self.data = data or {}
 
+    class Event:  # minimal stub for imports
+        def __init__(self, data: dict[str, object] | None = None) -> None:
+            self.data = data or {}
+
+        @classmethod
+        def __class_getitem__(cls, _item: object):
+            return cls
+
     def callback(func):
         """Stub callback decorator."""
         return func
 
     core.HomeAssistant = HomeAssistant
     core.ServiceCall = ServiceCall
+    core.Event = Event
     core.callback = callback
     const.CONF_PASSWORD = "password"
     const.CONF_URL = "url"
@@ -174,7 +183,9 @@ def _register_registry_stubs(modules: dict[str, Any]) -> None:
     device_registry.format_mac = _format_mac
     device_registry.DeviceEntryType = DeviceEntryType
     device_registry.DeviceInfo = DeviceInfo
+    device_registry.EVENT_DEVICE_REGISTRY_UPDATED = "device_registry_updated"
     entity_registry.async_get = _async_get_stub
+    entity_registry.EVENT_ENTITY_REGISTRY_UPDATED = "entity_registry_updated"
 
 
 def _register_components_stubs(modules: dict[str, Any]) -> None:

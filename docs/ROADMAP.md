@@ -40,7 +40,7 @@ Focus: Fix critical bugs and improve performance before adding new features.
 - [x] Use deep copy for payload modifications
 
 ### 1.2 Performance
-- [ ] Cache entity registry index; rebuild only on entity changes
+- [x] Cache entity registry index; rebuild only on entity changes
 - [x] Update filter buttons incrementally instead of full rebuild
 - [ ] Cache SVG annotations; only re-annotate when content changes
 - [ ] Add payload caching with configurable TTL

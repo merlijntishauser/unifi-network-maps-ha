@@ -18,9 +18,10 @@ from unifi_network_maps.render.svg import SvgOptions, render_svg, render_svg_iso
 from unifi_network_maps.render.svg_theme import SvgTheme
 from unifi_network_maps.render.theme import resolve_themes
 
-from .const import DOMAIN
+from .const import DOMAIN, LOGGER
 from .coordinator import UniFiNetworkMapCoordinator
 from .data import UniFiNetworkMapData
+from .entity_cache import get_entity_cache
 from .renderer import RenderSettings
 
 _VIEWS_REGISTERED = "views_registered"
@@ -185,7 +186,16 @@ def _build_mac_to_all_entities_index(hass: HomeAssistant) -> dict[str, list[str]
     This enhanced version finds all entities belonging to a device once we
     identify the device's MAC address. This ensures sensors, switches,
     device_trackers, and other entity types are all included.
+
+    Results are cached and automatically invalidated when entity or device
+    registry changes occur.
     """
+    cache = get_entity_cache(hass)
+    cached = cache.mac_to_all_entities
+    if cached is not None:
+        LOGGER.debug("Using cached mac_to_all_entities index (%d entries)", len(cached))
+        return cached
+
     entity_registry = er.async_get(hass)
     device_registry = dr.async_get(hass)
     mac_to_entities: dict[str, list[str]] = {}
@@ -196,6 +206,8 @@ def _build_mac_to_all_entities_index(hass: HomeAssistant) -> dict[str, list[str]
     _add_entities_from_registry(entries, device_to_mac, hass, device_registry, mac_to_entities)
     _add_entities_from_states(hass, mac_to_entities)
 
+    cache.mac_to_all_entities = mac_to_entities
+    LOGGER.debug("Built and cached mac_to_all_entities index (%d entries)", len(mac_to_entities))
     return mac_to_entities
 
 
@@ -304,11 +316,25 @@ def _resolve_entity_map(hass: HomeAssistant, macs: dict[str, str]) -> dict[str, 
 
 
 def _build_mac_entity_index(hass: HomeAssistant) -> dict[str, str]:
+    """Build index mapping MAC addresses to primary entity IDs.
+
+    Results are cached and automatically invalidated when entity or device
+    registry changes occur.
+    """
+    cache = get_entity_cache(hass)
+    cached = cache.mac_to_entity
+    if cached is not None:
+        LOGGER.debug("Using cached mac_to_entity index (%d entries)", len(cached))
+        return cached
+
     entity_registry = er.async_get(hass)
     device_registry = dr.async_get(hass)
     mac_to_entity: dict[str, str] = {}
     _add_registry_macs(hass, entity_registry, device_registry, mac_to_entity)
     _add_state_macs(hass, mac_to_entity)
+
+    cache.mac_to_entity = mac_to_entity
+    LOGGER.debug("Built and cached mac_to_entity index (%d entries)", len(mac_to_entity))
     return mac_to_entity
 
 

@@ -54,12 +54,29 @@ class FakeConfigEntries:
         return self._entries
 
 
+class FakeBus:
+    def __init__(self) -> None:
+        self.listeners: dict[str, list[Callable[..., None]]] = {}
+
+    def async_listen(self, event_type: str, callback: Callable[..., None]) -> Callable[[], None]:
+        if event_type not in self.listeners:
+            self.listeners[event_type] = []
+        self.listeners[event_type].append(callback)
+
+        def unsub() -> None:
+            if event_type in self.listeners and callback in self.listeners[event_type]:
+                self.listeners[event_type].remove(callback)
+
+        return unsub
+
+
 class FakeHassWithHttp(FakeHass):
     def __init__(self, states: dict[str, FakeState]) -> None:
         super().__init__(states)
         self.http = FakeHttp()
         self.data: dict[str, object] = {}
         self.config_entries = FakeConfigEntries([])
+        self.bus = FakeBus()
 
     async def async_add_executor_job(self, func, *args: object):
         return func(*args)
