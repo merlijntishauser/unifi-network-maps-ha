@@ -85,7 +85,7 @@ def test_register_frontend_assets_warns_when_bundle_missing(
     finally:
         setattr(unifi_network_map, "_frontend_bundle_path", monkeypatch_frontend_path)
 
-    assert "Frontend bundle missing" in caplog.text
+    assert "frontend_bundle_missing" in caplog.text
     assert not hass.data.get("unifi_network_map", {}).get("frontend_registered")
 
 

@@ -24,6 +24,7 @@ class FakeHass:
 class FakeEntry:
     def __init__(self, options: dict[str, object] | None = None) -> None:
         self.options = options or {}
+        self.entry_id = "test_entry_id"
 
 
 def _run(coro):

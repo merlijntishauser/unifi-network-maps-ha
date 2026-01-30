@@ -12,6 +12,7 @@ from yarl import URL
 from .api import validate_unifi_credentials
 from .const import (
     CONF_CLIENT_SCOPE,
+    LOGGER,
     CONF_INCLUDE_CLIENTS,
     CONF_INCLUDE_PORTS,
     CONF_ONLY_UNIFI,
@@ -52,11 +53,18 @@ class UniFiNetworkMapConfigFlow(  # type: ignore[reportUntypedBaseClass,reportGe
     async def async_step_user(self, user_input: dict[str, Any] | None = None):
         errors: dict[str, str] = {}
         if user_input is not None:
+            LOGGER.debug(
+                "config_flow user_step started url=%s site=%s",
+                user_input.get(CONF_URL),
+                user_input.get(CONF_SITE),
+            )
             data, error = await self._validate_user_input(user_input)
             if error:
+                LOGGER.debug("config_flow validation_failed error=%s", error)
                 errors["base"] = error
             else:
                 title = _build_entry_title(data)
+                LOGGER.debug("config_flow entry_created title=%s", title)
                 return self.async_create_entry(title=title, data=data)
 
         return self.async_show_form(
@@ -104,13 +112,20 @@ class UniFiNetworkMapOptionsFlow(config_entries.OptionsFlow):  # type: ignore[re
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         if user_input is not None:
+            LOGGER.debug("options_flow started entry_id=%s", self._entry.entry_id)
             data, errors = _normalize_options(user_input)
             if errors:
+                LOGGER.debug("options_flow validation_failed errors=%s", list(errors.keys()))
                 return self.async_show_form(
                     step_id="init",
                     data_schema=_build_options_schema(self._entry.options),
                     errors=errors,
                 )
+            LOGGER.debug(
+                "options_flow completed entry_id=%s options=%s",
+                self._entry.entry_id,
+                list(data.keys()),
+            )
             return self.async_create_entry(title="", data=data)
 
         return self.async_show_form(

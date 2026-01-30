@@ -13,7 +13,7 @@ from requests.exceptions import HTTPError
 from .data import UniFiNetworkMapData
 from .errors import CannotConnect, InvalidAuth, UniFiNetworkMapError
 from .renderer import RenderSettings, UniFiNetworkMapRenderer
-from .const import DEFAULT_RENDER_CACHE_SECONDS
+from .const import DEFAULT_RENDER_CACHE_SECONDS, LOGGER
 
 SSL_WARNING_MESSAGE = (
     "SSL certificate verification is disabled. This is not recommended for production use."
@@ -41,7 +41,14 @@ class UniFiNetworkMapClient:
         _ensure_unifi_request_timeout(self.request_timeout_seconds)
         cached = self._get_cached_map()
         if cached is not None:
+            LOGGER.debug("api fetch_map cache_hit=true site=%s", self.site)
             return cached
+        LOGGER.debug(
+            "api fetch_map started site=%s verify_ssl=%s timeout=%s",
+            self.site,
+            self.verify_ssl,
+            self.request_timeout_seconds,
+        )
         config = Config(
             url=self.base_url,
             site=self.site,
@@ -51,6 +58,7 @@ class UniFiNetworkMapClient:
         )
         data = _render_map_payload(config, self.settings)
         self._store_cache(data)
+        LOGGER.debug("api fetch_map completed site=%s", self.site)
         return data
 
     def _get_cached_map(self) -> UniFiNetworkMapData | None:
@@ -76,11 +84,13 @@ def validate_unifi_credentials(
     site: str,
     verify_ssl: bool,
 ) -> None:
+    LOGGER.debug("api validate_credentials started site=%s verify_ssl=%s", site, verify_ssl)
     _ensure_unifi_ssl_warning_filter(verify_ssl)
     _ensure_unifi_request_timeout(None)
     config = _build_config(base_url, username, password, site, verify_ssl)
     auth_error = _load_unifi_auth_error()
     _assert_unifi_connectivity(config, site, auth_error)
+    LOGGER.debug("api validate_credentials succeeded site=%s", site)
 
 
 def _build_config(

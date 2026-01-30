@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Cache entity registry index; rebuild only on entity changes
 - SVG Annotation Caching
+- Payload Caching with Configurable TTL
+
+### Changed
+- Implemented structured logging for debugging
 
 ## [0.1.10] - 2026-01-27
 ### Added

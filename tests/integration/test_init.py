@@ -396,7 +396,7 @@ def test_register_static_asset_warns_when_no_http_api(caplog: pytest.LogCaptureF
     caplog.set_level("WARNING")
     register_static_asset(hass, test_url, Path(__file__))
 
-    assert "Unable to register static asset" in caplog.text
+    assert "static_asset_failed" in caplog.text
 
 
 def test_make_config_from_signature_maps_args() -> None:

@@ -86,7 +86,7 @@ def invalidate_entity_cache(hass: HomeAssistant) -> None:
     cache = data.get(_CACHE_KEY)
     if cache is not None:
         cache.invalidate()
-        LOGGER.debug("Entity registry cache invalidated")
+        LOGGER.debug("entity_cache invalidated")
 
 
 def cleanup_entity_cache(hass: HomeAssistant) -> None:
@@ -95,7 +95,7 @@ def cleanup_entity_cache(hass: HomeAssistant) -> None:
     cache = data.pop(_CACHE_KEY, None)
     if cache is not None:
         cache.unsubscribe()
-        LOGGER.debug("Entity registry cache cleaned up")
+        LOGGER.debug("entity_cache cleanup completed")
 
 
 def _subscribe_to_registry_events(hass: HomeAssistant, cache: EntityRegistryCache) -> None:
@@ -109,7 +109,9 @@ def _subscribe_to_registry_events(hass: HomeAssistant, cache: EntityRegistryCach
         if _is_unifi_relevant_event(hass, entity_id):
             cache.invalidate()
             invalidate_payload_cache(hass)
-            LOGGER.debug("Entity cache invalidated: entity %s %s", action, entity_id)
+            LOGGER.debug(
+                "entity_cache invalidated trigger=entity action=%s entity_id=%s", action, entity_id
+            )
 
     @callback  # type: ignore[reportUntypedFunctionDecorator]
     def _on_device_registry_updated(event: Event[dict[str, str]]) -> None:
@@ -118,7 +120,9 @@ def _subscribe_to_registry_events(hass: HomeAssistant, cache: EntityRegistryCach
         if _is_unifi_relevant_device(hass, device_id):
             cache.invalidate()
             invalidate_payload_cache(hass)
-            LOGGER.debug("Entity cache invalidated: device %s %s", action, device_id)
+            LOGGER.debug(
+                "entity_cache invalidated trigger=device action=%s device_id=%s", action, device_id
+            )
 
     entity_event = _get_entity_registry_event()
     device_event = _get_device_registry_event()
@@ -126,7 +130,9 @@ def _subscribe_to_registry_events(hass: HomeAssistant, cache: EntityRegistryCach
     unsub_entity = hass.bus.async_listen(entity_event, _on_entity_registry_updated)
     unsub_device = hass.bus.async_listen(device_event, _on_device_registry_updated)
     cache.set_unsubscribe_callbacks(unsub_entity, unsub_device)
-    LOGGER.debug("Subscribed to entity and device registry events")
+    LOGGER.debug(
+        "entity_cache subscribed entity_event=%s device_event=%s", entity_event, device_event
+    )
 
 
 def _get_entity_registry_event() -> str:

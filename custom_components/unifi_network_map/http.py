@@ -208,7 +208,7 @@ def _build_mac_to_all_entities_index(hass: HomeAssistant) -> dict[str, list[str]
     cache = get_entity_cache(hass)
     cached = cache.mac_to_all_entities
     if cached is not None:
-        LOGGER.debug("Using cached mac_to_all_entities index (%d entries)", len(cached))
+        LOGGER.debug("http mac_index cache_hit=true type=all_entities count=%d", len(cached))
         return cached
 
     entity_registry = er.async_get(hass)
@@ -222,7 +222,7 @@ def _build_mac_to_all_entities_index(hass: HomeAssistant) -> dict[str, list[str]
     _add_entities_from_states(hass, mac_to_entities)
 
     cache.mac_to_all_entities = mac_to_entities
-    LOGGER.debug("Built and cached mac_to_all_entities index (%d entries)", len(mac_to_entities))
+    LOGGER.debug("http mac_index built type=all_entities count=%d", len(mac_to_entities))
     return mac_to_entities
 
 
@@ -339,7 +339,7 @@ def _build_mac_entity_index(hass: HomeAssistant) -> dict[str, str]:
     cache = get_entity_cache(hass)
     cached = cache.mac_to_entity
     if cached is not None:
-        LOGGER.debug("Using cached mac_to_entity index (%d entries)", len(cached))
+        LOGGER.debug("http mac_index cache_hit=true type=primary count=%d", len(cached))
         return cached
 
     entity_registry = er.async_get(hass)
@@ -349,7 +349,7 @@ def _build_mac_entity_index(hass: HomeAssistant) -> dict[str, str]:
     _add_state_macs(hass, mac_to_entity)
 
     cache.mac_to_entity = mac_to_entity
-    LOGGER.debug("Built and cached mac_to_entity index (%d entries)", len(mac_to_entity))
+    LOGGER.debug("http mac_index built type=primary count=%d", len(mac_to_entity))
     return mac_to_entity
 
 

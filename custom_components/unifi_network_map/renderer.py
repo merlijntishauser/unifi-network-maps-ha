@@ -18,7 +18,7 @@ from unifi_network_maps.model.topology import (
 )
 from unifi_network_maps.render.svg import SvgOptions, render_svg, render_svg_isometric
 
-from .const import PAYLOAD_SCHEMA_VERSION
+from .const import LOGGER, PAYLOAD_SCHEMA_VERSION
 from .data import UniFiNetworkMapData
 from .errors import UniFiNetworkMapError
 
@@ -61,14 +61,29 @@ class UniFiNetworkMapRenderer:
 
 
 def _render_map(config: Config, settings: RenderSettings) -> UniFiNetworkMapData:
+    LOGGER.debug(
+        "renderer started site=%s include_clients=%s client_scope=%s",
+        config.site,
+        settings.include_clients,
+        settings.client_scope,
+    )
     devices = _load_devices(config, settings)
+    LOGGER.debug("renderer devices_loaded count=%d", len(devices))
     topology, gateways = _build_topology(devices, settings)
     edges, clients = _apply_clients(config, settings, topology, devices)
+    client_count = len(clients) if clients else 0
+    LOGGER.debug(
+        "renderer topology_built edges=%d clients=%d gateways=%d",
+        len(edges),
+        client_count,
+        len(gateways),
+    )
     node_types = build_node_type_map(devices, clients, client_mode=settings.client_scope)
     svg = _render_svg(edges, node_types, settings)
     # Always fetch clients for stats (wireless counts per AP)
     all_clients = _load_all_clients(config, settings)
     payload = _build_payload(edges, node_types, gateways, clients, devices, all_clients)
+    LOGGER.debug("renderer completed nodes=%d svg_bytes=%d", len(node_types), len(svg))
     return UniFiNetworkMapData(svg=svg, payload=payload)
 
 

@@ -71,7 +71,11 @@ class UniFiNetworkMapCoordinator(DataUpdateCoordinator[UniFiNetworkMapData]):  #
         """Rebuild client with current entry options."""
         self._client = _build_client(self.hass, self._entry)
         self.update_interval = _get_scan_interval(self._entry)
-        LOGGER.debug("Coordinator settings updated from entry options")
+        LOGGER.debug(
+            "coordinator settings_updated entry_id=%s interval=%s",
+            self._entry.entry_id,
+            self.update_interval,
+        )
 
     @property
     def settings(self) -> RenderSettings:
@@ -88,13 +92,24 @@ class UniFiNetworkMapCoordinator(DataUpdateCoordinator[UniFiNetworkMapData]):  #
     async def _async_update_data(self) -> UniFiNetworkMapData:
         backoff_remaining = self._auth_backoff_remaining()
         if backoff_remaining is not None:
-            LOGGER.debug("Skipping fetch: backoff active for %ds", int(backoff_remaining))
+            LOGGER.debug(
+                "coordinator fetch_skipped reason=backoff remaining=%ds entry_id=%s",
+                int(backoff_remaining),
+                self._entry.entry_id,
+            )
             raise UpdateFailed(f"Auth backoff active, retrying in {int(backoff_remaining)}s")
+        LOGGER.debug("coordinator fetch_started entry_id=%s", self._entry.entry_id)
         try:
             data = await self.hass.async_add_executor_job(self._client.fetch_map)
             self._reset_auth_backoff()
+            LOGGER.debug("coordinator fetch_completed entry_id=%s", self._entry.entry_id)
             return data
         except UniFiNetworkMapError as err:
+            LOGGER.debug(
+                "coordinator fetch_failed entry_id=%s error=%s",
+                self._entry.entry_id,
+                type(err).__name__,
+            )
             if _should_backoff(err):
                 self._advance_auth_backoff()
             raise UpdateFailed(str(err)) from err
@@ -116,15 +131,16 @@ class UniFiNetworkMapCoordinator(DataUpdateCoordinator[UniFiNetworkMapData]):  #
         self._auth_backoff_until = now + delay
         next_delay = min(self._auth_backoff_seconds * 2, AUTH_BACKOFF_MAX_SECONDS)
         LOGGER.warning(
-            "Auth backoff activated: waiting %ds before retry (next delay: %ds)",
+            "coordinator backoff_activated delay=%ds next_delay=%ds entry_id=%s",
             delay,
             next_delay,
+            self._entry.entry_id,
         )
         self._auth_backoff_seconds = next_delay
 
     def _reset_auth_backoff(self) -> None:
         if self._auth_backoff_until is not None:
-            LOGGER.debug("Auth backoff cleared after successful fetch")
+            LOGGER.debug("coordinator backoff_cleared entry_id=%s", self._entry.entry_id)
         self._auth_backoff_until = None
         self._auth_backoff_seconds = AUTH_BACKOFF_BASE_SECONDS
 

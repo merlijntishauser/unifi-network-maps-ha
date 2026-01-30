@@ -21,6 +21,7 @@ from custom_components.unifi_network_map.renderer import RenderSettings
 class FakeEntry:
     data: dict[str, object]
     options: dict[str, object]
+    entry_id: str = "test_entry_id"
 
 
 class FakeClient:

@@ -287,7 +287,7 @@ def test_ensure_lovelace_resource_logs_failure_after_attempts(
     ensure_resource = getattr(unifi_network_map, "_ensure_lovelace_resource")
     asyncio.run(ensure_resource(hass))
 
-    assert "Lovelace auto-registration failed after" in caplog.text
+    assert "lovelace registration_failed" in caplog.text
     assert hass.data["unifi_network_map"]["lovelace_resource_failed"] is True
 
 

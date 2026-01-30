@@ -55,13 +55,18 @@ class PayloadCache:
         if cached is None:
             return None
         if cached.source_hash != source_hash:
-            LOGGER.debug("Payload cache miss for %s: source hash changed", entry_id)
+            LOGGER.debug("payload_cache miss entry_id=%s reason=hash_changed", entry_id)
             return None
         age = monotonic_seconds() - cached.cached_at
         if age > self._ttl_seconds:
-            LOGGER.debug("Payload cache miss for %s: TTL expired (age=%.1fs)", entry_id, age)
+            LOGGER.debug(
+                "payload_cache miss entry_id=%s reason=ttl_expired age=%.1fs ttl=%.1fs",
+                entry_id,
+                age,
+                self._ttl_seconds,
+            )
             return None
-        LOGGER.debug("Payload cache hit for %s (age=%.1fs)", entry_id, age)
+        LOGGER.debug("payload_cache hit entry_id=%s age=%.1fs", entry_id, age)
         return cached.payload
 
     def set(self, entry_id: str, payload: dict[str, Any], source_hash: str) -> None:
@@ -71,20 +76,20 @@ class PayloadCache:
             cached_at=monotonic_seconds(),
             source_hash=source_hash,
         )
-        LOGGER.debug("Payload cached for %s", entry_id)
+        LOGGER.debug("payload_cache stored entry_id=%s", entry_id)
 
     def invalidate(self, entry_id: str) -> None:
         """Invalidate the cache for a specific entry."""
         if entry_id in self._entries:
             del self._entries[entry_id]
-            LOGGER.debug("Payload cache invalidated for %s", entry_id)
+            LOGGER.debug("payload_cache invalidated entry_id=%s", entry_id)
 
     def invalidate_all(self) -> None:
         """Invalidate all cached payloads."""
         if self._entries:
             count = len(self._entries)
             self._entries.clear()
-            LOGGER.debug("Payload cache invalidated: %d entries cleared", count)
+            LOGGER.debug("payload_cache invalidated_all count=%d", count)
 
 
 def get_payload_cache(hass: HomeAssistant) -> PayloadCache:
@@ -94,7 +99,7 @@ def get_payload_cache(hass: HomeAssistant) -> PayloadCache:
     if cache is None:
         cache = PayloadCache()
         data[_CACHE_KEY] = cache
-        LOGGER.debug("Payload cache created")
+        LOGGER.debug("payload_cache created")
     return cache
 
 
@@ -102,7 +107,7 @@ def set_payload_cache_ttl(hass: HomeAssistant, ttl_seconds: float) -> None:
     """Set the payload cache TTL."""
     cache = get_payload_cache(hass)
     cache.ttl_seconds = ttl_seconds
-    LOGGER.debug("Payload cache TTL set to %.1f seconds", ttl_seconds)
+    LOGGER.debug("payload_cache ttl_configured ttl=%.1fs", ttl_seconds)
 
 
 def invalidate_payload_cache(hass: HomeAssistant, entry_id: str | None = None) -> None:
