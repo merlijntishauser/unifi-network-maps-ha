@@ -1333,6 +1333,48 @@ function channelBand(channel, localize) {
   return null;
 }
 
+// src/card/data/annotation-cache.ts
+function createAnnotationCache() {
+  return {
+    lastKey: null,
+    isAnnotated: false
+  };
+}
+function hashString(str) {
+  let hash = 0;
+  if (str.length === 0) return String(hash);
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash;
+  }
+  return String(hash);
+}
+function buildCacheKey(svgContent, nodeTypes, edges) {
+  const nodeTypesStr = nodeTypes ? JSON.stringify(Object.keys(nodeTypes).sort()) : "";
+  const edgesStr = edges ? JSON.stringify(edges.map((e) => `${e.left}-${e.right}`).sort()) : "";
+  return {
+    svgHash: hashString(svgContent),
+    nodeTypesHash: hashString(nodeTypesStr),
+    edgesHash: hashString(edgesStr)
+  };
+}
+function cacheKeysEqual(a, b) {
+  if (a === null || b === null) return false;
+  return a.svgHash === b.svgHash && a.nodeTypesHash === b.nodeTypesHash && a.edgesHash === b.edgesHash;
+}
+function shouldSkipAnnotations(cache, currentKey) {
+  return cache.isAnnotated && cacheKeysEqual(cache.lastKey, currentKey);
+}
+function markAnnotationsComplete(cache, key) {
+  cache.lastKey = key;
+  cache.isAnnotated = true;
+}
+function invalidateAnnotationCache(cache) {
+  cache.lastKey = null;
+  cache.isAnnotated = false;
+}
+
 // src/card/interaction/node.ts
 function resolveNodeName(event) {
   const path = event.composedPath();
@@ -5364,6 +5406,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._wsSubscriptionVersion = 0;
     this._svgRequestId = 0;
     this._payloadRequestId = 0;
+    this._annotationCache = createAnnotationCache();
   }
   static getLayoutOptions() {
     return { grid_columns: 4, grid_rows: 3, grid_min_columns: 2, grid_min_rows: 2 };
@@ -5691,6 +5734,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     } else if ("data" in result) {
       this._svgContent = result.data ?? "";
       this._error = void 0;
+      invalidateAnnotationCache(this._annotationCache);
     }
     this._lastSvgUrl = url;
     this._loading = false;
@@ -5733,6 +5777,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       this._error = `Failed to load payload (${result.error})`;
     } else if ("data" in result) {
       this._payload = result.data;
+      invalidateAnnotationCache(this._annotationCache);
     }
     this._lastDataUrl = url;
     this._dataLoading = false;
@@ -6035,14 +6080,35 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       return;
     }
     this._ensureStyles();
-    const options = this._viewportOptions();
-    const callbacks = this._viewportCallbacks();
     applyTransform(svg3, this._viewportState.viewTransform, this._viewportState.isPanning);
+    this._annotateIfNeeded(svg3);
+    this._highlightSelectedNode(svg3);
+    this._wireControls(svg3);
+    this._bindViewport(viewport, svg3, tooltip);
+    this._applyVlanColors();
+    this._injectFilterBar(viewport);
+    this._applyFilters(svg3);
+    if (panel) {
+      panel.onclick = (event) => this._onPanelClick(event);
+    }
+  }
+  _annotateIfNeeded(svg3) {
+    const cacheKey = buildCacheKey(
+      this._svgContent ?? "",
+      this._payload?.node_types,
+      this._payload?.edges
+    );
+    if (shouldSkipAnnotations(this._annotationCache, cacheKey)) {
+      return;
+    }
     annotateNodeIds(svg3, Object.keys(this._payload?.node_types ?? {}));
     removeSvgTitles(svg3);
-    this._highlightSelectedNode(svg3);
     this._annotateEdges(svg3);
-    this._wireControls(svg3);
+    markAnnotationsComplete(this._annotationCache, cacheKey);
+  }
+  _bindViewport(viewport, svg3, tooltip) {
+    const options = this._viewportOptions();
+    const callbacks = this._viewportCallbacks();
     bindViewportInteractions({
       viewport,
       svg: svg3,
@@ -6059,12 +6125,6 @@ var UnifiNetworkMapCard = class extends HTMLElement {
         controls: viewport.querySelector(".unifi-network-map__controls")
       }
     });
-    this._applyVlanColors();
-    this._injectFilterBar(viewport);
-    this._applyFilters(svg3);
-    if (panel) {
-      panel.onclick = (event) => this._onPanelClick(event);
-    }
   }
   _updateFilterDisplay() {
     const viewport = this.querySelector(".unifi-network-map__viewport");

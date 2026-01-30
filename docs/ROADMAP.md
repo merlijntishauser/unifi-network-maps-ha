@@ -42,7 +42,7 @@ Focus: Fix critical bugs and improve performance before adding new features.
 ### 1.2 Performance
 - [x] Cache entity registry index; rebuild only on entity changes
 - [x] Update filter buttons incrementally instead of full rebuild
-- [ ] Cache SVG annotations; only re-annotate when content changes
+- [x] Cache SVG annotations; only re-annotate when content changes
 - [ ] Add payload caching with configurable TTL
 
 ### 1.3 Code Quality

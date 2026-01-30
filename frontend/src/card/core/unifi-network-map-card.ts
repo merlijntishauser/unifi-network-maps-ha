@@ -8,6 +8,14 @@ import {
 import { escapeHtml, sanitizeHtml, sanitizeSvg } from "../data/sanitize";
 import { annotateEdges, renderEdgeTooltip } from "../data/svg";
 import {
+  buildCacheKey,
+  createAnnotationCache,
+  invalidateAnnotationCache,
+  markAnnotationsComplete,
+  shouldSkipAnnotations,
+} from "../data/annotation-cache";
+import type { AnnotationCache } from "../data/annotation-cache";
+import {
   annotateNodeIds,
   clearNodeSelection,
   findNodeElement,
@@ -251,6 +259,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
   private _wsSubscriptionVersion = 0;
   private _svgRequestId = 0;
   private _payloadRequestId = 0;
+  private _annotationCache: AnnotationCache = createAnnotationCache();
   get _viewTransform() {
     return this._viewportState.viewTransform;
   }
@@ -519,6 +528,8 @@ export class UnifiNetworkMapCard extends HTMLElement {
     } else if ("data" in result) {
       this._svgContent = result.data ?? "";
       this._error = undefined;
+      // Invalidate annotation cache when new SVG content is loaded
+      invalidateAnnotationCache(this._annotationCache);
     }
     this._lastSvgUrl = url;
     this._loading = false;
@@ -571,6 +582,8 @@ export class UnifiNetworkMapCard extends HTMLElement {
       this._error = `Failed to load payload (${result.error})`;
     } else if ("data" in result) {
       this._payload = result.data;
+      // Invalidate annotation cache when payload changes (includes node_types and edges)
+      invalidateAnnotationCache(this._annotationCache);
     }
     this._lastDataUrl = url;
     this._dataLoading = false;
@@ -917,15 +930,38 @@ export class UnifiNetworkMapCard extends HTMLElement {
       return;
     }
     this._ensureStyles();
-    const options = this._viewportOptions();
-    const callbacks = this._viewportCallbacks();
     applyTransform(svg, this._viewportState.viewTransform, this._viewportState.isPanning);
+    this._annotateIfNeeded(svg);
+    this._highlightSelectedNode(svg);
+    this._wireControls(svg);
+    this._bindViewport(viewport, svg, tooltip);
+    this._applyVlanColors();
+    this._injectFilterBar(viewport);
+    this._applyFilters(svg);
+
+    if (panel) {
+      panel.onclick = (event) => this._onPanelClick(event);
+    }
+  }
+
+  private _annotateIfNeeded(svg: SVGElement): void {
+    const cacheKey = buildCacheKey(
+      this._svgContent ?? "",
+      this._payload?.node_types,
+      this._payload?.edges,
+    );
+    if (shouldSkipAnnotations(this._annotationCache, cacheKey)) {
+      return;
+    }
     annotateNodeIds(svg, Object.keys(this._payload?.node_types ?? {}));
     removeSvgTitles(svg);
-    this._highlightSelectedNode(svg);
     this._annotateEdges(svg);
-    this._wireControls(svg);
+    markAnnotationsComplete(this._annotationCache, cacheKey);
+  }
 
+  private _bindViewport(viewport: HTMLElement, svg: SVGElement, tooltip: HTMLElement): void {
+    const options = this._viewportOptions();
+    const callbacks = this._viewportCallbacks();
     bindViewportInteractions({
       viewport,
       svg,
@@ -942,14 +978,6 @@ export class UnifiNetworkMapCard extends HTMLElement {
         controls: viewport.querySelector(".unifi-network-map__controls") as HTMLElement | null,
       },
     });
-
-    this._applyVlanColors();
-    this._injectFilterBar(viewport);
-    this._applyFilters(svg);
-
-    if (panel) {
-      panel.onclick = (event) => this._onPanelClick(event);
-    }
   }
 
   private _updateFilterDisplay(): void {
