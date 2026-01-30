@@ -22,6 +22,7 @@ from .const import DOMAIN, LOGGER
 from .coordinator import UniFiNetworkMapCoordinator
 from .data import UniFiNetworkMapData
 from .entity_cache import get_entity_cache
+from .payload_cache import compute_payload_hash, get_payload_cache
 from .renderer import RenderSettings
 
 _VIEWS_REGISTERED = "views_registered"
@@ -75,8 +76,22 @@ class UniFiNetworkMapPayloadView(HomeAssistantView):  # type: ignore[reportUntyp
         data = _get_data(_get_coordinator(hass, entry_id))
         if data is None:
             raise web.HTTPNotFound()
-        payload = build_enriched_payload(hass, deepcopy(data.payload))
+        payload = _get_or_build_enriched_payload(hass, entry_id, data.payload)
         return web.json_response(payload)
+
+
+def _get_or_build_enriched_payload(
+    hass: HomeAssistant, entry_id: str, source_payload: dict[str, object]
+) -> dict[str, object]:
+    """Get cached enriched payload or build and cache a new one."""
+    cache = get_payload_cache(hass)
+    source_hash = compute_payload_hash(source_payload)
+    cached = cache.get(entry_id, source_hash)
+    if cached is not None:
+        return cached
+    payload = build_enriched_payload(hass, deepcopy(source_payload))
+    cache.set(entry_id, payload, source_hash)
+    return payload
 
 
 def resolve_client_entity_map(hass: HomeAssistant, client_macs: dict[str, str]) -> dict[str, str]:

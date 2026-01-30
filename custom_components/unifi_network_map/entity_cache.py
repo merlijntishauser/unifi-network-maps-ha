@@ -100,6 +100,7 @@ def cleanup_entity_cache(hass: HomeAssistant) -> None:
 
 def _subscribe_to_registry_events(hass: HomeAssistant, cache: EntityRegistryCache) -> None:
     """Subscribe to entity and device registry update events."""
+    from .payload_cache import invalidate_payload_cache
 
     @callback  # type: ignore[reportUntypedFunctionDecorator]
     def _on_entity_registry_updated(event: Event[dict[str, str]]) -> None:
@@ -107,6 +108,7 @@ def _subscribe_to_registry_events(hass: HomeAssistant, cache: EntityRegistryCach
         entity_id = event.data.get("entity_id", "")
         if _is_unifi_relevant_event(hass, entity_id):
             cache.invalidate()
+            invalidate_payload_cache(hass)
             LOGGER.debug("Entity cache invalidated: entity %s %s", action, entity_id)
 
     @callback  # type: ignore[reportUntypedFunctionDecorator]
@@ -115,6 +117,7 @@ def _subscribe_to_registry_events(hass: HomeAssistant, cache: EntityRegistryCach
         device_id = event.data.get("device_id", "")
         if _is_unifi_relevant_device(hass, device_id):
             cache.invalidate()
+            invalidate_payload_cache(hass)
             LOGGER.debug("Entity cache invalidated: device %s %s", action, device_id)
 
     entity_event = _get_entity_registry_event()

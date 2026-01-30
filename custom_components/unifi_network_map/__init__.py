@@ -16,7 +16,15 @@ import asyncio
 import voluptuous as vol
 from homeassistant.exceptions import HomeAssistantError
 
-from .const import ATTR_ENTRY_ID, DOMAIN, LOGGER, PLATFORMS, SERVICE_REFRESH
+from .const import (
+    ATTR_ENTRY_ID,
+    CONF_PAYLOAD_CACHE_TTL,
+    DEFAULT_PAYLOAD_CACHE_TTL_SECONDS,
+    DOMAIN,
+    LOGGER,
+    PLATFORMS,
+    SERVICE_REFRESH,
+)
 from .coordinator import UniFiNetworkMapCoordinator
 
 
@@ -54,6 +62,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     _suppress_unifi_api_info_logs(hass)
     _register_websocket_api(hass)
+    _configure_payload_cache_ttl(hass, entry)
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
     await _initialize_coordinator(coordinator)
     _store_coordinator(hass, entry.entry_id, coordinator)
@@ -66,6 +75,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Handle options update - rebuild coordinator client and refresh."""
+    from .payload_cache import invalidate_payload_cache
+
+    _configure_payload_cache_ttl(hass, entry)
+    invalidate_payload_cache(hass, entry.entry_id)
     coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
     if isinstance(coordinator, UniFiNetworkMapCoordinator):
         coordinator.update_settings()
@@ -75,11 +88,13 @@ async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> Non
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     from .entity_cache import invalidate_entity_cache
+    from .payload_cache import invalidate_payload_cache
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
         invalidate_entity_cache(hass)
+        invalidate_payload_cache(hass, entry.entry_id)
     return unload_ok
 
 
@@ -89,6 +104,14 @@ def _suppress_unifi_api_info_logs(hass: HomeAssistant) -> None:
         return
     logging.getLogger("unifi_controller_api.api_client").addFilter(_UnifiApiInfoFilter())
     _unifi_api_info_filter_added = True
+
+
+def _configure_payload_cache_ttl(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Configure the payload cache TTL from entry options."""
+    from .payload_cache import set_payload_cache_ttl
+
+    ttl = entry.options.get(CONF_PAYLOAD_CACHE_TTL, DEFAULT_PAYLOAD_CACHE_TTL_SECONDS)
+    set_payload_cache_ttl(hass, float(ttl))
 
 
 def _register_refresh_service(hass: HomeAssistant) -> None:

@@ -15,6 +15,7 @@ from .const import (
     CONF_INCLUDE_CLIENTS,
     CONF_INCLUDE_PORTS,
     CONF_ONLY_UNIFI,
+    CONF_PAYLOAD_CACHE_TTL,
     CONF_REQUEST_TIMEOUT_SECONDS,
     CONF_SCAN_INTERVAL,
     CONF_SITE,
@@ -27,6 +28,7 @@ from .const import (
     DEFAULT_INCLUDE_CLIENTS,
     DEFAULT_INCLUDE_PORTS,
     DEFAULT_ONLY_UNIFI,
+    DEFAULT_PAYLOAD_CACHE_TTL_SECONDS,
     DEFAULT_REQUEST_TIMEOUT_SECONDS,
     DEFAULT_SCAN_INTERVAL_MINUTES,
     DEFAULT_SITE,
@@ -34,7 +36,9 @@ from .const import (
     DEFAULT_USE_CACHE,
     DEFAULT_VERIFY_SSL,
     DOMAIN,
+    MAX_PAYLOAD_CACHE_TTL_SECONDS,
     MAX_SCAN_INTERVAL_MINUTES,
+    MIN_PAYLOAD_CACHE_TTL_SECONDS,
     MIN_SCAN_INTERVAL_MINUTES,
 )
 from .errors import CannotConnect, InvalidAuth, InvalidUrl, UrlHasCredentials
@@ -140,6 +144,9 @@ def _options_schema_fields(options: dict[str, Any]) -> dict[vol.Marker, object]:
         opt(
             CONF_REQUEST_TIMEOUT_SECONDS, DEFAULT_REQUEST_TIMEOUT_SECONDS
         ): _request_timeout_selector(),
+        opt(
+            CONF_PAYLOAD_CACHE_TTL, DEFAULT_PAYLOAD_CACHE_TTL_SECONDS
+        ): _payload_cache_ttl_selector(),
         opt(CONF_INCLUDE_PORTS, DEFAULT_INCLUDE_PORTS): _boolean_selector(),
         opt(CONF_INCLUDE_CLIENTS, DEFAULT_INCLUDE_CLIENTS): _boolean_selector(),
         opt(CONF_CLIENT_SCOPE, DEFAULT_CLIENT_SCOPE): _client_scope_selector(),
@@ -171,6 +178,18 @@ def _request_timeout_selector() -> selector.NumberSelector:
             min=5,
             max=120,
             step=1,
+            unit_of_measurement="seconds",
+            mode=selector.NumberSelectorMode.BOX,
+        )
+    )
+
+
+def _payload_cache_ttl_selector() -> selector.NumberSelector:
+    return selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=MIN_PAYLOAD_CACHE_TTL_SECONDS,
+            max=MAX_PAYLOAD_CACHE_TTL_SECONDS,
+            step=5,
             unit_of_measurement="seconds",
             mode=selector.NumberSelectorMode.BOX,
         )
