@@ -4,7 +4,7 @@ from datetime import timedelta
 import logging
 
 DOMAIN = "unifi_network_map"
-PLATFORMS = ["sensor"]
+PLATFORMS = ["sensor", "binary_sensor"]
 PAYLOAD_SCHEMA_VERSION = "1.4"
 
 SERVICE_REFRESH = "refresh"

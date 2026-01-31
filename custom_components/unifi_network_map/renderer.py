@@ -194,6 +194,7 @@ def _build_payload(
         "node_vlans": _build_node_vlan_index(clients),
         "vlan_info": _build_vlan_info(clients),
         "ap_client_counts": _build_ap_client_counts(all_clients, devices),
+        "device_details": _build_device_details(devices),
     }
 
 
@@ -363,3 +364,23 @@ def _build_ap_client_counts(clients: list[ClientData], devices: list[Device]) ->
             ap_counts[ap_name] = ap_counts.get(ap_name, 0) + 1
 
     return ap_counts
+
+
+def _build_device_details(devices: list[Device]) -> dict[str, dict[str, Any]]:
+    """Build detailed device info for entity attributes.
+
+    Returns a dict mapping device name to details including mac, ip, model, and uplink.
+    """
+    details: dict[str, dict[str, Any]] = {}
+    for device in devices:
+        if not device.name:
+            continue
+        uplink_name = device.uplink.name if device.uplink else None
+        details[device.name] = {
+            "mac": device.mac.strip().lower() if device.mac else None,
+            "ip": device.ip.strip() if device.ip else None,
+            "model": device.model,
+            "model_name": device.model_name,
+            "uplink_device": uplink_name,
+        }
+    return details

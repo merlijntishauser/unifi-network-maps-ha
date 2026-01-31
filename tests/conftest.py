@@ -42,6 +42,9 @@ def _create_homeassistant_modules() -> dict[str, Any]:
             "homeassistant.components.diagnostics"
         ),
         "homeassistant.components.sensor": _create_module("homeassistant.components.sensor"),
+        "homeassistant.components.binary_sensor": _create_module(
+            "homeassistant.components.binary_sensor"
+        ),
         "homeassistant.components.websocket_api": _create_module(
             "homeassistant.components.websocket_api"
         ),
@@ -55,6 +58,9 @@ def _create_homeassistant_modules() -> dict[str, Any]:
         ),
         "homeassistant.helpers.entity_registry": _create_module(
             "homeassistant.helpers.entity_registry"
+        ),
+        "homeassistant.helpers.entity_platform": _create_module(
+            "homeassistant.helpers.entity_platform"
         ),
         "homeassistant.exceptions": _create_module("homeassistant.exceptions"),
     }
@@ -192,12 +198,35 @@ def _register_components_stubs(modules: dict[str, Any]) -> None:
     components_http = modules["homeassistant.components.http"]
     components_diagnostics = modules["homeassistant.components.diagnostics"]
     components_sensor = modules["homeassistant.components.sensor"]
+    components_binary_sensor = modules["homeassistant.components.binary_sensor"]
+    helpers_entity_platform = modules["homeassistant.helpers.entity_platform"]
 
     def async_redact_data(data: dict[str, object], _keys: set[str]) -> dict[str, object]:
         return dict(data)
 
     class SensorEntity:  # minimal stub for imports
         pass
+
+    class BinarySensorEntity:  # minimal stub for imports
+        @property
+        def unique_id(self) -> str | None:
+            return getattr(self, "_attr_unique_id", None)
+
+        @property
+        def name(self) -> str | None:
+            return getattr(self, "_attr_name", None)
+
+        @property
+        def device_info(self) -> dict[str, object] | None:
+            return getattr(self, "_attr_device_info", None)
+
+        @property
+        def device_class(self) -> str | None:
+            return getattr(self, "_attr_device_class", None)
+
+    class BinarySensorDeviceClass:  # minimal stub for imports
+        CONNECTIVITY = "connectivity"
+        PRESENCE = "presence"
 
     class HomeAssistantView:  # minimal stub for imports
         url = ""
@@ -209,10 +238,16 @@ def _register_components_stubs(modules: dict[str, Any]) -> None:
         path: str
         cache_headers: bool
 
+    # Type alias for AddEntitiesCallback
+    AddEntitiesCallback = Any
+
     components_http.HomeAssistantView = HomeAssistantView
     components_http.StaticPathConfig = StaticPathConfig
     components_diagnostics.async_redact_data = async_redact_data
     components_sensor.SensorEntity = SensorEntity
+    components_binary_sensor.BinarySensorEntity = BinarySensorEntity
+    components_binary_sensor.BinarySensorDeviceClass = BinarySensorDeviceClass
+    helpers_entity_platform.AddEntitiesCallback = AddEntitiesCallback
 
 
 def _register_selector_stubs(modules: dict[str, Any]) -> None:
