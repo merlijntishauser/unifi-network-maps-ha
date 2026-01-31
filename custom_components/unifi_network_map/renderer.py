@@ -57,6 +57,7 @@ class UniFiNetworkMapRenderer:
         try:
             return _render_map(config, settings)
         except (KeyError, TypeError, ValueError) as err:
+            LOGGER.debug("renderer failed site=%s error=%s", config.site, type(err).__name__)
             raise UniFiNetworkMapError(f"Failed to render UniFi network map: {err}") from err
 
 

@@ -635,7 +635,12 @@ def _format_mac(value: str) -> str | None:
         return None
     try:
         formatted = formatter(value)
-    except (ValueError, AttributeError, TypeError):
+    except (ValueError, AttributeError, TypeError) as err:
+        LOGGER.debug(
+            "http mac_format_failed value=%s error=%s",
+            value[:20] if value else "",
+            type(err).__name__,
+        )
         return None
     if isinstance(formatted, str) and formatted.strip():
         return formatted.strip().lower()

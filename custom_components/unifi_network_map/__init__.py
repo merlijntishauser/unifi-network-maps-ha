@@ -274,7 +274,7 @@ def _register_static_asset(hass: HomeAssistant, url_path: str, file_path: Path) 
 def _build_static_path_configs(url_path: str, file_path: Path) -> list[object]:
     try:
         from homeassistant.components.http import StaticPathConfig
-    except Exception:  # pragma: no cover - fallback for older HA
+    except (ImportError, AttributeError):  # pragma: no cover - fallback for older HA
         StaticPathConfig = None
 
     if StaticPathConfig is not None:
@@ -452,11 +452,15 @@ def _load_lovelace_resources() -> ModuleType | LovelaceResourcesModule | None:
         from homeassistant.components.lovelace import resources  # type: ignore[no-redef]
 
         return resources
-    except Exception:  # pragma: no cover - optional in tests
+    except (
+        ImportError,
+        AttributeError,
+        ModuleNotFoundError,
+    ):  # pragma: no cover - optional in tests
         pass
     try:
         return importlib.import_module("homeassistant.components.lovelace.resources")
-    except Exception:  # pragma: no cover - optional in tests
+    except (ImportError, ModuleNotFoundError):  # pragma: no cover - optional in tests
         return None
 
 

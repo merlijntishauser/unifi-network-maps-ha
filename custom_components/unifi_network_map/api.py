@@ -125,8 +125,14 @@ def _assert_unifi_connectivity(config: Config, site: str, auth_error: type[Excep
     try:
         fetch_devices(config, site=site, detailed=False, use_cache=False)
     except auth_error as exc:
+        LOGGER.debug("api connectivity_check failed reason=auth_error site=%s", site)
         raise InvalidAuth("Authentication failed") from exc
     except (OSError, RequestException, RuntimeError, TimeoutError, ValueError) as exc:
+        LOGGER.debug(
+            "api connectivity_check failed reason=connection_error site=%s error=%s",
+            site,
+            type(exc).__name__,
+        )
         raise CannotConnect("Unable to connect") from exc
 
 
@@ -134,8 +140,14 @@ def _render_map_payload(config: Config, settings: RenderSettings) -> UniFiNetwor
     try:
         return UniFiNetworkMapRenderer().render(config, settings)
     except _unifi_auth_error() as exc:
+        LOGGER.debug("api render_map failed reason=auth_error site=%s", config.site)
         raise _map_auth_error(exc) from exc
     except (OSError, RequestException, RuntimeError, TimeoutError) as exc:
+        LOGGER.debug(
+            "api render_map failed reason=connection_error site=%s error=%s",
+            config.site,
+            type(exc).__name__,
+        )
         raise CannotConnect("Unable to connect") from exc
 
 
