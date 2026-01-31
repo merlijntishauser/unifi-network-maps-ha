@@ -267,3 +267,81 @@ def test_build_options_schema_returns_schema(monkeypatch) -> None:
     schema = build_options_schema({})
 
     assert isinstance(schema, config_flow_module.vol.Schema)
+
+
+def test_step_user_rejects_empty_username(monkeypatch):
+    def _validate(*_args: object, **_kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(config_flow_module, "validate_unifi_credentials", _validate)
+    bad_input = _base_input()
+    bad_input[CONF_USERNAME] = "   "
+    result = _run(_make_flow().async_step_user(bad_input))
+
+    assert result["type"] == "form"
+    assert result["errors"]["base"] == "empty_credential"
+
+
+def test_step_user_rejects_empty_password(monkeypatch):
+    def _validate(*_args: object, **_kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(config_flow_module, "validate_unifi_credentials", _validate)
+    bad_input = _base_input()
+    bad_input[CONF_PASSWORD] = ""
+    result = _run(_make_flow().async_step_user(bad_input))
+
+    assert result["type"] == "form"
+    assert result["errors"]["base"] == "empty_credential"
+
+
+def test_step_user_rejects_empty_site(monkeypatch):
+    def _validate(*_args: object, **_kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(config_flow_module, "validate_unifi_credentials", _validate)
+    bad_input = _base_input()
+    bad_input[CONF_SITE] = ""
+    result = _run(_make_flow().async_step_user(bad_input))
+
+    assert result["type"] == "form"
+    assert result["errors"]["base"] == "empty_credential"
+
+
+def test_step_user_rejects_invalid_port(monkeypatch):
+    def _validate(*_args: object, **_kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(config_flow_module, "validate_unifi_credentials", _validate)
+    bad_input = _base_input()
+    bad_input[CONF_URL] = "https://unifi.local:99999"
+    result = _run(_make_flow().async_step_user(bad_input))
+
+    assert result["type"] == "form"
+    assert result["errors"]["base"] == "invalid_port"
+
+
+def test_step_user_strips_url_whitespace(monkeypatch):
+    def _validate(*_args: object, **_kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(config_flow_module, "validate_unifi_credentials", _validate)
+    input_data = _base_input()
+    input_data[CONF_URL] = "  https://unifi.local/  "
+    result = _run(_make_flow().async_step_user(input_data))
+
+    assert result["type"] == "create_entry"
+    assert result["data"][CONF_URL] == "https://unifi.local"
+
+
+def test_step_user_rejects_empty_url(monkeypatch):
+    def _validate(*_args: object, **_kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(config_flow_module, "validate_unifi_credentials", _validate)
+    bad_input = _base_input()
+    bad_input[CONF_URL] = ""
+    result = _run(_make_flow().async_step_user(bad_input))
+
+    assert result["type"] == "form"
+    assert result["errors"]["base"] == "invalid_url"

@@ -42,7 +42,14 @@ from .const import (
     MIN_PAYLOAD_CACHE_TTL_SECONDS,
     MIN_SCAN_INTERVAL_MINUTES,
 )
-from .errors import CannotConnect, InvalidAuth, InvalidUrl, UrlHasCredentials
+from .errors import (
+    CannotConnect,
+    EmptyCredential,
+    InvalidAuth,
+    InvalidPort,
+    InvalidUrl,
+    UrlHasCredentials,
+)
 
 
 class UniFiNetworkMapConfigFlow(  # type: ignore[reportUntypedBaseClass,reportGeneralTypeIssues,reportCallIssue]
@@ -93,6 +100,10 @@ class UniFiNetworkMapConfigFlow(  # type: ignore[reportUntypedBaseClass,reportGe
             return user_input, "invalid_url"
         except UrlHasCredentials:
             return user_input, "url_has_credentials"
+        except InvalidPort:
+            return user_input, "invalid_port"
+        except EmptyCredential:
+            return user_input, "empty_credential"
         except InvalidAuth:
             return user_input, "invalid_auth"
         except CannotConnect:
@@ -251,21 +262,42 @@ def _normalize_options(user_input: dict[str, Any]) -> tuple[dict[str, Any], dict
 
 
 def _prepare_entry_data(user_input: dict[str, Any]) -> dict[str, Any]:
-    normalized_url = _normalize_url(user_input[CONF_URL])
+    normalized_url = _normalize_url(user_input.get(CONF_URL, ""))
     _validate_url(normalized_url)
+    _validate_credentials(user_input)
     return {**user_input, CONF_URL: normalized_url}
 
 
 def _normalize_url(url: str) -> str:
-    return url.rstrip("/")
+    return url.strip().rstrip("/")
 
 
 def _validate_url(url: str) -> None:
-    parsed = URL(url)
+    if not url:
+        raise InvalidUrl
+    try:
+        parsed = URL(url)
+    except ValueError as err:
+        if "port" in str(err).lower():
+            raise InvalidPort from err
+        raise InvalidUrl from err
     if parsed.scheme not in {"http", "https"} or not parsed.host:
         raise InvalidUrl
     if parsed.user or parsed.password:
         raise UrlHasCredentials
+
+
+def _validate_credentials(user_input: dict[str, Any]) -> None:
+    """Validate that required credential fields are not empty."""
+    username = user_input.get(CONF_USERNAME, "")
+    password = user_input.get(CONF_PASSWORD, "")
+    site = user_input.get(CONF_SITE, "")
+    if not isinstance(username, str) or not username.strip():
+        raise EmptyCredential
+    if not isinstance(password, str) or not password:
+        raise EmptyCredential
+    if not isinstance(site, str) or not site.strip():
+        raise EmptyCredential
 
 
 def _build_entry_title(data: dict[str, Any]) -> str:

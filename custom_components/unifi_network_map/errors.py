@@ -19,3 +19,11 @@ class InvalidAuth(UniFiNetworkMapError):
 
 class CannotConnect(UniFiNetworkMapError):
     """Raised when the controller cannot be reached."""
+
+
+class EmptyCredential(UniFiNetworkMapError):
+    """Raised when username, password, or site is empty."""
+
+
+class InvalidPort(UniFiNetworkMapError):
+    """Raised when the URL contains an invalid port number."""
