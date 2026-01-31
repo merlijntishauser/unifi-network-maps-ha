@@ -42,7 +42,9 @@
     },
     "error": {
       "invalid_url": "Gib eine gültige Controller-URL inklusive http oder https ein.",
-      "url_has_credentials": "Füge keinen Benutzernamen oder kein Passwort in die URL ein. Verwende die separaten Felder unten."
+      "url_has_credentials": "Füge keinen Benutzernamen oder kein Passwort in die URL ein. Verwende die separaten Felder unten.",
+      "invalid_port": "Die URL enthält eine ungültige Portnummer. Ports müssen zwischen 1 und 65535 liegen.",
+      "empty_credential": "Benutzername, Passwort und Site dürfen nicht leer sein."
     }
   },
   "options": {
@@ -51,6 +53,7 @@
         "title": "Kartenoptionen",
         "description": "Wähle, was auf der Karte erscheint und wie sie gerendert wird.",
         "data": {
+          "scan_interval": "Aktualisierungsintervall (Minuten)",
           "include_ports": "Port-Beschriftungen anzeigen",
           "include_clients": "Clients anzeigen",
           "client_scope": "Client-Bereich",
@@ -59,9 +62,11 @@
           "svg_width": "SVG-Breite (px)",
           "svg_height": "SVG-Höhe (px)",
           "request_timeout_seconds": "Anfrage-Timeout (Sekunden)",
+          "payload_cache_ttl": "Payload-Cache-TTL (Sekunden)",
           "use_cache": "Gerenderte Karte cachen"
         },
         "data_description": {
+          "scan_interval": "Wie oft Daten vom UniFi-Controller abgerufen werden.",
           "include_ports": "Fügt Switch-Port-Beschriftungen zu den Verbindungen hinzu.",
           "include_clients": "Fügt Client-Geräte zur Topologie hinzu.",
           "client_scope": "Wähle kabelgebundene, drahtlose oder alle Clients.",
@@ -70,6 +75,7 @@
           "svg_width": "Leer lassen für automatische Größe.",
           "svg_height": "Leer lassen für automatische Größe.",
           "request_timeout_seconds": "UniFi-API-Aufrufe nach dieser Anzahl Sekunden abbrechen.",
+          "payload_cache_ttl": "Angereicherte Payload-Daten für diese Anzahl Sekunden cachen. Auf 0 setzen zum Deaktivieren.",
           "use_cache": "Letztes Rendering zwischen Abfragen wiederverwenden."
         }
       }

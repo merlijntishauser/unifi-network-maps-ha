@@ -42,7 +42,9 @@
     },
     "error": {
       "invalid_url": "Introduce una URL de controlador válida que incluya http o https.",
-      "url_has_credentials": "No incluyas usuario ni contraseña en la URL. Usa los campos separados de abajo."
+      "url_has_credentials": "No incluyas usuario ni contraseña en la URL. Usa los campos separados de abajo.",
+      "invalid_port": "La URL contiene un número de puerto inválido. Los puertos deben estar entre 1 y 65535.",
+      "empty_credential": "El nombre de usuario, contraseña y sitio no pueden estar vacíos."
     }
   },
   "options": {
@@ -51,6 +53,7 @@
         "title": "Opciones del mapa",
         "description": "Elige qué aparece en el mapa y cómo se representa.",
         "data": {
+          "scan_interval": "Intervalo de actualización (minutos)",
           "include_ports": "Mostrar etiquetas de puertos",
           "include_clients": "Mostrar clientes",
           "client_scope": "Ámbito de clientes",
@@ -59,9 +62,11 @@
           "svg_width": "Ancho de SVG (px)",
           "svg_height": "Alto de SVG (px)",
           "request_timeout_seconds": "Tiempo de espera de solicitud (segundos)",
+          "payload_cache_ttl": "TTL de caché de payload (segundos)",
           "use_cache": "Guardar en caché el mapa renderizado"
         },
         "data_description": {
+          "scan_interval": "Frecuencia de actualización de datos desde el controlador UniFi.",
           "include_ports": "Añade etiquetas de puertos de switch a los enlaces.",
           "include_clients": "Incluye dispositivos cliente en la topología.",
           "client_scope": "Elige clientes cableados, inalámbricos o todos.",
@@ -70,6 +75,7 @@
           "svg_width": "Deja en blanco para tamaño automático.",
           "svg_height": "Deja en blanco para tamaño automático.",
           "request_timeout_seconds": "Interrumpe las llamadas a la API de UniFi después de este número de segundos.",
+          "payload_cache_ttl": "Almacena en caché los datos de payload enriquecidos durante este número de segundos. Establece en 0 para desactivar.",
           "use_cache": "Reutiliza el último renderizado entre actualizaciones."
         }
       }

@@ -42,7 +42,9 @@
     },
     "error": {
       "invalid_url": "Voer een geldige controller-URL in inclusief http of https.",
-      "url_has_credentials": "Voeg geen gebruikersnaam of wachtwoord toe aan de URL. Gebruik de aparte velden hieronder."
+      "url_has_credentials": "Voeg geen gebruikersnaam of wachtwoord toe aan de URL. Gebruik de aparte velden hieronder.",
+      "invalid_port": "De URL bevat een ongeldig poortnummer. Poorten moeten tussen 1 en 65535 liggen.",
+      "empty_credential": "Gebruikersnaam, wachtwoord en site mogen niet leeg zijn."
     }
   },
   "options": {
@@ -51,6 +53,7 @@
         "title": "Kaartopties",
         "description": "Kies wat op de kaart verschijnt en hoe deze wordt weergegeven.",
         "data": {
+          "scan_interval": "Verversingsinterval (minuten)",
           "include_ports": "Poortlabels tonen",
           "include_clients": "Clients tonen",
           "client_scope": "Clientbereik",
@@ -59,9 +62,11 @@
           "svg_width": "SVG-breedte (px)",
           "svg_height": "SVG-hoogte (px)",
           "request_timeout_seconds": "Time-out verzoek (seconden)",
+          "payload_cache_ttl": "Payload-cache-TTL (seconden)",
           "use_cache": "Gerenderde kaart cachen"
         },
         "data_description": {
+          "scan_interval": "Hoe vaak gegevens worden opgehaald van de UniFi-controller.",
           "include_ports": "Voegt switchpoortlabels toe aan verbindingen.",
           "include_clients": "Voegt clientapparaten toe aan de topologie.",
           "client_scope": "Kies bekabelde, draadloze of alle clients.",
@@ -70,6 +75,7 @@
           "svg_width": "Laat leeg voor automatisch formaat.",
           "svg_height": "Laat leeg voor automatisch formaat.",
           "request_timeout_seconds": "Breek UniFi API-aanroepen af na dit aantal seconden.",
+          "payload_cache_ttl": "Cache verrijkte payload-gegevens gedurende dit aantal seconden. Stel in op 0 om uit te schakelen.",
           "use_cache": "Hergebruik de laatste render tussen polls."
         }
       }
