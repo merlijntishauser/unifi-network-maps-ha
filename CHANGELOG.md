@@ -8,7 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Create binary_sensor entities for each UniFi network device (gateway, switch, AP)   
-
+- Client Connectivity Sensors
+- VLAN Client Count Sensors
 
 ## [0.1.11] - 2026-01-31
 Lots of internal refactoring and cleanup. This release is mostly about performance improvements and stability improvements.
