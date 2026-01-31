@@ -63,7 +63,8 @@
           "svg_height": "Alto de SVG (px)",
           "request_timeout_seconds": "Tiempo de espera de solicitud (segundos)",
           "payload_cache_ttl": "TTL de caché de payload (segundos)",
-          "use_cache": "Guardar en caché el mapa renderizado"
+          "use_cache": "Guardar en caché el mapa renderizado",
+          "tracked_clients": "MACs de clientes rastreados"
         },
         "data_description": {
           "scan_interval": "Frecuencia de actualización de datos desde el controlador UniFi.",
@@ -76,7 +77,8 @@
           "svg_height": "Deja en blanco para tamaño automático.",
           "request_timeout_seconds": "Interrumpe las llamadas a la API de UniFi después de este número de segundos.",
           "payload_cache_ttl": "Almacena en caché los datos de payload enriquecidos durante este número de segundos. Establece en 0 para desactivar.",
-          "use_cache": "Reutiliza el último renderizado entre actualizaciones."
+          "use_cache": "Reutiliza el último renderizado entre actualizaciones.",
+          "tracked_clients": "Direcciones MAC de clientes para crear sensores de presencia. Una por línea, ej. aa:bb:cc:dd:ee:ff"
         }
       }
     },

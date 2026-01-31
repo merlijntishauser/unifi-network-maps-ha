@@ -13,7 +13,7 @@ class FakeEntry:
     options: dict[str, object]
 
 
-def build_entry() -> FakeEntry:
+def build_entry(options: dict[str, object] | None = None) -> FakeEntry:
     return FakeEntry(
         entry_id="entry-1",
         title="Controller",
@@ -23,7 +23,7 @@ def build_entry() -> FakeEntry:
             "password": "pass",
             "site": "default",
         },
-        options={},
+        options=options or {},
     )
 
 

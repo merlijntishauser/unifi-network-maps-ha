@@ -195,6 +195,7 @@ def _build_payload(
         "vlan_info": _build_vlan_info(clients),
         "ap_client_counts": _build_ap_client_counts(all_clients, devices),
         "device_details": _build_device_details(devices),
+        "client_details": _build_client_details(all_clients),
     }
 
 
@@ -322,14 +323,19 @@ def _build_node_vlan_index(clients: list[ClientData] | None) -> dict[str, int | 
 
 
 def _build_vlan_info(clients: list[ClientData] | None) -> dict[int, dict[str, Any]]:
-    """Build VLAN metadata (id, name) from client data."""
+    """Build VLAN metadata (id, name, client_count, clients) from client data."""
     if not clients:
         return {}
     vlan_info: dict[int, dict[str, Any]] = {}
+    vlan_clients: dict[int, list[str]] = {}
+
     for client in clients:
         vlan = _client_vlan(client)
         if vlan is None:
             continue
+        client_name = _client_display_name(client)
+        if client_name:
+            vlan_clients.setdefault(vlan, []).append(client_name)
         if vlan in vlan_info:
             continue
         network_name = _client_network_name(client)
@@ -337,6 +343,14 @@ def _build_vlan_info(clients: list[ClientData] | None) -> dict[int, dict[str, An
             "id": vlan,
             "name": network_name or f"VLAN {vlan}",
         }
+
+    # Add client count and capped client list to each VLAN
+    max_clients_in_list = 20
+    for vlan_id, info in vlan_info.items():
+        clients_list = vlan_clients.get(vlan_id, [])
+        info["client_count"] = len(clients_list)
+        info["clients"] = clients_list[:max_clients_in_list]
+
     return vlan_info
 
 
@@ -382,5 +396,33 @@ def _build_device_details(devices: list[Device]) -> dict[str, dict[str, Any]]:
             "model": device.model,
             "model_name": device.model_name,
             "uplink_device": uplink_name,
+        }
+    return details
+
+
+def _build_client_details(clients: list[ClientData]) -> dict[str, dict[str, Any]]:
+    """Build detailed client info indexed by MAC address.
+
+    Returns a dict mapping client MAC to details for presence sensor attributes.
+    """
+    details: dict[str, dict[str, Any]] = {}
+    for client in clients:
+        mac = _client_mac(client)
+        if not mac:
+            continue
+        mac_normalized = mac.strip().lower()
+        is_wired = _client_field(client, "is_wired")
+        connected_to_mac = _client_field(client, "ap_mac") or _client_field(client, "sw_mac")
+        connected_to_mac_str: str | None = None
+        if isinstance(connected_to_mac, str) and connected_to_mac.strip():
+            connected_to_mac_str = connected_to_mac.strip().lower()
+        details[mac_normalized] = {
+            "name": _client_display_name(client),
+            "mac": mac_normalized,
+            "ip": _client_ip(client),
+            "vlan": _client_vlan(client),
+            "network": _client_network_name(client),
+            "is_wired": bool(is_wired) if is_wired is not None else None,
+            "connected_to_mac": connected_to_mac_str,
         }
     return details

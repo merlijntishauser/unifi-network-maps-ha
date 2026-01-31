@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Added
+- Create binary_sensor entities for each UniFi network device (gateway, switch, AP)   
+
+
 ## [0.1.11] - 2026-01-31
 Lots of internal refactoring and cleanup. This release is mostly about performance improvements and stability improvements.
 The upcoming 0.2 release will have some major new features.

@@ -3,8 +3,11 @@ from __future__ import annotations
 from typing import Any
 
 from custom_components.unifi_network_map.binary_sensor import (
+    UniFiClientPresenceSensor,
     UniFiDevicePresenceSensor,
+    _normalize_mac,
     _normalize_name,
+    _parse_tracked_clients,
 )
 from custom_components.unifi_network_map.coordinator import UniFiNetworkMapCoordinator
 from custom_components.unifi_network_map.data import UniFiNetworkMapData
@@ -273,3 +276,215 @@ def test_device_uses_current_details_from_coordinator() -> None:
 
     # Should use new IP from coordinator
     assert sensor.extra_state_attributes["ip"] == "192.168.1.99"
+
+
+# --- Client Presence Sensor Tests ---
+
+
+def test_normalize_mac_colon_separated() -> None:
+    assert _normalize_mac("aa:bb:cc:dd:ee:ff") == "aa:bb:cc:dd:ee:ff"
+
+
+def test_normalize_mac_dash_separated() -> None:
+    assert _normalize_mac("AA-BB-CC-DD-EE-FF") == "aa:bb:cc:dd:ee:ff"
+
+
+def test_normalize_mac_no_separator() -> None:
+    assert _normalize_mac("aabbccddeeff") == "aa:bb:cc:dd:ee:ff"
+
+
+def test_normalize_mac_invalid_length() -> None:
+    assert _normalize_mac("aa:bb:cc") is None
+
+
+def test_normalize_mac_invalid_chars() -> None:
+    assert _normalize_mac("gg:hh:ii:jj:kk:ll") is None
+
+
+def test_normalize_mac_empty() -> None:
+    assert _normalize_mac("") is None
+
+
+def test_parse_tracked_clients_empty() -> None:
+    from tests.helpers import FakeEntry
+
+    entry = FakeEntry(entry_id="test", title="Test", data={}, options={})
+    assert _parse_tracked_clients(entry) == []
+
+
+def test_parse_tracked_clients_single_mac() -> None:
+    from tests.helpers import FakeEntry
+
+    entry = FakeEntry(
+        entry_id="test",
+        title="Test",
+        data={},
+        options={"tracked_clients": "aa:bb:cc:dd:ee:ff"},
+    )
+    assert _parse_tracked_clients(entry) == ["aa:bb:cc:dd:ee:ff"]
+
+
+def test_parse_tracked_clients_multiple_macs() -> None:
+    from tests.helpers import FakeEntry
+
+    entry = FakeEntry(
+        entry_id="test",
+        title="Test",
+        data={},
+        options={"tracked_clients": "aa:bb:cc:dd:ee:ff\n11:22:33:44:55:66"},
+    )
+    result = _parse_tracked_clients(entry)
+    assert result == ["aa:bb:cc:dd:ee:ff", "11:22:33:44:55:66"]
+
+
+def test_parse_tracked_clients_skips_invalid() -> None:
+    from tests.helpers import FakeEntry
+
+    entry = FakeEntry(
+        entry_id="test",
+        title="Test",
+        data={},
+        options={"tracked_clients": "aa:bb:cc:dd:ee:ff\ninvalid\n11:22:33:44:55:66"},
+    )
+    result = _parse_tracked_clients(entry)
+    assert result == ["aa:bb:cc:dd:ee:ff", "11:22:33:44:55:66"]
+
+
+def test_client_presence_is_on_when_connected() -> None:
+    payload = {
+        "client_details": {
+            "aa:bb:cc:dd:ee:ff": {
+                "name": "Sonos Speaker",
+                "mac": "aa:bb:cc:dd:ee:ff",
+                "ip": "192.168.1.50",
+            }
+        },
+    }
+    coordinator = _build_coordinator_with_payload(payload)
+    entry = build_entry()
+
+    sensor = UniFiClientPresenceSensor(
+        coordinator=coordinator,
+        entry=entry,
+        client_mac="aa:bb:cc:dd:ee:ff",
+    )
+
+    assert sensor.is_on is True
+
+
+def test_client_presence_is_off_when_disconnected() -> None:
+    payload = {"client_details": {}}
+    coordinator = _build_coordinator_with_payload(payload)
+    entry = build_entry()
+
+    sensor = UniFiClientPresenceSensor(
+        coordinator=coordinator,
+        entry=entry,
+        client_mac="aa:bb:cc:dd:ee:ff",
+    )
+
+    assert sensor.is_on is False
+
+
+def test_client_presence_name_from_details() -> None:
+    payload = {
+        "client_details": {
+            "aa:bb:cc:dd:ee:ff": {
+                "name": "Sonos Speaker",
+                "mac": "aa:bb:cc:dd:ee:ff",
+            }
+        },
+    }
+    coordinator = _build_coordinator_with_payload(payload)
+    entry = build_entry()
+
+    sensor = UniFiClientPresenceSensor(
+        coordinator=coordinator,
+        entry=entry,
+        client_mac="aa:bb:cc:dd:ee:ff",
+    )
+
+    assert sensor.name == "Sonos Speaker"
+
+
+def test_client_presence_name_fallback_to_mac() -> None:
+    payload = {"client_details": {}}
+    coordinator = _build_coordinator_with_payload(payload)
+    entry = build_entry()
+
+    sensor = UniFiClientPresenceSensor(
+        coordinator=coordinator,
+        entry=entry,
+        client_mac="aa:bb:cc:dd:ee:ff",
+    )
+
+    assert sensor.name == "aa:bb:cc:dd:ee:ff"
+
+
+def test_client_presence_attributes() -> None:
+    payload = {
+        "client_details": {
+            "aa:bb:cc:dd:ee:ff": {
+                "name": "Sonos Speaker",
+                "mac": "aa:bb:cc:dd:ee:ff",
+                "ip": "192.168.10.50",
+                "vlan": 10,
+                "network": "IoT",
+                "is_wired": False,
+                "connected_to_mac": "11:22:33:44:55:66",
+            }
+        },
+        "device_macs": {"Living Room AP": "11:22:33:44:55:66"},
+    }
+    coordinator = _build_coordinator_with_payload(payload)
+    entry = build_entry()
+
+    sensor = UniFiClientPresenceSensor(
+        coordinator=coordinator,
+        entry=entry,
+        client_mac="aa:bb:cc:dd:ee:ff",
+    )
+
+    attrs = sensor.extra_state_attributes
+    assert attrs["mac"] == "aa:bb:cc:dd:ee:ff"
+    assert attrs["ip"] == "192.168.10.50"
+    assert attrs["vlan"] == 10
+    assert attrs["network"] == "IoT"
+    assert attrs["connected_to"] == "Living Room AP"
+    assert attrs["connection_type"] == "wireless"
+
+
+def test_client_presence_wired_connection_type() -> None:
+    payload = {
+        "client_details": {
+            "aa:bb:cc:dd:ee:ff": {
+                "name": "Desktop PC",
+                "mac": "aa:bb:cc:dd:ee:ff",
+                "is_wired": True,
+            }
+        },
+    }
+    coordinator = _build_coordinator_with_payload(payload)
+    entry = build_entry()
+
+    sensor = UniFiClientPresenceSensor(
+        coordinator=coordinator,
+        entry=entry,
+        client_mac="aa:bb:cc:dd:ee:ff",
+    )
+
+    attrs = sensor.extra_state_attributes
+    assert attrs["connection_type"] == "wired"
+
+
+def test_client_presence_unique_id_format() -> None:
+    coordinator = _build_coordinator_with_payload({})
+    entry = build_entry()
+
+    sensor = UniFiClientPresenceSensor(
+        coordinator=coordinator,
+        entry=entry,
+        client_mac="aa:bb:cc:dd:ee:ff",
+    )
+
+    assert sensor.unique_id == f"{entry.entry_id}_client_aabbccddeeff"

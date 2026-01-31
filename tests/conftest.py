@@ -205,7 +205,14 @@ def _register_components_stubs(modules: dict[str, Any]) -> None:
         return dict(data)
 
     class SensorEntity:  # minimal stub for imports
-        pass
+        @property
+        def unique_id(self) -> str | None:
+            return getattr(self, "_attr_unique_id", None)
+
+    class SensorStateClass:  # minimal stub for imports
+        MEASUREMENT = "measurement"
+        TOTAL = "total"
+        TOTAL_INCREASING = "total_increasing"
 
     class BinarySensorEntity:  # minimal stub for imports
         @property
@@ -245,6 +252,7 @@ def _register_components_stubs(modules: dict[str, Any]) -> None:
     components_http.StaticPathConfig = StaticPathConfig
     components_diagnostics.async_redact_data = async_redact_data
     components_sensor.SensorEntity = SensorEntity
+    components_sensor.SensorStateClass = SensorStateClass
     components_binary_sensor.BinarySensorEntity = BinarySensorEntity
     components_binary_sensor.BinarySensorDeviceClass = BinarySensorDeviceClass
     helpers_entity_platform.AddEntitiesCallback = AddEntitiesCallback

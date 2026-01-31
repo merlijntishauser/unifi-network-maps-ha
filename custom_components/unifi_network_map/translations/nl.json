@@ -63,7 +63,8 @@
           "svg_height": "SVG-hoogte (px)",
           "request_timeout_seconds": "Time-out verzoek (seconden)",
           "payload_cache_ttl": "Payload-cache-TTL (seconden)",
-          "use_cache": "Gerenderde kaart cachen"
+          "use_cache": "Gerenderde kaart cachen",
+          "tracked_clients": "Gevolgde client-MACs"
         },
         "data_description": {
           "scan_interval": "Hoe vaak gegevens worden opgehaald van de UniFi-controller.",
@@ -76,7 +77,8 @@
           "svg_height": "Laat leeg voor automatisch formaat.",
           "request_timeout_seconds": "Breek UniFi API-aanroepen af na dit aantal seconden.",
           "payload_cache_ttl": "Cache verrijkte payload-gegevens gedurende dit aantal seconden. Stel in op 0 om uit te schakelen.",
-          "use_cache": "Hergebruik de laatste render tussen polls."
+          "use_cache": "Hergebruik de laatste render tussen polls.",
+          "tracked_clients": "MAC-adressen van clients voor aanwezigheidssensoren. Eén per regel, bijv. aa:bb:cc:dd:ee:ff"
         }
       }
     },

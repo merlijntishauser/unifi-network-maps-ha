@@ -63,7 +63,8 @@
           "svg_height": "Hauteur SVG (px)",
           "request_timeout_seconds": "Délai d'attente (secondes)",
           "payload_cache_ttl": "TTL du cache de payload (secondes)",
-          "use_cache": "Mettre en cache la carte rendue"
+          "use_cache": "Mettre en cache la carte rendue",
+          "tracked_clients": "MACs des clients suivis"
         },
         "data_description": {
           "scan_interval": "Fréquence de rafraîchissement des données depuis le contrôleur UniFi.",
@@ -76,7 +77,8 @@
           "svg_height": "Laissez vide pour un dimensionnement automatique.",
           "request_timeout_seconds": "Interrompt les appels à l'API UniFi après ce nombre de secondes.",
           "payload_cache_ttl": "Met en cache les données de payload enrichies pendant ce nombre de secondes. Définir à 0 pour désactiver.",
-          "use_cache": "Réutilise le dernier rendu entre les sondages."
+          "use_cache": "Réutilise le dernier rendu entre les sondages.",
+          "tracked_clients": "Adresses MAC des clients pour créer des capteurs de présence. Une par ligne, ex. aa:bb:cc:dd:ee:ff"
         }
       }
     },

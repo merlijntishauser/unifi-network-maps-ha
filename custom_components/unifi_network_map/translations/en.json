@@ -61,7 +61,8 @@
           "svg_height": "SVG height (px)",
           "request_timeout_seconds": "Request timeout (seconds)",
           "payload_cache_ttl": "Payload cache TTL (seconds)",
-          "use_cache": "Cache rendered map"
+          "use_cache": "Cache rendered map",
+          "tracked_clients": "Tracked client MACs"
         },
         "data_description": {
           "scan_interval": "How often to refresh data from the UniFi controller.",
@@ -74,7 +75,8 @@
           "svg_height": "Leave blank to auto-size.",
           "request_timeout_seconds": "Abort UniFi API calls after this many seconds.",
           "payload_cache_ttl": "Cache enriched payload data for this many seconds. Set to 0 to disable.",
-          "use_cache": "Re-use the last render between polls."
+          "use_cache": "Re-use the last render between polls.",
+          "tracked_clients": "MAC addresses of clients to create presence sensors for. One per line, e.g. aa:bb:cc:dd:ee:ff"
         }
       }
     },

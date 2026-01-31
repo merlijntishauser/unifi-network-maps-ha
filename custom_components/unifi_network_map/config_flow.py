@@ -12,7 +12,6 @@ from yarl import URL
 from .api import validate_unifi_credentials
 from .const import (
     CONF_CLIENT_SCOPE,
-    LOGGER,
     CONF_INCLUDE_CLIENTS,
     CONF_INCLUDE_PORTS,
     CONF_ONLY_UNIFI,
@@ -23,6 +22,7 @@ from .const import (
     CONF_SVG_HEIGHT,
     CONF_SVG_ISOMETRIC,
     CONF_SVG_WIDTH,
+    CONF_TRACKED_CLIENTS,
     CONF_USE_CACHE,
     CONF_VERIFY_SSL,
     DEFAULT_CLIENT_SCOPE,
@@ -34,9 +34,11 @@ from .const import (
     DEFAULT_SCAN_INTERVAL_MINUTES,
     DEFAULT_SITE,
     DEFAULT_SVG_ISOMETRIC,
+    DEFAULT_TRACKED_CLIENTS,
     DEFAULT_USE_CACHE,
     DEFAULT_VERIFY_SSL,
     DOMAIN,
+    LOGGER,
     MAX_PAYLOAD_CACHE_TTL_SECONDS,
     MAX_SCAN_INTERVAL_MINUTES,
     MIN_PAYLOAD_CACHE_TTL_SECONDS,
@@ -179,6 +181,7 @@ def _options_schema_fields(options: dict[str, Any]) -> dict[vol.Marker, object]:
         opt(CONF_ONLY_UNIFI, DEFAULT_ONLY_UNIFI): _boolean_selector(),
         opt(CONF_SVG_ISOMETRIC, DEFAULT_SVG_ISOMETRIC): _boolean_selector(),
         opt(CONF_USE_CACHE, DEFAULT_USE_CACHE): _boolean_selector(),
+        opt(CONF_TRACKED_CLIENTS, DEFAULT_TRACKED_CLIENTS): _tracked_clients_selector(),
     }
 
 
@@ -231,6 +234,14 @@ def _client_scope_selector() -> selector.SelectSelector:
                 selector.SelectOptionDict(value="all", label="All"),
             ],
             mode=selector.SelectSelectorMode.DROPDOWN,
+        )
+    )
+
+
+def _tracked_clients_selector() -> selector.TextSelector:
+    return selector.TextSelector(
+        selector.TextSelectorConfig(
+            multiline=True,
         )
     )
 
