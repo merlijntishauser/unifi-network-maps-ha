@@ -223,6 +223,28 @@ def _remove_args(args: list[str], remove: set[str]) -> list[str]:
     return [arg for arg in args if arg not in remove]
 
 
+def _copy_blueprints(config_dir: Path) -> None:
+    """Copy integration blueprints to HA config directory."""
+    custom_components = Path(os.environ.get("CUSTOM_COMPONENTS_DIR", ""))
+    source_blueprints = custom_components / "unifi_network_map" / "blueprints" / "automation"
+
+    if not source_blueprints.exists():
+        print(f"Blueprint source not found: {source_blueprints}")
+        return
+
+    target_blueprints = config_dir / "blueprints" / "automation" / "unifi_network_map"
+    target_blueprints.mkdir(parents=True, exist_ok=True)
+
+    # Copy each blueprint file (overwrite any existing symlinks)
+    for blueprint_file in source_blueprints.glob("*.yaml"):
+        target_file = target_blueprints / blueprint_file.name
+        # Remove existing file/symlink if present
+        if target_file.exists() or target_file.is_symlink():
+            target_file.unlink()
+        shutil.copy2(blueprint_file, target_file)
+        print(f"Copied blueprint: {blueprint_file.name}")
+
+
 @typed_fixture(scope="session")
 def docker_services() -> Generator[None, None, None]:
     """Start and stop Docker Compose stack for the test session."""
@@ -237,6 +259,9 @@ def docker_services() -> Generator[None, None, None]:
 
     # Set up storage before starting services
     _config_dir, storage_dir = _ensure_writable_config_dir()
+
+    # Copy blueprints to HA config directory
+    _copy_blueprints(_config_dir)
     _reset_ha_storage(storage_dir)  # Clear old storage first
     _ensure_auth_provider_credentials(storage_dir)  # Then create auth provider
 
