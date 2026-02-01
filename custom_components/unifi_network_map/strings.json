@@ -13,7 +13,7 @@
           "verify_ssl": "Verify SSL"
         },
         "data_description": {
-          "url": "Include the scheme. Example: https://unifi.local or https://192.168.1.2:8443",
+          "url": "Include the scheme (http or https) and port if needed.",
           "verify_ssl": "UniFi controllers use self-signed certificates by default, which will fail verification. Only enable if you have installed a trusted certificate."
         }
       },

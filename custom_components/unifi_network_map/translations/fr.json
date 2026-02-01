@@ -13,7 +13,7 @@
           "verify_ssl": "Vérifier le SSL"
         },
         "data_description": {
-          "url": "Incluez le schéma. Exemple : https://unifi.local ou https://192.168.1.2:8443"
+          "url": "Incluez le schéma (http ou https) et le port si nécessaire."
         }
       },
       "init": {
