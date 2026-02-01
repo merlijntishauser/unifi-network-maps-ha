@@ -2707,17 +2707,11 @@ function getNodeModel2(payload, name) {
 function getNodeEntityId(payload, name) {
   return payload?.node_entities?.[name] ?? payload?.client_entities?.[name] ?? payload?.device_entities?.[name] ?? null;
 }
-function renderOverviewStatsGrid(nodeCount, edgeCount, helpers) {
+function renderOverviewStatsGrid(nodeCount, _edgeCount, helpers) {
   return `
-    <div class="panel-stats-grid">
-      <div class="stat-card">
-        <div class="stat-card__value">${nodeCount}</div>
-        <div class="stat-card__label">${helpers.localize("panel.overview.total_nodes")}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-card__value">${edgeCount}</div>
-        <div class="stat-card__label">${helpers.localize("panel.overview.connections")}</div>
-      </div>
+    <div class="panel-stats-compact">
+      <span class="panel-stats-compact__value">${nodeCount}</span>
+      <span class="panel-stats-compact__label">${helpers.localize("panel.overview.total_nodes")}</span>
     </div>
   `;
 }
@@ -4291,11 +4285,10 @@ var CARD_STYLES = `
   .panel-section { margin-bottom: 16px; padding: 0 16px; }
   .panel-section__title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-bottom: 8px; }
 
-  /* Stats Grid */
-  .panel-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 16px; }
-  .stat-card { background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 10px; padding: 12px; text-align: center; }
-  .stat-card__value { font-size: 24px; font-weight: 700; color: #60a5fa; }
-  .stat-card__label { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+  /* Stats Compact */
+  .panel-stats-compact { display: flex; align-items: baseline; gap: 6px; padding: 8px 16px; }
+  .panel-stats-compact__value { font-size: 18px; font-weight: 700; color: #60a5fa; }
+  .panel-stats-compact__label { font-size: 12px; color: #94a3b8; }
 
   /* Stats List */
   .stats-list { display: flex; flex-direction: column; gap: 2px; }
@@ -4495,7 +4488,7 @@ var CARD_STYLES = `
   ha-card[data-theme="light"] .panel-tab { color: #64748b; }
   ha-card[data-theme="light"] .panel-tab--active { color: #1d4ed8; border-bottom-color: #3b82f6; }
   ha-card[data-theme="light"] .panel-section__title { color: #475569; }
-  ha-card[data-theme="light"] .stat-card__label { color: #64748b; }
+  ha-card[data-theme="light"] .panel-stats-compact__label { color: #64748b; }
   ha-card[data-theme="light"] .device-row { background: rgba(15, 23, 42, 0.04); }
   ha-card[data-theme="light"] .device-row__label { color: #0f172a; }
   ha-card[data-theme="light"] .device-row__count { color: #1d4ed8; }
@@ -4549,10 +4542,9 @@ var CARD_STYLES = `
   ha-card[data-theme="unifi"] .panel-tab:hover { color: #374151; }
   ha-card[data-theme="unifi"] .panel-tab--active { color: #006fff; border-bottom-color: #006fff; }
   ha-card[data-theme="unifi"] .panel-section__title { color: #6b7280; }
-  ha-card[data-theme="unifi"] .stat-card { background: #f9fafb; border-color: #e5e7eb; }
-  ha-card[data-theme="unifi"] .stat-card__value { color: #006fff; }
-  ha-card[data-theme="unifi"] .stat-card__label { color: #6b7280; }
-  ha-card[data-theme="unifi"] .stats-row { background: #f9fafb; border-radius: 8px; }
+  ha-card[data-theme="unifi"] .panel-stats-compact__value { color: #006fff; }
+  ha-card[data-theme="unifi"] .panel-stats-compact__label { color: #6b7280; }
+  ha-card[data-theme="unifi"] .stats-row { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; }
   ha-card[data-theme="unifi"] .stats-row__label { color: #6b7280; }
   ha-card[data-theme="unifi"] .stats-row__value { color: #1a1a1a; }
   ha-card[data-theme="unifi"] .device-row { background: #f9fafb; border: 1px solid #e5e7eb; }
@@ -4610,10 +4602,9 @@ var CARD_STYLES = `
   ha-card[data-theme="unifi-dark"] .panel-tab:hover { color: #e5e5e5; }
   ha-card[data-theme="unifi-dark"] .panel-tab--active { color: #3b9eff; border-bottom-color: #006fff; }
   ha-card[data-theme="unifi-dark"] .panel-section__title { color: #9ca3af; }
-  ha-card[data-theme="unifi-dark"] .stat-card { background: #151515; border: 1px solid #2a2a2a; }
-  ha-card[data-theme="unifi-dark"] .stat-card__value { color: #3b9eff; }
-  ha-card[data-theme="unifi-dark"] .stat-card__label { color: #9ca3af; }
-  ha-card[data-theme="unifi-dark"] .stats-row { background: #151515; border-radius: 8px; }
+  ha-card[data-theme="unifi-dark"] .panel-stats-compact__value { color: #3b9eff; }
+  ha-card[data-theme="unifi-dark"] .panel-stats-compact__label { color: #9ca3af; }
+  ha-card[data-theme="unifi-dark"] .stats-row { background: #151515; border: 1px solid #2a2a2a; border-radius: 8px; }
   ha-card[data-theme="unifi-dark"] .stats-row__label { color: #9ca3af; }
   ha-card[data-theme="unifi-dark"] .stats-row__value { color: #e5e5e5; }
   ha-card[data-theme="unifi-dark"] .device-row { background: #151515; border: 1px solid #2a2a2a; }

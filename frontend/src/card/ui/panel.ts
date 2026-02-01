@@ -701,19 +701,13 @@ function getNodeEntityId(payload: PanelContext["payload"], name: string): string
 
 function renderOverviewStatsGrid(
   nodeCount: number,
-  edgeCount: number,
+  _edgeCount: number,
   helpers: PanelHelpers,
 ): string {
   return `
-    <div class="panel-stats-grid">
-      <div class="stat-card">
-        <div class="stat-card__value">${nodeCount}</div>
-        <div class="stat-card__label">${helpers.localize("panel.overview.total_nodes")}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-card__value">${edgeCount}</div>
-        <div class="stat-card__label">${helpers.localize("panel.overview.connections")}</div>
-      </div>
+    <div class="panel-stats-compact">
+      <span class="panel-stats-compact__value">${nodeCount}</span>
+      <span class="panel-stats-compact__label">${helpers.localize("panel.overview.total_nodes")}</span>
     </div>
   `;
 }

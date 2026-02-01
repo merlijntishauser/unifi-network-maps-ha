@@ -31,7 +31,6 @@ describe("unifi-network-map card panel", () => {
     element.setConfig({ svg_url: "/map.svg", data_url: "/map.json" });
     await flushPromises();
     expect(element.innerHTML).toContain("Total Nodes");
-    expect(element.innerHTML).toContain("Connections");
   });
 
   it("formats last changed timestamps", () => {
