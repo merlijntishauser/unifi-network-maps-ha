@@ -11,6 +11,9 @@
           "password": "Passwort",
           "site": "Site",
           "verify_ssl": "SSL überprüfen"
+        },
+        "data_description": {
+          "url": "Schema angeben. Beispiel: https://unifi.local oder https://192.168.1.2:8443"
         }
       },
       "init": {
