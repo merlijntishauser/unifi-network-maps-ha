@@ -128,11 +128,11 @@ function renderOverviewTab(context: PanelContext, name: string, helpers: PanelHe
     .map((edge) => {
       const isLeft = edge.left === name;
       const neighborName = isLeft ? edge.right : edge.left;
-      // Extract just the port number from the label (e.g., "Port 4" from "Switch: Port 4 <-> Device")
       const portInfo = extractPortInfo(edge.label, isLeft);
       return {
         name: neighborName,
         label: portInfo,
+        portNumber: extractPortNumber(portInfo),
         wireless: edge.wireless,
         poe: edge.poe,
       };
@@ -141,21 +141,11 @@ function renderOverviewTab(context: PanelContext, name: string, helpers: PanelHe
     new Map(neighbors.map((n) => [n.name, n])).values(),
   );
 
-  const neighborList = uniqueNeighbors.length
-    ? uniqueNeighbors
-        .map(
-          (n) => `
-          <div class="neighbor-item">
-            <span class="neighbor-item__name">${helpers.escapeHtml(n.name)}</span>
-            <span class="neighbor-item__badges">
-              ${n.poe ? `<span class="badge badge--poe">${helpers.localize("panel.badge.poe")}</span>` : ""}
-              ${n.wireless ? `<span class="badge badge--wireless">${helpers.localize("panel.badge.wifi")}</span>` : ""}
-              ${n.label ? `<span class="badge badge--port">${helpers.escapeHtml(n.label)}</span>` : ""}
-            </span>
-          </div>
-        `,
-        )
-        .join("")
+  // Sort by port number (ascending), wireless connections last
+  const sortedNeighbors = sortNeighborsByPort(uniqueNeighbors);
+
+  const neighborList = sortedNeighbors.length
+    ? sortedNeighbors.map((n) => renderNeighborItem(n, helpers)).join("")
     : `<div class="panel-empty__text">${helpers.localize("panel.no_connections")}</div>`;
 
   const relatedEntitiesSection = renderRelatedEntitiesSection(context, name, helpers);
@@ -165,9 +155,43 @@ function renderOverviewTab(context: PanelContext, name: string, helpers: PanelHe
     ${vlanSection}
     <div class="panel-section">
       <div class="panel-section__title">${helpers.localize("panel.connected_devices")}</div>
-      <div class="neighbor-list">${neighborList}</div>
+      <div class="neighbor-list neighbor-list--compact">${neighborList}</div>
     </div>
     ${relatedEntitiesSection}
+  `;
+}
+
+function extractPortNumber(portInfo: string | null): number {
+  if (!portInfo) return 999;
+  const match = portInfo.match(/\d+/);
+  return match ? parseInt(match[0], 10) : 999;
+}
+
+function sortNeighborsByPort(neighbors: Neighbor[]): Neighbor[] {
+  return [...neighbors].sort((a, b) => {
+    // Wireless connections go last
+    if (a.wireless && !b.wireless) return 1;
+    if (!a.wireless && b.wireless) return -1;
+    // Sort by port number
+    return (a.portNumber ?? 999) - (b.portNumber ?? 999);
+  });
+}
+
+function renderNeighborItem(n: Neighbor, helpers: PanelHelpers): string {
+  const badges: string[] = [];
+  if (n.label) badges.push(`<span class="badge badge--port">${helpers.escapeHtml(n.label)}</span>`);
+  if (n.poe)
+    badges.push(`<span class="badge badge--poe">${helpers.localize("panel.badge.poe")}</span>`);
+  if (n.wireless)
+    badges.push(
+      `<span class="badge badge--wireless">${helpers.localize("panel.badge.wifi")}</span>`,
+    );
+
+  return `
+    <div class="neighbor-item neighbor-item--compact">
+      <span class="neighbor-item__name">${helpers.escapeHtml(n.name)}</span>
+      <span class="neighbor-item__badges">${badges.join("")}</span>
+    </div>
   `;
 }
 
@@ -210,15 +234,17 @@ function renderRelatedEntitiesSection(
       const displayName = entity.friendly_name ?? entity.entity_id;
       const stateClass = getEntityStateClass(entity.state);
       const stateLabel = normalizeStateLabel(entity.state, entity.domain, helpers.localize);
+      const safeDisplayName = helpers.escapeHtml(displayName);
+      const safeEntityId = helpers.escapeHtml(entity.entity_id);
 
       return `
-        <div class="entity-item" data-entity-id="${helpers.escapeHtml(entity.entity_id)}">
+        <div class="entity-item" data-entity-id="${safeEntityId}">
           <span class="entity-item__icon">${icon}</span>
           <div class="entity-item__info">
-            <span class="entity-item__name">${helpers.escapeHtml(displayName)}</span>
-            <span class="entity-item__id">${helpers.escapeHtml(entity.entity_id)}</span>
+            <span class="entity-item__name" title="${safeDisplayName}">${safeDisplayName}</span>
+            <span class="entity-item__id" title="${safeEntityId}">${safeEntityId}</span>
           </div>
-          <span class="entity-item__state ${stateClass}">${helpers.escapeHtml(stateLabel)}</span>
+          <span class="entity-item__state ${stateClass}" title="${helpers.escapeHtml(entity.state ?? "")}">${helpers.escapeHtml(stateLabel)}</span>
         </div>
       `;
     })
@@ -232,22 +258,118 @@ function renderRelatedEntitiesSection(
   `;
 }
 
+const SIMPLE_STATES = ["on", "off", "home", "not_home", "unavailable", "unknown"];
+const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T/;
+const MAC_ADDRESS_PATTERN = /^([0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}$/;
+const NUMERIC_PATTERN = /^-?\d+(\.\d+)?$/;
+
 function normalizeStateLabel(
   state: string | null,
   domain: string,
   localize: (key: string) => string,
 ): string {
   if (!state) return localize("panel.status.unknown");
-  const lower = state.toLowerCase();
 
-  // Normalize device_tracker states to Online/Offline
-  if (domain === "device_tracker") {
-    if (lower === "home" || lower === "connected") return localize("panel.status.online");
-    if (lower === "not_home" || lower === "disconnected") return localize("panel.status.offline");
+  const trackerLabel = formatDeviceTrackerState(state, domain, localize);
+  if (trackerLabel) return trackerLabel;
+
+  if (SIMPLE_STATES.includes(state.toLowerCase())) {
+    return capitalizeFirst(state);
   }
 
-  // Capitalize first letter for other states
-  return state.charAt(0).toUpperCase() + state.slice(1).replace(/_/g, " ");
+  const domainLabel = formatDomainState(state, domain);
+  if (domainLabel) return domainLabel;
+
+  return formatFallbackStateLabel(state);
+}
+
+function formatDeviceTrackerState(
+  state: string,
+  domain: string,
+  localize: (key: string) => string,
+): string | null {
+  if (domain !== "device_tracker") return null;
+  const lower = state.toLowerCase();
+  if (lower === "home" || lower === "connected") return localize("panel.status.online");
+  if (lower === "not_home" || lower === "disconnected") return localize("panel.status.offline");
+  return null;
+}
+
+function formatDomainState(state: string, domain: string): string | null {
+  if (domain === "sensor" || domain === "binary_sensor") {
+    return formatSensorStateForPanel(state);
+  }
+  if (domain === "button") {
+    return "—";
+  }
+  if (domain === "update") {
+    if (state === "off") return "Up to date";
+    if (state === "on") return "Update";
+  }
+  return null;
+}
+
+function formatFallbackStateLabel(state: string): string {
+  if (state.length > 12) {
+    return state.substring(0, 10) + "…";
+  }
+  return capitalizeFirst(state);
+}
+
+function formatSensorStateForPanel(state: string): string | null {
+  // ISO timestamp pattern
+  if (ISO_TIMESTAMP_PATTERN.test(state)) {
+    return formatRelativeTime(state);
+  }
+  // MAC address pattern
+  if (MAC_ADDRESS_PATTERN.test(state)) {
+    return state.substring(0, 8) + "…";
+  }
+  // Large numeric values
+  if (NUMERIC_PATTERN.test(state)) {
+    const num = parseFloat(state);
+    if (Math.abs(num) >= 1000000) {
+      return formatLargeNumber(num);
+    }
+  }
+  return null;
+}
+
+function capitalizeFirst(str: string): string {
+  if (!str) return str;
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+}
+
+function formatRelativeTime(iso: string): string {
+  try {
+    const date = new Date(iso);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  } catch {
+    return "—";
+  }
+}
+
+function formatLargeNumber(num: number): string {
+  if (Math.abs(num) >= 1000000000) {
+    return (num / 1000000000).toFixed(1) + "B";
+  }
+  if (Math.abs(num) >= 1000000) {
+    return (num / 1000000).toFixed(1) + "M";
+  }
+  if (Math.abs(num) >= 1000) {
+    return (num / 1000).toFixed(1) + "K";
+  }
+  return num.toString();
 }
 
 function getEntityStateClass(state: string | null): string {

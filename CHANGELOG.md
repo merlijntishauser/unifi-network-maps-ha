@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Rendering of related entities
+- Lots of visual improvements, esp. in the modal and detail panel
 
 ## [0.1.11] - 2026-01-31
 Lots of internal refactoring and cleanup. This release is mostly about performance improvements and stability improvements.

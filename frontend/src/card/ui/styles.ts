@@ -133,10 +133,14 @@ export const CARD_STYLES = `
 
   /* Neighbor List */
   .neighbor-list { display: flex; flex-direction: column; gap: 6px; }
+  .neighbor-list--compact { gap: 4px; }
   .neighbor-item { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: rgba(255,255,255,0.03); border-radius: 8px; transition: background 0.15s ease; }
+  .neighbor-item--compact { flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; }
   .neighbor-item:hover { background: rgba(255,255,255,0.06); }
   .neighbor-item__name { color: #e2e8f0; font-size: 13px; font-weight: 500; word-break: break-word; }
+  .neighbor-item--compact .neighbor-item__name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .neighbor-item__badges { display: flex; flex-wrap: wrap; gap: 4px; }
+  .neighbor-item--compact .neighbor-item__badges { flex-shrink: 0; flex-wrap: nowrap; }
 
   /* Entity List */
   .entity-list { display: flex; flex-direction: column; gap: 6px; }
@@ -146,7 +150,7 @@ export const CARD_STYLES = `
   .entity-item__info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
   .entity-item__name { color: #e2e8f0; font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .entity-item__id { color: #64748b; font-size: 10px; font-family: ui-monospace, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .entity-item__state { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 10px; flex-shrink: 0; }
+  .entity-item__state { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 10px; flex-shrink: 0; max-width: 90px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .entity-item__state--on { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
   .entity-item__state--off { background: rgba(107, 114, 128, 0.2); color: #9ca3af; }
   .entity-item__state--neutral { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }

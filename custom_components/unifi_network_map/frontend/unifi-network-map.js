@@ -2278,6 +2278,7 @@ function renderOverviewTab(context, name, helpers) {
     return {
       name: neighborName,
       label: portInfo,
+      portNumber: extractPortNumber2(portInfo),
       wireless: edge.wireless,
       poe: edge.poe
     };
@@ -2285,27 +2286,45 @@ function renderOverviewTab(context, name, helpers) {
   const uniqueNeighbors = Array.from(
     new Map(neighbors.map((n) => [n.name, n])).values()
   );
-  const neighborList = uniqueNeighbors.length ? uniqueNeighbors.map(
-    (n) => `
-          <div class="neighbor-item">
-            <span class="neighbor-item__name">${helpers.escapeHtml(n.name)}</span>
-            <span class="neighbor-item__badges">
-              ${n.poe ? `<span class="badge badge--poe">${helpers.localize("panel.badge.poe")}</span>` : ""}
-              ${n.wireless ? `<span class="badge badge--wireless">${helpers.localize("panel.badge.wifi")}</span>` : ""}
-              ${n.label ? `<span class="badge badge--port">${helpers.escapeHtml(n.label)}</span>` : ""}
-            </span>
-          </div>
-        `
-  ).join("") : `<div class="panel-empty__text">${helpers.localize("panel.no_connections")}</div>`;
+  const sortedNeighbors = sortNeighborsByPort(uniqueNeighbors);
+  const neighborList = sortedNeighbors.length ? sortedNeighbors.map((n) => renderNeighborItem(n, helpers)).join("") : `<div class="panel-empty__text">${helpers.localize("panel.no_connections")}</div>`;
   const relatedEntitiesSection = renderRelatedEntitiesSection2(context, name, helpers);
   const vlanSection = renderVlanSection(context, name, helpers);
   return `
     ${vlanSection}
     <div class="panel-section">
       <div class="panel-section__title">${helpers.localize("panel.connected_devices")}</div>
-      <div class="neighbor-list">${neighborList}</div>
+      <div class="neighbor-list neighbor-list--compact">${neighborList}</div>
     </div>
     ${relatedEntitiesSection}
+  `;
+}
+function extractPortNumber2(portInfo) {
+  if (!portInfo) return 999;
+  const match = portInfo.match(/\d+/);
+  return match ? parseInt(match[0], 10) : 999;
+}
+function sortNeighborsByPort(neighbors) {
+  return [...neighbors].sort((a, b) => {
+    if (a.wireless && !b.wireless) return 1;
+    if (!a.wireless && b.wireless) return -1;
+    return (a.portNumber ?? 999) - (b.portNumber ?? 999);
+  });
+}
+function renderNeighborItem(n, helpers) {
+  const badges = [];
+  if (n.label) badges.push(`<span class="badge badge--port">${helpers.escapeHtml(n.label)}</span>`);
+  if (n.poe)
+    badges.push(`<span class="badge badge--poe">${helpers.localize("panel.badge.poe")}</span>`);
+  if (n.wireless)
+    badges.push(
+      `<span class="badge badge--wireless">${helpers.localize("panel.badge.wifi")}</span>`
+    );
+  return `
+    <div class="neighbor-item neighbor-item--compact">
+      <span class="neighbor-item__name">${helpers.escapeHtml(n.name)}</span>
+      <span class="neighbor-item__badges">${badges.join("")}</span>
+    </div>
   `;
 }
 function renderVlanSection(context, name, helpers) {
@@ -2339,14 +2358,16 @@ function renderRelatedEntitiesSection2(context, name, helpers) {
     const displayName = entity.friendly_name ?? entity.entity_id;
     const stateClass = getEntityStateClass(entity.state);
     const stateLabel = normalizeStateLabel(entity.state, entity.domain, helpers.localize);
+    const safeDisplayName = helpers.escapeHtml(displayName);
+    const safeEntityId = helpers.escapeHtml(entity.entity_id);
     return `
-        <div class="entity-item" data-entity-id="${helpers.escapeHtml(entity.entity_id)}">
+        <div class="entity-item" data-entity-id="${safeEntityId}">
           <span class="entity-item__icon">${icon}</span>
           <div class="entity-item__info">
-            <span class="entity-item__name">${helpers.escapeHtml(displayName)}</span>
-            <span class="entity-item__id">${helpers.escapeHtml(entity.entity_id)}</span>
+            <span class="entity-item__name" title="${safeDisplayName}">${safeDisplayName}</span>
+            <span class="entity-item__id" title="${safeEntityId}">${safeEntityId}</span>
           </div>
-          <span class="entity-item__state ${stateClass}">${helpers.escapeHtml(stateLabel)}</span>
+          <span class="entity-item__state ${stateClass}" title="${helpers.escapeHtml(entity.state ?? "")}">${helpers.escapeHtml(stateLabel)}</span>
         </div>
       `;
   }).join("");
@@ -2357,14 +2378,94 @@ function renderRelatedEntitiesSection2(context, name, helpers) {
     </div>
   `;
 }
+var SIMPLE_STATES2 = ["on", "off", "home", "not_home", "unavailable", "unknown"];
+var ISO_TIMESTAMP_PATTERN2 = /^\d{4}-\d{2}-\d{2}T/;
+var MAC_ADDRESS_PATTERN2 = /^([0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}$/;
+var NUMERIC_PATTERN2 = /^-?\d+(\.\d+)?$/;
 function normalizeStateLabel(state, domain, localize) {
   if (!state) return localize("panel.status.unknown");
-  const lower = state.toLowerCase();
-  if (domain === "device_tracker") {
-    if (lower === "home" || lower === "connected") return localize("panel.status.online");
-    if (lower === "not_home" || lower === "disconnected") return localize("panel.status.offline");
+  const trackerLabel = formatDeviceTrackerState(state, domain, localize);
+  if (trackerLabel) return trackerLabel;
+  if (SIMPLE_STATES2.includes(state.toLowerCase())) {
+    return capitalizeFirst2(state);
   }
-  return state.charAt(0).toUpperCase() + state.slice(1).replace(/_/g, " ");
+  const domainLabel = formatDomainState(state, domain);
+  if (domainLabel) return domainLabel;
+  return formatFallbackStateLabel(state);
+}
+function formatDeviceTrackerState(state, domain, localize) {
+  if (domain !== "device_tracker") return null;
+  const lower = state.toLowerCase();
+  if (lower === "home" || lower === "connected") return localize("panel.status.online");
+  if (lower === "not_home" || lower === "disconnected") return localize("panel.status.offline");
+  return null;
+}
+function formatDomainState(state, domain) {
+  if (domain === "sensor" || domain === "binary_sensor") {
+    return formatSensorStateForPanel(state);
+  }
+  if (domain === "button") {
+    return "\u2014";
+  }
+  if (domain === "update") {
+    if (state === "off") return "Up to date";
+    if (state === "on") return "Update";
+  }
+  return null;
+}
+function formatFallbackStateLabel(state) {
+  if (state.length > 12) {
+    return state.substring(0, 10) + "\u2026";
+  }
+  return capitalizeFirst2(state);
+}
+function formatSensorStateForPanel(state) {
+  if (ISO_TIMESTAMP_PATTERN2.test(state)) {
+    return formatRelativeTime(state);
+  }
+  if (MAC_ADDRESS_PATTERN2.test(state)) {
+    return state.substring(0, 8) + "\u2026";
+  }
+  if (NUMERIC_PATTERN2.test(state)) {
+    const num = parseFloat(state);
+    if (Math.abs(num) >= 1e6) {
+      return formatLargeNumber2(num);
+    }
+  }
+  return null;
+}
+function capitalizeFirst2(str) {
+  if (!str) return str;
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+}
+function formatRelativeTime(iso) {
+  try {
+    const date = new Date(iso);
+    const now = /* @__PURE__ */ new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 6e4);
+    const diffHours = Math.floor(diffMs / 36e5);
+    const diffDays = Math.floor(diffMs / 864e5);
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  } catch {
+    return "\u2014";
+  }
+}
+function formatLargeNumber2(num) {
+  if (Math.abs(num) >= 1e9) {
+    return (num / 1e9).toFixed(1) + "B";
+  }
+  if (Math.abs(num) >= 1e6) {
+    return (num / 1e6).toFixed(1) + "M";
+  }
+  if (Math.abs(num) >= 1e3) {
+    return (num / 1e3).toFixed(1) + "K";
+  }
+  return num.toString();
 }
 function getEntityStateClass(state) {
   if (!state) return "entity-item__state--unknown";
@@ -4211,10 +4312,14 @@ var CARD_STYLES = `
 
   /* Neighbor List */
   .neighbor-list { display: flex; flex-direction: column; gap: 6px; }
+  .neighbor-list--compact { gap: 4px; }
   .neighbor-item { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: rgba(255,255,255,0.03); border-radius: 8px; transition: background 0.15s ease; }
+  .neighbor-item--compact { flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; }
   .neighbor-item:hover { background: rgba(255,255,255,0.06); }
   .neighbor-item__name { color: #e2e8f0; font-size: 13px; font-weight: 500; word-break: break-word; }
+  .neighbor-item--compact .neighbor-item__name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .neighbor-item__badges { display: flex; flex-wrap: wrap; gap: 4px; }
+  .neighbor-item--compact .neighbor-item__badges { flex-shrink: 0; flex-wrap: nowrap; }
 
   /* Entity List */
   .entity-list { display: flex; flex-direction: column; gap: 6px; }
@@ -4224,7 +4329,7 @@ var CARD_STYLES = `
   .entity-item__info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
   .entity-item__name { color: #e2e8f0; font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .entity-item__id { color: #64748b; font-size: 10px; font-family: ui-monospace, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .entity-item__state { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 10px; flex-shrink: 0; }
+  .entity-item__state { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 10px; flex-shrink: 0; max-width: 90px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .entity-item__state--on { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
   .entity-item__state--off { background: rgba(107, 114, 128, 0.2); color: #9ca3af; }
   .entity-item__state--neutral { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }

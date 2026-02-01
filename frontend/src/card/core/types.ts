@@ -84,6 +84,7 @@ export type StatusCounts = {
 export type Neighbor = {
   name: string;
   label?: string | null;
+  portNumber?: number;
   wireless?: boolean | null;
   poe?: boolean | null;
 };
