@@ -175,6 +175,91 @@ Focus: Polish the user experience for daily use.
 
 ---
 
+## Phase 9: Home Assistant Core Inclusion (v1.0)
+
+Long-term goal: Submit this integration for inclusion in the official Home Assistant release.
+
+### 9.1 Integration Quality Scale Requirements
+
+Must meet **Silver tier** minimum on the [Integration Quality Scale](https://developers.home-assistant.io/docs/integration_quality_scale_index/):
+
+- [x] Config flow for setup
+- [x] Unique IDs for all entities
+- [x] Translations (en, de, es, fr, nl)
+- [ ] **Diagnostics support** - Add `diagnostics.py` for debug info download
+- [ ] **Reconfigure flow** - Allow changing credentials without removing integration
+- [ ] **Entity device info** - Ensure all entities link to proper devices
+- [ ] **Strict typing** - Full mypy strict compliance (currently using pyright)
+
+### 9.2 Code Architecture Changes
+
+**API Library Separation:**
+- [ ] Ensure `unifi-network-maps` is stable and well-documented on PyPI
+- [ ] Library must not have HA-specific code
+- [ ] Consider if topology rendering belongs in library or integration
+
+**Frontend Card Separation:**
+- [ ] Custom Lovelace cards are NOT part of HA core
+- [ ] Either: (a) Submit card separately to HA frontend, or (b) keep as HACS frontend
+- [ ] Core integration would provide entities only; card remains HACS
+- [ ] Alternative: Propose as a built-in panel (like Energy dashboard) - significant effort
+
+**Code Cleanup:**
+- [ ] Follow HA's exact code style (may differ from current ruff config)
+- [ ] Remove any deprecated patterns
+- [ ] Ensure all imports follow HA conventions
+- [ ] Add type hints to 100% of code
+
+### 9.3 Testing Requirements
+
+- [ ] **90%+ test coverage** for all Python code
+- [ ] Use HA's pytest fixtures and test patterns
+- [ ] Mock all external API calls properly
+- [ ] Add tests for error conditions and edge cases
+- [ ] Integration tests using `pytest-homeassistant-custom-component`
+
+### 9.4 Documentation
+
+- [ ] Full documentation PR to [home-assistant.io](https://github.com/home-assistant/home-assistant.io)
+- [ ] Include: setup guide, configuration options, entity descriptions
+- [ ] Screenshots of the integration in action
+- [ ] Troubleshooting section
+
+### 9.5 Differentiation from Existing UniFi Integration
+
+HA already has a built-in `unifi` integration. Must clearly articulate why this is separate:
+
+**Proposed positioning:**
+- Built-in `unifi`: Device tracker, client presence, switch control
+- This integration: Network **topology visualization** and **infrastructure monitoring**
+- Different use case: not duplicating features, but complementing
+
+**Potential concerns to address:**
+- Why not contribute topology features to existing integration?
+- API overlap (both talk to UniFi controller)
+- Maintenance burden of two UniFi integrations
+
+### 9.6 Submission Process
+
+1. [ ] Open Architecture Discussion on HA Community/Discord
+2. [ ] Get preliminary feedback from HA core team
+3. [ ] Address any architectural concerns
+4. [ ] Create PR to `home-assistant/core`
+5. [ ] Create PR to `home-assistant/home-assistant.io` (docs)
+6. [ ] Address code review feedback
+7. [ ] Maintain integration within HA release cycle
+
+### 9.7 Alternative: Enhanced HACS Distribution
+
+If core inclusion is rejected or too complex, enhance HACS presence:
+
+- [ ] Apply for HACS "default" repository status
+- [ ] Improve discoverability with better metadata
+- [ ] Create video tutorials for setup
+- [ ] Build community around the integration
+
+---
+
 ## Upstream Library Improvements
 
 Features requiring changes to `unifi-network-maps` library.
@@ -255,6 +340,7 @@ Priority areas for contribution:
 3. **Accessibility** - Keyboard nav, screen readers
 4. **Documentation** - Usage examples, troubleshooting guides
 5. **Upstream improvements** - Enhance `unifi-network-maps` library
+6. **Core inclusion prep** - Diagnostics, strict typing, test coverage
 
 ---
 
@@ -269,3 +355,4 @@ Priority areas for contribution:
 | 0.3.x | Network segment visualization | Next |
 | 0.4.x | UX refinements | Planned |
 | 0.5.x | Advanced features | Future |
+| 1.0.x | Home Assistant core inclusion | Long-term |
