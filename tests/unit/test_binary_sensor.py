@@ -112,6 +112,7 @@ def test_device_presence_attributes_include_device_type() -> None:
                 "mac": "aa:bb:cc:dd:ee:ff",
                 "ip": "192.168.1.10",
                 "model": "USW-24-PoE",
+                "model_name": "UniFi Switch 24 PoE",
                 "uplink_device": "Dream Machine",
             }
         },
@@ -132,7 +133,120 @@ def test_device_presence_attributes_include_device_type() -> None:
     assert attrs["mac"] == "aa:bb:cc:dd:ee:ff"
     assert attrs["ip"] == "192.168.1.10"
     assert attrs["model"] == "USW-24-PoE"
+    assert attrs["model_name"] == "UniFi Switch 24 PoE"
     assert attrs["uplink_device"] == "Dream Machine"
+
+
+def test_model_name_uses_api_value_when_different_from_code() -> None:
+    """When API provides a different model_name, use it."""
+    payload = {
+        "node_types": {"Gateway": "gateway"},
+        "device_details": {
+            "Gateway": {
+                "mac": "aa:bb:cc:dd:ee:ff",
+                "model": "UDMPRO",
+                "model_name": "UniFi Dream Machine Pro (Custom)",
+            }
+        },
+    }
+    coordinator = _build_coordinator_with_payload(payload)
+    entry = build_entry()
+
+    sensor = UniFiDevicePresenceSensor(
+        coordinator=coordinator,
+        entry=entry,
+        device_name="Gateway",
+        device_type="gateway",
+        device_details=payload["device_details"]["Gateway"],
+    )
+
+    attrs = sensor.extra_state_attributes
+    assert attrs["model"] == "UDMPRO"
+    assert attrs["model_name"] == "UniFi Dream Machine Pro (Custom)"
+
+
+def test_model_name_fallback_to_static_mapping() -> None:
+    """When model_name equals model code, use static mapping."""
+    payload = {
+        "node_types": {"Gateway": "gateway"},
+        "device_details": {
+            "Gateway": {
+                "mac": "aa:bb:cc:dd:ee:ff",
+                "model": "UDMPRO",
+                "model_name": "UDMPRO",  # Same as model code
+            }
+        },
+    }
+    coordinator = _build_coordinator_with_payload(payload)
+    entry = build_entry()
+
+    sensor = UniFiDevicePresenceSensor(
+        coordinator=coordinator,
+        entry=entry,
+        device_name="Gateway",
+        device_type="gateway",
+        device_details=payload["device_details"]["Gateway"],
+    )
+
+    attrs = sensor.extra_state_attributes
+    assert attrs["model"] == "UDMPRO"
+    assert attrs["model_name"] == "UniFi Dream Machine Pro"
+
+
+def test_model_name_fallback_to_code_when_not_in_mapping() -> None:
+    """When model not in mapping, use model code as model_name."""
+    payload = {
+        "node_types": {"Device": "switch"},
+        "device_details": {
+            "Device": {
+                "mac": "aa:bb:cc:dd:ee:ff",
+                "model": "UNKNOWN-MODEL-123",
+                "model_name": "UNKNOWN-MODEL-123",
+            }
+        },
+    }
+    coordinator = _build_coordinator_with_payload(payload)
+    entry = build_entry()
+
+    sensor = UniFiDevicePresenceSensor(
+        coordinator=coordinator,
+        entry=entry,
+        device_name="Device",
+        device_type="switch",
+        device_details=payload["device_details"]["Device"],
+    )
+
+    attrs = sensor.extra_state_attributes
+    assert attrs["model"] == "UNKNOWN-MODEL-123"
+    assert attrs["model_name"] == "UNKNOWN-MODEL-123"
+
+
+def test_model_name_fallback_when_model_name_missing() -> None:
+    """When model_name is not provided, use static mapping."""
+    payload = {
+        "node_types": {"AP": "ap"},
+        "device_details": {
+            "AP": {
+                "mac": "aa:bb:cc:dd:ee:ff",
+                "model": "U6-LR",
+                # model_name not provided
+            }
+        },
+    }
+    coordinator = _build_coordinator_with_payload(payload)
+    entry = build_entry()
+
+    sensor = UniFiDevicePresenceSensor(
+        coordinator=coordinator,
+        entry=entry,
+        device_name="AP",
+        device_type="ap",
+        device_details=payload["device_details"]["AP"],
+    )
+
+    attrs = sensor.extra_state_attributes
+    assert attrs["model"] == "U6-LR"
+    assert attrs["model_name"] == "UniFi U6 Long-Range"
 
 
 def test_device_presence_attributes_omit_none_values() -> None:

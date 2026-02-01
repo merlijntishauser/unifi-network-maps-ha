@@ -139,6 +139,14 @@ export type VlanInfo = {
   name: string;
 };
 
+export type DeviceDetails = {
+  mac?: string | null;
+  ip?: string | null;
+  model?: string | null;
+  model_name?: string | null;
+  uplink_device?: string | null;
+};
+
 export type MapPayload = {
   schema_version?: string;
   edges: Edge[];
@@ -156,6 +164,7 @@ export type MapPayload = {
   node_vlans?: Record<string, number | null>;
   vlan_info?: Record<number, VlanInfo>;
   ap_client_counts?: Record<string, number>;
+  device_details?: Record<string, DeviceDetails>;
 };
 
 export type DeviceType = "gateway" | "switch" | "ap" | "client" | "other";

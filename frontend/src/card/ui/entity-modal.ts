@@ -54,6 +54,7 @@ function getStateBadgeClass(state: string): string {
 
 type InfoRowsContext = {
   mac: string | undefined;
+  model: string | undefined;
   status: NodeStatus | undefined;
   nodeType: string;
   relatedEntities: RelatedEntity[];
@@ -74,6 +75,7 @@ type EntityModalData = {
 function buildEntityModalData(context: EntityModalContext): EntityModalData {
   const nodeName = context.nodeName;
   const mac = getNodeMac(context.payload, nodeName);
+  const model = getNodeModel(context.payload, nodeName);
   const nodeType = getNodeType(context.payload, nodeName);
   const status = context.payload?.node_status?.[nodeName];
   const relatedEntities = context.payload?.related_entities?.[nodeName] ?? [];
@@ -83,7 +85,7 @@ function buildEntityModalData(context: EntityModalContext): EntityModalData {
     status,
     relatedEntities,
     typeIcon: context.getNodeTypeIcon(nodeType),
-    infoRows: buildEntityInfoRows({ mac, status, nodeType, relatedEntities, context }),
+    infoRows: buildEntityInfoRows({ mac, model, status, nodeType, relatedEntities, context }),
     entityItems: relatedEntities.map((entity) => renderEntityItem(entity, context.theme)).join(""),
     theme: context.theme,
   };
@@ -115,8 +117,9 @@ function renderEntityModalMarkup(data: EntityModalData, context: EntityModalCont
 }
 
 function buildEntityInfoRows(input: InfoRowsContext): string[] {
-  const { mac, status, nodeType, relatedEntities, context } = input;
+  const { mac, model, status, nodeType, relatedEntities, context } = input;
   const infoRows: string[] = [];
+  pushIf(infoRows, renderModelRow(model, context));
   pushIf(infoRows, renderMacRow(mac, context));
   pushIf(infoRows, renderIpRow(relatedEntities, context));
   pushIf(infoRows, renderStatusRow(status, context));
@@ -131,6 +134,25 @@ function getNodeMac(payload: MapPayload | undefined, nodeName: string): string |
 
 function getNodeType(payload: MapPayload | undefined, nodeName: string): string {
   return payload?.node_types?.[nodeName] ?? "unknown";
+}
+
+function getNodeModel(payload: MapPayload | undefined, nodeName: string): string | undefined {
+  const details = payload?.device_details?.[nodeName];
+  if (!details) return undefined;
+  // Prefer model_name (friendly name) over model code
+  return details.model_name ?? details.model ?? undefined;
+}
+
+function renderModelRow(model: string | undefined, context: EntityModalContext): string | null {
+  if (!model) {
+    return null;
+  }
+  return `
+    <div class="entity-modal__info-row">
+      <span class="entity-modal__info-label">${context.localize("entity_modal.model")}</span>
+      <span class="entity-modal__info-value">${escapeHtml(model)}</span>
+    </div>
+  `;
 }
 
 function renderMacRow(mac: string | undefined, context: EntityModalContext): string | null {

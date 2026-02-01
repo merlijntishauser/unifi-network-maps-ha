@@ -17,7 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - VLAN Client Alert: notify when a VLAN client count exceeds a threshold.
   Docs: [docs/BLUEPRINTS.md](docs/BLUEPRINTS.md)
 
-
+### Changed
+- Improved reliability of vlan reporting
+- Bumped unifi-network-maps to 1.4.14
+- Improved displaying of model names for UniFi devices
 
 ## [0.1.11] - 2026-01-31
 Lots of internal refactoring and cleanup. This release is mostly about performance improvements and stability improvements.

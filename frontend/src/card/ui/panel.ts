@@ -287,7 +287,7 @@ function renderStatsTab(context: PanelContext, name: string, helpers: PanelHelpe
     ${renderStatsLiveStatus(data.status, helpers)}
     ${renderStatsConnectionSection(data.nodeEdges, data.nodeType, data.apWirelessClients, helpers)}
     ${renderStatsNetworkInfo(data.vlanInfo, helpers)}
-    ${renderStatsDeviceInfo(data.mac, data.ip, helpers)}
+    ${renderStatsDeviceInfo(data.mac, data.ip, data.model, helpers)}
   `;
 }
 
@@ -375,11 +375,20 @@ function renderStatsNetworkInfo(vlanInfo: VlanInfo | null, helpers: PanelHelpers
 function renderStatsDeviceInfo(
   mac: string | null,
   ip: string | null,
+  model: string | null,
   helpers: PanelHelpers,
 ): string {
-  if (!mac && !ip) {
+  if (!mac && !ip && !model) {
     return "";
   }
+  const modelRow = model
+    ? `
+      <div class="info-row">
+        <span class="info-row__label">${helpers.localize("panel.stats.model")}</span>
+        <span class="info-row__value">${helpers.escapeHtml(model)}</span>
+      </div>
+    `
+    : "";
   const macRow = mac
     ? `
       <div class="info-row">
@@ -399,6 +408,7 @@ function renderStatsDeviceInfo(
   return `
     <div class="panel-section">
       <div class="panel-section__title">${helpers.localize("panel.device_info")}</div>
+      ${modelRow}
       ${macRow}
       ${ipRow}
     </div>
@@ -423,6 +433,7 @@ type StatsTabData = {
   nodeEdges: Array<{ wireless?: boolean | null; poe?: boolean | null }>;
   mac: string | null;
   ip: string | null;
+  model: string | null;
   status: NodeStatus | undefined;
   vlanInfo: VlanInfo | null;
   nodeType: string | undefined;
@@ -435,6 +446,7 @@ function getStatsTabData(context: PanelContext, name: string): StatsTabData {
     nodeEdges: edges.filter((edge) => edge.left === name || edge.right === name),
     mac: getNodeMac(context.payload, name),
     ip: getNodeIp(context.payload, name),
+    model: getNodeModel(context.payload, name),
     status: context.payload?.node_status?.[name],
     vlanInfo: getNodeVlanInfo(name, context.payload),
     nodeType: getNodeType(context.payload, name),
@@ -547,6 +559,13 @@ function getNodeMac(payload: PanelContext["payload"], name: string): string | nu
 
 function getNodeIp(payload: PanelContext["payload"], name: string): string | null {
   return getNodeIpFromPayload(payload, name);
+}
+
+function getNodeModel(payload: PanelContext["payload"], name: string): string | null {
+  const details = payload?.device_details?.[name];
+  if (!details) return null;
+  // Prefer model_name (friendly name) over model code
+  return details.model_name ?? details.model ?? null;
 }
 
 function getNodeEntityId(payload: PanelContext["payload"], name: string): string | null {

@@ -30,12 +30,13 @@ export type ContextMenuActionResult = {
 export function renderContextMenu(options: ContextMenuRenderOptions): string {
   const data = buildContextMenuData(options);
   const items = buildContextMenuItems(data, options);
+  const subtitle = data.model ? escapeHtml(data.model) : escapeHtml(data.nodeType);
 
   return `
     <div class="context-menu" data-theme="${escapeHtml(options.theme)}" data-context-node="${data.safeName}">
       <div class="context-menu__header">
         <div class="context-menu__title">${data.typeIcon} ${data.safeName}</div>
-        <div class="context-menu__type">${escapeHtml(data.nodeType)}</div>
+        <div class="context-menu__type">${subtitle}</div>
       </div>
       ${items.join("")}
     </div>
@@ -73,6 +74,7 @@ type ContextMenuData = {
   typeIcon: string;
   mac: string | null;
   ip: string | null;
+  model: string | null;
   entityId: string | null;
   isDevice: boolean;
   hasPortInfo: boolean;
@@ -83,12 +85,14 @@ function buildContextMenuData(options: ContextMenuRenderOptions): ContextMenuDat
   const mac = getNodeMac(options.payload, options.nodeName);
   const entityId = getNodeEntityId(options.payload, options.nodeName);
   const ip = getNodeIp(options.payload, options.nodeName);
+  const model = getNodeModel(options.payload, options.nodeName);
   return {
     safeName: escapeHtml(options.nodeName),
     nodeType,
     typeIcon: options.getNodeTypeIcon(nodeType),
     mac,
     ip,
+    model,
     entityId,
     isDevice: nodeType !== "client",
     hasPortInfo: nodeType === "switch" || nodeType === "gateway",
@@ -202,4 +206,11 @@ function getNodeEntityId(payload: MapPayload | undefined, nodeName: string): str
 
 function getNodeIp(payload: MapPayload | undefined, nodeName: string): string | null {
   return getNodeIpFromPayload(payload, nodeName);
+}
+
+function getNodeModel(payload: MapPayload | undefined, nodeName: string): string | null {
+  const details = payload?.device_details?.[nodeName];
+  if (!details) return null;
+  // Prefer model_name (friendly name) over model code
+  return details.model_name ?? details.model ?? null;
 }

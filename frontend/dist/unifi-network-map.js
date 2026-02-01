@@ -1724,6 +1724,7 @@ function getStateBadgeClass(state) {
 function buildEntityModalData(context) {
   const nodeName = context.nodeName;
   const mac = getNodeMac(context.payload, nodeName);
+  const model = getNodeModel(context.payload, nodeName);
   const nodeType = getNodeType(context.payload, nodeName);
   const status = context.payload?.node_status?.[nodeName];
   const relatedEntities = context.payload?.related_entities?.[nodeName] ?? [];
@@ -1733,7 +1734,7 @@ function buildEntityModalData(context) {
     status,
     relatedEntities,
     typeIcon: context.getNodeTypeIcon(nodeType),
-    infoRows: buildEntityInfoRows({ mac, status, nodeType, relatedEntities, context }),
+    infoRows: buildEntityInfoRows({ mac, model, status, nodeType, relatedEntities, context }),
     entityItems: relatedEntities.map((entity) => renderEntityItem(entity, context.theme)).join(""),
     theme: context.theme
   };
@@ -1763,8 +1764,9 @@ function renderEntityModalMarkup(data, context) {
   `;
 }
 function buildEntityInfoRows(input) {
-  const { mac, status, nodeType, relatedEntities, context } = input;
+  const { mac, model, status, nodeType, relatedEntities, context } = input;
   const infoRows = [];
+  pushIf(infoRows, renderModelRow(model, context));
   pushIf(infoRows, renderMacRow(mac, context));
   pushIf(infoRows, renderIpRow(relatedEntities, context));
   pushIf(infoRows, renderStatusRow(status, context));
@@ -1777,6 +1779,22 @@ function getNodeMac(payload, nodeName) {
 }
 function getNodeType(payload, nodeName) {
   return payload?.node_types?.[nodeName] ?? "unknown";
+}
+function getNodeModel(payload, nodeName) {
+  const details = payload?.device_details?.[nodeName];
+  if (!details) return void 0;
+  return details.model_name ?? details.model ?? void 0;
+}
+function renderModelRow(model, context) {
+  if (!model) {
+    return null;
+  }
+  return `
+    <div class="entity-modal__info-row">
+      <span class="entity-modal__info-label">${context.localize("entity_modal.model")}</span>
+      <span class="entity-modal__info-value">${escapeHtml(model)}</span>
+    </div>
+  `;
 }
 function renderMacRow(mac, context) {
   if (!mac) {
@@ -2290,7 +2308,7 @@ function renderStatsTab(context, name, helpers) {
     ${renderStatsLiveStatus(data.status, helpers)}
     ${renderStatsConnectionSection(data.nodeEdges, data.nodeType, data.apWirelessClients, helpers)}
     ${renderStatsNetworkInfo(data.vlanInfo, helpers)}
-    ${renderStatsDeviceInfo(data.mac, data.ip, helpers)}
+    ${renderStatsDeviceInfo(data.mac, data.ip, data.model, helpers)}
   `;
 }
 function renderStatsLiveStatus(status, helpers) {
@@ -2357,10 +2375,16 @@ function renderStatsNetworkInfo(vlanInfo, helpers) {
     </div>
   `;
 }
-function renderStatsDeviceInfo(mac, ip, helpers) {
-  if (!mac && !ip) {
+function renderStatsDeviceInfo(mac, ip, model, helpers) {
+  if (!mac && !ip && !model) {
     return "";
   }
+  const modelRow = model ? `
+      <div class="info-row">
+        <span class="info-row__label">${helpers.localize("panel.stats.model")}</span>
+        <span class="info-row__value">${helpers.escapeHtml(model)}</span>
+      </div>
+    ` : "";
   const macRow = mac ? `
       <div class="info-row">
         <span class="info-row__label">${helpers.localize("panel.stats.mac")}</span>
@@ -2376,6 +2400,7 @@ function renderStatsDeviceInfo(mac, ip, helpers) {
   return `
     <div class="panel-section">
       <div class="panel-section__title">${helpers.localize("panel.device_info")}</div>
+      ${modelRow}
       ${macRow}
       ${ipRow}
     </div>
@@ -2400,6 +2425,7 @@ function getStatsTabData(context, name) {
     nodeEdges: edges.filter((edge) => edge.left === name || edge.right === name),
     mac: getNodeMac2(context.payload, name),
     ip: getNodeIp(context.payload, name),
+    model: getNodeModel2(context.payload, name),
     status: context.payload?.node_status?.[name],
     vlanInfo: getNodeVlanInfo(name, context.payload),
     nodeType: getNodeType2(context.payload, name),
@@ -2485,6 +2511,11 @@ function getNodeMac2(payload, name) {
 }
 function getNodeIp(payload, name) {
   return getNodeIpFromPayload(payload, name);
+}
+function getNodeModel2(payload, name) {
+  const details = payload?.device_details?.[name];
+  if (!details) return null;
+  return details.model_name ?? details.model ?? null;
 }
 function getNodeEntityId(payload, name) {
   return payload?.node_entities?.[name] ?? payload?.client_entities?.[name] ?? payload?.device_entities?.[name] ?? null;
@@ -2587,11 +2618,12 @@ function getNodeVlanInfo(name, payload) {
 function renderContextMenu(options) {
   const data = buildContextMenuData(options);
   const items = buildContextMenuItems(data, options);
+  const subtitle = data.model ? escapeHtml(data.model) : escapeHtml(data.nodeType);
   return `
     <div class="context-menu" data-theme="${escapeHtml(options.theme)}" data-context-node="${data.safeName}">
       <div class="context-menu__header">
         <div class="context-menu__title">${data.typeIcon} ${data.safeName}</div>
-        <div class="context-menu__type">${escapeHtml(data.nodeType)}</div>
+        <div class="context-menu__type">${subtitle}</div>
       </div>
       ${items.join("")}
     </div>
@@ -2619,12 +2651,14 @@ function buildContextMenuData(options) {
   const mac = getNodeMac3(options.payload, options.nodeName);
   const entityId = getNodeEntityId2(options.payload, options.nodeName);
   const ip = getNodeIp2(options.payload, options.nodeName);
+  const model = getNodeModel3(options.payload, options.nodeName);
   return {
     safeName: escapeHtml(options.nodeName),
     nodeType,
     typeIcon: options.getNodeTypeIcon(nodeType),
     mac,
     ip,
+    model,
     entityId,
     isDevice: nodeType !== "client",
     hasPortInfo: nodeType === "switch" || nodeType === "gateway"
@@ -2713,6 +2747,11 @@ function getNodeEntityId2(payload, nodeName) {
 }
 function getNodeIp2(payload, nodeName) {
   return getNodeIpFromPayload(payload, nodeName);
+}
+function getNodeModel3(payload, nodeName) {
+  const details = payload?.device_details?.[nodeName];
+  if (!details) return null;
+  return details.model_name ?? details.model ?? null;
 }
 
 // src/card/data/auth.ts
@@ -2869,6 +2908,7 @@ var de = {
   "entity_modal.ip": "IP-Adresse",
   "entity_modal.last_changed": "Zuletzt ge\xE4ndert",
   "entity_modal.mac": "MAC-Adresse",
+  "entity_modal.model": "Modell",
   "entity_modal.no_entities": "Keine Home-Assistant-Entit\xE4ten f\xFCr dieses Ger\xE4t gefunden",
   "entity_modal.related_entities": "Zugeh\xF6rige Entit\xE4ten",
   "entity_modal.related_entities_count": "Zugeh\xF6rige Entit\xE4ten ({count})",
@@ -2907,6 +2947,7 @@ var de = {
   "panel.stats.connection_poe": "Per PoE versorgt",
   "panel.stats.ip": "IP-Adresse",
   "panel.stats.mac": "MAC-Adresse",
+  "panel.stats.model": "Modell",
   "panel.stats.total_connections": "Gesamtverbindungen",
   "panel.stats.wired": "Kabelgebunden",
   "panel.stats.wireless": "Drahtlos",
@@ -2984,6 +3025,7 @@ var en = {
   "entity_modal.ip": "IP Address",
   "entity_modal.last_changed": "Last Changed",
   "entity_modal.mac": "MAC Address",
+  "entity_modal.model": "Model",
   "entity_modal.no_entities": "No Home Assistant entities found for this device",
   "entity_modal.related_entities": "Related Entities",
   "entity_modal.related_entities_count": "Related Entities ({count})",
@@ -3022,6 +3064,7 @@ var en = {
   "panel.stats.connection_poe": "PoE Powered",
   "panel.stats.ip": "IP Address",
   "panel.stats.mac": "MAC Address",
+  "panel.stats.model": "Model",
   "panel.stats.total_connections": "Total Connections",
   "panel.stats.wired": "Wired",
   "panel.stats.wireless": "Wireless",
@@ -3099,6 +3142,7 @@ var es = {
   "entity_modal.ip": "Direcci\xF3n IP",
   "entity_modal.last_changed": "\xDAltimo cambio",
   "entity_modal.mac": "Direcci\xF3n MAC",
+  "entity_modal.model": "Modelo",
   "entity_modal.no_entities": "No se encontraron entidades de Home Assistant para este dispositivo",
   "entity_modal.related_entities": "Entidades relacionadas",
   "entity_modal.related_entities_count": "Entidades relacionadas ({count})",
@@ -3137,6 +3181,7 @@ var es = {
   "panel.stats.connection_poe": "Alimentado por PoE",
   "panel.stats.ip": "Direcci\xF3n IP",
   "panel.stats.mac": "Direcci\xF3n MAC",
+  "panel.stats.model": "Modelo",
   "panel.stats.total_connections": "Conexiones totales",
   "panel.stats.wired": "Cableado",
   "panel.stats.wireless": "Inal\xE1mbrico",
@@ -3214,6 +3259,7 @@ var fr = {
   "entity_modal.ip": "Adresse IP",
   "entity_modal.last_changed": "Dernier changement",
   "entity_modal.mac": "Adresse MAC",
+  "entity_modal.model": "Mod\xE8le",
   "entity_modal.no_entities": "Aucune entit\xE9 Home Assistant trouv\xE9e pour cet appareil",
   "entity_modal.related_entities": "Entit\xE9s associ\xE9es",
   "entity_modal.related_entities_count": "Entit\xE9s associ\xE9es ({count})",
@@ -3252,6 +3298,7 @@ var fr = {
   "panel.stats.connection_poe": "Aliment\xE9 par PoE",
   "panel.stats.ip": "Adresse IP",
   "panel.stats.mac": "Adresse MAC",
+  "panel.stats.model": "Mod\xE8le",
   "panel.stats.total_connections": "Connexions totales",
   "panel.stats.wired": "Filaire",
   "panel.stats.wireless": "Sans fil",
@@ -3329,6 +3376,7 @@ var nl = {
   "entity_modal.ip": "IP-adres",
   "entity_modal.last_changed": "Laatst gewijzigd",
   "entity_modal.mac": "MAC-adres",
+  "entity_modal.model": "Model",
   "entity_modal.no_entities": "Geen Home Assistant-entiteiten gevonden voor dit apparaat",
   "entity_modal.related_entities": "Gerelateerde entiteiten",
   "entity_modal.related_entities_count": "Gerelateerde entiteiten ({count})",
@@ -3367,6 +3415,7 @@ var nl = {
   "panel.stats.connection_poe": "PoE-gevoed",
   "panel.stats.ip": "IP-adres",
   "panel.stats.mac": "MAC-adres",
+  "panel.stats.model": "Model",
   "panel.stats.total_connections": "Totaal verbindingen",
   "panel.stats.wired": "Bekabeld",
   "panel.stats.wireless": "Draadloos",
