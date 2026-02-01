@@ -1,0 +1,37 @@
+blueprint:
+  name: UniFi Device Online Alert
+  description: Send a notification when a UniFi device comes back online.
+  domain: automation
+  author: UniFi Network Map
+  source_url: https://github.com/merlijntishauser/unifi-network-maps-ha/blob/main/custom_components/unifi_network_map/blueprints/automation/device_online_alert.yaml
+  input:
+    device_entity:
+      name: Device to Monitor
+      description: The UniFi device presence sensor to monitor.
+      selector:
+        entity:
+          filter:
+            - domain: binary_sensor
+              device_class: connectivity
+              integration: unifi_network_map
+    notify_service:
+      name: Notification Service
+      description: The notification service to call (e.g., notify.mobile_app).
+      selector:
+        text:
+
+triggers:
+  - trigger: state
+    entity_id: !input device_entity
+    from: "off"
+    to: "on"
+
+actions:
+  - action: "{{ notify_service }}"
+    metadata: {}
+    data:
+      title: "Network Device Online"
+      message: "{{ state_attr(trigger.entity_id, 'friendly_name') }} is back online."
+
+variables:
+  notify_service: !input notify_service
