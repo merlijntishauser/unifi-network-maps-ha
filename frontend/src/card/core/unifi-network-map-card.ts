@@ -174,6 +174,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
   disconnectedCallback() {
     this._stopWebSocketSubscription();
     this._stopStatusPolling();
+    this._clearLoadingOverlay();
     this._removeEntityModal();
     this._removeContextMenu();
     this._removePortModal();
