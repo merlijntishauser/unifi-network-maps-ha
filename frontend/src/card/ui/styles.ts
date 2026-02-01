@@ -537,6 +537,7 @@ export const CARD_STYLES = `
   }
   .entity-modal__body {
     padding: 20px 24px;
+    overflow-x: hidden;
     overflow-y: auto;
     max-height: calc(85vh - 80px);
   }
@@ -580,6 +581,7 @@ export const CARD_STYLES = `
   .entity-modal__entity-list {
     display: grid;
     gap: 8px;
+    padding-bottom: 28px;
   }
   .entity-modal__entity-item {
     display: flex;
@@ -591,6 +593,8 @@ export const CARD_STYLES = `
     border: 1px solid rgba(148, 163, 184, 0.1);
     cursor: pointer;
     transition: all 0.2s;
+    overflow: hidden;
+    max-width: 100%;
   }
   .entity-modal__entity-item:hover {
     background: rgba(59, 130, 246, 0.15);
@@ -602,6 +606,7 @@ export const CARD_STYLES = `
     gap: 4px;
     min-width: 0;
     flex: 1;
+    overflow: hidden;
   }
   .entity-modal__entity-name {
     color: #f8fafc;
@@ -891,6 +896,7 @@ export const GLOBAL_STYLES = `
   }
   .entity-modal__body {
     padding: 20px 24px;
+    overflow-x: hidden;
     overflow-y: auto;
     max-height: calc(85vh - 80px);
   }
@@ -934,6 +940,7 @@ export const GLOBAL_STYLES = `
   .entity-modal__entity-list {
     display: grid;
     gap: 8px;
+    padding-bottom: 28px;
   }
   .entity-modal__entity-item {
     display: flex;
@@ -945,6 +952,8 @@ export const GLOBAL_STYLES = `
     border: 1px solid rgba(148, 163, 184, 0.1);
     cursor: pointer;
     transition: all 0.2s;
+    overflow: hidden;
+    max-width: 100%;
   }
   .entity-modal__entity-item:hover {
     background: rgba(59, 130, 246, 0.15);
@@ -956,6 +965,7 @@ export const GLOBAL_STYLES = `
     gap: 4px;
     min-width: 0;
     flex: 1;
+    overflow: hidden;
   }
   .entity-modal__entity-name {
     color: #f8fafc;
