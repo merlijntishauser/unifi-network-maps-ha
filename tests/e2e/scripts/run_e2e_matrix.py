@@ -9,6 +9,7 @@ from typing import Any
 
 
 def main() -> None:
+    make_target = os.environ.get("E2E_MAKE_TARGET", "test-e2e")
     matrix = subprocess.check_output(
         [
             sys.executable,
@@ -36,10 +37,10 @@ def main() -> None:
         version_file = Path("tests/e2e/.ha-version.json")
         env["E2E_VERSION_FILE"] = str(version_file)
         print(
-            f"==> Running e2e for {name} ({image_tag}) using {config_path}",
+            f"==> Running e2e for {name} ({image_tag}) using {config_path} ({make_target})",
             flush=True,
         )
-        result = subprocess.run(["make", "test-e2e"], env=env)
+        result = subprocess.run(["make", make_target], env=env)
         ha_version = "unknown"
         if version_file.exists():
             try:
