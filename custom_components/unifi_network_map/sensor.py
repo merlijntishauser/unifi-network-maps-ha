@@ -197,4 +197,5 @@ class UniFiVlanClientsSensor(  # type: ignore[reportUntypedBaseClass]
         if not self.coordinator.data or not self.coordinator.data.payload:
             return None
         vlan_info = self.coordinator.data.payload.get("vlan_info", {})
-        return vlan_info.get(self._vlan_id)
+        # Keys in JSON are always strings, but _vlan_id is stored as int
+        return vlan_info.get(str(self._vlan_id)) or vlan_info.get(self._vlan_id)

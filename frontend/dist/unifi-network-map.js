@@ -1696,21 +1696,107 @@ function renderEntityItem(entity, theme) {
   const displayName = entity.friendly_name ?? entity.entity_id;
   const safeDisplayName = escapeHtml(displayName);
   const safeEntityId = escapeHtml(entity.entity_id);
-  const state = entity.state ?? "unavailable";
-  const stateClass = getStateBadgeClass(state);
+  const formattedState = formatEntityState(entity);
+  const stateClass = getStateBadgeClass(formattedState.normalized);
   return `
     <div class="entity-modal__entity-item" data-modal-entity-id="${safeEntityId}">
       <span class="entity-modal__domain-icon">${domainIconMarkup}</span>
       <div class="entity-modal__entity-info">
-        <span class="entity-modal__entity-name">${safeDisplayName}</span>
-        <span class="entity-modal__entity-id">${safeEntityId}</span>
+        <span class="entity-modal__entity-name" title="${safeDisplayName}">${safeDisplayName}</span>
+        <span class="entity-modal__entity-id" title="${safeEntityId}">${safeEntityId}</span>
       </div>
       <div class="entity-modal__entity-state">
-        <span class="entity-modal__state-badge ${stateClass}">${escapeHtml(state)}</span>
+        <span class="entity-modal__state-badge ${stateClass}">${escapeHtml(formattedState.display)}</span>
         <span class="entity-modal__arrow">\u203A</span>
       </div>
     </div>
   `;
+}
+var SIMPLE_STATES = ["on", "off", "home", "not_home", "unavailable", "unknown"];
+var ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T/;
+var MAC_ADDRESS_PATTERN = /^([0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}$/;
+var NUMERIC_PATTERN = /^-?\d+(\.\d+)?$/;
+function formatEntityState(entity) {
+  const state = entity.state ?? "unavailable";
+  const domain = entity.domain ?? "";
+  const lowerState = state.toLowerCase();
+  if (SIMPLE_STATES.includes(lowerState)) {
+    return { display: capitalizeFirst(state), normalized: lowerState };
+  }
+  const sensorResult = formatSensorState(state, domain);
+  if (sensorResult) return sensorResult;
+  const domainResult = formatDomainSpecificState(state, domain);
+  if (domainResult) return domainResult;
+  return formatFallbackState(state);
+}
+function formatSensorState(state, domain) {
+  if (domain !== "sensor" && domain !== "binary_sensor") return null;
+  if (ISO_TIMESTAMP_PATTERN.test(state)) {
+    return { display: formatTimestamp(state), normalized: "default" };
+  }
+  if (MAC_ADDRESS_PATTERN.test(state)) {
+    return { display: state.substring(0, 8) + "\u2026", normalized: "default" };
+  }
+  if (NUMERIC_PATTERN.test(state)) {
+    return formatNumericState(state);
+  }
+  return null;
+}
+function formatNumericState(state) {
+  const num = parseFloat(state);
+  if (Math.abs(num) >= 1e6) {
+    return { display: formatLargeNumber(num), normalized: "default" };
+  }
+  return { display: state, normalized: "default" };
+}
+function formatDomainSpecificState(state, domain) {
+  if (domain === "button") {
+    return { display: "\u2014", normalized: "default" };
+  }
+  if (domain === "update") {
+    if (state === "off") return { display: "Up to date", normalized: "off" };
+    if (state === "on") return { display: "Update", normalized: "on" };
+  }
+  return null;
+}
+function formatFallbackState(state) {
+  if (state.length > 12) {
+    return { display: state.substring(0, 10) + "\u2026", normalized: "default" };
+  }
+  return { display: capitalizeFirst(state), normalized: state.toLowerCase() };
+}
+function capitalizeFirst(str) {
+  if (!str) return str;
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+}
+function formatTimestamp(iso) {
+  try {
+    const date = new Date(iso);
+    const now = /* @__PURE__ */ new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 6e4);
+    const diffHours = Math.floor(diffMs / 36e5);
+    const diffDays = Math.floor(diffMs / 864e5);
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  } catch {
+    return "\u2014";
+  }
+}
+function formatLargeNumber(num) {
+  if (Math.abs(num) >= 1e9) {
+    return (num / 1e9).toFixed(1) + "B";
+  }
+  if (Math.abs(num) >= 1e6) {
+    return (num / 1e6).toFixed(1) + "M";
+  }
+  if (Math.abs(num) >= 1e3) {
+    return (num / 1e3).toFixed(1) + "K";
+  }
+  return num.toString();
 }
 function getStateBadgeClass(state) {
   if (state === "home" || state === "on") {
@@ -4613,6 +4699,10 @@ var CARD_STYLES = `
     border-radius: 12px;
     font-size: 12px;
     font-weight: 500;
+    max-width: 100px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .entity-modal__state-badge--home,
   .entity-modal__state-badge--on {
@@ -4962,6 +5052,10 @@ var GLOBAL_STYLES = `
     border-radius: 12px;
     font-size: 12px;
     font-weight: 500;
+    max-width: 100px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .entity-modal__state-badge--home,
   .entity-modal__state-badge--on {

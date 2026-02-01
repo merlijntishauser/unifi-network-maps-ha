@@ -77,15 +77,16 @@ def test_sensor_error_state() -> None:
 
 
 def _build_payload_with_vlans() -> dict[str, Any]:
+    # Use string keys to match JSON behavior (JSON keys are always strings)
     return {
         "vlan_info": {
-            10: {
+            "10": {
                 "id": 10,
                 "name": "IoT",
                 "client_count": 3,
                 "clients": ["Sonos Speaker", "Hue Bridge", "Smart TV"],
             },
-            20: {
+            "20": {
                 "id": 20,
                 "name": "Guest",
                 "client_count": 2,

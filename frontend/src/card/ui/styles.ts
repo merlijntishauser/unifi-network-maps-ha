@@ -621,6 +621,10 @@ export const CARD_STYLES = `
     border-radius: 12px;
     font-size: 12px;
     font-weight: 500;
+    max-width: 100px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .entity-modal__state-badge--home,
   .entity-modal__state-badge--on {
@@ -971,6 +975,10 @@ export const GLOBAL_STYLES = `
     border-radius: 12px;
     font-size: 12px;
     font-weight: 500;
+    max-width: 100px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .entity-modal__state-badge--home,
   .entity-modal__state-badge--on {

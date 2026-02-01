@@ -24,22 +24,128 @@ function renderEntityItem(
   const displayName = entity.friendly_name ?? entity.entity_id;
   const safeDisplayName = escapeHtml(displayName);
   const safeEntityId = escapeHtml(entity.entity_id);
-  const state = entity.state ?? "unavailable";
-  const stateClass = getStateBadgeClass(state);
+  const formattedState = formatEntityState(entity);
+  const stateClass = getStateBadgeClass(formattedState.normalized);
 
   return `
     <div class="entity-modal__entity-item" data-modal-entity-id="${safeEntityId}">
       <span class="entity-modal__domain-icon">${domainIconMarkup}</span>
       <div class="entity-modal__entity-info">
-        <span class="entity-modal__entity-name">${safeDisplayName}</span>
-        <span class="entity-modal__entity-id">${safeEntityId}</span>
+        <span class="entity-modal__entity-name" title="${safeDisplayName}">${safeDisplayName}</span>
+        <span class="entity-modal__entity-id" title="${safeEntityId}">${safeEntityId}</span>
       </div>
       <div class="entity-modal__entity-state">
-        <span class="entity-modal__state-badge ${stateClass}">${escapeHtml(state)}</span>
+        <span class="entity-modal__state-badge ${stateClass}">${escapeHtml(formattedState.display)}</span>
         <span class="entity-modal__arrow">›</span>
       </div>
     </div>
   `;
+}
+
+type FormattedState = {
+  display: string;
+  normalized: string;
+};
+
+const SIMPLE_STATES = ["on", "off", "home", "not_home", "unavailable", "unknown"];
+const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T/;
+const MAC_ADDRESS_PATTERN = /^([0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}$/;
+const NUMERIC_PATTERN = /^-?\d+(\.\d+)?$/;
+
+function formatEntityState(entity: RelatedEntity): FormattedState {
+  const state = entity.state ?? "unavailable";
+  const domain = entity.domain ?? "";
+  const lowerState = state.toLowerCase();
+
+  if (SIMPLE_STATES.includes(lowerState)) {
+    return { display: capitalizeFirst(state), normalized: lowerState };
+  }
+
+  const sensorResult = formatSensorState(state, domain);
+  if (sensorResult) return sensorResult;
+
+  const domainResult = formatDomainSpecificState(state, domain);
+  if (domainResult) return domainResult;
+
+  return formatFallbackState(state);
+}
+
+function formatSensorState(state: string, domain: string): FormattedState | null {
+  if (domain !== "sensor" && domain !== "binary_sensor") return null;
+
+  if (ISO_TIMESTAMP_PATTERN.test(state)) {
+    return { display: formatTimestamp(state), normalized: "default" };
+  }
+  if (MAC_ADDRESS_PATTERN.test(state)) {
+    return { display: state.substring(0, 8) + "…", normalized: "default" };
+  }
+  if (NUMERIC_PATTERN.test(state)) {
+    return formatNumericState(state);
+  }
+  return null;
+}
+
+function formatNumericState(state: string): FormattedState {
+  const num = parseFloat(state);
+  if (Math.abs(num) >= 1000000) {
+    return { display: formatLargeNumber(num), normalized: "default" };
+  }
+  return { display: state, normalized: "default" };
+}
+
+function formatDomainSpecificState(state: string, domain: string): FormattedState | null {
+  if (domain === "button") {
+    return { display: "—", normalized: "default" };
+  }
+  if (domain === "update") {
+    if (state === "off") return { display: "Up to date", normalized: "off" };
+    if (state === "on") return { display: "Update", normalized: "on" };
+  }
+  return null;
+}
+
+function formatFallbackState(state: string): FormattedState {
+  if (state.length > 12) {
+    return { display: state.substring(0, 10) + "…", normalized: "default" };
+  }
+  return { display: capitalizeFirst(state), normalized: state.toLowerCase() };
+}
+
+function capitalizeFirst(str: string): string {
+  if (!str) return str;
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+}
+
+function formatTimestamp(iso: string): string {
+  try {
+    const date = new Date(iso);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  } catch {
+    return "—";
+  }
+}
+
+function formatLargeNumber(num: number): string {
+  if (Math.abs(num) >= 1000000000) {
+    return (num / 1000000000).toFixed(1) + "B";
+  }
+  if (Math.abs(num) >= 1000000) {
+    return (num / 1000000).toFixed(1) + "M";
+  }
+  if (Math.abs(num) >= 1000) {
+    return (num / 1000).toFixed(1) + "K";
+  }
+  return num.toString();
 }
 
 function getStateBadgeClass(state: string): string {
