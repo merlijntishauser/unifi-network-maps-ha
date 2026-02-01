@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Create binary_sensor entities for each UniFi network device (gateway, switch, AP)   
 - Client Connectivity Sensors
 - VLAN Client Count Sensors
+- Blueprints for four common automation use cases, including:
+  - Device Offline Alert: notify when a UniFi device goes offline (with optional delay).
+  - Device Online Alert: notify when a UniFi device comes back online.
+  - AP Overload Alert: notify when an access point exceeds a client threshold.
+  - VLAN Client Alert: notify when a VLAN client count exceeds a threshold.
+  Docs: [docs/BLUEPRINTS.md](docs/BLUEPRINTS.md)
+
+
 
 ## [0.1.11] - 2026-01-31
 Lots of internal refactoring and cleanup. This release is mostly about performance improvements and stability improvements.
