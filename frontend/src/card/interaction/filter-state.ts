@@ -17,6 +17,16 @@ export function toggleFilter(state: DeviceTypeFilters, type: DeviceType): Device
   };
 }
 
+export function enableFilter(state: DeviceTypeFilters, type: DeviceType): DeviceTypeFilters {
+  if (state[type]) {
+    return state;
+  }
+  return {
+    ...state,
+    [type]: true,
+  };
+}
+
 export function normalizeDeviceType(type: string): DeviceType {
   switch (type) {
     case "gateway":

@@ -3,7 +3,7 @@ var DOMAIN = "unifi_network_map";
 var MIN_PAN_MOVEMENT_THRESHOLD = 6;
 var ZOOM_INCREMENT = 0.1;
 var MIN_ZOOM_SCALE = 0.5;
-var MAX_ZOOM_SCALE = 4;
+var MAX_ZOOM_SCALE = 5;
 var TOOLTIP_OFFSET_PX = 12;
 
 // node_modules/dompurify/dist/purify.es.mjs
@@ -2359,9 +2359,10 @@ function renderNeighborItem(n, helpers) {
     badges.push(
       `<span class="badge badge--wireless">${helpers.localize("panel.badge.wifi")}</span>`
     );
+  const safeName = helpers.escapeHtml(n.name);
   return `
     <div class="neighbor-item neighbor-item--compact">
-      <span class="neighbor-item__name">${helpers.escapeHtml(n.name)}</span>
+      <a href="#" class="neighbor-item__name neighbor-item__name--link" data-navigate-device="${safeName}">${safeName}</a>
       <span class="neighbor-item__badges">${badges.join("")}</span>
     </div>
   `;
@@ -3825,6 +3826,15 @@ function toggleFilter(state, type) {
     [type]: !state[type]
   };
 }
+function enableFilter(state, type) {
+  if (state[type]) {
+    return state;
+  }
+  return {
+    ...state,
+    [type]: true
+  };
+}
 function normalizeDeviceType(type) {
   switch (type) {
     case "gateway":
@@ -4352,6 +4362,8 @@ var CARD_STYLES = `
   .neighbor-item--compact .neighbor-item__name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .neighbor-item__badges { display: flex; flex-wrap: wrap; gap: 4px; }
   .neighbor-item--compact .neighbor-item__badges { flex-shrink: 0; flex-wrap: nowrap; }
+  .neighbor-item__name--link { text-decoration: none; cursor: pointer; transition: color 0.15s ease; }
+  .neighbor-item__name--link:hover { color: #60a5fa; text-decoration: underline; }
 
   /* Entity List */
   .entity-list { display: flex; flex-direction: column; gap: 6px; }
@@ -4534,6 +4546,7 @@ var CARD_STYLES = `
   ha-card[data-theme="light"] .device-row__count { color: #1d4ed8; }
   ha-card[data-theme="light"] .neighbor-item { background: rgba(15, 23, 42, 0.04); }
   ha-card[data-theme="light"] .neighbor-item__name { color: #0f172a; }
+  ha-card[data-theme="light"] .neighbor-item__name--link:hover { color: #1d4ed8; }
   ha-card[data-theme="light"] .entity-item { background: rgba(15, 23, 42, 0.04); }
   ha-card[data-theme="light"] .entity-item__name { color: #0f172a; }
   ha-card[data-theme="light"] .entity-item__id { color: #64748b; }
@@ -4593,6 +4606,7 @@ var CARD_STYLES = `
   ha-card[data-theme="unifi"] .neighbor-item { background: #f9fafb; border: 1px solid #e5e7eb; }
   ha-card[data-theme="unifi"] .neighbor-item:hover { background: #f3f4f6; border-color: #006fff; }
   ha-card[data-theme="unifi"] .neighbor-item__name { color: #1a1a1a; }
+  ha-card[data-theme="unifi"] .neighbor-item__name--link:hover { color: #006fff; }
   ha-card[data-theme="unifi"] .entity-item { background: #f9fafb; border: 1px solid #e5e7eb; }
   ha-card[data-theme="unifi"] .entity-item:hover { background: #f3f4f6; border-color: #006fff; }
   ha-card[data-theme="unifi"] .entity-item__name { color: #1a1a1a; }
@@ -4654,6 +4668,7 @@ var CARD_STYLES = `
   ha-card[data-theme="unifi-dark"] .neighbor-item { background: #151515; border: 1px solid #2a2a2a; }
   ha-card[data-theme="unifi-dark"] .neighbor-item:hover { background: #1f1f1f; border-color: #006fff; }
   ha-card[data-theme="unifi-dark"] .neighbor-item__name { color: #e5e5e5; }
+  ha-card[data-theme="unifi-dark"] .neighbor-item__name--link:hover { color: #3b9eff; }
   ha-card[data-theme="unifi-dark"] .entity-item { background: #151515; border: 1px solid #2a2a2a; }
   ha-card[data-theme="unifi-dark"] .entity-item:hover { background: #1f1f1f; border-color: #006fff; }
   ha-card[data-theme="unifi-dark"] .entity-item__name { color: #e5e5e5; }
@@ -6479,6 +6494,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     if (this._handleTabClick(target, event)) return;
     if (this._handleBackClick(target, event)) return;
     if (this._handleCopyClick(target, event)) return;
+    if (this._handleNavigateDeviceClick(target, event)) return;
     if (this._handleViewPortsClick(target, event)) return;
     this._handleEntityClick(target, event);
   }
@@ -6528,6 +6544,16 @@ var UnifiNetworkMapCard = class extends HTMLElement {
           }, 1500);
         }
       });
+    }
+    return true;
+  }
+  _handleNavigateDeviceClick(target, event) {
+    const link = target.closest("[data-navigate-device]");
+    if (!link) return false;
+    event.preventDefault();
+    const deviceName = link.getAttribute("data-navigate-device");
+    if (deviceName) {
+      this._navigateToDevice(deviceName);
     }
     return true;
   }
@@ -6633,10 +6659,22 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       onClose: () => this._removePortModal(),
       onDeviceClick: (deviceName) => {
         this._removePortModal();
-        selectNode(this._selection, deviceName);
-        this._render();
+        this._navigateToDevice(deviceName);
       }
     });
+  }
+  _navigateToDevice(deviceName) {
+    const nodeType = this._payload?.node_types?.[deviceName];
+    if (nodeType) {
+      const deviceType = normalizeDeviceType(nodeType);
+      const newFilterState = enableFilter(this._filterState, deviceType);
+      if (newFilterState !== this._filterState) {
+        this._filterState = newFilterState;
+        this._updateFilterDisplay();
+      }
+    }
+    selectNode(this._selection, deviceName);
+    this._render();
   }
   _removePortModal() {
     closePortModal(this._portModal);

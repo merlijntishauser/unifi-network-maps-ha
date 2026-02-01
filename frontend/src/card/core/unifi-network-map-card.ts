@@ -55,7 +55,12 @@ import {
   setHoveredEdge,
   setHoveredNode,
 } from "../interaction/selection";
-import { createFilterState, normalizeDeviceType, toggleFilter } from "../interaction/filter-state";
+import {
+  createFilterState,
+  enableFilter,
+  normalizeDeviceType,
+  toggleFilter,
+} from "../interaction/filter-state";
 import { countDeviceTypes } from "../ui/filter-bar";
 import {
   applyTransform,
@@ -1072,6 +1077,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
     if (this._handleTabClick(target, event)) return;
     if (this._handleBackClick(target, event)) return;
     if (this._handleCopyClick(target, event)) return;
+    if (this._handleNavigateDeviceClick(target, event)) return;
     if (this._handleViewPortsClick(target, event)) return;
     this._handleEntityClick(target, event);
   }
@@ -1129,6 +1135,18 @@ export class UnifiNetworkMapCard extends HTMLElement {
           }, 1500);
         }
       });
+    }
+    return true;
+  }
+
+  private _handleNavigateDeviceClick(target: HTMLElement, event: MouseEvent): boolean {
+    const link = target.closest("[data-navigate-device]") as HTMLElement | null;
+    if (!link) return false;
+
+    event.preventDefault();
+    const deviceName = link.getAttribute("data-navigate-device");
+    if (deviceName) {
+      this._navigateToDevice(deviceName);
     }
     return true;
   }
@@ -1254,10 +1272,23 @@ export class UnifiNetworkMapCard extends HTMLElement {
       onClose: () => this._removePortModal(),
       onDeviceClick: (deviceName) => {
         this._removePortModal();
-        selectNode(this._selection, deviceName);
-        this._render();
+        this._navigateToDevice(deviceName);
       },
     });
+  }
+
+  private _navigateToDevice(deviceName: string): void {
+    const nodeType = this._payload?.node_types?.[deviceName];
+    if (nodeType) {
+      const deviceType = normalizeDeviceType(nodeType);
+      const newFilterState = enableFilter(this._filterState, deviceType);
+      if (newFilterState !== this._filterState) {
+        this._filterState = newFilterState;
+        this._updateFilterDisplay();
+      }
+    }
+    selectNode(this._selection, deviceName);
+    this._render();
   }
 
   private _removePortModal(): void {

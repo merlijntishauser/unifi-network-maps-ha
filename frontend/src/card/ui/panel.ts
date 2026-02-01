@@ -187,9 +187,10 @@ function renderNeighborItem(n: Neighbor, helpers: PanelHelpers): string {
       `<span class="badge badge--wireless">${helpers.localize("panel.badge.wifi")}</span>`,
     );
 
+  const safeName = helpers.escapeHtml(n.name);
   return `
     <div class="neighbor-item neighbor-item--compact">
-      <span class="neighbor-item__name">${helpers.escapeHtml(n.name)}</span>
+      <a href="#" class="neighbor-item__name neighbor-item__name--link" data-navigate-device="${safeName}">${safeName}</a>
       <span class="neighbor-item__badges">${badges.join("")}</span>
     </div>
   `;

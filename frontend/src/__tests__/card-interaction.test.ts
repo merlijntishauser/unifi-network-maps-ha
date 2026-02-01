@@ -489,7 +489,7 @@ describe("unifi-network-map editor", () => {
     };
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     card._applyZoom(10, svg);
-    expect(card._viewTransform.scale).toBe(4);
+    expect(card._viewTransform.scale).toBe(5);
     card._applyZoom(-10, svg);
     expect(card._viewTransform.scale).toBe(0.5);
   });

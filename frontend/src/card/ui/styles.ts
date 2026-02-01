@@ -140,6 +140,8 @@ export const CARD_STYLES = `
   .neighbor-item--compact .neighbor-item__name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .neighbor-item__badges { display: flex; flex-wrap: wrap; gap: 4px; }
   .neighbor-item--compact .neighbor-item__badges { flex-shrink: 0; flex-wrap: nowrap; }
+  .neighbor-item__name--link { text-decoration: none; cursor: pointer; transition: color 0.15s ease; }
+  .neighbor-item__name--link:hover { color: #60a5fa; text-decoration: underline; }
 
   /* Entity List */
   .entity-list { display: flex; flex-direction: column; gap: 6px; }
@@ -322,6 +324,7 @@ export const CARD_STYLES = `
   ha-card[data-theme="light"] .device-row__count { color: #1d4ed8; }
   ha-card[data-theme="light"] .neighbor-item { background: rgba(15, 23, 42, 0.04); }
   ha-card[data-theme="light"] .neighbor-item__name { color: #0f172a; }
+  ha-card[data-theme="light"] .neighbor-item__name--link:hover { color: #1d4ed8; }
   ha-card[data-theme="light"] .entity-item { background: rgba(15, 23, 42, 0.04); }
   ha-card[data-theme="light"] .entity-item__name { color: #0f172a; }
   ha-card[data-theme="light"] .entity-item__id { color: #64748b; }
@@ -381,6 +384,7 @@ export const CARD_STYLES = `
   ha-card[data-theme="unifi"] .neighbor-item { background: #f9fafb; border: 1px solid #e5e7eb; }
   ha-card[data-theme="unifi"] .neighbor-item:hover { background: #f3f4f6; border-color: #006fff; }
   ha-card[data-theme="unifi"] .neighbor-item__name { color: #1a1a1a; }
+  ha-card[data-theme="unifi"] .neighbor-item__name--link:hover { color: #006fff; }
   ha-card[data-theme="unifi"] .entity-item { background: #f9fafb; border: 1px solid #e5e7eb; }
   ha-card[data-theme="unifi"] .entity-item:hover { background: #f3f4f6; border-color: #006fff; }
   ha-card[data-theme="unifi"] .entity-item__name { color: #1a1a1a; }
@@ -442,6 +446,7 @@ export const CARD_STYLES = `
   ha-card[data-theme="unifi-dark"] .neighbor-item { background: #151515; border: 1px solid #2a2a2a; }
   ha-card[data-theme="unifi-dark"] .neighbor-item:hover { background: #1f1f1f; border-color: #006fff; }
   ha-card[data-theme="unifi-dark"] .neighbor-item__name { color: #e5e5e5; }
+  ha-card[data-theme="unifi-dark"] .neighbor-item__name--link:hover { color: #3b9eff; }
   ha-card[data-theme="unifi-dark"] .entity-item { background: #151515; border: 1px solid #2a2a2a; }
   ha-card[data-theme="unifi-dark"] .entity-item:hover { background: #1f1f1f; border-color: #006fff; }
   ha-card[data-theme="unifi-dark"] .entity-item__name { color: #e5e5e5; }
