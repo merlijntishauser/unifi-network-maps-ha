@@ -142,6 +142,7 @@ def compute_payload_hash(payload: dict[str, Any] | None) -> str:
     - node_vlans
     - vlan_info
     - ap_client_counts
+    - device_details (model, model_name, etc.)
     """
     if payload is None:
         return ""
@@ -156,6 +157,7 @@ def compute_payload_hash(payload: dict[str, Any] | None) -> str:
         "node_vlans": payload.get("node_vlans", {}),
         "vlan_info": payload.get("vlan_info", {}),
         "ap_client_counts": payload.get("ap_client_counts", {}),
+        "device_details": payload.get("device_details", {}),
     }
     encoded = json.dumps(snapshot, sort_keys=True, separators=(",", ":"), default=str)
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()

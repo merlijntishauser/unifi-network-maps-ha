@@ -126,7 +126,18 @@ export type PortInfo = {
   connectedDevice: string | null;
   connectedDeviceType: string | null;
   poe: boolean;
+  poeActive: boolean;
+  poePower: number | null;
   speed: number | null;
+};
+
+export type DevicePort = {
+  port: number;
+  name: string | null;
+  speed: number | null;
+  poe_enabled: boolean;
+  poe_active: boolean;
+  poe_power: number | null;
 };
 
 export type PortModalState = {
@@ -166,6 +177,7 @@ export type MapPayload = {
   vlan_info?: Record<number, VlanInfo>;
   ap_client_counts?: Record<string, number>;
   device_details?: Record<string, DeviceDetails>;
+  device_ports?: Record<string, DevicePort[]>;
 };
 
 export type DeviceType = "gateway" | "switch" | "ap" | "client" | "other";

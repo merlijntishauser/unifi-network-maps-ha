@@ -276,6 +276,7 @@ def _build_payload(
         "ap_client_counts": _build_ap_client_counts(all_clients, devices),
         "device_details": _build_device_details(devices),
         "client_details": _build_client_details(all_clients),
+        "device_ports": _build_device_ports(devices),
     }
 
 
@@ -561,6 +562,38 @@ def _build_device_details(devices: list[Device]) -> dict[str, dict[str, Any]]:
             "uplink_device": uplink_name,
         }
     return details
+
+
+def _build_device_ports(devices: list[Device]) -> dict[str, list[dict[str, Any]]]:
+    """Build port information for each device.
+
+    Returns a dict mapping device name to list of port details including
+    port number, name, speed, PoE status, and power consumption.
+    """
+    result: dict[str, list[dict[str, Any]]] = {}
+    for device in devices:
+        if not device.name or not device.port_table:
+            continue
+        ports: list[dict[str, Any]] = []
+        for port in device.port_table:
+            if port.port_idx is None:
+                continue
+            poe_active = port.poe_enable and port.poe_good
+            ports.append(
+                {
+                    "port": port.port_idx,
+                    "name": port.name,
+                    "speed": port.speed,
+                    "poe_enabled": port.poe_enable,
+                    "poe_active": poe_active,
+                    "poe_power": port.poe_power if poe_active else None,
+                }
+            )
+        if ports:
+            # Sort by port number
+            ports.sort(key=lambda p: p["port"])
+            result[device.name] = ports
+    return result
 
 
 def _build_client_details(clients: list[ClientData]) -> dict[str, dict[str, Any]]:

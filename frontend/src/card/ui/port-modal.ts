@@ -84,34 +84,63 @@ export function closePortModal(controller: PortModalController): void {
   controller.state = null;
 }
 
-function extractPortsForDevice(nodeName: string, payload: MapPayload): PortInfo[] {
+type ConnectionInfo = { device: string; type: string; poe: boolean; speed: number | null };
+
+function buildConnectionMap(nodeName: string, payload: MapPayload): Map<number, ConnectionInfo> {
   const edges = payload.edges ?? [];
   const nodeTypes = payload.node_types ?? {};
-
   const connectedEdges = edges.filter((e) => e.left === nodeName || e.right === nodeName);
-
-  const portMap = new Map<number, PortInfo>();
+  const connectionMap = new Map<number, ConnectionInfo>();
 
   for (const edge of connectedEdges) {
     const isLeft = edge.left === nodeName;
     const connectedDevice = isLeft ? edge.right : edge.left;
     const connectedDeviceType = nodeTypes[connectedDevice] ?? "unknown";
-
-    // Extract port number from label
     const portNum = extractPortNumber(edge.label, isLeft);
-    if (portNum === null) continue;
+    if (portNum !== null) {
+      connectionMap.set(portNum, {
+        device: connectedDevice,
+        type: connectedDeviceType,
+        poe: edge.poe ?? false,
+        speed: edge.speed ?? null,
+      });
+    }
+  }
+  return connectionMap;
+}
 
-    portMap.set(portNum, {
-      port: portNum,
-      connectedDevice,
-      connectedDeviceType,
-      poe: edge.poe ?? false,
-      speed: edge.speed ?? null,
+function extractPortsForDevice(nodeName: string, payload: MapPayload): PortInfo[] {
+  const devicePorts = payload.device_ports?.[nodeName] ?? [];
+  const connectionMap = buildConnectionMap(nodeName, payload);
+
+  // Build port list from device_ports (includes all ports)
+  if (devicePorts.length > 0) {
+    return devicePorts.map((dp) => {
+      const connection = connectionMap.get(dp.port);
+      return {
+        port: dp.port,
+        connectedDevice: connection?.device ?? null,
+        connectedDeviceType: connection?.type ?? null,
+        poe: dp.poe_enabled,
+        poeActive: dp.poe_active,
+        poePower: dp.poe_power,
+        speed: connection?.speed ?? dp.speed,
+      };
     });
   }
 
-  // Sort by port number
-  return Array.from(portMap.values()).sort((a, b) => a.port - b.port);
+  // Fallback: use only edge data (for older payloads without device_ports)
+  return Array.from(connectionMap.entries())
+    .map(([portNum, conn]) => ({
+      port: portNum,
+      connectedDevice: conn.device,
+      connectedDeviceType: conn.type,
+      poe: conn.poe,
+      poeActive: conn.poe,
+      poePower: null,
+      speed: conn.speed,
+    }))
+    .sort((a, b) => a.port - b.port);
 }
 
 function extractPortNumber(label: string | null | undefined, isLeft: boolean): number | null {
@@ -144,6 +173,14 @@ function renderPortModal(
       const deviceName = port.connectedDevice ?? "Empty";
       const isConnected = port.connectedDevice !== null;
 
+      // Build PoE badge with power if active
+      let poeBadge = "";
+      if (port.poeActive && port.poePower !== null && port.poePower > 0) {
+        poeBadge = `<span class="badge badge--poe">${formatPower(port.poePower)}</span>`;
+      } else if (port.poe) {
+        poeBadge = `<span class="badge badge--poe-inactive">${localize("panel.badge.poe")}</span>`;
+      }
+
       return `
         <div class="port-row ${isConnected ? "port-row--connected" : "port-row--empty"}">
           <span class="port-row__number">${localize("port_modal.port", { port: port.port })}</span>
@@ -158,7 +195,7 @@ function renderPortModal(
             }
           </div>
           <span class="port-row__badges">
-            ${port.poe ? `<span class="badge badge--poe">${localize("panel.badge.poe")}</span>` : ""}
+            ${poeBadge}
             ${port.speed ? `<span class="badge badge--speed">${formatSpeed(port.speed)}</span>` : ""}
           </span>
         </div>
@@ -190,6 +227,13 @@ function formatSpeed(speed: number): string {
     return `${speed / 1000}G`;
   }
   return `${speed}M`;
+}
+
+function formatPower(watts: number): string {
+  if (watts < 1) {
+    return `${(watts * 1000).toFixed(0)}mW`;
+  }
+  return `${watts.toFixed(1)}W`;
 }
 
 function escapeHtml(str: string): string {

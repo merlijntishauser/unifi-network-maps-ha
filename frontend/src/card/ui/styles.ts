@@ -159,6 +159,7 @@ export const CARD_STYLES = `
   .badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; }
   .badge--wireless { background: rgba(168, 85, 247, 0.2); color: #c084fc; }
   .badge--poe { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+  .badge--poe-inactive { background: rgba(148, 163, 184, 0.15); color: #64748b; }
   .badge--port { background: rgba(255,255,255,0.1); color: #94a3b8; }
 
   /* Status Indicators */
@@ -403,6 +404,7 @@ export const CARD_STYLES = `
   ha-card[data-theme="unifi"] .status-dot--online { background: #00a86b; box-shadow: 0 0 6px rgba(0, 168, 107, 0.5); }
   ha-card[data-theme="unifi"] .badge--wireless { background: rgba(168, 85, 247, 0.1); color: #9333ea; }
   ha-card[data-theme="unifi"] .badge--poe { background: rgba(0, 168, 107, 0.1); color: #00a86b; }
+  ha-card[data-theme="unifi"] .badge--poe-inactive { background: #f3f4f6; color: #9ca3af; }
   ha-card[data-theme="unifi"] .badge--port { background: #f3f4f6; color: #6b7280; border: 1px solid #e5e7eb; }
   ha-card[data-theme="unifi"] .unifi-network-map__viewport > svg [data-selected="true"] > *,
   ha-card[data-theme="unifi"] .unifi-network-map__viewport > svg .node--selected > * { stroke: #006fff !important; }
@@ -463,6 +465,7 @@ export const CARD_STYLES = `
   ha-card[data-theme="unifi-dark"] .status-dot--online { background: #00d68f; box-shadow: 0 0 6px rgba(0, 214, 143, 0.5); }
   ha-card[data-theme="unifi-dark"] .badge--wireless { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
   ha-card[data-theme="unifi-dark"] .badge--poe { background: rgba(0, 168, 107, 0.15); color: #00d68f; }
+  ha-card[data-theme="unifi-dark"] .badge--poe-inactive { background: #1f1f1f; color: #6b7280; }
   ha-card[data-theme="unifi-dark"] .badge--port { background: #1f1f1f; color: #9ca3af; border: 1px solid #2a2a2a; }
   ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport > svg [data-selected="true"] > *,
   ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport > svg .node--selected > * { stroke: #006fff !important; }

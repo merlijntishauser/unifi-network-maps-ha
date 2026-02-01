@@ -2080,26 +2080,53 @@ function closePortModal(controller) {
   }
   controller.state = null;
 }
-function extractPortsForDevice(nodeName, payload) {
+function buildConnectionMap(nodeName, payload) {
   const edges = payload.edges ?? [];
   const nodeTypes = payload.node_types ?? {};
   const connectedEdges = edges.filter((e) => e.left === nodeName || e.right === nodeName);
-  const portMap = /* @__PURE__ */ new Map();
+  const connectionMap = /* @__PURE__ */ new Map();
   for (const edge of connectedEdges) {
     const isLeft = edge.left === nodeName;
     const connectedDevice = isLeft ? edge.right : edge.left;
     const connectedDeviceType = nodeTypes[connectedDevice] ?? "unknown";
     const portNum = extractPortNumber(edge.label, isLeft);
-    if (portNum === null) continue;
-    portMap.set(portNum, {
-      port: portNum,
-      connectedDevice,
-      connectedDeviceType,
-      poe: edge.poe ?? false,
-      speed: edge.speed ?? null
+    if (portNum !== null) {
+      connectionMap.set(portNum, {
+        device: connectedDevice,
+        type: connectedDeviceType,
+        poe: edge.poe ?? false,
+        speed: edge.speed ?? null
+      });
+    }
+  }
+  return connectionMap;
+}
+function extractPortsForDevice(nodeName, payload) {
+  const devicePorts = payload.device_ports?.[nodeName] ?? [];
+  const connectionMap = buildConnectionMap(nodeName, payload);
+  if (devicePorts.length > 0) {
+    return devicePorts.map((dp) => {
+      const connection = connectionMap.get(dp.port);
+      return {
+        port: dp.port,
+        connectedDevice: connection?.device ?? null,
+        connectedDeviceType: connection?.type ?? null,
+        poe: dp.poe_enabled,
+        poeActive: dp.poe_active,
+        poePower: dp.poe_power,
+        speed: connection?.speed ?? dp.speed
+      };
     });
   }
-  return Array.from(portMap.values()).sort((a, b) => a.port - b.port);
+  return Array.from(connectionMap.entries()).map(([portNum, conn]) => ({
+    port: portNum,
+    connectedDevice: conn.device,
+    connectedDeviceType: conn.type,
+    poe: conn.poe,
+    poeActive: conn.poe,
+    poePower: null,
+    speed: conn.speed
+  })).sort((a, b) => a.port - b.port);
 }
 function extractPortNumber(label, isLeft) {
   if (!label) return null;
@@ -2118,6 +2145,12 @@ function renderPortModal(state, theme, getNodeTypeIcon, localize) {
     const deviceIcon = port.connectedDeviceType ? getNodeTypeIcon(port.connectedDeviceType) : "";
     const deviceName = port.connectedDevice ?? "Empty";
     const isConnected = port.connectedDevice !== null;
+    let poeBadge = "";
+    if (port.poeActive && port.poePower !== null && port.poePower > 0) {
+      poeBadge = `<span class="badge badge--poe">${formatPower(port.poePower)}</span>`;
+    } else if (port.poe) {
+      poeBadge = `<span class="badge badge--poe-inactive">${localize("panel.badge.poe")}</span>`;
+    }
     return `
         <div class="port-row ${isConnected ? "port-row--connected" : "port-row--empty"}">
           <span class="port-row__number">${localize("port_modal.port", { port: port.port })}</span>
@@ -2128,7 +2161,7 @@ function renderPortModal(state, theme, getNodeTypeIcon, localize) {
                 ` : `<span class="port-row__empty">${localize("port_modal.empty")}</span>`}
           </div>
           <span class="port-row__badges">
-            ${port.poe ? `<span class="badge badge--poe">${localize("panel.badge.poe")}</span>` : ""}
+            ${poeBadge}
             ${port.speed ? `<span class="badge badge--speed">${formatSpeed2(port.speed)}</span>` : ""}
           </span>
         </div>
@@ -2157,6 +2190,12 @@ function formatSpeed2(speed) {
     return `${speed / 1e3}G`;
   }
   return `${speed}M`;
+}
+function formatPower(watts) {
+  if (watts < 1) {
+    return `${(watts * 1e3).toFixed(0)}mW`;
+  }
+  return `${watts.toFixed(1)}W`;
 }
 function escapeHtml2(str) {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -4332,6 +4371,7 @@ var CARD_STYLES = `
   .badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; }
   .badge--wireless { background: rgba(168, 85, 247, 0.2); color: #c084fc; }
   .badge--poe { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+  .badge--poe-inactive { background: rgba(148, 163, 184, 0.15); color: #64748b; }
   .badge--port { background: rgba(255,255,255,0.1); color: #94a3b8; }
 
   /* Status Indicators */
@@ -4576,6 +4616,7 @@ var CARD_STYLES = `
   ha-card[data-theme="unifi"] .status-dot--online { background: #00a86b; box-shadow: 0 0 6px rgba(0, 168, 107, 0.5); }
   ha-card[data-theme="unifi"] .badge--wireless { background: rgba(168, 85, 247, 0.1); color: #9333ea; }
   ha-card[data-theme="unifi"] .badge--poe { background: rgba(0, 168, 107, 0.1); color: #00a86b; }
+  ha-card[data-theme="unifi"] .badge--poe-inactive { background: #f3f4f6; color: #9ca3af; }
   ha-card[data-theme="unifi"] .badge--port { background: #f3f4f6; color: #6b7280; border: 1px solid #e5e7eb; }
   ha-card[data-theme="unifi"] .unifi-network-map__viewport > svg [data-selected="true"] > *,
   ha-card[data-theme="unifi"] .unifi-network-map__viewport > svg .node--selected > * { stroke: #006fff !important; }
@@ -4636,6 +4677,7 @@ var CARD_STYLES = `
   ha-card[data-theme="unifi-dark"] .status-dot--online { background: #00d68f; box-shadow: 0 0 6px rgba(0, 214, 143, 0.5); }
   ha-card[data-theme="unifi-dark"] .badge--wireless { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
   ha-card[data-theme="unifi-dark"] .badge--poe { background: rgba(0, 168, 107, 0.15); color: #00d68f; }
+  ha-card[data-theme="unifi-dark"] .badge--poe-inactive { background: #1f1f1f; color: #6b7280; }
   ha-card[data-theme="unifi-dark"] .badge--port { background: #1f1f1f; color: #9ca3af; border: 1px solid #2a2a2a; }
   ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport > svg [data-selected="true"] > *,
   ha-card[data-theme="unifi-dark"] .unifi-network-map__viewport > svg .node--selected > * { stroke: #006fff !important; }
