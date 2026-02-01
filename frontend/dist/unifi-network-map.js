@@ -1799,11 +1799,11 @@ function formatLargeNumber(num) {
   return num.toString();
 }
 function getStateBadgeClass(state) {
-  if (state === "home" || state === "on") {
-    return `entity-modal__state-badge--${state}`;
+  if (state === "home" || state === "on" || state === "connected") {
+    return "entity-modal__state-badge--on";
   }
-  if (state === "not_home" || state === "off") {
-    return `entity-modal__state-badge--${state}`;
+  if (state === "not_home" || state === "off" || state === "disconnected") {
+    return "entity-modal__state-badge--off";
   }
   return "entity-modal__state-badge--default";
 }
