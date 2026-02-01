@@ -165,12 +165,29 @@ def resolve_related_entities(
     mac_to_entities = _build_mac_to_all_entities_index(hass)
     all_macs = {**device_macs, **client_macs}
     result: dict[str, list[RelatedEntity]] = {}
+    matched = 0
+    unmatched = 0
     for node_name, mac in all_macs.items():
         normalized = _normalize_mac(mac)
         entities = mac_to_entities.get(normalized, [])
         if entities:
+            matched += 1
             related = [_entity_state_details(hass, eid) for eid in entities]
             result[node_name] = _sort_related_entities(related)
+        else:
+            unmatched += 1
+            LOGGER.debug(
+                "http related_entities no_match node=%s mac=%s normalized=%s",
+                node_name,
+                mac,
+                normalized,
+            )
+    LOGGER.debug(
+        "http related_entities resolved nodes=%d matched=%d unmatched=%d",
+        len(all_macs),
+        matched,
+        unmatched,
+    )
     return result
 
 
@@ -199,8 +216,11 @@ def _build_mac_to_all_entities_index(hass: HomeAssistant) -> dict[str, list[str]
     """Build index mapping MAC addresses to ALL related entity IDs.
 
     This enhanced version finds all entities belonging to a device once we
-    identify the device's MAC address. This ensures sensors, switches,
-    device_trackers, and other entity types are all included.
+    identify the device's MAC address. Uses multiple discovery methods:
+    1. Device identifiers and connections
+    2. Entity unique_id patterns
+    3. State attributes (mac, mac_address)
+    4. Device-based grouping (all entities with same device_id)
 
     Results are cached and automatically invalidated when entity or device
     registry changes occur.
@@ -216,14 +236,116 @@ def _build_mac_to_all_entities_index(hass: HomeAssistant) -> dict[str, list[str]
     mac_to_entities: dict[str, list[str]] = {}
 
     entries = list(_iter_unifi_entity_entries(hass, entity_registry))
+    LOGGER.debug("http mac_index unifi_entries=%d", len(entries))
 
-    device_to_mac = _build_device_mac_map(hass, entries, device_registry)
+    # First, build a comprehensive device_id -> MAC map from device registry
+    device_to_mac = _build_device_mac_map_from_registry(device_registry)
+    LOGGER.debug("http mac_index device_to_mac_registry=%d", len(device_to_mac))
+
+    # Supplement with MACs found from entity entries
+    device_to_mac_from_entities = _build_device_mac_map(hass, entries, device_registry)
+    for device_id, mac in device_to_mac_from_entities.items():
+        if device_id not in device_to_mac:
+            device_to_mac[device_id] = mac
+    LOGGER.debug("http mac_index device_to_mac_combined=%d", len(device_to_mac))
+
+    # Group entities by device_id for device-based lookup
+    device_to_entities = _build_device_entities_map(entries)
+    LOGGER.debug("http mac_index devices_with_entities=%d", len(device_to_entities))
+
+    # Add all entities for each device to its MAC
+    _add_entities_by_device(device_to_mac, device_to_entities, mac_to_entities)
+    # Also add entities directly (for those without device_id)
     _add_entities_from_registry(entries, device_to_mac, hass, device_registry, mac_to_entities)
     _add_entities_from_states(hass, mac_to_entities)
 
     cache.mac_to_all_entities = mac_to_entities
-    LOGGER.debug("http mac_index built type=all_entities count=%d", len(mac_to_entities))
+
+    # Log summary of entities per MAC
+    total_entities = sum(len(v) for v in mac_to_entities.values())
+    LOGGER.debug(
+        "http mac_index built type=all_entities macs=%d total_entities=%d",
+        len(mac_to_entities),
+        total_entities,
+    )
+    # Log a sample of what was found (first 3 MACs)
+    for i, (mac, entities) in enumerate(mac_to_entities.items()):
+        if i >= 3:
+            break
+        LOGGER.debug("http mac_index sample mac=%s entities=%s", mac, entities[:5])
     return mac_to_entities
+
+
+def _build_device_mac_map_from_registry(
+    device_registry: dr.DeviceRegistry | None,
+) -> dict[str, str]:
+    """Build device_id -> MAC map directly from device registry.
+
+    Looks at all devices with UniFi identifiers and extracts MACs from
+    their identifiers and connections.
+    """
+    device_to_mac: dict[str, str] = {}
+    if device_registry is None:
+        return device_to_mac
+    devices = getattr(device_registry, "devices", None)
+    if devices is None:
+        return device_to_mac
+    for device in devices.values():
+        # Check if this is a UniFi device
+        is_unifi = any(len(ident) >= 2 and ident[0] == "unifi" for ident in device.identifiers)
+        if not is_unifi:
+            continue
+        # Try to extract MAC from identifiers
+        mac = _mac_from_device_entry(device)
+        if mac:
+            device_to_mac[device.id] = mac
+    return device_to_mac
+
+
+def _mac_from_device_entry(device: dr.DeviceEntry) -> str | None:
+    """Extract MAC from a device entry's identifiers and connections."""
+    # Check identifiers first
+    for _domain, identifier in device.identifiers:
+        mac = _extract_mac(identifier)
+        if mac:
+            return mac
+    # Check connections
+    for conn_type, value in device.connections:
+        if conn_type == dr.CONNECTION_NETWORK_MAC:
+            mac = _extract_mac(value)
+            if mac:
+                return mac
+    return None
+
+
+def _build_device_entities_map(entries: list[er.RegistryEntry]) -> dict[str, list[str]]:
+    """Group entity_ids by device_id, excluding disabled entities."""
+    device_to_entities: dict[str, list[str]] = {}
+    for entry in entries:
+        if entry.device_id and _is_entity_enabled(entry):
+            entities = device_to_entities.setdefault(entry.device_id, [])
+            if entry.entity_id not in entities:
+                entities.append(entry.entity_id)
+    return device_to_entities
+
+
+def _is_entity_enabled(entry: er.RegistryEntry) -> bool:
+    """Check if an entity registry entry is enabled."""
+    disabled_by = getattr(entry, "disabled_by", None)
+    return disabled_by is None
+
+
+def _add_entities_by_device(
+    device_to_mac: dict[str, str],
+    device_to_entities: dict[str, list[str]],
+    mac_to_entities: dict[str, list[str]],
+) -> None:
+    """Add all entities for each device to the MAC index."""
+    for device_id, entities in device_to_entities.items():
+        mac = device_to_mac.get(device_id)
+        if mac:
+            for entity_id in entities:
+                _append_unique_entity(mac_to_entities, mac, entity_id)
 
 
 def _build_device_mac_map(
@@ -247,8 +369,13 @@ def _add_entities_from_registry(
     device_registry: dr.DeviceRegistry,
     mac_to_entities: dict[str, list[str]],
 ) -> None:
-    """Add entity_ids from registry entries using direct or device MAC lookup."""
+    """Add entity_ids from registry entries using direct or device MAC lookup.
+
+    Disabled entities are filtered out.
+    """
     for entry in entries:
+        if not _is_entity_enabled(entry):
+            continue
         mac = _resolve_entry_mac(hass, entry, device_registry, device_to_mac)
         if mac:
             _append_unique_entity(mac_to_entities, mac, entry.entity_id)

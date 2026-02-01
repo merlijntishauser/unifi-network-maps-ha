@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Docs: [docs/BLUEPRINTS.md](docs/BLUEPRINTS.md)
 
 ### Changed
+- Improved related entity discovery
 - Improved reliability of vlan reporting
 - Bumped unifi-network-maps to 1.4.14
 - Improved displaying of model names for UniFi devices

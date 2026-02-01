@@ -93,6 +93,7 @@ class FakeEntityEntry:
     unique_id: str | None = None
     device_id: str | None = None
     platform: str | None = None
+    disabled_by: str | None = None
 
 
 @dataclass
@@ -755,3 +756,35 @@ def test_extract_mac_returns_none_for_empty() -> None:
     extract_mac = cast(Callable[[str], str | None], getattr(http_module, "_extract_mac"))
 
     assert extract_mac("") is None
+
+
+def test_is_entity_enabled_checks_disabled_by() -> None:
+    is_entity_enabled = cast(
+        Callable[[FakeEntityEntry], bool], getattr(http_module, "_is_entity_enabled")
+    )
+
+    enabled_entry = FakeEntityEntry(entity_id="sensor.one", disabled_by=None)
+    disabled_entry = FakeEntityEntry(entity_id="sensor.two", disabled_by="user")
+
+    assert is_entity_enabled(enabled_entry) is True
+    assert is_entity_enabled(disabled_entry) is False
+
+
+def test_build_device_entities_map_excludes_disabled() -> None:
+    build_device_entities_map = cast(
+        Callable[[list[FakeEntityEntry]], dict[str, list[str]]],
+        getattr(http_module, "_build_device_entities_map"),
+    )
+
+    entries = [
+        FakeEntityEntry(entity_id="sensor.one", device_id="d1", disabled_by=None),
+        FakeEntityEntry(entity_id="sensor.two", device_id="d1", disabled_by="user"),
+        FakeEntityEntry(entity_id="sensor.three", device_id="d1", disabled_by=None),
+    ]
+
+    result = build_device_entities_map(entries)
+
+    assert "d1" in result
+    assert "sensor.one" in result["d1"]
+    assert "sensor.two" not in result["d1"]  # disabled
+    assert "sensor.three" in result["d1"]
