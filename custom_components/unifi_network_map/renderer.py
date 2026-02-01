@@ -86,7 +86,7 @@ def _render_map(config: Config, settings: RenderSettings) -> UniFiNetworkMapData
     svg = _render_svg(edges, node_types, settings)
     # Always fetch clients for stats (wireless counts per AP)
     all_clients = _load_all_clients(config, settings)
-    networks = _load_networks(config)
+    networks = _load_networks(config, settings)
     payload = _build_payload(edges, node_types, gateways, clients, devices, all_clients, networks)
     LOGGER.debug("renderer completed nodes=%d svg_bytes=%d", len(node_types), len(svg))
     return UniFiNetworkMapData(svg=svg, payload=payload)
@@ -167,16 +167,42 @@ def _load_all_clients(config: Config, settings: RenderSettings) -> list[ClientDa
     )
 
 
-def _load_networks(config: Config) -> list[Mapping[str, Any]]:
+def fetch_networks(
+    config: Config, *, site: str | None = None, use_cache: bool = True
+) -> list[Mapping[str, Any]]:
+    """Fetch UniFi network configurations with fallback for older libraries."""
+    try:
+        from unifi_network_maps.adapters.unifi import fetch_networks as upstream_fetch_networks
+    except ImportError:
+        return _load_networks_fallback(config)
+    networks = upstream_fetch_networks(config, site=site, use_cache=use_cache)
+    return [network for network in networks if isinstance(network, Mapping)]
+
+
+def _load_networks(config: Config, settings: RenderSettings) -> list[Mapping[str, Any]]:
     """Load UniFi network configurations to include VLANs with zero clients."""
+    try:
+        networks = fetch_networks(config, site=config.site, use_cache=settings.use_cache)
+    except Exception as err:  # noqa: BLE001 - keep map rendering usable without networks
+        LOGGER.debug(
+            "renderer network_fetch_failed site=%s error=%s", config.site, type(err).__name__
+        )
+        return []
+    return networks
+
+
+def _load_networks_fallback(config: Config) -> list[Mapping[str, Any]]:
+    """Fallback network fetch for older unifi-network-maps versions."""
+    LOGGER.info(
+        "renderer network_fetch_fallback reason=missing_fetch_networks site=%s",
+        config.site,
+    )
     try:
         from unifi_controller_api import UnifiAuthenticationError, UnifiController
     except ImportError:
         return []
 
-    controller: UnifiController | None = _init_controller_for_networks(
-        UnifiController, UnifiAuthenticationError, config
-    )
+    controller = _init_controller_for_networks(UnifiController, UnifiAuthenticationError, config)
     if controller is None:
         return []
     try:
@@ -245,7 +271,7 @@ def _build_payload(
         "device_macs": _build_device_mac_index(devices),
         "client_ips": _build_client_ip_index(clients),
         "device_ips": _build_device_ip_index(devices),
-        "node_vlans": _build_node_vlan_index(clients),
+        "node_vlans": _build_node_vlan_index(clients, networks),
         "vlan_info": _build_vlan_info(clients, networks),
         "ap_client_counts": _build_ap_client_counts(all_clients, devices),
         "device_details": _build_device_details(devices),
@@ -362,16 +388,21 @@ def _client_network_name(client: ClientData) -> str | None:
     return None
 
 
-def _build_node_vlan_index(clients: list[ClientData] | None) -> dict[str, int | None]:
+def _build_node_vlan_index(
+    clients: list[ClientData] | None, networks: list[Mapping[str, Any]]
+) -> dict[str, int | None]:
     """Map node names to their VLAN IDs."""
     if not clients:
         return {}
+    network_name_map = _build_network_name_map(networks)
     node_vlans: dict[str, int | None] = {}
     for client in clients:
         name = _client_display_name(client)
         if not name:
             continue
         vlan = _client_vlan(client)
+        if vlan is None:
+            vlan = _client_vlan_from_network_name(client, network_name_map)
         node_vlans[name] = vlan
     return node_vlans
 
@@ -380,7 +411,8 @@ def _build_vlan_info(
     clients: list[ClientData] | None, networks: list[Mapping[str, Any]]
 ) -> dict[int, dict[str, Any]]:
     """Build VLAN metadata (id, name, client_count, clients) from client + network data."""
-    vlan_info, vlan_clients = _build_vlan_info_from_clients(clients)
+    network_name_map = _build_network_name_map(networks)
+    vlan_info, vlan_clients = _build_vlan_info_from_clients(clients, network_name_map)
     _merge_vlan_info_from_networks(vlan_info, networks)
     _finalize_vlan_info(vlan_info, vlan_clients)
     return vlan_info
@@ -388,6 +420,7 @@ def _build_vlan_info(
 
 def _build_vlan_info_from_clients(
     clients: list[ClientData] | None,
+    network_name_map: dict[str, int],
 ) -> tuple[dict[int, dict[str, Any]], dict[int, list[str]]]:
     vlan_info: dict[int, dict[str, Any]] = {}
     vlan_clients: dict[int, list[str]] = {}
@@ -395,6 +428,8 @@ def _build_vlan_info_from_clients(
         return vlan_info, vlan_clients
     for client in clients:
         vlan = _client_vlan(client)
+        if vlan is None:
+            vlan = _client_vlan_from_network_name(client, network_name_map)
         if vlan is None:
             continue
         client_name = _client_display_name(client)
@@ -459,6 +494,27 @@ def _network_name(network: Mapping[str, Any], vlan_id: int) -> str:
 
 def _is_default_vlan_name(value: object) -> bool:
     return isinstance(value, str) and value.lower().startswith("vlan ")
+
+
+def _build_network_name_map(networks: list[Mapping[str, Any]]) -> dict[str, int]:
+    name_map: dict[str, int] = {}
+    for network in networks:
+        vlan_id = _network_vlan_id(network)
+        if vlan_id is None:
+            continue
+        name = _network_name(network, vlan_id).strip().lower()
+        if name:
+            name_map[name] = vlan_id
+    return name_map
+
+
+def _client_vlan_from_network_name(
+    client: ClientData, network_name_map: dict[str, int]
+) -> int | None:
+    network_name = _client_network_name(client)
+    if not network_name:
+        return None
+    return network_name_map.get(network_name.strip().lower())
 
 
 def _build_ap_client_counts(clients: list[ClientData], devices: list[Device]) -> dict[str, int]:

@@ -239,9 +239,9 @@ Examples:
 
 ### Upstream Library Considerations
 New features requiring API changes should be proposed to `unifi-network-maps` library first:
-- Device state polling (beyond topology)
-- VLAN membership queries
-- Client-to-device mapping
+- [ ] Device state polling (beyond topology)
+- [x] VLAN membership queries
+- [ ] Client-to-device mapping
 
 ### Testing Strategy
 - Unit tests for entity state derivation

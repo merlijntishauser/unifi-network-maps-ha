@@ -64,6 +64,9 @@ def _patch_unifi_fetchers(
     def _fetch_clients(*_args: object, **_kwargs: object) -> list[dict[str, Any]]:
         return payload["clients"]
 
+    def _fetch_networks(*_args: object, **_kwargs: object) -> list[dict[str, Any]]:
+        return payload.get("networks", [])
+
     monkeypatch.setattr(
         renderer_module,
         "fetch_devices",
@@ -73,6 +76,11 @@ def _patch_unifi_fetchers(
         renderer_module,
         "fetch_clients",
         _fetch_clients,
+    )
+    monkeypatch.setattr(
+        renderer_module,
+        "fetch_networks",
+        _fetch_networks,
     )
 
 
