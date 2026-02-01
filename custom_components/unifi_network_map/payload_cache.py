@@ -140,6 +140,7 @@ def compute_payload_hash(payload: dict[str, Any] | None) -> str:
     - client_ips
     - device_ips
     - node_vlans
+    - vlan_info
     - ap_client_counts
     """
     if payload is None:
@@ -153,6 +154,7 @@ def compute_payload_hash(payload: dict[str, Any] | None) -> str:
         "client_ips": payload.get("client_ips", {}),
         "device_ips": payload.get("device_ips", {}),
         "node_vlans": payload.get("node_vlans", {}),
+        "vlan_info": payload.get("vlan_info", {}),
         "ap_client_counts": payload.get("ap_client_counts", {}),
     }
     encoded = json.dumps(snapshot, sort_keys=True, separators=(",", ":"), default=str)

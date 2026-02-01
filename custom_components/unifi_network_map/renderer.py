@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Mapping, Protocol, TypedDict, cast
+from typing import TYPE_CHECKING, Any, Mapping, Protocol, TypedDict, cast
 
 from unifi_network_maps.adapters.config import Config
 from unifi_network_maps.adapters.unifi import fetch_clients, fetch_devices
@@ -21,6 +21,9 @@ from unifi_network_maps.render.svg import SvgOptions, render_svg, render_svg_iso
 from .const import LOGGER, PAYLOAD_SCHEMA_VERSION
 from .data import UniFiNetworkMapData
 from .errors import UniFiNetworkMapError
+
+if TYPE_CHECKING:
+    from unifi_controller_api import UnifiController
 
 
 @dataclass(frozen=True)
@@ -83,7 +86,8 @@ def _render_map(config: Config, settings: RenderSettings) -> UniFiNetworkMapData
     svg = _render_svg(edges, node_types, settings)
     # Always fetch clients for stats (wireless counts per AP)
     all_clients = _load_all_clients(config, settings)
-    payload = _build_payload(edges, node_types, gateways, clients, devices, all_clients)
+    networks = _load_networks(config)
+    payload = _build_payload(edges, node_types, gateways, clients, devices, all_clients, networks)
     LOGGER.debug("renderer completed nodes=%d svg_bytes=%d", len(node_types), len(svg))
     return UniFiNetworkMapData(svg=svg, payload=payload)
 
@@ -163,6 +167,55 @@ def _load_all_clients(config: Config, settings: RenderSettings) -> list[ClientDa
     )
 
 
+def _load_networks(config: Config) -> list[Mapping[str, Any]]:
+    """Load UniFi network configurations to include VLANs with zero clients."""
+    try:
+        from unifi_controller_api import UnifiAuthenticationError, UnifiController
+    except ImportError:
+        return []
+
+    controller: UnifiController | None = _init_controller_for_networks(
+        UnifiController, UnifiAuthenticationError, config
+    )
+    if controller is None:
+        return []
+    try:
+        networks = controller.get_unifi_site_networkconf(site_name=config.site, raw=True)
+    except Exception as err:  # noqa: BLE001 - keep map rendering usable without networks
+        LOGGER.debug(
+            "renderer network_fetch_failed site=%s error=%s", config.site, type(err).__name__
+        )
+        return []
+    return [network for network in networks if isinstance(network, Mapping)]
+
+
+def _init_controller_for_networks(
+    controller_cls: type["UnifiController"],
+    auth_error: type[Exception],
+    config: Config,
+) -> "UnifiController | None":
+    try:
+        return controller_cls(
+            controller_url=config.url,
+            username=config.user,
+            password=config.password,
+            is_udm_pro=True,
+            verify_ssl=config.verify_ssl,
+        )
+    except auth_error:
+        pass
+    try:
+        return controller_cls(
+            controller_url=config.url,
+            username=config.user,
+            password=config.password,
+            is_udm_pro=False,
+            verify_ssl=config.verify_ssl,
+        )
+    except auth_error:
+        return None
+
+
 def _render_svg(
     edges: list[Edge],
     node_types: dict[str, str],
@@ -181,6 +234,7 @@ def _build_payload(
     clients: list[ClientData] | None,
     devices: list[Device],
     all_clients: list[ClientData],
+    networks: list[Mapping[str, Any]],
 ) -> dict[str, Any]:
     return {
         "schema_version": PAYLOAD_SCHEMA_VERSION,
@@ -192,7 +246,7 @@ def _build_payload(
         "client_ips": _build_client_ip_index(clients),
         "device_ips": _build_device_ip_index(devices),
         "node_vlans": _build_node_vlan_index(clients),
-        "vlan_info": _build_vlan_info(clients),
+        "vlan_info": _build_vlan_info(clients, networks),
         "ap_client_counts": _build_ap_client_counts(all_clients, devices),
         "device_details": _build_device_details(devices),
         "client_details": _build_client_details(all_clients),
@@ -322,13 +376,23 @@ def _build_node_vlan_index(clients: list[ClientData] | None) -> dict[str, int | 
     return node_vlans
 
 
-def _build_vlan_info(clients: list[ClientData] | None) -> dict[int, dict[str, Any]]:
-    """Build VLAN metadata (id, name, client_count, clients) from client data."""
-    if not clients:
-        return {}
+def _build_vlan_info(
+    clients: list[ClientData] | None, networks: list[Mapping[str, Any]]
+) -> dict[int, dict[str, Any]]:
+    """Build VLAN metadata (id, name, client_count, clients) from client + network data."""
+    vlan_info, vlan_clients = _build_vlan_info_from_clients(clients)
+    _merge_vlan_info_from_networks(vlan_info, networks)
+    _finalize_vlan_info(vlan_info, vlan_clients)
+    return vlan_info
+
+
+def _build_vlan_info_from_clients(
+    clients: list[ClientData] | None,
+) -> tuple[dict[int, dict[str, Any]], dict[int, list[str]]]:
     vlan_info: dict[int, dict[str, Any]] = {}
     vlan_clients: dict[int, list[str]] = {}
-
+    if not clients:
+        return vlan_info, vlan_clients
     for client in clients:
         vlan = _client_vlan(client)
         if vlan is None:
@@ -343,15 +407,58 @@ def _build_vlan_info(clients: list[ClientData] | None) -> dict[int, dict[str, An
             "id": vlan,
             "name": network_name or f"VLAN {vlan}",
         }
+    return vlan_info, vlan_clients
 
-    # Add client count and capped client list to each VLAN
+
+def _merge_vlan_info_from_networks(
+    vlan_info: dict[int, dict[str, Any]], networks: list[Mapping[str, Any]]
+) -> None:
+    for network in networks:
+        vlan_id = _network_vlan_id(network)
+        if vlan_id is None:
+            continue
+        name = _network_name(network, vlan_id)
+        if vlan_id not in vlan_info:
+            vlan_info[vlan_id] = {"id": vlan_id, "name": name}
+            continue
+        if name and _is_default_vlan_name(vlan_info[vlan_id].get("name")):
+            vlan_info[vlan_id]["name"] = name
+
+
+def _finalize_vlan_info(
+    vlan_info: dict[int, dict[str, Any]], vlan_clients: dict[int, list[str]]
+) -> None:
     max_clients_in_list = 20
     for vlan_id, info in vlan_info.items():
         clients_list = vlan_clients.get(vlan_id, [])
         info["client_count"] = len(clients_list)
         info["clients"] = clients_list[:max_clients_in_list]
 
-    return vlan_info
+
+def _network_vlan_id(network: Mapping[str, Any]) -> int | None:
+    vlan = network.get("vlan")
+    if isinstance(vlan, int):
+        return vlan
+    if isinstance(vlan, str) and vlan.isdigit():
+        return int(vlan)
+    vlan_enabled = network.get("vlan_enabled")
+    if vlan_enabled is True:
+        return None
+    purpose = str(network.get("purpose", "")).lower()
+    if purpose in {"corporate", "guest"}:
+        return 1
+    return None
+
+
+def _network_name(network: Mapping[str, Any], vlan_id: int) -> str:
+    name = network.get("name")
+    if isinstance(name, str) and name.strip():
+        return name.strip()
+    return f"VLAN {vlan_id}"
+
+
+def _is_default_vlan_name(value: object) -> bool:
+    return isinstance(value, str) and value.lower().startswith("vlan ")
 
 
 def _build_ap_client_counts(clients: list[ClientData], devices: list[Device]) -> dict[str, int]:
