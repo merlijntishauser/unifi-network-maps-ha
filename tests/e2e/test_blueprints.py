@@ -272,7 +272,9 @@ class TestAutomationTrigger:
     TestAutomationCreation above.
     """
 
-    @pytest.mark.skip(reason="Automation trigger timing is unreliable in E2E tests")
+    @pytest.mark.skip(  # type: ignore[reportUntypedFunctionDecorator]
+        reason="Automation trigger timing is unreliable in E2E tests"
+    )
     def test_device_online_automation_triggers(
         self,
         ha_client: httpx.Client,

@@ -188,7 +188,7 @@ def test_compute_payload_hash_creates_hash() -> None:
     result = payload_cache.compute_payload_hash(payload)
 
     assert result
-    assert "|" in result
+    assert len(result) == 64
 
 
 def test_compute_payload_hash_changes_with_different_data() -> None:
@@ -205,6 +205,30 @@ def test_compute_payload_hash_changes_with_different_data() -> None:
         "node_types": {"Gateway": "gateway"},
         "client_macs": {},
         "device_macs": {},
+    }
+
+    hash1 = payload_cache.compute_payload_hash(payload1)
+    hash2 = payload_cache.compute_payload_hash(payload2)
+
+    assert hash1 != hash2
+
+
+def test_compute_payload_hash_changes_with_same_counts() -> None:
+    payload1: dict[str, Any] = {
+        "schema_version": "1.0",
+        "edges": [{"left": "a", "right": "b"}],
+        "node_types": {"Gateway": "gateway"},
+        "client_macs": {"Client1": "aa:bb:cc:dd:ee:ff"},
+        "device_macs": {"Gateway": "11:22:33:44:55:66"},
+        "client_ips": {"Client1": "192.168.1.2"},
+    }
+    payload2: dict[str, Any] = {
+        "schema_version": "1.0",
+        "edges": [{"left": "a", "right": "b"}],
+        "node_types": {"Gateway": "gateway"},
+        "client_macs": {"Client1": "aa:bb:cc:dd:ee:00"},
+        "device_macs": {"Gateway": "11:22:33:44:55:66"},
+        "client_ips": {"Client1": "192.168.1.2"},
     }
 
     hash1 = payload_cache.compute_payload_hash(payload1)

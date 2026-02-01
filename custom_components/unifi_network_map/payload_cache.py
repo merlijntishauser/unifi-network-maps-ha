@@ -7,6 +7,8 @@ The cache is automatically invalidated when the underlying data changes.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import hashlib
+import json
 from typing import Any
 
 from homeassistant.core import HomeAssistant
@@ -135,14 +137,23 @@ def compute_payload_hash(payload: dict[str, Any] | None) -> str:
     - node_types
     - client_macs
     - device_macs
+    - client_ips
+    - device_ips
+    - node_vlans
+    - ap_client_counts
     """
     if payload is None:
         return ""
-    parts = [
-        str(payload.get("schema_version", "")),
-        str(len(payload.get("edges", []))),
-        str(len(payload.get("node_types", {}))),
-        str(len(payload.get("client_macs", {}))),
-        str(len(payload.get("device_macs", {}))),
-    ]
-    return "|".join(parts)
+    snapshot = {
+        "schema_version": payload.get("schema_version"),
+        "edges": payload.get("edges", []),
+        "node_types": payload.get("node_types", {}),
+        "client_macs": payload.get("client_macs", {}),
+        "device_macs": payload.get("device_macs", {}),
+        "client_ips": payload.get("client_ips", {}),
+        "device_ips": payload.get("device_ips", {}),
+        "node_vlans": payload.get("node_vlans", {}),
+        "ap_client_counts": payload.get("ap_client_counts", {}),
+    }
+    encoded = json.dumps(snapshot, sort_keys=True, separators=(",", ":"), default=str)
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
