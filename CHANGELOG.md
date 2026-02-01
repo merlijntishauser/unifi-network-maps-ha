@@ -18,7 +18,7 @@ Release 0.2.0 expands the integration with new Home Assistant entities and autom
   - AP Overload Alert: notify when an access point exceeds a client threshold.
   - VLAN Client Alert: notify when a VLAN client count exceeds a threshold.
   Docs: [docs/BLUEPRINTS.md](docs/BLUEPRINTS.md)
-  - Improved navigation on modals and detail panels
+- Improved navigation on modals and detail panels
 
 ### Changed
 - Bumped unifi-network-maps to 1.4.15
