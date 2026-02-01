@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - AP Overload Alert: notify when an access point exceeds a client threshold.
   - VLAN Client Alert: notify when a VLAN client count exceeds a threshold.
   Docs: [docs/BLUEPRINTS.md](docs/BLUEPRINTS.md)
+  - Improved navigation on modals and detail panels
 
 ### Changed
 - Bumped unifi-network-maps to 1.4.15

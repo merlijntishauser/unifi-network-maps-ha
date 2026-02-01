@@ -19,11 +19,13 @@ export function renderEntityModal(context: EntityModalContext): string {
 function renderEntityItem(
   entity: RelatedEntity,
   theme: "dark" | "light" | "unifi" | "unifi-dark",
+  nodeName: string,
 ): string {
   const domainIconMarkup = domainIcon(entity.domain, theme);
-  const displayName = entity.friendly_name ?? entity.entity_id;
+  const displayName = getCompactDisplayName(entity, nodeName);
   const safeDisplayName = escapeHtml(displayName);
   const safeEntityId = escapeHtml(entity.entity_id);
+  const compactEntityId = getCompactEntityId(entity.entity_id);
   const formattedState = formatEntityState(entity);
   const stateClass = getStateBadgeClass(formattedState.normalized);
 
@@ -32,7 +34,7 @@ function renderEntityItem(
       <span class="entity-modal__domain-icon">${domainIconMarkup}</span>
       <div class="entity-modal__entity-info">
         <span class="entity-modal__entity-name" title="${safeDisplayName}">${safeDisplayName}</span>
-        <span class="entity-modal__entity-id" title="${safeEntityId}">${safeEntityId}</span>
+        <span class="entity-modal__entity-id" title="${safeEntityId}">${escapeHtml(compactEntityId)}</span>
       </div>
       <div class="entity-modal__entity-state">
         <span class="entity-modal__state-badge ${stateClass}">${escapeHtml(formattedState.display)}</span>
@@ -40,6 +42,62 @@ function renderEntityItem(
       </div>
     </div>
   `;
+}
+
+function getCompactDisplayName(entity: RelatedEntity, nodeName: string): string {
+  const fullName = entity.friendly_name ?? entity.entity_id;
+
+  // Try to strip the device name prefix if present
+  const lowerName = fullName.toLowerCase();
+  const lowerNodeName = nodeName.toLowerCase();
+
+  if (lowerName.startsWith(lowerNodeName + " ")) {
+    const stripped = fullName.substring(nodeName.length + 1).trim();
+    if (stripped.length > 0) {
+      return capitalizeFirst(stripped);
+    }
+  }
+
+  // Try common variations (with underscore or hyphen)
+  const normalizedNode = nodeName.replace(/[\s_-]+/g, " ").toLowerCase();
+  const normalizedFull = fullName.replace(/[\s_-]+/g, " ").toLowerCase();
+
+  if (normalizedFull.startsWith(normalizedNode + " ")) {
+    const prefixLen = normalizedNode.length + 1;
+    const stripped = fullName
+      .replace(/[\s_-]+/g, " ")
+      .substring(prefixLen)
+      .trim();
+    if (stripped.length > 0) {
+      return capitalizeFirst(stripped);
+    }
+  }
+
+  return fullName;
+}
+
+function getCompactEntityId(entityId: string): string {
+  // Show domain abbreviation + object_id
+  const parts = entityId.split(".");
+  if (parts.length !== 2) return entityId;
+
+  const domain = parts[0];
+  const objectId = parts[1];
+
+  // Abbreviate common domains
+  const domainAbbr: Record<string, string> = {
+    sensor: "sensor",
+    binary_sensor: "binary",
+    device_tracker: "tracker",
+    switch: "switch",
+    button: "button",
+    update: "update",
+    number: "number",
+    select: "select",
+  };
+
+  const abbr = domainAbbr[domain] ?? domain;
+  return `${abbr}.${objectId}`;
 }
 
 type FormattedState = {
@@ -61,7 +119,7 @@ function formatEntityState(entity: RelatedEntity): FormattedState {
     return { display: capitalizeFirst(state), normalized: lowerState };
   }
 
-  const sensorResult = formatSensorState(state, domain);
+  const sensorResult = formatSensorState(state, domain, entity.entity_id);
   if (sensorResult) return sensorResult;
 
   const domainResult = formatDomainSpecificState(state, domain);
@@ -70,7 +128,7 @@ function formatEntityState(entity: RelatedEntity): FormattedState {
   return formatFallbackState(state);
 }
 
-function formatSensorState(state: string, domain: string): FormattedState | null {
+function formatSensorState(state: string, domain: string, entityId: string): FormattedState | null {
   if (domain !== "sensor" && domain !== "binary_sensor") return null;
 
   if (ISO_TIMESTAMP_PATTERN.test(state)) {
@@ -80,17 +138,48 @@ function formatSensorState(state: string, domain: string): FormattedState | null
     return { display: state.substring(0, 8) + "…", normalized: "default" };
   }
   if (NUMERIC_PATTERN.test(state)) {
-    return formatNumericState(state);
+    return formatNumericState(state, entityId);
   }
   return null;
 }
 
-function formatNumericState(state: string): FormattedState {
+function formatNumericState(state: string, entityId: string): FormattedState {
   const num = parseFloat(state);
+  const unit = inferUnitFromEntityId(entityId);
+
   if (Math.abs(num) >= 1000000) {
-    return { display: formatLargeNumber(num), normalized: "default" };
+    return { display: formatLargeNumber(num) + unit, normalized: "default" };
   }
-  return { display: state, normalized: "default" };
+
+  // Format to reasonable precision
+  const formatted = Number.isInteger(num) ? num.toString() : num.toFixed(1);
+  return { display: formatted + unit, normalized: "default" };
+}
+
+const UNIT_PATTERNS: Array<{ patterns: string[]; unit: string; exclude?: string[] }> = [
+  { patterns: ["utilization", "percent", "_pct"], unit: "%" },
+  { patterns: ["temperature", "_temp"], unit: "°C" },
+  { patterns: ["_power"], unit: " W", exclude: ["power_mode"] },
+  { patterns: ["_voltage"], unit: " V" },
+  { patterns: ["_current"], unit: " A", exclude: ["current_"] },
+  { patterns: ["_speed", "bandwidth"], unit: " Mbps" },
+  { patterns: ["_bytes", "_data"], unit: " B" },
+  { patterns: ["uptime"], unit: " s" },
+];
+
+function inferUnitFromEntityId(entityId: string): string {
+  const objectId = entityId.split(".")[1] ?? entityId;
+  const lower = objectId.toLowerCase();
+
+  for (const { patterns, unit, exclude } of UNIT_PATTERNS) {
+    const matches = patterns.some((p) => lower.includes(p));
+    const excluded = exclude?.some((e) => lower.includes(e)) ?? false;
+    if (matches && !excluded) {
+      return unit;
+    }
+  }
+
+  return "";
 }
 
 function formatDomainSpecificState(state: string, domain: string): FormattedState | null {
@@ -192,7 +281,9 @@ function buildEntityModalData(context: EntityModalContext): EntityModalData {
     relatedEntities,
     typeIcon: context.getNodeTypeIcon(nodeType),
     infoRows: buildEntityInfoRows({ mac, model, status, nodeType, relatedEntities, context }),
-    entityItems: relatedEntities.map((entity) => renderEntityItem(entity, context.theme)).join(""),
+    entityItems: relatedEntities
+      .map((entity) => renderEntityItem(entity, context.theme, nodeName))
+      .join(""),
     theme: context.theme,
   };
 }
