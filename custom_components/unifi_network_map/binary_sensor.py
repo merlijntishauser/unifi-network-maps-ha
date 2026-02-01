@@ -9,7 +9,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -22,6 +22,59 @@ DEVICE_TYPES_TO_TRACK = frozenset({"gateway", "switch", "ap"})
 EntityList = list["UniFiDevicePresenceSensor | UniFiClientPresenceSensor"]
 
 
+class _EntityTracker:
+    """Tracks added entities and handles dynamic entity creation."""
+
+    def __init__(
+        self,
+        coordinator: UniFiNetworkMapCoordinator,
+        entry: ConfigEntry,
+        async_add_entities: AddEntitiesCallback,
+    ) -> None:
+        self._coordinator = coordinator
+        self._entry = entry
+        self._async_add_entities = async_add_entities
+        self._added_devices: set[str] = set()
+        self._added_clients: set[str] = set()
+
+    def add_new_entities(self) -> None:
+        """Add any new entities based on current coordinator data."""
+        if not self._coordinator.data or not self._coordinator.data.payload:
+            return
+
+        new_entities: EntityList = []
+        self._collect_device_entities(new_entities)
+        self._collect_client_entities(new_entities)
+
+        if new_entities:
+            self._async_add_entities(new_entities)
+
+    def _collect_device_entities(self, entities: EntityList) -> None:
+        """Collect new device entities."""
+        for entity in _create_device_presence_entities(self._coordinator, self._entry):
+            if entity.unique_id and entity.unique_id not in self._added_devices:
+                self._added_devices.add(entity.unique_id)
+                entities.append(entity)
+
+    def _collect_client_entities(self, entities: EntityList) -> None:
+        """Collect new client entities."""
+        for entity in _create_client_presence_entities(self._coordinator, self._entry):
+            if entity.unique_id and entity.unique_id not in self._added_clients:
+                self._added_clients.add(entity.unique_id)
+                entities.append(entity)
+
+    def register_listener(self) -> None:
+        """Register coordinator update listener."""
+        if not hasattr(self._coordinator, "async_add_listener"):
+            return
+
+        @callback  # type: ignore[misc]
+        def _handle_update() -> None:
+            self.add_new_entities()
+
+        self._entry.async_on_unload(self._coordinator.async_add_listener(_handle_update))
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -32,17 +85,15 @@ async def async_setup_entry(
     if not isinstance(coordinator, UniFiNetworkMapCoordinator):
         return
 
-    entities: EntityList = []
-    entities.extend(_create_device_presence_entities(coordinator, entry))
-    entities.extend(_create_client_presence_entities(coordinator, entry))
-    if entities:
-        async_add_entities(entities)
+    tracker = _EntityTracker(coordinator, entry, async_add_entities)
+    tracker.add_new_entities()
+    tracker.register_listener()
 
 
 def _create_device_presence_entities(
     coordinator: UniFiNetworkMapCoordinator,
     entry: ConfigEntry,
-) -> list[UniFiDevicePresenceSensor]:
+) -> list["UniFiDevicePresenceSensor"]:
     """Create binary sensors for network devices."""
     if not coordinator.data or not coordinator.data.payload:
         return []

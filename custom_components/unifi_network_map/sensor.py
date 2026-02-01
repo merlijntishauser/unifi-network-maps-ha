@@ -2,11 +2,11 @@ from __future__ import annotations
 
 # pyright: reportUntypedBaseClass=false
 
-from typing import Any, Callable
+from typing import Any
 
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -21,15 +21,45 @@ EntityList = list["UniFiNetworkMapSensor | UniFiVlanClientsSensor"]
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
-    async_add_entities: Callable[[list["UniFiNetworkMapSensor"]], None] | AddEntitiesCallback,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
+    """Set up sensors from a config entry."""
     coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
     if not isinstance(coordinator, UniFiNetworkMapCoordinator):
         return
 
-    entities: EntityList = [UniFiNetworkMapSensor(coordinator, entry)]
-    entities.extend(_create_vlan_sensors(coordinator, entry))
-    async_add_entities(entities)  # type: ignore[arg-type]
+    # Always add the status sensor
+    async_add_entities([UniFiNetworkMapSensor(coordinator, entry)])
+
+    # Track which VLAN sensors we've already added
+    added_vlans: set[str] = set()
+
+    def _add_new_vlan_sensors() -> None:
+        """Add any new VLAN sensors based on current coordinator data."""
+        if not coordinator.data or not coordinator.data.payload:
+            return
+
+        new_entities: list[UniFiVlanClientsSensor] = []
+
+        for entity in _create_vlan_sensors(coordinator, entry):
+            if entity.unique_id and entity.unique_id not in added_vlans:
+                added_vlans.add(entity.unique_id)
+                new_entities.append(entity)
+
+        if new_entities:
+            async_add_entities(new_entities)
+
+    # Add VLAN sensors from current data (if available)
+    _add_new_vlan_sensors()
+
+    @callback  # type: ignore[misc]
+    def _handle_coordinator_update() -> None:
+        """Handle coordinator data updates - add new VLAN sensors if needed."""
+        _add_new_vlan_sensors()
+
+    # Listen for future coordinator updates to add new VLAN sensors
+    if hasattr(coordinator, "async_add_listener"):
+        entry.async_on_unload(coordinator.async_add_listener(_handle_coordinator_update))
 
 
 def _create_vlan_sensors(
@@ -60,11 +90,14 @@ def _create_vlan_sensors(
 class UniFiNetworkMapSensor(  # type: ignore[reportUntypedBaseClass]
     CoordinatorEntity[UniFiNetworkMapData], SensorEntity
 ):
+    """Status sensor for the UniFi Network Map integration."""
+
     _attr_has_entity_name = True
     _attr_name = "Status"
     _attr_icon = "mdi:graph"
 
     def __init__(self, coordinator: UniFiNetworkMapCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the status sensor."""
         super().__init__(coordinator)
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}_map"
@@ -77,10 +110,12 @@ class UniFiNetworkMapSensor(  # type: ignore[reportUntypedBaseClass]
 
     @property
     def native_value(self) -> str:
+        """Return the current state."""
         return _derive_state(self.coordinator)
 
     @property
     def extra_state_attributes(self) -> dict[str, str]:
+        """Return additional state attributes."""
         error = _format_error(self.coordinator)
         entry_id = self._entry.entry_id
         return {
@@ -93,6 +128,7 @@ class UniFiNetworkMapSensor(  # type: ignore[reportUntypedBaseClass]
 
 
 def _derive_state(coordinator: UniFiNetworkMapCoordinator) -> str:
+    """Derive sensor state from coordinator."""
     if coordinator.data:
         return "ready"
     if coordinator.last_exception:
@@ -101,6 +137,7 @@ def _derive_state(coordinator: UniFiNetworkMapCoordinator) -> str:
 
 
 def _format_error(coordinator: UniFiNetworkMapCoordinator) -> str | None:
+    """Format error message from coordinator."""
     error = coordinator.last_exception
     if not error:
         return None

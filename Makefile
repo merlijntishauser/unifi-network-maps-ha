@@ -1,4 +1,4 @@
-.PHONY: help venv install install-dev test test-unit test-integration test-contract test-e2e test-e2e-debug test-e2e-all format frontend-install frontend-build frontend-test frontend-typecheck frontend-lint frontend-format pre-commit-install pre-commit-run ci version-bump version release release-hotfix clean
+.PHONY: help venv install install-dev test test-unit test-integration test-contract test-e2e test-e2e-reuse test-e2e-debug test-e2e-all format frontend-install frontend-build frontend-test frontend-typecheck frontend-lint frontend-format pre-commit-install pre-commit-run ci version-bump version release release-hotfix clean
 
 VENV_DIR := .venv
 PYTHON_BIN := $(shell command -v python3.13 >/dev/null 2>&1 && echo python3.13 || echo python3)
@@ -19,6 +19,7 @@ help:
 	@echo "  test-integration Run integration tests"
 	@echo "  test-contract   Run contract tests"
 	@echo "  test-e2e        Run E2E tests with Docker (requires Docker)"
+	@echo "  test-e2e-reuse  Run E2E tests while keeping Docker stack running"
 	@echo "  test-e2e-debug  Run E2E tests with visible browser"
 	@echo "  test-e2e-all    Run E2E tests for all HA versions in tests/e2e/ha-matrix.yaml"
 	@echo "  format          Run ruff format on the repo"
@@ -101,6 +102,25 @@ test-e2e-debug: frontend-build
 	HA_IMAGE_TAG=$(HA_IMAGE_TAG) HA_CONFIG_DIR=$(HA_CONFIG_DIR) $(VENV_DIR)/bin/pytest tests/e2e -v --browser chromium --headed --slowmo 500 || true
 	@echo "Stopping Docker services..."
 	HA_IMAGE_TAG=$(HA_IMAGE_TAG) HA_CONFIG_DIR=$(HA_CONFIG_DIR) docker compose -f tests/e2e/docker-compose.yml down -v
+
+test-e2e-reuse: frontend-build
+	@echo "Installing E2E test dependencies..."
+	$(PIP) install -r tests/e2e/requirements.txt
+	$(VENV_DIR)/bin/playwright install chromium
+	@echo "Running E2E tests (reusing Docker stack)..."
+	@VERSION_FILE=$$(mktemp) ; \
+	STATUS=0 ; \
+	E2E_REUSE=1 HA_IMAGE_TAG=$(HA_IMAGE_TAG) HA_CONFIG_DIR=$(HA_CONFIG_DIR) E2E_VERSION_FILE=$$VERSION_FILE $(VENV_DIR)/bin/pytest tests/e2e -v --browser chromium || STATUS=$$? ; \
+	if [ $$STATUS -ne 0 ]; then HA_IMAGE_TAG=$(HA_IMAGE_TAG) HA_CONFIG_DIR=$(HA_CONFIG_DIR) docker compose -f tests/e2e/docker-compose.yml logs ; fi ; \
+	VERSION=$$(python3 -c 'import json,sys; from pathlib import Path; p=Path(sys.argv[1]); print(json.loads(p.read_text()).get("version","unknown") if p.exists() else "unknown")' $$VERSION_FILE); \
+	IMAGE_TAG=$${HA_IMAGE_TAG:-stable} ; \
+	RESULT=$$(if [ $$STATUS -eq 0 ]; then echo passed; else echo failed; fi) ; \
+	echo "" ; \
+	echo "E2E Summary" ; \
+	printf "%-10s %-10s %-12s %s\n" "Name" "Image Tag" "HA Version" "Result" ; \
+	printf "%-10s %-10s %-12s %s\n" "reuse" "$$IMAGE_TAG" "$$VERSION" "$$RESULT" ; \
+	rm -f $$VERSION_FILE ; \
+	exit $$STATUS
 
 test-e2e-all: install-dev frontend-build
 	@$(PYTHON) tests/e2e/scripts/run_e2e_matrix.py

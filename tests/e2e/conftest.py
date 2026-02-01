@@ -53,6 +53,11 @@ def typed_fixture(*args: Any, **kwargs: Any) -> Callable[[F], F]:
     return cast(Callable[[F], F], pytest.fixture(*args, **kwargs))
 
 
+def _env_flag(name: str) -> bool:
+    value = os.environ.get(name, "")
+    return value.lower() in {"1", "true", "yes", "on"}
+
+
 def _reset_ha_storage(storage_dir: Path) -> None:
     """Reset HA storage to clean state before tests."""
     # Completely clear storage dir to avoid stale files from different HA versions
@@ -223,6 +228,17 @@ def _remove_args(args: list[str], remove: set[str]) -> list[str]:
     return [arg for arg in args if arg not in remove]
 
 
+def _compose_run(
+    compose_file: Path, args: list[str], *, check: bool = False
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["docker", "compose", "-f", str(compose_file), *args],
+        capture_output=True,
+        text=True,
+        check=check,
+    )
+
+
 def _copy_blueprints(config_dir: Path) -> None:
     """Copy integration blueprints to HA config directory."""
     custom_components = Path(os.environ.get("CUSTOM_COMPONENTS_DIR", ""))
@@ -249,13 +265,12 @@ def _copy_blueprints(config_dir: Path) -> None:
 def docker_services() -> Generator[None, None, None]:
     """Start and stop Docker Compose stack for the test session."""
     compose_file = E2E_DIR / "docker-compose.yml"
+    reuse_stack = _env_flag("E2E_REUSE")
 
     # Stop any existing containers first to ensure clean state
     # This handles CI where workflow may have pre-started Docker
-    subprocess.run(
-        ["docker", "compose", "-f", str(compose_file), "down", "-v"],
-        capture_output=True,
-    )
+    if not reuse_stack:
+        _compose_run(compose_file, ["down", "-v"])
 
     # Set up storage before starting services
     _config_dir, storage_dir = _ensure_writable_config_dir()
@@ -285,15 +300,34 @@ def docker_services() -> Generator[None, None, None]:
     else:
         print(f"WARNING: custom_components path does not exist: {custom_components}")
 
-    # Start services fresh
-    result = subprocess.run(
-        ["docker", "compose", "-f", str(compose_file), "up", "-d", "--build", "--wait"],
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        print(f"Docker compose up failed:\n{result.stdout}\n{result.stderr}")
-        raise RuntimeError(f"Docker compose up failed: {result.stderr}")
+    # Start services
+    if reuse_stack:
+        result = _compose_run(
+            compose_file, ["up", "-d", "--wait", "--pull", "always", "mock-unifi"]
+        )
+        if result.returncode != 0:
+            print(f"Docker compose up failed:\n{result.stdout}\n{result.stderr}")
+            raise RuntimeError(f"Docker compose up failed: {result.stderr}")
+        result = _compose_run(
+            compose_file,
+            [
+                "up",
+                "-d",
+                "--wait",
+                "--pull",
+                "always",
+                "--force-recreate",
+                "homeassistant",
+            ],
+        )
+        if result.returncode != 0:
+            print(f"Docker compose up failed:\n{result.stdout}\n{result.stderr}")
+            raise RuntimeError(f"Docker compose up failed: {result.stderr}")
+    else:
+        result = _compose_run(compose_file, ["up", "-d", "--build", "--wait"])
+        if result.returncode != 0:
+            print(f"Docker compose up failed:\n{result.stdout}\n{result.stderr}")
+            raise RuntimeError(f"Docker compose up failed: {result.stderr}")
 
     # Wait for HA to be fully ready
     _wait_for_ha_ready()
@@ -304,11 +338,11 @@ def docker_services() -> Generator[None, None, None]:
     yield
 
     # Stop and clean up
-    subprocess.run(
-        ["docker", "compose", "-f", str(compose_file), "down", "-v"],
-        check=True,
-        capture_output=True,
-    )
+    if reuse_stack:
+        print("Leaving Docker services running (E2E_REUSE enabled)")
+        return
+
+    _compose_run(compose_file, ["down", "-v"], check=True)
 
 
 def _wait_for_ha_ready(timeout: int = 120) -> None:

@@ -1,0 +1,49 @@
+blueprint:
+  name: UniFi AP Overload Alert
+  description: Send a notification when an access point has too many clients.
+  domain: automation
+  author: UniFi Network Map
+  source_url: https://github.com/merlijntishauser/unifi-network-maps-ha/blob/main/custom_components/unifi_network_map/blueprints/automation/ap_overload_alert.yaml
+  input:
+    ap_entity:
+      name: Access Point
+      description: The UniFi AP presence sensor to monitor.
+      selector:
+        entity:
+          filter:
+            - domain: binary_sensor
+              device_class: connectivity
+              integration: unifi_network_map
+    max_clients:
+      name: Maximum Clients
+      description: Alert when client count exceeds this number.
+      default: 30
+      selector:
+        number:
+          min: 1
+          max: 100
+    notify_service:
+      name: Notification Service
+      description: The notification service to call (e.g., notify.mobile_app).
+      selector:
+        text:
+
+triggers:
+  - trigger: template
+    value_template: >
+      {{ state_attr(ap_entity, 'clients_connected') | int(0) > max_clients }}
+
+variables:
+  ap_entity: !input ap_entity
+  max_clients: !input max_clients
+  notify_service: !input notify_service
+
+actions:
+  - action: "{{ notify_service }}"
+    metadata: {}
+    data:
+      title: "AP Overloaded"
+      message: >
+        {{ state_attr(ap_entity, 'friendly_name') }} has
+        {{ state_attr(ap_entity, 'clients_connected') }} clients
+        (max: {{ max_clients }}).

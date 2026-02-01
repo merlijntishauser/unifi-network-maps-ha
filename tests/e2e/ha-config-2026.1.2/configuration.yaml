@@ -19,3 +19,6 @@ frontend:
 
 lovelace:
   mode: storage
+
+# Automations for blueprint tests
+automation: !include automations.yaml
