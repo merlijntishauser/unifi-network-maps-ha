@@ -32,6 +32,8 @@ export type EditorElement = HTMLElement & {
   setConfig: (config: {
     entry_id?: string;
     theme?: "dark" | "light" | "unifi" | "unifi-dark";
+    svg_theme?: "unifi" | "unifi-dark" | "minimal" | "minimal-dark" | "classic" | "classic-dark";
+    icon_set?: "modern" | "isometric";
   }) => void;
 };
 

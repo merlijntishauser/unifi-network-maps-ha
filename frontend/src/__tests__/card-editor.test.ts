@@ -98,7 +98,12 @@ describe("unifi-network-map editor", () => {
 
   it("keeps config when entry and theme are unchanged", async () => {
     const element = document.createElement("unifi-network-map-editor") as EditorElement;
-    element.setConfig({ entry_id: "entry-1", theme: "unifi" });
+    element.setConfig({
+      entry_id: "entry-1",
+      theme: "unifi",
+      svg_theme: "unifi",
+      icon_set: "modern",
+    });
     const callWS = jest
       .fn()
       .mockResolvedValue([{ entry_id: "entry-1", title: "Site", domain: "unifi_network_map" }]);
@@ -109,7 +114,14 @@ describe("unifi-network-map editor", () => {
     const form = element.querySelector("ha-form") as HTMLElement;
     form.dispatchEvent(
       new CustomEvent("value-changed", {
-        detail: { value: { entry_id: "entry-1", theme: "unifi" } },
+        detail: {
+          value: {
+            entry_id: "entry-1",
+            theme: "unifi",
+            svg_theme: "unifi",
+            icon_set: "modern",
+          },
+        },
       }),
     );
     expect(handler).not.toHaveBeenCalled();
