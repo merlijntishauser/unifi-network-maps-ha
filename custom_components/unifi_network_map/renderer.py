@@ -59,7 +59,12 @@ class UniFiNetworkMapRenderer:
         try:
             return _render_map(config, settings)
         except (KeyError, TypeError, ValueError) as err:
-            LOGGER.debug("renderer failed site=%s error=%s", config.site, type(err).__name__)
+            LOGGER.debug(
+                "renderer failed site=%s error=%s message=%s",
+                config.site,
+                type(err).__name__,
+                str(err),
+            )
             raise UniFiNetworkMapError(f"Failed to render UniFi network map: {err}") from err
 
 
@@ -248,6 +253,13 @@ def _render_svg(
     settings: RenderSettings,
     wan_info: WanInfo | None = None,
 ) -> str:
+    LOGGER.debug(
+        "renderer svg_render_started svg_theme=%s icon_set=%s isometric=%s wan=%s",
+        settings.svg_theme,
+        settings.icon_set,
+        settings.svg_isometric,
+        wan_info is not None,
+    )
     options = SvgOptions(width=settings.svg_width, height=settings.svg_height)
     theme = _resolve_svg_theme(settings.svg_theme, settings.icon_set)
     if settings.svg_isometric:
