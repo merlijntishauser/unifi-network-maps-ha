@@ -10,6 +10,15 @@ export type IconName =
   | "node-ap"
   | "node-client"
   | "node-other"
+  | "node-camera"
+  | "node-tv"
+  | "node-phone"
+  | "node-printer"
+  | "node-nas"
+  | "node-speaker"
+  | "node-game_console"
+  | "node-iot"
+  | "node-client_cluster"
   | "action-details"
   | "action-copy"
   | "action-ports"
@@ -42,6 +51,15 @@ const EMOJI_ICONS: Record<IconName, string> = {
   "node-ap": "📶",
   "node-client": "💻",
   "node-other": "📦",
+  "node-camera": "📷",
+  "node-tv": "📺",
+  "node-phone": "📱",
+  "node-printer": "🖨️",
+  "node-nas": "💾",
+  "node-speaker": "🔊",
+  "node-game_console": "🎮",
+  "node-iot": "🔌",
+  "node-client_cluster": "👥",
   "action-details": "📊",
   "action-copy": "📋",
   "action-ports": "🔌",
@@ -87,6 +105,51 @@ const HERO_SVGS: Record<IconName, string> = {
   ),
   "node-client": svg(["M4 6h16v9H4z", "M10 19h4", "M12 15v4"]),
   "node-other": svg(["M12 3 4 7 12 11 20 7 12 3z", "M4 7v10l8 4 8-4V7", "M12 11v10"]),
+  "node-camera": svg(
+    ["M3 9a2 2 0 012-2h1l1-2h10l1 2h1a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"],
+    [{ cx: 12, cy: 13, r: 3 }],
+  ),
+  "node-tv": svg(["M4 7h16v10H4z", "M9 21l3-4 3 4"]),
+  "node-phone": svg([
+    "M7 2h10a1 1 0 011 1v18a1 1 0 01-1 1H7a1 1 0 01-1-1V3a1 1 0 011-1z",
+    "M11 18h2",
+  ]),
+  "node-printer": svg([
+    "M6 9V2h12v7",
+    "M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2",
+    "M6 14h12v8H6z",
+  ]),
+  "node-nas": svg(["M4 5h16v14H4z", "M4 9h16", "M4 13h16", "M7 11h1", "M7 15h1"]),
+  "node-speaker": svg(
+    ["M6 5h12v14a2 2 0 01-2 2H8a2 2 0 01-2-2V5z", "M6 5a2 2 0 012-2h8a2 2 0 012 2"],
+    [{ cx: 12, cy: 14, r: 3 }],
+  ),
+  "node-game_console": svg([
+    "M6 11h4m-2-2v4",
+    "M15 13h.01",
+    "M18 11h.01",
+    "M4 8h16a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4a2 2 0 012-2z",
+  ]),
+  "node-iot": svg(
+    [
+      "M12 2v6",
+      "M12 22v-6",
+      "M4.93 4.93l4.24 4.24",
+      "M14.83 14.83l4.24 4.24",
+      "M2 12h6",
+      "M16 12h6",
+      "M4.93 19.07l4.24-4.24",
+      "M14.83 9.17l4.24-4.24",
+    ],
+    [{ cx: 12, cy: 12, r: 2 }],
+  ),
+  "node-client_cluster": svg(
+    ["M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2", "M22 21v-2a4 4 0 00-3-3.87"],
+    [
+      { cx: 9, cy: 7, r: 4 },
+      { cx: 19, cy: 7, r: 3 },
+    ],
+  ),
   "action-details": svg(["M4 4h16v16H4z", "M8 16v-4", "M12 16v-7", "M16 16v-2"]),
   "action-copy": svg(["M8 4h8v3H8z", "M6 7h12v13H6z"]),
   "action-ports": svg([
@@ -147,19 +210,24 @@ export function iconMarkup(name: IconName, theme: IconTheme): string {
   return `<span class="unifi-icon unifi-icon--hero" aria-hidden="true">${HERO_SVGS[name]}</span>`;
 }
 
+const NODE_TYPE_ICONS: Record<string, IconName> = {
+  gateway: "node-gateway",
+  switch: "node-switch",
+  ap: "node-ap",
+  client: "node-client",
+  camera: "node-camera",
+  tv: "node-tv",
+  phone: "node-phone",
+  printer: "node-printer",
+  nas: "node-nas",
+  speaker: "node-speaker",
+  game_console: "node-game_console",
+  iot: "node-iot",
+  client_cluster: "node-client_cluster",
+};
+
 export function nodeTypeIcon(nodeType: string, theme: IconTheme): string {
-  switch (nodeType) {
-    case "gateway":
-      return iconMarkup("node-gateway", theme);
-    case "switch":
-      return iconMarkup("node-switch", theme);
-    case "ap":
-      return iconMarkup("node-ap", theme);
-    case "client":
-      return iconMarkup("node-client", theme);
-    default:
-      return iconMarkup("node-other", theme);
-  }
+  return iconMarkup(NODE_TYPE_ICONS[nodeType] ?? "node-other", theme);
 }
 
 export function domainIcon(domain: string, theme: IconTheme): string {
