@@ -36,38 +36,68 @@
 
 ---
 
-## Phase 5: Network Segment Visualization (v0.3)
+## Phase 5: Library Upgrade & Theme Support (v0.3)
+
+Focus: Upgrade to `unifi-network-maps` 1.5.0, handle breaking changes, add built-in theme selection.
+
+### 5.1 Library Upgrade & Breaking Changes
+Handle all v1.5.0 breaking changes ([#26](https://github.com/merlijntishauser/unifi-network-maps-ha/issues/26)):
+
+- [ ] Update `unifi-network-maps` to 1.5.0 in manifest.json and requirements.txt
+- [ ] **Extended device types** ([#30](https://github.com/merlijntishauser/unifi-network-maps-ha/issues/30)): Update frontend for new node types
+  - Add icons for: `camera`, `tv`, `phone`, `printer`, `nas`, `speaker`, `game_console`, `iot`, `client_cluster`
+  - Update device type filter bar to handle new types (group or expand)
+  - Ensure CSS styling works for all new `.node-{type}` classes
+- [ ] **PoE indicator change** ([#29](https://github.com/merlijntishauser/unifi-network-maps-ha/issues/29)): Verify SVG `#poe-bolt` symbol renders correctly
+- [ ] **Client edge opacity**: Verify 50% opacity looks good; add CSS override if needed
+- [ ] **VLAN endpoint markers**: Add CSS styling for new `rect[data-vlan]` elements
+
+### 5.2 Built-in Theme Selection ([#28](https://github.com/merlijntishauser/unifi-network-maps-ha/issues/28))
+- [ ] Add `theme` config option to card editor with dropdown
+- [ ] Pass `--theme` flag to `unifi-network-maps` CLI
+- [ ] Auto-detect HA dark mode and select appropriate theme variant
+- [ ] Supported themes: `unifi`, `unifi-dark`, `minimal`, `minimal-dark`, `classic`, `classic-dark`
+
+### 5.3 WAN Upstream Visualization ([#27](https://github.com/merlijntishauser/unifi-network-maps-ha/issues/27))
+- [ ] Add config options: `wan_label`, `wan_speed`, `wan2_label`, `wan2_speed`
+- [ ] Pass WAN flags to CLI when configured
+- [ ] Style new SVG classes: `.wan-upstream`, `.wan-label`, `.wan-speed`, `.wan-ip`
+
+---
+
+## Phase 6: Network Segment Visualization (v0.4)
 
 Focus: Transform VLAN/network visualization from simple node coloring to rich network segment awareness.
 
-### 5.1 VLAN Legend & Controls
+### 6.1 VLAN Legend & Controls
 Add a visible VLAN legend to the map interface:
 - Color-coded VLAN list with names and client counts
 - Click VLAN to filter/highlight only devices on that network
 - Toggle VLAN visibility (show/hide entire network segments)
 - Quick stats: "IoT (12 clients) • Guest (3 clients) • Trusted (8 clients)"
 
-### 5.2 Network Segment Grouping (Requires Upstream)
+### 6.2 Network Segment Grouping (Requires Upstream)
 Visual clustering of devices by network segment:
 - Optional visual boundaries around network segments
 - Subnet-based grouping (192.168.1.x grouped together)
 - Drag-to-collapse network segments for cleaner overview
-- **Upstream Issue**: Layout engine support for logical grouping
+- **Upstream Issue**: [#19](https://github.com/merlijntishauser/unifi-network-maps/issues/19) Layout engine support for logical grouping
 
-### 5.3 Edge VLAN Coloring
+### 6.3 Edge VLAN Coloring
 Extend VLAN colors from nodes to connections:
 - Color edges based on the VLAN of the traffic/connection
 - Cross-VLAN connections shown with gradient or distinct style
 - Highlight inter-VLAN routing paths
+- **Upstream Issue**: [#20](https://github.com/merlijntishauser/unifi-network-maps/issues/20) Edge metadata with VLAN info
 
-### 5.4 VLAN Details Panel
+### 6.4 VLAN Details Panel
 Dedicated panel view for network segments:
 - List all devices on selected VLAN
 - Show VLAN configuration (ID, name, purpose)
 - Gateway/DHCP info if available
 - Quick actions: "Show all on map", "Create alert for this VLAN"
 
-### 5.5 Network Topology Modes
+### 6.5 Network Topology Modes
 Different visualization modes for different needs:
 - **Physical View**: Current topology (actual cable/wireless connections)
 - **Logical View**: Group by VLAN/network segment regardless of physical location
@@ -75,29 +105,48 @@ Different visualization modes for different needs:
 
 ---
 
-## Phase 6: Reliability & Error Handling (v0.3.x)
+## Phase 7: Connection Quality & Change Detection (v0.4.x)
+
+Focus: Leverage remaining `unifi-network-maps` v1.5.0 features for network monitoring.
+
+### 7.1 Connection Quality ([#33](https://github.com/merlijntishauser/unifi-network-maps-ha/issues/33))
+- [ ] Expose wireless signal/satisfaction as sensor attributes
+- [ ] Color-code wireless edges by quality (excellent/good/fair/poor)
+- [ ] Show connection quality in device detail panel
+- [ ] Blueprint: Alert on poor wireless quality (< -75 dBm or satisfaction < 50)
+
+### 7.2 Topology Diff API ([#32](https://github.com/merlijntishauser/unifi-network-maps-ha/issues/32))
+- [ ] Store topology snapshots in HA storage
+- [ ] Fire `unifi_network_topology_change` events on changes
+- [ ] Binary sensor: "Topology changed since last poll"
+- [ ] Sensor: "Changes in last 24h" (count)
+- [ ] Blueprint: Notify on new device connected
+
+---
+
+## Phase 8: Reliability & Error Handling (v0.5)
 
 Focus: Production-grade reliability for 24/7 operation.
 
-### 6.1 Connection Resilience
+### 8.1 Connection Resilience
 - Automatic reconnection with exponential backoff on WebSocket failures
 - Graceful degradation to polling when WebSocket unavailable
 - Connection status indicator in card UI
 - Health check endpoint for monitoring
 
-### 6.2 Error Recovery
+### 8.2 Error Recovery
 - Clear error states with actionable messages
 - "Retry" buttons that actually work across all failure modes
 - Partial data display (show what we have, indicate what's missing)
 - Stale data indicator (show last-updated timestamp when data is old)
 
-### 6.3 Data Validation
+### 8.3 Data Validation
 - Schema validation for all API responses
 - Graceful handling of malformed UniFi data
 - Warning indicators for inconsistent topology data
 - Debug mode toggle for troubleshooting
 
-### 6.4 Performance at Scale
+### 8.4 Performance at Scale
 - Lazy loading for large networks (100+ devices)
 - Virtual scrolling in device lists
 - Throttled updates during rapid changes
@@ -105,35 +154,35 @@ Focus: Production-grade reliability for 24/7 operation.
 
 ---
 
-## Phase 7: UX Refinements (v0.4)
+## Phase 9: UX Refinements (v0.5.x)
 
 Focus: Polish the user experience for daily use.
 
-### 7.1 Search & Quick Navigation
+### 9.1 Search & Quick Navigation
 - Global search: Find any device by name, MAC, IP, or VLAN
 - Keyboard shortcuts (/, Esc, arrow keys for navigation)
 - Recent devices list
 - Favorites/pinned devices
 
-### 7.2 Improved Tooltips & Hover States
+### 9.2 Improved Tooltips & Hover States
 - Richer tooltips showing key device info on hover
 - Preview panel on hover (don't require click)
 - Highlight connected devices on hover
 - Show path to selected device from gateway
 
-### 7.3 Card Configuration UX
+### 9.3 Card Configuration UX
 - Visual theme preview in editor
 - "Test Connection" button in setup
 - Import/export card configuration
 - Presets for common layouts
 
-### 7.4 Accessibility
+### 9.4 Accessibility
 - Keyboard navigation throughout
 - Screen reader support for topology
 - High contrast mode
 - Reduced motion option
 
-### 7.5 Mobile Experience
+### 9.5 Mobile Experience
 - Responsive detail panel (bottom sheet on mobile)
 - Better touch targets
 - Swipe gestures for navigation
@@ -141,33 +190,26 @@ Focus: Polish the user experience for daily use.
 
 ---
 
-## Phase 8: Advanced Features (v0.5+)
+## Phase 10: Advanced Features (v0.6+)
 
-### 8.1 Path Visualization
+### 10.1 Path Visualization
 - Highlight the network path between two selected devices
 - Show which switches/APs traffic traverses
 - Visualize redundant paths (if available)
 - Useful for understanding latency/routing issues
 
-### 8.2 Topology Diff & Alerts
-- Compare current topology to a "known good" baseline
-- Highlight new devices, missing devices, changed connections
-- Integration with HA notifications for topology changes
-- "Topology changed" event for automations
-
-### 8.3 Network Zones
+### 10.2 Network Zones
 - Define logical zones (e.g., "Entertainment", "Security", "Work")
 - Group devices regardless of physical location or VLAN
 - Zone-based filtering and alerting
 - Custom icons per zone
 
-### 8.4 Device Insights
+### 10.3 Device Insights
 - Per-device connection history (when did it last connect?)
 - Uptime tracking for network devices
-- Connection quality indicators for wireless clients
 - Port utilization trends (which ports are most used?)
 
-### 8.5 Multi-Site Support
+### 10.4 Multi-Site Support
 - View multiple UniFi sites in one card
 - Cross-site topology visualization
 - Site selector in card UI
@@ -175,11 +217,11 @@ Focus: Polish the user experience for daily use.
 
 ---
 
-## Phase 9: Home Assistant Core Inclusion (v1.0)
+## Phase 11: Home Assistant Core Inclusion (v1.0)
 
 Long-term goal: Submit this integration for inclusion in the official Home Assistant release.
 
-### 9.1 Integration Quality Scale Requirements
+### 11.1 Integration Quality Scale Requirements
 
 Must meet **Silver tier** minimum on the [Integration Quality Scale](https://developers.home-assistant.io/docs/integration_quality_scale_index/):
 
@@ -191,7 +233,7 @@ Must meet **Silver tier** minimum on the [Integration Quality Scale](https://dev
 - [ ] **Entity device info** - Ensure all entities link to proper devices
 - [ ] **Strict typing** - Full mypy strict compliance (currently using pyright)
 
-### 9.2 Code Architecture Changes
+### 11.2 Code Architecture Changes
 
 **API Library Separation:**
 - [ ] Ensure `unifi-network-maps` is stable and well-documented on PyPI
@@ -210,7 +252,7 @@ Must meet **Silver tier** minimum on the [Integration Quality Scale](https://dev
 - [ ] Ensure all imports follow HA conventions
 - [ ] Add type hints to 100% of code
 
-### 9.3 Testing Requirements
+### 11.3 Testing Requirements
 
 - [ ] **90%+ test coverage** for all Python code
 - [ ] Use HA's pytest fixtures and test patterns
@@ -218,14 +260,14 @@ Must meet **Silver tier** minimum on the [Integration Quality Scale](https://dev
 - [ ] Add tests for error conditions and edge cases
 - [ ] Integration tests using `pytest-homeassistant-custom-component`
 
-### 9.4 Documentation
+### 11.4 Documentation
 
 - [ ] Full documentation PR to [home-assistant.io](https://github.com/home-assistant/home-assistant.io)
 - [ ] Include: setup guide, configuration options, entity descriptions
 - [ ] Screenshots of the integration in action
 - [ ] Troubleshooting section
 
-### 9.5 Differentiation from Existing UniFi Integration
+### 11.5 Differentiation from Existing UniFi Integration
 
 HA already has a built-in `unifi` integration. Must clearly articulate why this is separate:
 
@@ -239,7 +281,7 @@ HA already has a built-in `unifi` integration. Must clearly articulate why this 
 - API overlap (both talk to UniFi controller)
 - Maintenance burden of two UniFi integrations
 
-### 9.6 Submission Process
+### 11.6 Submission Process
 
 1. [ ] Open Architecture Discussion on HA Community/Discord
 2. [ ] Get preliminary feedback from HA core team
@@ -249,7 +291,7 @@ HA already has a built-in `unifi` integration. Must clearly articulate why this 
 6. [ ] Address code review feedback
 7. [ ] Maintain integration within HA release cycle
 
-### 9.7 Alternative: Enhanced HACS Distribution
+### 11.7 Alternative: Enhanced HACS Distribution
 
 If core inclusion is rejected or too complex, enhance HACS presence:
 
@@ -264,31 +306,16 @@ If core inclusion is rejected or too complex, enhance HACS presence:
 
 Features requiring changes to `unifi-network-maps` library.
 
-**GitHub Issues Created:**
+**GitHub Issues:**
 
 | Issue | Feature | Status |
 |-------|---------|--------|
 | [#19](https://github.com/merlijntishauser/unifi-network-maps/issues/19) | Network segment layout support | Open |
 | [#20](https://github.com/merlijntishauser/unifi-network-maps/issues/20) | Edge metadata with VLAN info | Open |
-| [#21](https://github.com/merlijntishauser/unifi-network-maps/issues/21) | Topology diff API | Open |
-| [#22](https://github.com/merlijntishauser/unifi-network-maps/issues/22) | SVG theme system (UniFi colors) | Open |
-| [#23](https://github.com/merlijntishauser/unifi-network-maps/issues/23) | Enhanced isometric icons | Open |
-| [#24](https://github.com/merlijntishauser/unifi-network-maps/issues/24) | Connection quality data | Open |
-
-### Visual Improvements (via Upstream)
-
-#### SVG Theme System (#22)
-- Built-in UniFi-aligned color theme
-- Dark and light variants
-- CSS variable support for easy customization
-- Consistent with UniFi's modern dashboard aesthetic
-
-#### Enhanced Icons (#23)
-- Refreshed isometric icon designs
-- More device types: cameras, doorbells, NVR, smart plugs, speakers, TVs, NAS, printers
-- Device fingerprint detection for automatic icon selection
-- Status variants (online/offline)
-- Size variants for dense layouts
+| [#21](https://github.com/merlijntishauser/unifi-network-maps/issues/21) | Topology diff API | **Done in v1.5.0** |
+| [#22](https://github.com/merlijntishauser/unifi-network-maps/issues/22) | SVG theme system (UniFi colors) | **Done in v1.5.0** |
+| [#23](https://github.com/merlijntishauser/unifi-network-maps/issues/23) | Enhanced isometric icons | **Done in v1.5.0** |
+| [#24](https://github.com/merlijntishauser/unifi-network-maps/issues/24) | Connection quality data | **Done in v1.5.0** |
 
 ---
 
@@ -335,16 +362,15 @@ Examples:
 ## Contributing
 
 Priority areas for contribution:
-1. **VLAN visualization** - Legend, filtering, segment views
-2. **Search & navigation** - Global search, keyboard shortcuts
-3. **Accessibility** - Keyboard nav, screen readers
-4. **Documentation** - Usage examples, troubleshooting guides
-5. **Upstream improvements** - Enhance `unifi-network-maps` library
-6. **Core inclusion prep** - Diagnostics, strict typing, test coverage
+1. **Library upgrade** - Help test v1.5.0 compatibility
+2. **Theme support** - Implement built-in theme selection
+3. **VLAN visualization** - Legend, filtering, segment views
+4. **Accessibility** - Keyboard nav, screen readers
+5. **Documentation** - Usage examples, troubleshooting guides
 
 ---
 
-*Last updated: 2026-02-01*
+*Last updated: 2026-02-05*
 
 ## Version History
 
@@ -352,7 +378,8 @@ Priority areas for contribution:
 |---------|-------|--------|
 | 0.1.x | Core functionality, stability | Complete |
 | 0.2.x | Network health entities, blueprints | Current |
-| 0.3.x | Network segment visualization | Next |
-| 0.4.x | UX refinements | Planned |
-| 0.5.x | Advanced features | Future |
+| 0.3.x | Library upgrade, theme support | Next |
+| 0.4.x | Network segment visualization | Planned |
+| 0.5.x | Reliability, UX refinements | Planned |
+| 0.6.x | Advanced features | Future |
 | 1.0.x | Home Assistant core inclusion | Long-term |
