@@ -186,7 +186,9 @@ def test_svg_view_renders_theme_when_requested(monkeypatch: pytest.MonkeyPatch) 
     hass.data["unifi_network_map"] = {"entry-1": coordinator}
     coordinator.data = data
 
-    def _render_svg_with_theme(_data, _coordinator, _theme_name: str) -> str:
+    def _render_svg_with_theme(
+        _data: object, _coordinator: object, _svg_theme: str | None, _icon_set: str | None
+    ) -> str:
         return "themed"
 
     monkeypatch.setattr(http_module, "_render_svg_with_theme", _render_svg_with_theme)
@@ -195,7 +197,7 @@ def test_svg_view_renders_theme_when_requested(monkeypatch: pytest.MonkeyPatch) 
         return SimpleNamespace(**kwargs)
 
     http_module.web.Response = _response
-    request = SimpleNamespace(app={"hass": hass}, query={"theme": "dark"})
+    request = SimpleNamespace(app={"hass": hass}, query={"svg_theme": "unifi-dark"})
 
     view = http_module.UniFiNetworkMapSvgView()
     response = _run(view.get(request, "entry-1"))
@@ -308,20 +310,16 @@ def test_render_svg_with_theme_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     coordinator = cast(http_module.UniFiNetworkMapCoordinator, FakeCoordinator(settings=settings))
 
-    def _resolve_svg_theme(_name: str) -> object:
-        return object()
-
     def _render_svg(*_args: object, **_kwargs: object) -> str:
         return "rendered"
 
-    monkeypatch.setattr(http_module, "_resolve_svg_theme", _resolve_svg_theme)
     monkeypatch.setattr(http_module, "render_svg", _render_svg)
 
     render_svg_with_theme = cast(
-        Callable[[UniFiNetworkMapData, object, str], str],
+        Callable[[UniFiNetworkMapData, object, str | None, str | None], str],
         getattr(http_module, "_render_svg_with_theme"),
     )
-    result = render_svg_with_theme(data, coordinator, "dark")
+    result = render_svg_with_theme(data, coordinator, "unifi", None)
 
     assert result == "rendered"
 
@@ -332,42 +330,15 @@ def test_render_svg_with_theme_returns_original_on_missing_edges() -> None:
     coordinator = cast(http_module.UniFiNetworkMapCoordinator, FakeCoordinator(settings=settings))
 
     render_svg_with_theme = cast(
-        Callable[[UniFiNetworkMapData, object, str], str],
+        Callable[[UniFiNetworkMapData, object, str | None, str | None], str],
         getattr(http_module, "_render_svg_with_theme"),
     )
-    result = render_svg_with_theme(data, coordinator, "dark")
+    result = render_svg_with_theme(data, coordinator, "unifi", None)
 
     assert result == "<svg />"
 
 
-def test_render_svg_with_theme_returns_original_on_missing_theme(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    data = UniFiNetworkMapData(
-        svg="<svg />",
-        payload={"edges": [{"left": "a", "right": "b"}], "node_types": {"a": "gateway"}},
-    )
-    coordinator = cast(
-        http_module.UniFiNetworkMapCoordinator, FakeCoordinator(settings=build_settings())
-    )
-
-    def _resolve_svg_theme(_name: str) -> object | None:
-        return None
-
-    monkeypatch.setattr(http_module, "_resolve_svg_theme", _resolve_svg_theme)
-
-    render_svg_with_theme = cast(
-        Callable[[UniFiNetworkMapData, object, str], str],
-        getattr(http_module, "_render_svg_with_theme"),
-    )
-    result = render_svg_with_theme(data, coordinator, "dark")
-
-    assert result == "<svg />"
-
-
-def test_render_svg_with_theme_returns_original_on_invalid_edges(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_render_svg_with_theme_returns_original_on_invalid_edges() -> None:
     data = UniFiNetworkMapData(
         svg="<svg />",
         payload={"edges": [{"left": "a"}], "node_types": {"a": "gateway"}},
@@ -376,16 +347,11 @@ def test_render_svg_with_theme_returns_original_on_invalid_edges(
         http_module.UniFiNetworkMapCoordinator, FakeCoordinator(settings=build_settings())
     )
 
-    def _resolve_svg_theme(_name: str) -> object:
-        return object()
-
-    monkeypatch.setattr(http_module, "_resolve_svg_theme", _resolve_svg_theme)
-
     render_svg_with_theme = cast(
-        Callable[[UniFiNetworkMapData, object, str], str],
+        Callable[[UniFiNetworkMapData, object, str | None, str | None], str],
         getattr(http_module, "_render_svg_with_theme"),
     )
-    result = render_svg_with_theme(data, coordinator, "dark")
+    result = render_svg_with_theme(data, coordinator, "unifi", None)
 
     assert result == "<svg />"
 
@@ -401,48 +367,49 @@ def test_render_svg_with_theme_isometric_branch(monkeypatch: pytest.MonkeyPatch)
     )
     coordinator = cast(http_module.UniFiNetworkMapCoordinator, FakeCoordinator(settings=settings))
 
-    def _resolve_svg_theme(_name: str) -> object:
-        return object()
-
     def _render_svg_isometric(*_args: object, **_kwargs: object) -> str:
         return "iso"
 
-    monkeypatch.setattr(http_module, "_resolve_svg_theme", _resolve_svg_theme)
     monkeypatch.setattr(http_module, "render_svg_isometric", _render_svg_isometric)
 
     render_svg_with_theme = cast(
-        Callable[[UniFiNetworkMapData, object, str], str],
+        Callable[[UniFiNetworkMapData, object, str | None, str | None], str],
         getattr(http_module, "_render_svg_with_theme"),
     )
-    result = render_svg_with_theme(data, coordinator, "dark")
+    result = render_svg_with_theme(data, coordinator, "unifi", None)
 
     assert result == "iso"
 
 
-def test_resolve_svg_theme_handles_unknown() -> None:
-    """Unknown theme names return None."""
-    resolve_svg_theme = cast(
-        Callable[[str], object | None], getattr(http_module, "_resolve_svg_theme")
+def test_load_svg_theme_applies_icon_set_override() -> None:
+    """_load_svg_theme applies icon_set override when different from theme default."""
+    from custom_components.unifi_network_map.renderer import RenderSettings
+
+    settings = RenderSettings(
+        include_ports=True,
+        include_clients=False,
+        client_scope="active",
+        only_unifi=True,
+        svg_isometric=False,
+        svg_width=None,
+        svg_height=None,
+        use_cache=True,
+        svg_theme="unifi",
+        icon_set="modern",
+    )
+    load_svg_theme = cast(
+        Callable[[str | None, str | None, RenderSettings], object],
+        getattr(http_module, "_load_svg_theme"),
     )
 
-    assert resolve_svg_theme("unknown") is None
-    assert resolve_svg_theme("nope") is None
+    # Test with icon_set override
+    theme = load_svg_theme("unifi", "isometric", settings)
+    assert hasattr(theme, "icon_set")
+    assert theme.icon_set == "isometric"
 
-
-def test_resolve_svg_theme_loads_dark_and_light() -> None:
-    """Dark and light legacy theme names resolve to built-in themes."""
-    resolve_svg_theme = cast(
-        Callable[[str], object | None], getattr(http_module, "_resolve_svg_theme")
-    )
-
-    dark_theme = resolve_svg_theme("dark")
-    light_theme = resolve_svg_theme("light")
-
-    assert dark_theme is not None
-    assert light_theme is not None
-    # Verify they are SvgTheme objects by checking for expected attributes
-    assert hasattr(dark_theme, "background")
-    assert hasattr(light_theme, "background")
+    # Test without override (uses theme default)
+    theme_default = load_svg_theme("unifi", None, settings)
+    assert hasattr(theme_default, "icon_set")
 
 
 def test_build_mac_entity_index_prefers_registry(monkeypatch: pytest.MonkeyPatch) -> None:

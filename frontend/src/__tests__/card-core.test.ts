@@ -301,7 +301,9 @@ describe("unifi-network-map card core", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     element.setConfig({ entry_id: "entry-2" });
     const config = (element as unknown as { _config?: { svg_url?: string } })._config;
-    expect(config?.svg_url).toBe("/api/unifi_network_map/entry-2/svg?theme=unifi");
+    expect(config?.svg_url).toBe(
+      "/api/unifi_network_map/entry-2/svg?theme=unifi&svg_theme=unifi&icon_set=modern",
+    );
   });
 
   it("normalizes entry_id config into URLs", () => {
@@ -309,7 +311,9 @@ describe("unifi-network-map card core", () => {
     element.setConfig({ entry_id: "entry-1", theme: "light" });
     const config = (element as unknown as { _config?: { svg_url?: string; data_url?: string } })
       ._config;
-    expect(config?.svg_url).toBe("/api/unifi_network_map/entry-1/svg?theme=light");
+    expect(config?.svg_url).toBe(
+      "/api/unifi_network_map/entry-1/svg?theme=light&svg_theme=unifi&icon_set=modern",
+    );
     expect(config?.data_url).toBe("/api/unifi_network_map/entry-1/payload");
   });
 

@@ -3176,11 +3176,15 @@ async function subscribeMapUpdates(hass, entryId, onUpdate) {
 function normalizeConfig(config) {
   if (config.entry_id) {
     const theme = config.theme ?? "unifi";
-    const themeSuffix = `?theme=${theme}`;
+    const svgTheme = config.svg_theme ?? "unifi";
+    const iconSet = config.icon_set ?? "modern";
+    const queryParams = `?theme=${theme}&svg_theme=${svgTheme}&icon_set=${iconSet}`;
     return {
       entry_id: config.entry_id,
       theme,
-      svg_url: `/api/${DOMAIN}/${config.entry_id}/svg${themeSuffix}`,
+      svg_theme: svgTheme,
+      icon_set: iconSet,
+      svg_url: `/api/${DOMAIN}/${config.entry_id}/svg${queryParams}`,
       data_url: `/api/${DOMAIN}/${config.entry_id}/payload`,
       card_height: config.card_height
     };

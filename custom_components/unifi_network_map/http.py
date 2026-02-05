@@ -56,10 +56,11 @@ class UniFiNetworkMapSvgView(HomeAssistantView):  # type: ignore[reportUntypedBa
         data = _get_data(coordinator)
         if data is None:
             raise web.HTTPNotFound()
-        theme_name = request.query.get("theme")
-        if theme_name and coordinator is not None:
+        svg_theme = request.query.get("svg_theme")
+        icon_set = request.query.get("icon_set")
+        if (svg_theme or icon_set) and coordinator is not None:
             themed_svg = await hass.async_add_executor_job(
-                _render_svg_with_theme, data, coordinator, theme_name
+                _render_svg_with_theme, data, coordinator, svg_theme, icon_set
             )
             return web.Response(text=themed_svg, content_type="image/svg+xml")
         return web.Response(text=data.svg, content_type="image/svg+xml")
@@ -656,16 +657,17 @@ def _extract_mac(value: str) -> str | None:
 
 
 def _render_svg_with_theme(
-    data: UniFiNetworkMapData, coordinator: UniFiNetworkMapCoordinator, theme_name: str
+    data: UniFiNetworkMapData,
+    coordinator: UniFiNetworkMapCoordinator,
+    svg_theme: str | None,
+    icon_set: str | None,
 ) -> str:
     payload = data.payload or {}
     edges_payload = payload.get("edges") or []
     node_types = payload.get("node_types") or {}
     if not _should_render_svg(edges_payload, node_types):
         return data.svg
-    theme = _resolve_svg_theme(theme_name)
-    if theme is None:
-        return data.svg
+    theme = _load_svg_theme(svg_theme, icon_set, coordinator.settings)
     edges = _build_svg_edges(edges_payload)
     if not edges:
         return data.svg
@@ -673,6 +675,21 @@ def _render_svg_with_theme(
     return _render_svg_variant(
         edges, node_types, options, theme, coordinator.settings.svg_isometric
     )
+
+
+def _load_svg_theme(
+    svg_theme: str | None, icon_set: str | None, settings: RenderSettings
+) -> SvgTheme:
+    """Load SVG theme from request params, falling back to coordinator settings."""
+    from dataclasses import replace
+
+    theme_name = svg_theme or settings.svg_theme or "unifi"
+    icon_set_name = icon_set or settings.icon_set or "modern"
+
+    _, theme = resolve_themes(theme_name=theme_name)
+    if theme.icon_set != icon_set_name:
+        theme = replace(theme, icon_set=icon_set_name)
+    return theme
 
 
 def _should_render_svg(
@@ -699,19 +716,6 @@ def _render_svg_variant(
     if is_isometric:
         return render_svg_isometric(edges, node_types=node_types, options=options, theme=theme)
     return render_svg(edges, node_types=node_types, options=options, theme=theme)
-
-
-def _resolve_svg_theme(theme_name: str) -> SvgTheme | None:
-    """Resolve legacy theme names (dark/light) to built-in themes."""
-    theme_key = theme_name.strip().lower()
-    if theme_key == "dark":
-        builtin_name = "classic-dark"
-    elif theme_key == "light":
-        builtin_name = "classic"
-    else:
-        return None
-    _mermaid_theme, svg_theme = resolve_themes(theme_name=builtin_name)
-    return svg_theme
 
 
 def _valid_edge_payload(edge: object) -> bool:
