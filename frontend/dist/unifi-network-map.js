@@ -1551,6 +1551,15 @@ var EMOJI_ICONS = {
   "node-ap": "\u{1F4F6}",
   "node-client": "\u{1F4BB}",
   "node-other": "\u{1F4E6}",
+  "node-camera": "\u{1F4F7}",
+  "node-tv": "\u{1F4FA}",
+  "node-phone": "\u{1F4F1}",
+  "node-printer": "\u{1F5A8}\uFE0F",
+  "node-nas": "\u{1F4BE}",
+  "node-speaker": "\u{1F50A}",
+  "node-game_console": "\u{1F3AE}",
+  "node-iot": "\u{1F50C}",
+  "node-client_cluster": "\u{1F465}",
   "action-details": "\u{1F4CA}",
   "action-copy": "\u{1F4CB}",
   "action-ports": "\u{1F50C}",
@@ -1595,6 +1604,51 @@ var HERO_SVGS = {
   ),
   "node-client": svg2(["M4 6h16v9H4z", "M10 19h4", "M12 15v4"]),
   "node-other": svg2(["M12 3 4 7 12 11 20 7 12 3z", "M4 7v10l8 4 8-4V7", "M12 11v10"]),
+  "node-camera": svg2(
+    ["M3 9a2 2 0 012-2h1l1-2h10l1 2h1a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"],
+    [{ cx: 12, cy: 13, r: 3 }]
+  ),
+  "node-tv": svg2(["M4 7h16v10H4z", "M9 21l3-4 3 4"]),
+  "node-phone": svg2([
+    "M7 2h10a1 1 0 011 1v18a1 1 0 01-1 1H7a1 1 0 01-1-1V3a1 1 0 011-1z",
+    "M11 18h2"
+  ]),
+  "node-printer": svg2([
+    "M6 9V2h12v7",
+    "M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2",
+    "M6 14h12v8H6z"
+  ]),
+  "node-nas": svg2(["M4 5h16v14H4z", "M4 9h16", "M4 13h16", "M7 11h1", "M7 15h1"]),
+  "node-speaker": svg2(
+    ["M6 5h12v14a2 2 0 01-2 2H8a2 2 0 01-2-2V5z", "M6 5a2 2 0 012-2h8a2 2 0 012 2"],
+    [{ cx: 12, cy: 14, r: 3 }]
+  ),
+  "node-game_console": svg2([
+    "M6 11h4m-2-2v4",
+    "M15 13h.01",
+    "M18 11h.01",
+    "M4 8h16a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4a2 2 0 012-2z"
+  ]),
+  "node-iot": svg2(
+    [
+      "M12 2v6",
+      "M12 22v-6",
+      "M4.93 4.93l4.24 4.24",
+      "M14.83 14.83l4.24 4.24",
+      "M2 12h6",
+      "M16 12h6",
+      "M4.93 19.07l4.24-4.24",
+      "M14.83 9.17l4.24-4.24"
+    ],
+    [{ cx: 12, cy: 12, r: 2 }]
+  ),
+  "node-client_cluster": svg2(
+    ["M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2", "M22 21v-2a4 4 0 00-3-3.87"],
+    [
+      { cx: 9, cy: 7, r: 4 },
+      { cx: 19, cy: 7, r: 3 }
+    ]
+  ),
   "action-details": svg2(["M4 4h16v16H4z", "M8 16v-4", "M12 16v-7", "M16 16v-2"]),
   "action-copy": svg2(["M8 4h8v3H8z", "M6 7h12v13H6z"]),
   "action-ports": svg2([
@@ -1653,19 +1707,23 @@ function iconMarkup(name, theme) {
   }
   return `<span class="unifi-icon unifi-icon--hero" aria-hidden="true">${HERO_SVGS[name]}</span>`;
 }
+var NODE_TYPE_ICONS = {
+  gateway: "node-gateway",
+  switch: "node-switch",
+  ap: "node-ap",
+  client: "node-client",
+  camera: "node-camera",
+  tv: "node-tv",
+  phone: "node-phone",
+  printer: "node-printer",
+  nas: "node-nas",
+  speaker: "node-speaker",
+  game_console: "node-game_console",
+  iot: "node-iot",
+  client_cluster: "node-client_cluster"
+};
 function nodeTypeIcon(nodeType, theme) {
-  switch (nodeType) {
-    case "gateway":
-      return iconMarkup("node-gateway", theme);
-    case "switch":
-      return iconMarkup("node-switch", theme);
-    case "ap":
-      return iconMarkup("node-ap", theme);
-    case "client":
-      return iconMarkup("node-client", theme);
-    default:
-      return iconMarkup("node-other", theme);
-  }
+  return iconMarkup(NODE_TYPE_ICONS[nodeType] ?? "node-other", theme);
 }
 function domainIcon(domain, theme) {
   const nameMap = {
@@ -3179,6 +3237,16 @@ var de = {
   "editor.theme.light": "Hell",
   "editor.theme.unifi": "UniFi (Standard)",
   "editor.theme.unifi_dark": "UniFi Dunkel",
+  "editor.svg_theme": "Kartenfarben",
+  "editor.svg_theme.unifi": "UniFi (Standard)",
+  "editor.svg_theme.unifi_dark": "UniFi Dunkel",
+  "editor.svg_theme.minimal": "Minimal",
+  "editor.svg_theme.minimal_dark": "Minimal Dunkel",
+  "editor.svg_theme.classic": "Klassisch",
+  "editor.svg_theme.classic_dark": "Klassisch Dunkel",
+  "editor.icon_set": "Symbol-Stil",
+  "editor.icon_set.modern": "Modern (Standard)",
+  "editor.icon_set.isometric": "Isometrisch",
   "edge_tooltip.band_24": "2.4GHz",
   "edge_tooltip.band_5": "5GHz",
   "edge_tooltip.band_6": "6GHz",
@@ -3296,6 +3364,16 @@ var en = {
   "editor.theme.light": "Light",
   "editor.theme.unifi": "UniFi (default)",
   "editor.theme.unifi_dark": "UniFi Dark",
+  "editor.svg_theme": "Map Colors",
+  "editor.svg_theme.unifi": "UniFi (default)",
+  "editor.svg_theme.unifi_dark": "UniFi Dark",
+  "editor.svg_theme.minimal": "Minimal",
+  "editor.svg_theme.minimal_dark": "Minimal Dark",
+  "editor.svg_theme.classic": "Classic",
+  "editor.svg_theme.classic_dark": "Classic Dark",
+  "editor.icon_set": "Icon Style",
+  "editor.icon_set.modern": "Modern (default)",
+  "editor.icon_set.isometric": "Isometric",
   "edge_tooltip.band_24": "2.4GHz",
   "edge_tooltip.band_5": "5GHz",
   "edge_tooltip.band_6": "6GHz",
@@ -3413,6 +3491,16 @@ var es = {
   "editor.theme.light": "Claro",
   "editor.theme.unifi": "UniFi (predeterminado)",
   "editor.theme.unifi_dark": "UniFi oscuro",
+  "editor.svg_theme": "Colores del mapa",
+  "editor.svg_theme.unifi": "UniFi (predeterminado)",
+  "editor.svg_theme.unifi_dark": "UniFi oscuro",
+  "editor.svg_theme.minimal": "M\xEDnimo",
+  "editor.svg_theme.minimal_dark": "M\xEDnimo oscuro",
+  "editor.svg_theme.classic": "Cl\xE1sico",
+  "editor.svg_theme.classic_dark": "Cl\xE1sico oscuro",
+  "editor.icon_set": "Estilo de iconos",
+  "editor.icon_set.modern": "Moderno (predeterminado)",
+  "editor.icon_set.isometric": "Isom\xE9trico",
   "edge_tooltip.band_24": "2.4GHz",
   "edge_tooltip.band_5": "5GHz",
   "edge_tooltip.band_6": "6GHz",
@@ -3530,6 +3618,16 @@ var fr = {
   "editor.theme.light": "Clair",
   "editor.theme.unifi": "UniFi (par d\xE9faut)",
   "editor.theme.unifi_dark": "UniFi sombre",
+  "editor.svg_theme": "Couleurs de la carte",
+  "editor.svg_theme.unifi": "UniFi (par d\xE9faut)",
+  "editor.svg_theme.unifi_dark": "UniFi sombre",
+  "editor.svg_theme.minimal": "Minimal",
+  "editor.svg_theme.minimal_dark": "Minimal sombre",
+  "editor.svg_theme.classic": "Classique",
+  "editor.svg_theme.classic_dark": "Classique sombre",
+  "editor.icon_set": "Style d'ic\xF4nes",
+  "editor.icon_set.modern": "Moderne (par d\xE9faut)",
+  "editor.icon_set.isometric": "Isom\xE9trique",
   "edge_tooltip.band_24": "2.4GHz",
   "edge_tooltip.band_5": "5GHz",
   "edge_tooltip.band_6": "6GHz",
@@ -3647,6 +3745,16 @@ var nl = {
   "editor.theme.light": "Licht",
   "editor.theme.unifi": "UniFi (standaard)",
   "editor.theme.unifi_dark": "UniFi Donker",
+  "editor.svg_theme": "Kaartkleuren",
+  "editor.svg_theme.unifi": "UniFi (standaard)",
+  "editor.svg_theme.unifi_dark": "UniFi Donker",
+  "editor.svg_theme.minimal": "Minimaal",
+  "editor.svg_theme.minimal_dark": "Minimaal Donker",
+  "editor.svg_theme.classic": "Klassiek",
+  "editor.svg_theme.classic_dark": "Klassiek Donker",
+  "editor.icon_set": "Pictogramstijl",
+  "editor.icon_set.modern": "Modern (standaard)",
+  "editor.icon_set.isometric": "Isometrisch",
   "edge_tooltip.band_24": "2.4GHz",
   "edge_tooltip.band_5": "5GHz",
   "edge_tooltip.band_6": "6GHz",
@@ -3875,6 +3983,18 @@ function handleMapClick(params) {
 }
 
 // src/card/interaction/filter-state.ts
+var CLIENT_SUBTYPES = [
+  "client",
+  "camera",
+  "tv",
+  "phone",
+  "printer",
+  "nas",
+  "speaker",
+  "game_console",
+  "iot",
+  "client_cluster"
+];
 function createFilterState() {
   return {
     gateway: true,
@@ -3900,15 +4020,13 @@ function enableFilter(state, type) {
   };
 }
 function normalizeDeviceType(type) {
-  switch (type) {
-    case "gateway":
-    case "switch":
-    case "ap":
-    case "client":
-      return type;
-    default:
-      return "other";
+  if (type === "gateway" || type === "switch" || type === "ap") {
+    return type;
   }
+  if (CLIENT_SUBTYPES.includes(type)) {
+    return "client";
+  }
+  return "other";
 }
 
 // src/card/ui/filter-bar.ts
@@ -3921,21 +4039,12 @@ function countDeviceTypes(nodeTypes) {
     other: 0
   };
   for (const type of Object.values(nodeTypes)) {
-    switch (type) {
-      case "gateway":
-        counts.gateway++;
-        break;
-      case "switch":
-        counts.switch++;
-        break;
-      case "ap":
-        counts.ap++;
-        break;
-      case "client":
-        counts.client++;
-        break;
-      default:
-        counts.other++;
+    if (type === "gateway" || type === "switch" || type === "ap") {
+      counts[type]++;
+    } else if (CLIENT_SUBTYPES.includes(type)) {
+      counts.client++;
+    } else {
+      counts.other++;
     }
   }
   return counts;
@@ -6949,6 +7058,36 @@ function buildFormSchema(entries2, localize) {
       label: localize("editor.theme")
     },
     {
+      name: "svg_theme",
+      selector: {
+        select: {
+          mode: "dropdown",
+          options: [
+            { label: localize("editor.svg_theme.unifi"), value: "unifi" },
+            { label: localize("editor.svg_theme.unifi_dark"), value: "unifi-dark" },
+            { label: localize("editor.svg_theme.minimal"), value: "minimal" },
+            { label: localize("editor.svg_theme.minimal_dark"), value: "minimal-dark" },
+            { label: localize("editor.svg_theme.classic"), value: "classic" },
+            { label: localize("editor.svg_theme.classic_dark"), value: "classic-dark" }
+          ]
+        }
+      },
+      label: localize("editor.svg_theme")
+    },
+    {
+      name: "icon_set",
+      selector: {
+        select: {
+          mode: "dropdown",
+          options: [
+            { label: localize("editor.icon_set.modern"), value: "modern" },
+            { label: localize("editor.icon_set.isometric"), value: "isometric" }
+          ]
+        }
+      },
+      label: localize("editor.icon_set")
+    },
+    {
       name: "card_height",
       selector: {
         text: {
@@ -6961,9 +7100,7 @@ function buildFormSchema(entries2, localize) {
   ];
 }
 function normalizeTheme(value) {
-  if (value === "light") return "light";
-  if (value === "unifi") return "unifi";
-  if (value === "unifi-dark") return "unifi-dark";
+  if (value === "dark" || value === "light" || value === "unifi-dark") return value;
   return "unifi";
 }
 

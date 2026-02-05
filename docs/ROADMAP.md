@@ -10,7 +10,7 @@
 
 ---
 
-## Current State (v0.2.x)
+## Current State (v0.3.x)
 
 ### Core Features
 - Interactive SVG topology map with pan/zoom
@@ -21,47 +21,22 @@
 - VLAN visualization (node coloring)
 - Port utilization display with PoE power consumption
 - Theme support (dark, light, unifi, unifi-dark)
+- SVG theme selection (6 built-in themes)
+- Icon set selection (modern, isometric)
+- WAN upstream visualization
+- Extended device type icons (camera, TV, phone, printer, NAS, speaker, game console, IoT)
 - Mobile touch gestures
 - Binary sensors for devices, clients, and VLAN client counts
 - Automation blueprints for network monitoring
 
-### Recently Completed (v0.2.0)
-- [x] Device presence binary sensors
-- [x] Client connectivity binary sensors
-- [x] VLAN client count sensors
-- [x] Automation blueprints (offline/online alerts, AP overload, VLAN alerts)
-- [x] Improved port modal with PoE power display
-- [x] Navigation from modals to devices
-- [x] Compact entity display with auto-units
-
----
-
-## Phase 5: Library Upgrade & Theme Support (v0.3)
-
-Focus: Upgrade to `unifi-network-maps` 1.5.0, handle breaking changes, add built-in theme selection.
-
-### 5.1 Library Upgrade & Breaking Changes
-Handle all v1.5.0 breaking changes ([#26](https://github.com/merlijntishauser/unifi-network-maps-ha/issues/26)):
-
-- [ ] Update `unifi-network-maps` to 1.5.0 in manifest.json and requirements.txt
-- [ ] **Extended device types** ([#30](https://github.com/merlijntishauser/unifi-network-maps-ha/issues/30)): Update frontend for new node types
-  - Add icons for: `camera`, `tv`, `phone`, `printer`, `nas`, `speaker`, `game_console`, `iot`, `client_cluster`
-  - Update device type filter bar to handle new types (group or expand)
-  - Ensure CSS styling works for all new `.node-{type}` classes
-- [ ] **PoE indicator change** ([#29](https://github.com/merlijntishauser/unifi-network-maps-ha/issues/29)): Verify SVG `#poe-bolt` symbol renders correctly
-- [ ] **Client edge opacity**: Verify 50% opacity looks good; add CSS override if needed
-- [ ] **VLAN endpoint markers**: Add CSS styling for new `rect[data-vlan]` elements
-
-### 5.2 Built-in Theme Selection ([#28](https://github.com/merlijntishauser/unifi-network-maps-ha/issues/28))
-- [ ] Add `theme` config option to card editor with dropdown
-- [ ] Pass `--theme` flag to `unifi-network-maps` CLI
-- [ ] Auto-detect HA dark mode and select appropriate theme variant
-- [ ] Supported themes: `unifi`, `unifi-dark`, `minimal`, `minimal-dark`, `classic`, `classic-dark`
-
-### 5.3 WAN Upstream Visualization ([#27](https://github.com/merlijntishauser/unifi-network-maps-ha/issues/27))
-- [ ] Add config options: `wan_label`, `wan_speed`, `wan2_label`, `wan2_speed`
-- [ ] Pass WAN flags to CLI when configured
-- [ ] Style new SVG classes: `.wan-upstream`, `.wan-label`, `.wan-speed`, `.wan-ip`
+### Recently Completed (v0.3.0)
+- [x] Upgraded to `unifi-network-maps` 1.5.0
+- [x] Extended device type icons (9 new types)
+- [x] SVG theme selection dropdown (unifi, unifi-dark, minimal, minimal-dark, classic, classic-dark)
+- [x] Icon set selection dropdown (modern, isometric)
+- [x] WAN upstream visualization with globe icon and connection info
+- [x] Client subtypes grouped under "Clients" filter
+- [x] Translations for all new options (en, de, es, fr, nl)
 
 ---
 
@@ -377,9 +352,9 @@ Priority areas for contribution:
 | Version | Focus | Status |
 |---------|-------|--------|
 | 0.1.x | Core functionality, stability | Complete |
-| 0.2.x | Network health entities, blueprints | Current |
-| 0.3.x | Library upgrade, theme support | Next |
-| 0.4.x | Network segment visualization | Planned |
+| 0.2.x | Network health entities, blueprints | Complete |
+| 0.3.x | Library upgrade, theme support, WAN visualization | Current |
+| 0.4.x | Network segment visualization | Next |
 | 0.5.x | Reliability, UX refinements | Planned |
 | 0.6.x | Advanced features | Future |
 | 1.0.x | Home Assistant core inclusion | Long-term |
