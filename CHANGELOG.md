@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-02-05
+Release 0.3.0 upgrades to unifi-network-maps 1.5.0, bringing extended device type icons, built-in theme selection, and WAN upstream visualization with a globe icon showing connection details.
+
+### Added
+- Extended device type icons: camera, TV, phone, printer, NAS, speaker, game console, IoT, client cluster
+- SVG theme selection dropdown with 6 built-in themes: unifi, unifi-dark, minimal, minimal-dark, classic, classic-dark
+- Icon set selection dropdown: modern (default), isometric
+- WAN upstream visualization showing globe icon with link speeds, ISP info, and IP addresses
+- Translations for new options in all 5 languages (en, de, es, fr, nl)
+
+### Changed
+- Upgraded unifi-network-maps from 1.4.15 to 1.5.0
+- Client device subtypes now grouped under "Clients" filter button
+- Default icon set changed to "modern"
+
 ## [0.2.0] - 2026-02-01
 Release 0.2.0 expands the integration with new Home Assistant entities and automations: per-device binary sensors (gateway/switch/AP), client connectivity and VLAN client-count sensors, plus ready-to-use blueprints for common alerts (offline/online, AP overload, VLAN threshold). It also improves the underlying unifi-network-maps dependency and UI, with better related-entity discovery, more reliable VLAN reporting, and multiple rendering/visual fixes.
 
@@ -168,7 +183,8 @@ The upcoming 0.2 release will have some major new features.
 ## [0.1.0] - 2026-01-17
 - Initial public release.
 
-[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.3.0
 [0.2.0]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.2.0
 [0.1.11]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.1.11
 [0.1.10]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.1.10

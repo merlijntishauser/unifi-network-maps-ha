@@ -2,16 +2,18 @@
 
 > Design document for upgrading to `unifi-network-maps` v1.5.0 and implementing theme/icon selection.
 
+## Status: ✅ COMPLETED (2026-02-05)
+
 ## Overview
 
 **Goal:** Upgrade to library v1.5.0, handle breaking changes, add theme and icon customization.
 
 **Scope:**
-- 5.1 Library upgrade + breaking changes (extended device types, PoE indicator, etc.)
-- 5.2 Theme selection (card theme, SVG theme, icon set)
-- 5.3 WAN upstream visualization
+- 5.1 Library upgrade + breaking changes (extended device types, PoE indicator, etc.) ✅
+- 5.2 Theme selection (card theme, SVG theme, icon set) ✅
+- 5.3 WAN upstream visualization ✅
 
-**Estimated changes:** ~300-400 lines across 9 files.
+**Actual changes:** ~400 lines across 12 files.
 
 ---
 
@@ -374,4 +376,41 @@ Add optional WAN fields to options flow (power-user feature, not required).
 
 ---
 
+## Implementation Summary
+
+### Completed Tasks
+
+1. **Library Upgrade** - Updated `unifi-network-maps` from 1.4.15 to 1.5.0, fixed all import paths for reorganized module structure
+
+2. **Extended Device Type Icons** - Added 9 new icons (camera, tv, phone, printer, nas, speaker, game_console, iot, client_cluster) with both emoji and Heroicons SVG variants
+
+3. **Filter Bar Updates** - Client subtypes now grouped under "Clients" filter via `CLIENT_SUBTYPES` constant
+
+4. **Theme & Icon Selection** - Added three dropdowns to card editor:
+   - Card theme: dark, light, unifi, unifi-dark
+   - SVG theme: unifi, unifi-dark, minimal, minimal-dark, classic, classic-dark
+   - Icon set: modern (default), isometric
+
+5. **Backend Wiring** - Extended `RenderSettings` dataclass with `svg_theme`, `icon_set`, and `show_wan` fields. Coordinator passes config options to renderer.
+
+6. **WAN Visualization** - Extracts WAN info from gateway device via `extract_wan_info()`, passes to both `render_svg()` and `render_svg_isometric()`. Displays globe icon with WAN1/WAN2 link speeds, ISP info, and IP addresses.
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `manifest.json` | Version bump to 1.5.0 |
+| `const.py` | Added CONF_SVG_THEME, CONF_ICON_SET, CONF_SHOW_WAN constants |
+| `coordinator.py` | Pass theme/icon/WAN options to RenderSettings |
+| `renderer.py` | Theme resolution, WAN extraction, updated render calls |
+| `http.py` | Fixed import paths for library 1.5.0 |
+| `types.ts` | Added svg_theme, icon_set to CardConfig |
+| `editor-helpers.ts` | Added dropdowns, normalization functions |
+| `icons.ts` | Added 9 new icon mappings |
+| `filter-state.ts` | Added CLIENT_SUBTYPES constant |
+| `locales/*.ts` | Translations for all 5 languages |
+
+---
+
 *Created: 2026-02-05*
+*Completed: 2026-02-05*
