@@ -5,18 +5,12 @@ from typing import TYPE_CHECKING, Any, Mapping, Protocol, TypedDict, cast
 
 from unifi_network_maps.adapters.config import Config
 from unifi_network_maps.adapters.unifi import fetch_clients, fetch_devices
-from unifi_network_maps.model.topology import (
-    Device,
-    Edge,
-    TopologyResult,
-    build_device_index,
-    build_client_edges,
-    build_node_type_map,
-    build_topology,
-    group_devices_by_type,
-    normalize_devices,
-)
-from unifi_network_maps.render.svg import SvgOptions, render_svg, render_svg_isometric
+from unifi_network_maps.cli.runtime import normalize_devices
+from unifi_network_maps.model.clients import build_client_edges, build_node_type_map
+from unifi_network_maps.model.edges import build_device_index, build_topology, group_devices_by_type
+from unifi_network_maps.model.topology import Device, Edge, TopologyResult
+from unifi_network_maps.render.svg import SvgOptions, render_svg
+from unifi_network_maps.render.svg_isometric import render_svg_isometric
 
 from .const import LOGGER, PAYLOAD_SCHEMA_VERSION
 from .data import UniFiNetworkMapData

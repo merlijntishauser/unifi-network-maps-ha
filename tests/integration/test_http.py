@@ -469,7 +469,9 @@ def test_resolve_svg_theme_loads_theme(monkeypatch: pytest.MonkeyPatch, tmp_path
     def _as_file(_path: object) -> _Context:
         return _Context(mock_theme)
 
-    def _resolve_themes(_path: object) -> tuple[None, object]:
+    def _resolve_themes(
+        theme_name: object = None, theme_file: object = None
+    ) -> tuple[None, object]:
         return (None, object())
 
     def _shutil_copy(_src: object, _dst: object) -> None:

@@ -14,7 +14,8 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
 from unifi_network_maps.model.topology import Edge
-from unifi_network_maps.render.svg import SvgOptions, render_svg, render_svg_isometric
+from unifi_network_maps.render.svg import SvgOptions, render_svg
+from unifi_network_maps.render.svg_isometric import render_svg_isometric
 from unifi_network_maps.render.svg_theme import SvgTheme
 from unifi_network_maps.render.theme import resolve_themes
 
@@ -713,7 +714,7 @@ def _resolve_svg_theme(theme_name: str) -> SvgTheme | None:
         tmp_path = Path(tempfile.gettempdir()) / f"unifi_theme_{path.name}"
         shutil.copy(path, tmp_path)
         try:
-            _mermaid_theme, svg_theme = resolve_themes(tmp_path)
+            _mermaid_theme, svg_theme = resolve_themes(theme_file=tmp_path)
             return svg_theme
         finally:
             tmp_path.unlink(missing_ok=True)
