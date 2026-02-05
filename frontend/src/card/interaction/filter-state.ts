@@ -1,5 +1,22 @@
 import type { DeviceType, DeviceTypeFilters } from "../core/types";
 
+/**
+ * Client subtypes from unifi-network-maps 1.5.0.
+ * These are all filtered together under the "client" filter button.
+ */
+export const CLIENT_SUBTYPES = [
+  "client",
+  "camera",
+  "tv",
+  "phone",
+  "printer",
+  "nas",
+  "speaker",
+  "game_console",
+  "iot",
+  "client_cluster",
+] as const;
+
 export function createFilterState(): DeviceTypeFilters {
   return {
     gateway: true,
@@ -28,13 +45,11 @@ export function enableFilter(state: DeviceTypeFilters, type: DeviceType): Device
 }
 
 export function normalizeDeviceType(type: string): DeviceType {
-  switch (type) {
-    case "gateway":
-    case "switch":
-    case "ap":
-    case "client":
-      return type;
-    default:
-      return "other";
+  if (type === "gateway" || type === "switch" || type === "ap") {
+    return type;
   }
+  if ((CLIENT_SUBTYPES as readonly string[]).includes(type)) {
+    return "client";
+  }
+  return "other";
 }

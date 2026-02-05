@@ -1,4 +1,5 @@
 import type { DeviceType, DeviceTypeFilters } from "../core/types";
+import { CLIENT_SUBTYPES } from "../interaction/filter-state";
 
 export type FilterBarOptions = {
   filters: DeviceTypeFilters;
@@ -64,21 +65,12 @@ export function countDeviceTypes(nodeTypes: Record<string, string>): Record<Devi
   };
 
   for (const type of Object.values(nodeTypes)) {
-    switch (type) {
-      case "gateway":
-        counts.gateway++;
-        break;
-      case "switch":
-        counts.switch++;
-        break;
-      case "ap":
-        counts.ap++;
-        break;
-      case "client":
-        counts.client++;
-        break;
-      default:
-        counts.other++;
+    if (type === "gateway" || type === "switch" || type === "ap") {
+      counts[type]++;
+    } else if ((CLIENT_SUBTYPES as readonly string[]).includes(type)) {
+      counts.client++;
+    } else {
+      counts.other++;
     }
   }
 
