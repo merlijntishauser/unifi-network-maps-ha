@@ -7103,6 +7103,13 @@ function normalizeTheme(value) {
   if (value === "dark" || value === "light" || value === "unifi-dark") return value;
   return "unifi";
 }
+function normalizeSvgTheme(value) {
+  const valid = ["unifi", "unifi-dark", "minimal", "minimal-dark", "classic", "classic-dark"];
+  return valid.includes(value ?? "") ? value : "unifi";
+}
+function normalizeIconSet(value) {
+  return value === "isometric" ? "isometric" : "modern";
+}
 
 // src/card/core/unifi-network-map-editor.ts
 var UnifiNetworkMapEditor = class extends HTMLElement {
@@ -7152,14 +7159,44 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
         return;
       }
     }
+    this._updateFormState();
+  }
+  _updateFormState() {
+    if (!this._form) {
+      return;
+    }
     this._form.hass = this._hass;
     this._form.computeLabel = (schema) => schema.label ?? this._localize(`editor.${schema.name}`) ?? schema.name;
     this._form.schema = this._buildFormSchema();
-    this._form.data = {
-      entry_id: this._config?.entry_id ?? "",
-      theme: this._config?.theme ?? "unifi",
-      card_height: this._config?.card_height ?? ""
+    this._form.data = this._buildFormData();
+  }
+  _buildFormData() {
+    return {
+      ...this._getFormDefaults(),
+      ...this._getConfigFormValues()
     };
+  }
+  _getFormDefaults() {
+    return {
+      entry_id: "",
+      theme: "unifi",
+      svg_theme: "unifi",
+      icon_set: "modern",
+      card_height: ""
+    };
+  }
+  _getConfigFormValues() {
+    const cfg = this._config;
+    if (!cfg) {
+      return {};
+    }
+    const result = {};
+    if (cfg.entry_id !== void 0) result.entry_id = cfg.entry_id;
+    if (cfg.theme !== void 0) result.theme = cfg.theme;
+    if (cfg.svg_theme !== void 0) result.svg_theme = cfg.svg_theme;
+    if (cfg.icon_set !== void 0) result.icon_set = cfg.icon_set;
+    if (cfg.card_height !== void 0) result.card_height = cfg.card_height;
+    return result;
   }
   _renderNoEntries() {
     this.innerHTML = `
@@ -7195,8 +7232,12 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
     this._updateConfig(update);
   }
   _updateConfigEntry(entryId) {
-    const selectedTheme = this._config?.theme ?? "unifi";
-    this._updateConfig({ entry_id: entryId, theme: selectedTheme });
+    this._updateConfig({
+      entry_id: entryId,
+      theme: this._config?.theme ?? "unifi",
+      svg_theme: this._config?.svg_theme ?? "unifi",
+      icon_set: this._config?.icon_set ?? "modern"
+    });
   }
   _updateConfig(update) {
     this._config = {
@@ -7204,6 +7245,8 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
       type: "custom:unifi-network-map",
       entry_id: update.entry_id,
       theme: update.theme,
+      svg_theme: update.svg_theme,
+      icon_set: update.icon_set,
       card_height: update.card_height
     };
     this.dispatchEvent(
@@ -7218,10 +7261,14 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
     const detail = e.detail;
     const entryId = this._resolveEntryId(detail.value);
     const themeValue = this._resolveTheme(detail.value);
+    const svgThemeValue = detail.value?.svg_theme ?? this._config?.svg_theme;
+    const iconSetValue = detail.value?.icon_set ?? this._config?.icon_set;
     const cardHeight = this._resolveCardHeight(detail.value);
     return {
       entry_id: entryId,
       theme: normalizeTheme(themeValue),
+      svg_theme: normalizeSvgTheme(svgThemeValue),
+      icon_set: normalizeIconSet(iconSetValue),
       card_height: cardHeight
     };
   }
@@ -7235,7 +7282,7 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
     return value?.card_height ?? this._config?.card_height;
   }
   _isConfigUnchanged(update) {
-    return this._config?.entry_id === update.entry_id && this._config?.theme === update.theme && this._config?.card_height === update.card_height;
+    return this._config?.entry_id === update.entry_id && this._config?.theme === update.theme && this._config?.svg_theme === update.svg_theme && this._config?.icon_set === update.icon_set && this._config?.card_height === update.card_height;
   }
 };
 
