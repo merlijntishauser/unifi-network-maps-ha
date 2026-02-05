@@ -24,6 +24,8 @@ export type CardConfig = {
   svg_url?: string;
   data_url?: string;
   theme?: "dark" | "light" | "unifi" | "unifi-dark";
+  svg_theme?: "unifi" | "unifi-dark" | "minimal" | "minimal-dark" | "classic" | "classic-dark";
+  icon_set?: "isometric" | "modern";
   card_height?: string | number;
 };
 
