@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-from aiohttp import web
-from pathlib import Path
 import re
-import shutil
-import tempfile
 from copy import deepcopy
-from importlib import resources as importlib_resources
 from typing import Mapping
+
+from aiohttp import web
 
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
@@ -705,31 +702,16 @@ def _render_svg_variant(
 
 
 def _resolve_svg_theme(theme_name: str) -> SvgTheme | None:
-    theme_file = _resolve_theme_file(theme_name)
-    if theme_file is None:
-        return None
-    with importlib_resources.as_file(theme_file) as path:
-        # Copy theme to /tmp to satisfy unifi-network-maps path security check
-        # (library requires theme files to be within /config, /root, or /tmp)
-        tmp_path = Path(tempfile.gettempdir()) / f"unifi_theme_{path.name}"
-        shutil.copy(path, tmp_path)
-        try:
-            _mermaid_theme, svg_theme = resolve_themes(theme_file=tmp_path)
-            return svg_theme
-        finally:
-            tmp_path.unlink(missing_ok=True)
-
-
-def _resolve_theme_file(theme_name: str):
+    """Resolve legacy theme names (dark/light) to built-in themes."""
     theme_key = theme_name.strip().lower()
     if theme_key == "dark":
-        filename = "dark.yaml"
+        builtin_name = "classic-dark"
     elif theme_key == "light":
-        filename = "default.yaml"
+        builtin_name = "classic"
     else:
         return None
-    theme_root = importlib_resources.files("unifi_network_maps.assets.themes")
-    return theme_root / filename
+    _mermaid_theme, svg_theme = resolve_themes(theme_name=builtin_name)
+    return svg_theme
 
 
 def _valid_edge_payload(edge: object) -> bool:

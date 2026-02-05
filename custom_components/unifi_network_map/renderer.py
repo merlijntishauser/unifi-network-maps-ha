@@ -279,40 +279,17 @@ def _resolve_svg_theme(svg_theme: str | None, icon_set: str | None):
 
 
 def _load_builtin_svg_theme(theme_name: str | None):
-    """Load a built-in SVG theme, working around Docker path restrictions.
-
-    The library's resolve_themes() validates that theme files are within
-    /config, /root, or /tmp. In Docker, the library's assets directory is
-    in /usr/local/lib/... which fails this check. We copy the theme file
-    to /tmp before loading.
-    """
-    import importlib.resources
-    import shutil
-    import tempfile
-    from pathlib import Path
-
-    from unifi_network_maps.render.theme import BUILTIN_THEMES, DEFAULT_SVG_THEME, load_theme
+    """Load a built-in SVG theme by name."""
+    from unifi_network_maps.render.theme import DEFAULT_SVG_THEME, resolve_themes
 
     if not theme_name:
         return DEFAULT_SVG_THEME
-    if theme_name not in BUILTIN_THEMES:
-        LOGGER.warning("renderer unknown_theme theme=%s using_default=True", theme_name)
-        return DEFAULT_SVG_THEME
-
-    theme_filename = BUILTIN_THEMES[theme_name]
-    theme_resource = importlib.resources.files("unifi_network_maps.assets.themes") / theme_filename
-
-    tmp_path = Path(tempfile.gettempdir()) / f"unifi_theme_{theme_filename}"
     try:
-        with importlib.resources.as_file(theme_resource) as source_path:
-            shutil.copy(source_path, tmp_path)
-        _, svg_theme = load_theme(tmp_path)
+        _, svg_theme = resolve_themes(theme_name=theme_name)
         return svg_theme
-    except Exception as err:
-        LOGGER.warning("renderer theme_load_failed theme=%s error=%s", theme_name, err)
+    except ValueError as err:
+        LOGGER.warning("renderer unknown_theme theme=%s error=%s", theme_name, err)
         return DEFAULT_SVG_THEME
-    finally:
-        tmp_path.unlink(missing_ok=True)
 
 
 def _extract_wan_info(devices: list[Device], settings: RenderSettings) -> WanInfo | None:

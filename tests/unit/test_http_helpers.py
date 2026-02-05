@@ -24,7 +24,6 @@ from custom_components.unifi_network_map.http import (
     _mac_from_unique_id,
     _normalize_mac,
     _normalize_tracker_state,
-    _resolve_theme_file,
     _should_render_svg,
     _sort_related_entities,
     _store_payload_field,
@@ -479,26 +478,6 @@ class TestShouldRenderSvg:
     def test_returns_false_without_node_types(self) -> None:
         edges = [{"left": "a", "right": "b"}]
         assert _should_render_svg(edges, {}) is False
-
-
-class TestResolveThemeFile:
-    """Tests for _resolve_theme_file function."""
-
-    def test_resolves_dark_theme(self) -> None:
-        result = _resolve_theme_file("dark")
-        assert result is not None
-
-    def test_resolves_light_theme(self) -> None:
-        result = _resolve_theme_file("light")
-        assert result is not None
-
-    def test_returns_none_for_unknown_theme(self) -> None:
-        result = _resolve_theme_file("unknown_theme")
-        assert result is None
-
-    def test_normalizes_theme_name(self) -> None:
-        result = _resolve_theme_file("  DARK  ")
-        assert result is not None
 
 
 class TestFormatMac:

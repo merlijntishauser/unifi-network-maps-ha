@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from pathlib import Path
 from types import SimpleNamespace
 from typing import Callable, cast
 
@@ -420,72 +419,30 @@ def test_render_svg_with_theme_isometric_branch(monkeypatch: pytest.MonkeyPatch)
     assert result == "iso"
 
 
-def test_resolve_theme_file_variants() -> None:
-    resolve_theme_file = cast(
-        Callable[[str], object | None], getattr(http_module, "_resolve_theme_file")
-    )
-
-    dark_path = resolve_theme_file("dark")
-    light_path = resolve_theme_file("light")
-    invalid_path = resolve_theme_file("nope")
-
-    assert dark_path is not None
-    assert "dark.yaml" in str(dark_path)
-    assert light_path is not None
-    assert "default.yaml" in str(light_path)
-    assert invalid_path is None
-
-
-def test_resolve_svg_theme_handles_missing(monkeypatch: pytest.MonkeyPatch) -> None:
-    def _resolve_theme_file(_name: str) -> object | None:
-        return None
-
-    monkeypatch.setattr(http_module, "_resolve_theme_file", _resolve_theme_file)
+def test_resolve_svg_theme_handles_unknown() -> None:
+    """Unknown theme names return None."""
     resolve_svg_theme = cast(
         Callable[[str], object | None], getattr(http_module, "_resolve_svg_theme")
     )
 
-    assert resolve_svg_theme("dark") is None
+    assert resolve_svg_theme("unknown") is None
+    assert resolve_svg_theme("nope") is None
 
 
-def test_resolve_svg_theme_loads_theme(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    # Create a real temp file for the mock to return
-    mock_theme = tmp_path / "theme.yaml"
-    mock_theme.write_text("test: true")
-
-    class _Context:
-        def __init__(self, path: object) -> None:
-            self._path = path
-
-        def __enter__(self):
-            return Path(self._path) if isinstance(self._path, str) else self._path
-
-        def __exit__(self, *_args: object) -> None:
-            return None
-
-    def _resolve_theme_file(_name: str) -> str:
-        return "theme.yaml"
-
-    def _as_file(_path: object) -> _Context:
-        return _Context(mock_theme)
-
-    def _resolve_themes(
-        theme_name: object = None, theme_file: object = None
-    ) -> tuple[None, object]:
-        return (None, object())
-
-    def _shutil_copy(_src: object, _dst: object) -> None:
-        pass
-
-    monkeypatch.setattr(http_module, "_resolve_theme_file", _resolve_theme_file)
-    monkeypatch.setattr(http_module.importlib_resources, "as_file", _as_file)
-    monkeypatch.setattr(http_module, "resolve_themes", _resolve_themes)
-    monkeypatch.setattr(http_module.shutil, "copy", _shutil_copy)
+def test_resolve_svg_theme_loads_dark_and_light() -> None:
+    """Dark and light legacy theme names resolve to built-in themes."""
     resolve_svg_theme = cast(
         Callable[[str], object | None], getattr(http_module, "_resolve_svg_theme")
     )
 
-    assert resolve_svg_theme("dark") is not None
+    dark_theme = resolve_svg_theme("dark")
+    light_theme = resolve_svg_theme("light")
+
+    assert dark_theme is not None
+    assert light_theme is not None
+    # Verify they are SvgTheme objects by checking for expected attributes
+    assert hasattr(dark_theme, "background")
+    assert hasattr(light_theme, "background")
 
 
 def test_build_mac_entity_index_prefers_registry(monkeypatch: pytest.MonkeyPatch) -> None:
