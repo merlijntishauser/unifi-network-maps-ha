@@ -8,9 +8,11 @@ from unifi_network_maps.adapters.unifi import fetch_clients, fetch_devices
 from unifi_network_maps.cli.runtime import normalize_devices
 from unifi_network_maps.model.clients import build_client_edges, build_node_type_map
 from unifi_network_maps.model.edges import build_device_index, build_topology, group_devices_by_type
-from unifi_network_maps.model.topology import Device, Edge, TopologyResult
+from unifi_network_maps.model.topology import Device, Edge, TopologyResult, WanInfo
+from unifi_network_maps.model.wan import extract_wan_info
 from unifi_network_maps.render.svg import SvgOptions, render_svg
 from unifi_network_maps.render.svg_isometric import render_svg_isometric
+from unifi_network_maps.render.theme import resolve_themes
 
 from .const import LOGGER, PAYLOAD_SCHEMA_VERSION
 from .data import UniFiNetworkMapData
@@ -30,6 +32,9 @@ class RenderSettings:
     svg_width: int | None
     svg_height: int | None
     use_cache: bool
+    svg_theme: str | None = None
+    icon_set: str | None = None
+    show_wan: bool = True
 
 
 class ClientDict(TypedDict, total=False):
@@ -77,7 +82,8 @@ def _render_map(config: Config, settings: RenderSettings) -> UniFiNetworkMapData
         len(gateways),
     )
     node_types = build_node_type_map(devices, clients, client_mode=settings.client_scope)
-    svg = _render_svg(edges, node_types, settings)
+    wan_info = _extract_wan_info(devices, settings)
+    svg = _render_svg(edges, node_types, settings, wan_info)
     # Always fetch clients for stats (wireless counts per AP)
     all_clients = _load_all_clients(config, settings)
     networks = _load_networks(config, settings)
@@ -240,11 +246,49 @@ def _render_svg(
     edges: list[Edge],
     node_types: dict[str, str],
     settings: RenderSettings,
+    wan_info: WanInfo | None = None,
 ) -> str:
     options = SvgOptions(width=settings.svg_width, height=settings.svg_height)
+    theme = _resolve_svg_theme(settings.svg_theme, settings.icon_set)
     if settings.svg_isometric:
-        return render_svg_isometric(edges, node_types=node_types, options=options)
-    return render_svg(edges, node_types=node_types, options=options)
+        return render_svg_isometric(
+            edges, node_types=node_types, options=options, theme=theme, wan_info=wan_info
+        )
+    return render_svg(edges, node_types=node_types, options=options, theme=theme, wan_info=wan_info)
+
+
+def _resolve_svg_theme(svg_theme: str | None, icon_set: str | None):
+    """Load SVG theme by name and apply icon_set override."""
+    from dataclasses import replace
+
+    _, theme = resolve_themes(theme_name=svg_theme)
+    if icon_set and theme.icon_set != icon_set:
+        theme = replace(theme, icon_set=icon_set)
+    return theme
+
+
+def _extract_wan_info(devices: list[Device], settings: RenderSettings) -> WanInfo | None:
+    """Extract WAN info from the gateway device if show_wan is enabled."""
+    if not settings.show_wan:
+        return None
+    groups = group_devices_by_type(devices)
+    gateway_names = groups.get("gateway", [])
+    if not gateway_names:
+        return None
+    gateway_name = gateway_names[0]
+    for device in devices:
+        if device.name == gateway_name:
+            wan_info = extract_wan_info(device)
+            if wan_info and (wan_info.wan1 or wan_info.wan2):
+                LOGGER.debug(
+                    "renderer wan_info_extracted gateway=%s wan1=%s wan2=%s",
+                    gateway_name,
+                    wan_info.wan1 is not None,
+                    wan_info.wan2 is not None,
+                )
+                return wan_info
+            break
+    return None
 
 
 def _build_payload(
