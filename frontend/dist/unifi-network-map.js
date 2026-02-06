@@ -4704,6 +4704,14 @@ var CARD_STYLES = `
     fill: #3b82f6 !important;
   }
 
+  /* SVG theme viewport backgrounds - matches the SVG theme background colors */
+  ha-card[data-svg-theme="unifi"] .unifi-network-map__viewport { background: #f9fafa; }
+  ha-card[data-svg-theme="unifi-dark"] .unifi-network-map__viewport { background: #1c1e21; }
+  ha-card[data-svg-theme="minimal"] .unifi-network-map__viewport { background: #fafafa; }
+  ha-card[data-svg-theme="minimal-dark"] .unifi-network-map__viewport { background: #18181b; }
+  ha-card[data-svg-theme="classic"] .unifi-network-map__viewport { background: #ffffff; }
+  ha-card[data-svg-theme="classic-dark"] .unifi-network-map__viewport { background: #1a1a1a; }
+
   /* Light theme overrides */
   ha-card[data-theme="light"] .unifi-network-map__viewport { background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); }
   ha-card[data-theme="light"] .unifi-network-map__controls button { background: rgba(226, 232, 240, 0.9); color: #0f172a; border-color: rgba(148, 163, 184, 0.5); }
@@ -6045,37 +6053,40 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   }
   _render() {
     const theme = this._config?.theme ?? "dark";
+    const svgTheme = this._config?.svg_theme ?? "unifi";
     if (!this._config) {
-      this._renderMissingConfig(theme);
+      this._renderMissingConfig(theme, svgTheme);
       return;
     }
     if (!this._config.svg_url) {
-      this._renderPreviewCard(theme);
+      this._renderPreviewCard(theme, svgTheme);
       return;
     }
     const token = this._getAuthToken();
     this._clearMissingAuthError(token);
-    this._setCardBody(this._renderBody(), theme);
+    this._setCardBody(this._renderBody(), theme, svgTheme);
     if (!this._canFinishRender(token)) {
       return;
     }
     this._finalizeRender();
   }
-  _setCardBody(body, theme) {
+  _setCardBody(body, theme, svgTheme) {
     const card = document.createElement("ha-card");
     card.dataset.theme = theme;
+    card.dataset.svgTheme = svgTheme;
     this._applyCardHeight(card);
     card.innerHTML = sanitizeHtml(body);
     this.replaceChildren(card);
   }
-  _renderMissingConfig(theme) {
+  _renderMissingConfig(theme, svgTheme) {
     this._setCardBody(
       `<div style="padding:16px;">${this._localize("card.error.missing_config")}</div>`,
-      theme
+      theme,
+      svgTheme
     );
   }
-  _renderPreviewCard(theme) {
-    this._setCardBody(this._renderPreview(), theme);
+  _renderPreviewCard(theme, svgTheme) {
+    this._setCardBody(this._renderPreview(), theme, svgTheme);
   }
   _clearMissingAuthError(token) {
     if (token && this._error === "Missing auth token") {

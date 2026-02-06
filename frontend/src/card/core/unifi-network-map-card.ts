@@ -336,18 +336,19 @@ export class UnifiNetworkMapCard extends HTMLElement {
 
   private _render() {
     const theme = this._config?.theme ?? "dark";
+    const svgTheme = this._config?.svg_theme ?? "unifi";
     if (!this._config) {
-      this._renderMissingConfig(theme);
+      this._renderMissingConfig(theme, svgTheme);
       return;
     }
     if (!this._config.svg_url) {
-      this._renderPreviewCard(theme);
+      this._renderPreviewCard(theme, svgTheme);
       return;
     }
 
     const token = this._getAuthToken();
     this._clearMissingAuthError(token);
-    this._setCardBody(this._renderBody(), theme);
+    this._setCardBody(this._renderBody(), theme, svgTheme);
 
     if (!this._canFinishRender(token)) {
       return;
@@ -355,23 +356,25 @@ export class UnifiNetworkMapCard extends HTMLElement {
     this._finalizeRender();
   }
 
-  private _setCardBody(body: string, theme: string) {
+  private _setCardBody(body: string, theme: string, svgTheme: string) {
     const card = document.createElement("ha-card");
     card.dataset.theme = theme;
+    card.dataset.svgTheme = svgTheme;
     this._applyCardHeight(card);
     card.innerHTML = sanitizeHtml(body);
     this.replaceChildren(card);
   }
 
-  private _renderMissingConfig(theme: string): void {
+  private _renderMissingConfig(theme: string, svgTheme: string): void {
     this._setCardBody(
       `<div style="padding:16px;">${this._localize("card.error.missing_config")}</div>`,
       theme,
+      svgTheme,
     );
   }
 
-  private _renderPreviewCard(theme: string): void {
-    this._setCardBody(this._renderPreview(), theme);
+  private _renderPreviewCard(theme: string, svgTheme: string): void {
+    this._setCardBody(this._renderPreview(), theme, svgTheme);
   }
 
   private _clearMissingAuthError(token?: string): void {
