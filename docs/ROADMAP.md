@@ -51,19 +51,19 @@ Add a visible VLAN legend to the map interface:
 - Toggle VLAN visibility (show/hide entire network segments)
 - Quick stats: "IoT (12 clients) • Guest (3 clients) • Trusted (8 clients)"
 
-### 6.2 Network Segment Grouping (Requires Upstream)
+### 6.2 Network Segment Grouping
 Visual clustering of devices by network segment:
 - Optional visual boundaries around network segments
 - Subnet-based grouping (192.168.1.x grouped together)
 - Drag-to-collapse network segments for cleaner overview
-- **Upstream Issue**: [#19](https://github.com/merlijntishauser/unifi-network-maps/issues/19) Layout engine support for logical grouping
+- **Upstream**: ✅ Layout engine support for logical grouping ([#19](https://github.com/merlijntishauser/unifi-network-maps/issues/19) - Done in v1.5.0)
 
 ### 6.3 Edge VLAN Coloring
 Extend VLAN colors from nodes to connections:
 - Color edges based on the VLAN of the traffic/connection
 - Cross-VLAN connections shown with gradient or distinct style
 - Highlight inter-VLAN routing paths
-- **Upstream Issue**: [#20](https://github.com/merlijntishauser/unifi-network-maps/issues/20) Edge metadata with VLAN info
+- **Upstream**: ✅ Edge metadata with VLAN info ([#20](https://github.com/merlijntishauser/unifi-network-maps/issues/20) - Done in v1.5.0)
 
 ### 6.4 VLAN Details Panel
 Dedicated panel view for network segments:
@@ -285,12 +285,13 @@ Features requiring changes to `unifi-network-maps` library.
 
 | Issue | Feature | Status |
 |-------|---------|--------|
-| [#19](https://github.com/merlijntishauser/unifi-network-maps/issues/19) | Network segment layout support | Open |
-| [#20](https://github.com/merlijntishauser/unifi-network-maps/issues/20) | Edge metadata with VLAN info | Open |
+| [#19](https://github.com/merlijntishauser/unifi-network-maps/issues/19) | Network segment layout support | **Done in v1.5.0** |
+| [#20](https://github.com/merlijntishauser/unifi-network-maps/issues/20) | Edge metadata with VLAN info | **Done in v1.5.0** |
 | [#21](https://github.com/merlijntishauser/unifi-network-maps/issues/21) | Topology diff API | **Done in v1.5.0** |
 | [#22](https://github.com/merlijntishauser/unifi-network-maps/issues/22) | SVG theme system (UniFi colors) | **Done in v1.5.0** |
 | [#23](https://github.com/merlijntishauser/unifi-network-maps/issues/23) | Enhanced isometric icons | **Done in v1.5.0** |
 | [#24](https://github.com/merlijntishauser/unifi-network-maps/issues/24) | Connection quality data | **Done in v1.5.0** |
+| [#32](https://github.com/merlijntishauser/unifi-network-maps/issues/32) | Port label contrast on dark themes | **Done in v1.5.2** |
 
 ---
 
@@ -337,15 +338,15 @@ Examples:
 ## Contributing
 
 Priority areas for contribution:
-1. **Library upgrade** - Help test v1.5.0 compatibility
-2. **Theme support** - Implement built-in theme selection
-3. **VLAN visualization** - Legend, filtering, segment views
+1. **VLAN visualization** - Legend, filtering, segment views
+2. **Connection quality UI** - Expose signal/satisfaction in card
+3. **Topology change detection** - Events and sensors for changes
 4. **Accessibility** - Keyboard nav, screen readers
 5. **Documentation** - Usage examples, troubleshooting guides
 
 ---
 
-*Last updated: 2026-02-05*
+*Last updated: 2026-02-07*
 
 ## Version History
 

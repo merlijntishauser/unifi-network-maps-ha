@@ -23,6 +23,7 @@ describe("unifi-network-map card panel", () => {
             url.includes(".json") ? JSON.stringify(samplePayload()) : makeSvg("Gateway"),
           ),
         json: () => Promise.resolve(samplePayload()),
+        headers: { get: () => null },
       }),
     );
     (globalThis as { fetch?: typeof fetch }).fetch = fetchMock;

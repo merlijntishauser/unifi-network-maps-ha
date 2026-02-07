@@ -38,7 +38,7 @@ import { renderContextMenu } from "../ui/context-menu";
 import { fetchWithAuth } from "../data/auth";
 import type { AuthFetchResult } from "../data/auth";
 import { showToast } from "../shared/feedback";
-import { loadPayload, loadSvg } from "../data/data";
+import { loadPayload, loadSvg, type SvgLoadResult } from "../data/data";
 import { subscribeMapUpdates } from "../data/websocket";
 import { normalizeConfig, startPolling, stopPolling } from "./state";
 import { createLocalize } from "../shared/localize";
@@ -243,6 +243,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
   private _lastSvgUrl?: string;
   private _lastDataUrl?: string;
   private _svgContent?: string;
+  private _themeBackground?: string;
   private _payload?: MapPayload;
   private _error?: string;
   private _loading = false;
@@ -524,18 +525,19 @@ export class UnifiNetworkMapCard extends HTMLElement {
     this._scheduleLoadingOverlay();
   }
 
-  private _isActiveSvgRequest(requestId: number, result: AuthFetchResult<string>): boolean {
+  private _isActiveSvgRequest(requestId: number, result: AuthFetchResult<SvgLoadResult>): boolean {
     if (requestId !== this._svgRequestId) {
       return false;
     }
     return !("aborted" in result);
   }
 
-  private _finalizeSvgRequest(result: AuthFetchResult<string>, url: string): void {
+  private _finalizeSvgRequest(result: AuthFetchResult<SvgLoadResult>, url: string): void {
     if ("error" in result && result.error) {
       this._error = `Failed to load SVG (${result.error})`;
     } else if ("data" in result) {
-      this._svgContent = result.data ?? "";
+      this._svgContent = result.data.svg ?? "";
+      this._themeBackground = result.data.background ?? undefined;
       this._error = undefined;
       // Invalidate annotation cache when new SVG content is loaded
       invalidateAnnotationCache(this._annotationCache);
@@ -646,9 +648,10 @@ export class UnifiNetworkMapCard extends HTMLElement {
 
   private _renderLayout(): string {
     const safeSvg = this._svgContent ? sanitizeSvg(this._svgContent) : "";
+    const viewportStyle = this._themeBackground ? `background: ${this._themeBackground}` : "";
     return `
       <div class="unifi-network-map__layout">
-        <div class="unifi-network-map__viewport">
+        <div class="unifi-network-map__viewport" style="${viewportStyle}">
           <div class="unifi-network-map__controls">
             <button type="button" data-action="zoom-in" title="${this._localize("card.controls.zoom_in")}">+</button>
             <button type="button" data-action="zoom-out" title="${this._localize("card.controls.zoom_out")}">-</button>

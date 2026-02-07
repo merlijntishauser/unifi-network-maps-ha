@@ -136,6 +136,7 @@ describe("unifi-network-map card core", () => {
         ok: true,
         status: 200,
         text: () => Promise.resolve("<svg></svg>"),
+        headers: { get: () => null },
       })
       .mockResolvedValueOnce({
         ok: true,
@@ -161,6 +162,7 @@ describe("unifi-network-map card core", () => {
       status: 200,
       text: () => Promise.resolve("<svg></svg>"),
       json: () => Promise.resolve({ edges: [], node_types: {} }),
+      headers: { get: () => null },
     });
     (globalThis as { fetch?: typeof fetch }).fetch = fetchMock;
 
@@ -254,6 +256,7 @@ describe("unifi-network-map card core", () => {
       ok: true,
       status: 200,
       text: () => Promise.resolve("<svg></svg>"),
+      headers: { get: () => null },
     });
     (globalThis as { fetch?: typeof fetch }).fetch = fetchMock;
     const element = document.createElement("unifi-network-map") as ConfigurableCard;

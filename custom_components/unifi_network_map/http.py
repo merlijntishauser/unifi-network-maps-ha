@@ -59,10 +59,11 @@ class UniFiNetworkMapSvgView(HomeAssistantView):  # type: ignore[reportUntypedBa
         svg_theme = request.query.get("svg_theme")
         icon_set = request.query.get("icon_set")
         if (svg_theme or icon_set) and coordinator is not None:
-            themed_svg = await hass.async_add_executor_job(
+            themed_svg, background = await hass.async_add_executor_job(
                 _render_svg_with_theme, data, coordinator, svg_theme, icon_set
             )
-            return web.Response(text=themed_svg, content_type="image/svg+xml")
+            headers = {"X-Theme-Background": background}
+            return web.Response(text=themed_svg, content_type="image/svg+xml", headers=headers)
         return web.Response(text=data.svg, content_type="image/svg+xml")
 
 
@@ -661,20 +662,22 @@ def _render_svg_with_theme(
     coordinator: UniFiNetworkMapCoordinator,
     svg_theme: str | None,
     icon_set: str | None,
-) -> str:
+) -> tuple[str, str]:
+    """Render SVG with theme, returning (svg, background_color)."""
+    theme = _load_svg_theme(svg_theme, icon_set, coordinator.settings)
+    background = theme.background
+
     payload = data.payload or {}
     edges_payload = payload.get("edges") or []
     node_types = payload.get("node_types") or {}
     if not _should_render_svg(edges_payload, node_types):
-        return data.svg
-    theme = _load_svg_theme(svg_theme, icon_set, coordinator.settings)
+        return data.svg, background
     edges = _build_svg_edges(edges_payload)
     if not edges:
-        return data.svg
+        return data.svg, background
     options = _svg_options_from_settings(coordinator.settings)
-    return _render_svg_variant(
-        edges, node_types, options, theme, coordinator.settings.svg_isometric
-    )
+    svg = _render_svg_variant(edges, node_types, options, theme, coordinator.settings.svg_isometric)
+    return svg, background
 
 
 def _load_svg_theme(

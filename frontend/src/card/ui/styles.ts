@@ -305,16 +305,7 @@ export const CARD_STYLES = `
     fill: #3b82f6 !important;
   }
 
-  /* SVG theme viewport backgrounds - matches the SVG theme background colors */
-  ha-card[data-svg-theme="unifi"] .unifi-network-map__viewport { background: #f9fafa; }
-  ha-card[data-svg-theme="unifi-dark"] .unifi-network-map__viewport { background: #1c1e21; }
-  ha-card[data-svg-theme="minimal"] .unifi-network-map__viewport { background: #fafafa; }
-  ha-card[data-svg-theme="minimal-dark"] .unifi-network-map__viewport { background: #18181b; }
-  ha-card[data-svg-theme="classic"] .unifi-network-map__viewport { background: #ffffff; }
-  ha-card[data-svg-theme="classic-dark"] .unifi-network-map__viewport { background: #1a1a1a; }
-
   /* Light theme overrides */
-  ha-card[data-theme="light"] .unifi-network-map__viewport { background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); }
   ha-card[data-theme="light"] .unifi-network-map__controls button { background: rgba(226, 232, 240, 0.9); color: #0f172a; border-color: rgba(148, 163, 184, 0.5); }
   ha-card[data-theme="light"] .unifi-network-map__retry { background: #3b82f6; border-color: #3b82f6; color: #ffffff; }
   ha-card[data-theme="light"] .unifi-network-map__retry:hover { background: #2563eb; }

@@ -3148,7 +3148,11 @@ function showToast(message, variant) {
 
 // src/card/data/data.ts
 async function loadSvg(fetchWithAuth2, url, signal) {
-  return fetchWithAuth2(url, signal, (response) => response.text());
+  return fetchWithAuth2(url, signal, async (response) => {
+    const svg3 = await response.text();
+    const background = response.headers.get("X-Theme-Background");
+    return { svg: svg3, background };
+  });
 }
 async function loadPayload(fetchWithAuth2, url, signal) {
   return fetchWithAuth2(url, signal, (response) => response.json());
@@ -4704,16 +4708,7 @@ var CARD_STYLES = `
     fill: #3b82f6 !important;
   }
 
-  /* SVG theme viewport backgrounds - matches the SVG theme background colors */
-  ha-card[data-svg-theme="unifi"] .unifi-network-map__viewport { background: #f9fafa; }
-  ha-card[data-svg-theme="unifi-dark"] .unifi-network-map__viewport { background: #1c1e21; }
-  ha-card[data-svg-theme="minimal"] .unifi-network-map__viewport { background: #fafafa; }
-  ha-card[data-svg-theme="minimal-dark"] .unifi-network-map__viewport { background: #18181b; }
-  ha-card[data-svg-theme="classic"] .unifi-network-map__viewport { background: #ffffff; }
-  ha-card[data-svg-theme="classic-dark"] .unifi-network-map__viewport { background: #1a1a1a; }
-
   /* Light theme overrides */
-  ha-card[data-theme="light"] .unifi-network-map__viewport { background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); }
   ha-card[data-theme="light"] .unifi-network-map__controls button { background: rgba(226, 232, 240, 0.9); color: #0f172a; border-color: rgba(148, 163, 184, 0.5); }
   ha-card[data-theme="light"] .unifi-network-map__retry { background: #3b82f6; border-color: #3b82f6; color: #ffffff; }
   ha-card[data-theme="light"] .unifi-network-map__retry:hover { background: #2563eb; }
@@ -6227,7 +6222,8 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     if ("error" in result && result.error) {
       this._error = `Failed to load SVG (${result.error})`;
     } else if ("data" in result) {
-      this._svgContent = result.data ?? "";
+      this._svgContent = result.data.svg ?? "";
+      this._themeBackground = result.data.background ?? void 0;
       this._error = void 0;
       invalidateAnnotationCache(this._annotationCache);
     }
@@ -6321,9 +6317,10 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   }
   _renderLayout() {
     const safeSvg = this._svgContent ? sanitizeSvg(this._svgContent) : "";
+    const viewportStyle = this._themeBackground ? `background: ${this._themeBackground}` : "";
     return `
       <div class="unifi-network-map__layout">
-        <div class="unifi-network-map__viewport">
+        <div class="unifi-network-map__viewport" style="${viewportStyle}">
           <div class="unifi-network-map__controls">
             <button type="button" data-action="zoom-in" title="${this._localize("card.controls.zoom_in")}">+</button>
             <button type="button" data-action="zoom-out" title="${this._localize("card.controls.zoom_out")}">-</button>
