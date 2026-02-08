@@ -72,6 +72,7 @@ class _ResourceCollection:
     def __init__(self, items: list[dict[str, object]] | None = None) -> None:
         self.items: list[dict[str, object]] = items or []
         self.created: list[dict[str, object]] = []
+        self.updated: list[tuple[str, dict[str, object]]] = []
 
     def async_items(self):
         """Return the list of items (not async)."""
@@ -81,6 +82,14 @@ class _ResourceCollection:
         """Create a new resource."""
         self.created.append(payload)
         self.items.append(payload)
+
+    async def async_update_item(self, item_id: str, payload: dict[str, object]) -> None:
+        """Update an existing resource."""
+        self.updated.append((item_id, payload))
+        for item in self.items:
+            if item.get("id") == item_id:
+                item.update(payload)
+                break
 
 
 class _LovelaceData:
@@ -202,9 +211,8 @@ def test_schedule_lovelace_resource_when_not_running() -> None:
 
 def test_ensure_lovelace_resource_skips_if_already_registered() -> None:
     """Test that resource registration is skipped if already registered."""
-    hass, collection = _make_hass_with_collection(
-        [{"url": "/unifi-network-map/unifi-network-map.js", "type": "module"}]
-    )
+    versioned_url = getattr(unifi_network_map, "_frontend_bundle_url")()
+    hass, collection = _make_hass_with_collection([{"url": versioned_url, "type": "module"}])
     hass.data["unifi_network_map"] = {}
 
     ensure_resource = getattr(unifi_network_map, "_ensure_lovelace_resource")
@@ -233,8 +241,9 @@ def test_ensure_lovelace_resource_creates_when_not_exists() -> None:
         asyncio.run(ensure_resource(hass))
 
         # Should have created the resource
+        versioned_url = getattr(unifi_network_map, "_frontend_bundle_url")()
         assert len(collection.created) == 1
-        assert collection.created[0]["url"] == "/unifi-network-map/unifi-network-map.js"
+        assert collection.created[0]["url"] == versioned_url
         assert collection.created[0]["res_type"] == "module"
     finally:
         # Restore original function
@@ -420,9 +429,8 @@ def test_retry_lovelace_resource_calls_ensure(monkeypatch: pytest.MonkeyPatch) -
 
 
 def test_ensure_lovelace_resource_marks_registered_on_existing() -> None:
-    hass, _collection = _make_hass_with_collection(
-        [{"url": "/unifi-network-map/unifi-network-map.js", "type": "module"}]
-    )
+    versioned_url = getattr(unifi_network_map, "_frontend_bundle_url")()
+    hass, _collection = _make_hass_with_collection([{"url": versioned_url, "type": "module"}])
     hass.data["unifi_network_map"] = {}
     resources = _ResourcesModule()
 
@@ -639,3 +647,72 @@ def test_resource_payload_uses_res_type_field() -> None:
     assert collection.created[0]["res_type"] == "module"
     # Old 'type' field should not be present in new API
     # (it gets added by the collection itself for storage)
+
+
+def test_ensure_lovelace_resource_updates_old_version() -> None:
+    """Test that an existing resource with an old version gets updated."""
+    versioned_url = getattr(unifi_network_map, "_frontend_bundle_url")()
+    old_url = "/unifi-network-map/unifi-network-map.js?v=0.1.0"
+    hass, collection = _make_hass_with_collection(
+        [{"id": "abc123", "url": old_url, "type": "module"}]
+    )
+    hass.data["unifi_network_map"] = {}
+    resources = _ResourcesModule()
+
+    original_load = getattr(unifi_network_map, "_load_lovelace_resources")
+    setattr(unifi_network_map, "_load_lovelace_resources", lambda: resources)
+    try:
+        ensure_resource = getattr(unifi_network_map, "_ensure_lovelace_resource")
+        asyncio.run(ensure_resource(hass))
+    finally:
+        setattr(unifi_network_map, "_load_lovelace_resources", original_load)
+
+    assert len(collection.created) == 0
+    assert len(collection.updated) == 1
+    assert collection.updated[0] == ("abc123", {"url": versioned_url})
+    assert hass.data["unifi_network_map"]["lovelace_resource_registered"] is True
+
+
+def test_ensure_lovelace_resource_updates_unversioned_url() -> None:
+    """Test that an existing resource with no version query gets updated."""
+    versioned_url = getattr(unifi_network_map, "_frontend_bundle_url")()
+    hass, collection = _make_hass_with_collection(
+        [{"id": "xyz789", "url": "/unifi-network-map/unifi-network-map.js", "type": "module"}]
+    )
+    hass.data["unifi_network_map"] = {}
+    resources = _ResourcesModule()
+
+    original_load = getattr(unifi_network_map, "_load_lovelace_resources")
+    setattr(unifi_network_map, "_load_lovelace_resources", lambda: resources)
+    try:
+        ensure_resource = getattr(unifi_network_map, "_ensure_lovelace_resource")
+        asyncio.run(ensure_resource(hass))
+    finally:
+        setattr(unifi_network_map, "_load_lovelace_resources", original_load)
+
+    assert len(collection.created) == 0
+    assert len(collection.updated) == 1
+    assert collection.updated[0] == ("xyz789", {"url": versioned_url})
+    assert hass.data["unifi_network_map"]["lovelace_resource_registered"] is True
+
+
+def test_ensure_lovelace_resource_current_version_is_noop() -> None:
+    """Test that an existing resource with the current version is left alone."""
+    versioned_url = getattr(unifi_network_map, "_frontend_bundle_url")()
+    hass, collection = _make_hass_with_collection(
+        [{"id": "cur456", "url": versioned_url, "type": "module"}]
+    )
+    hass.data["unifi_network_map"] = {}
+    resources = _ResourcesModule()
+
+    original_load = getattr(unifi_network_map, "_load_lovelace_resources")
+    setattr(unifi_network_map, "_load_lovelace_resources", lambda: resources)
+    try:
+        ensure_resource = getattr(unifi_network_map, "_ensure_lovelace_resource")
+        asyncio.run(ensure_resource(hass))
+    finally:
+        setattr(unifi_network_map, "_load_lovelace_resources", original_load)
+
+    assert len(collection.created) == 0
+    assert len(collection.updated) == 0
+    assert hass.data["unifi_network_map"]["lovelace_resource_registered"] is True

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+from functools import lru_cache
 from pathlib import Path
 import inspect
 import importlib
@@ -49,6 +51,10 @@ class LovelaceResourceCollection(Protocol):
     def async_items(self) -> list[ResourceItem] | Awaitable[list[ResourceItem]]: ...
 
     def async_create_item(self, payload: Mapping[str, Any]) -> Awaitable[None] | None: ...
+
+    def async_update_item(
+        self, item_id: str, payload: Mapping[str, Any]
+    ) -> Awaitable[None] | None: ...
 
 
 class LovelaceResourcesInfo(Protocol):
@@ -200,7 +206,7 @@ def _register_frontend_assets(hass: HomeAssistant) -> None:
     if not js_path.exists():
         LOGGER.warning("init frontend_bundle_missing path=%s", js_path)
         return
-    _register_static_asset(hass, _frontend_bundle_url(), js_path)
+    _register_static_asset(hass, _frontend_bundle_base_url(), js_path)
     preview_path = _preview_image_path()
     if preview_path.exists():
         _register_static_asset(hass, _preview_image_url(), preview_path)
@@ -242,8 +248,24 @@ def _frontend_bundle_path() -> Path:
     return Path(__file__).resolve().parent / "frontend" / "unifi-network-map.js"
 
 
-def _frontend_bundle_url() -> str:
+@lru_cache(maxsize=1)
+def _integration_version() -> str:
+    manifest_path = Path(__file__).resolve().parent / "manifest.json"
+    with manifest_path.open() as f:
+        return json.load(f)["version"]
+
+
+def _frontend_bundle_base_url() -> str:
     return "/unifi-network-map/unifi-network-map.js"
+
+
+def _frontend_bundle_url() -> str:
+    version = _integration_version()
+    bundle = _frontend_bundle_path()
+    if bundle.exists():
+        mtime = int(bundle.stat().st_mtime)
+        return f"{_frontend_bundle_base_url()}?v={version}-{mtime}"
+    return f"{_frontend_bundle_base_url()}?v={version}"
 
 
 def _preview_image_path() -> Path:
@@ -360,11 +382,21 @@ async def _ensure_lovelace_resource(hass: HomeAssistant) -> None:
             return
 
         resource_url = _frontend_bundle_url()
+        base_url = _frontend_bundle_base_url()
         LOGGER.debug("lovelace items_fetched count=%d target_url=%s", len(items), resource_url)
 
-        if any(item.get("url") == resource_url for item in items):
-            LOGGER.debug("lovelace already_registered url=%s", resource_url)
-            _mark_lovelace_resource_registered(hass)
+        existing = _find_existing_resource(items, base_url)
+        if existing is not None:
+            if existing.get("url") == resource_url:
+                LOGGER.debug("lovelace already_registered url=%s", resource_url)
+                _mark_lovelace_resource_registered(hass)
+                return
+            updated = await _update_lovelace_resource(hass, existing, resource_url)
+            if updated:
+                _mark_lovelace_resource_registered(hass)
+            else:
+                LOGGER.debug("lovelace retry reason=update_failed")
+                _schedule_lovelace_resource_retry(hass)
             return
 
         LOGGER.debug("lovelace creating_resource url=%s", resource_url)
@@ -374,6 +406,36 @@ async def _ensure_lovelace_resource(hass: HomeAssistant) -> None:
         else:
             LOGGER.debug("lovelace retry reason=creation_failed")
             _schedule_lovelace_resource_retry(hass)
+
+
+def _find_existing_resource(items: list[ResourceItem], base_url: str) -> ResourceItem | None:
+    for item in items:
+        url = item.get("url", "")
+        if isinstance(url, str) and url.split("?")[0] == base_url:
+            return item
+    return None
+
+
+async def _update_lovelace_resource(hass: HomeAssistant, item: ResourceItem, new_url: str) -> bool:
+    item_id = item.get("id")
+    if not item_id or not isinstance(item_id, str):
+        LOGGER.debug("lovelace update_skipped reason=no_item_id")
+        return False
+    try:
+        lovelace_data = hass.data.get("lovelace")
+        if not lovelace_data:
+            return False
+        resource_collection = _get_lovelace_resource_collection(lovelace_data)
+        if resource_collection is None:
+            return False
+        result = resource_collection.async_update_item(item_id, {"url": new_url})
+        if inspect.iscoroutine(result):
+            await result
+        LOGGER.debug("lovelace resource_updated url=%s", new_url)
+        return True
+    except Exception as err:
+        LOGGER.debug("lovelace update_failed error=%s", err)
+        return False
 
 
 def _schedule_lovelace_resource_registration(hass: HomeAssistant) -> None:
