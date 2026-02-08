@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.3.0] - 2026-02-08
-Release 0.3.0 upgrades to unifi-network-maps 1.5.2, bringing extended device type icons, built-in theme selection, WAN upstream visualization, and configurable WAN settings (custom ISP labels, speeds, WAN2 toggle).
+Release 0.3.0 upgrades to unifi-network-maps 1.5.3, bringing extended device type icons, built-in theme selection, WAN upstream visualization, and configurable WAN settings (custom ISP labels, speeds, WAN2 toggle).
 
 ### Added
 - Extended device type icons: camera, TV, phone, printer, NAS, speaker, game console, IoT, client cluster
@@ -19,7 +19,7 @@ Release 0.3.0 upgrades to unifi-network-maps 1.5.2, bringing extended device typ
 - Translations for all new options in all 5 languages (en, de, es, fr, nl)
 
 ### Changed
-- Upgraded unifi-network-maps from 1.4.15 to 1.5.2
+- Upgraded unifi-network-maps from 1.4.15 to 1.5.3
 - Client device subtypes now grouped under "Clients" filter button
 - Default icon set changed to "modern"
 - Card forwards svg_theme and icon_set selection to the backend renderer
@@ -33,6 +33,9 @@ Release 0.3.0 upgrades to unifi-network-maps 1.5.2, bringing extended device typ
 - Card editor dropdowns for svg_theme and icon_set not working
 - Theme loading failure in Docker-based Home Assistant environments
 - Map view resetting pan/zoom when switching detail panel tabs
+- WAN upstream not rendered when card requests a specific theme or icon set
+- WAN upstream box clipped in isometric view (upstream fix in 1.5.3)
+- Blocking file I/O warning when reading manifest version inside the event loop
 
 ## [0.2.0] - 2026-02-01
 Release 0.2.0 expands the integration with new Home Assistant entities and automations: per-device binary sensors (gateway/switch/AP), client connectivity and VLAN client-count sensors, plus ready-to-use blueprints for common alerts (offline/online, AP overload, VLAN threshold). It also improves the underlying unifi-network-maps dependency and UI, with better related-entity discovery, more reliable VLAN reporting, and multiple rendering/visual fixes.

@@ -10,7 +10,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
-from unifi_network_maps.model.topology import Edge
+from unifi_network_maps.model.topology import Edge, WanInfo
 from unifi_network_maps.render.svg import SvgOptions, render_svg
 from unifi_network_maps.render.svg_isometric import render_svg_isometric
 from unifi_network_maps.render.svg_theme import SvgTheme
@@ -676,7 +676,9 @@ def _render_svg_with_theme(
     if not edges:
         return data.svg, background
     options = _svg_options_from_settings(coordinator.settings)
-    svg = _render_svg_variant(edges, node_types, options, theme, coordinator.settings.svg_isometric)
+    svg = _render_svg_variant(
+        edges, node_types, options, theme, coordinator.settings.svg_isometric, data.wan_info
+    )
     return svg, background
 
 
@@ -715,10 +717,13 @@ def _render_svg_variant(
     options: SvgOptions,
     theme: SvgTheme,
     is_isometric: bool,
+    wan_info: WanInfo | None = None,
 ) -> str:
     if is_isometric:
-        return render_svg_isometric(edges, node_types=node_types, options=options, theme=theme)
-    return render_svg(edges, node_types=node_types, options=options, theme=theme)
+        return render_svg_isometric(
+            edges, node_types=node_types, options=options, theme=theme, wan_info=wan_info
+        )
+    return render_svg(edges, node_types=node_types, options=options, theme=theme, wan_info=wan_info)
 
 
 def _valid_edge_payload(edge: object) -> bool:

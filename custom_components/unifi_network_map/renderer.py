@@ -98,7 +98,7 @@ def _render_map(config: Config, settings: RenderSettings) -> UniFiNetworkMapData
     networks = _load_networks(config, settings)
     payload = _build_payload(edges, node_types, gateways, clients, devices, all_clients, networks)
     LOGGER.debug("renderer completed nodes=%d svg_bytes=%d", len(node_types), len(svg))
-    return UniFiNetworkMapData(svg=svg, payload=payload)
+    return UniFiNetworkMapData(svg=svg, payload=payload, wan_info=wan_info)
 
 
 def _load_devices(config: Config, settings: RenderSettings) -> list[Device]:
@@ -303,7 +303,23 @@ def _extract_wan_info(devices: list[Device], settings: RenderSettings) -> WanInf
         return None
     gateway = _find_gateway_device(devices)
     if gateway is None:
+        LOGGER.debug("renderer wan_info_skipped reason=no_gateway_found")
         return None
+    _log_gateway_lookup(gateway)
+    return _query_wan_info(gateway, settings)
+
+
+def _log_gateway_lookup(gateway: Device) -> None:
+    port_count = len(gateway.port_table) if gateway.port_table else 0
+    LOGGER.debug(
+        "renderer wan_info_lookup gateway=%s type=%s ports=%d",
+        gateway.name,
+        getattr(gateway, "type", ""),
+        port_count,
+    )
+
+
+def _query_wan_info(gateway: Device, settings: RenderSettings) -> WanInfo | None:
     wan_info = extract_wan_info(
         gateway,
         wan1_label=settings.wan_label or None,
@@ -320,6 +336,7 @@ def _extract_wan_info(devices: list[Device], settings: RenderSettings) -> WanInf
             wan_info.wan2 is not None,
         )
         return wan_info
+    LOGGER.debug("renderer wan_info_empty gateway=%s", gateway.name)
     return None
 
 
