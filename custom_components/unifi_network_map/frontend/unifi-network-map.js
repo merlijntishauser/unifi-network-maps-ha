@@ -6082,6 +6082,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._applyCardHeight(card);
     card.innerHTML = sanitizeHtml(body);
     this.replaceChildren(card);
+    invalidateAnnotationCache(this._annotationCache);
   }
   _renderMissingConfig(theme, svgTheme) {
     this._setCardBody(
@@ -6235,7 +6236,6 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       this._svgContent = result.data.svg ?? "";
       this._themeBackground = result.data.background ?? void 0;
       this._error = void 0;
-      invalidateAnnotationCache(this._annotationCache);
     }
     this._lastSvgUrl = url;
     this._loading = false;
@@ -6278,7 +6278,6 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       this._error = `Failed to load payload (${result.error})`;
     } else if ("data" in result) {
       this._payload = result.data;
-      invalidateAnnotationCache(this._annotationCache);
     }
     this._lastDataUrl = url;
     this._dataLoading = false;

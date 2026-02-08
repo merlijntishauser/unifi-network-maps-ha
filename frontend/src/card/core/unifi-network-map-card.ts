@@ -364,6 +364,8 @@ export class UnifiNetworkMapCard extends HTMLElement {
     this._applyCardHeight(card);
     card.innerHTML = sanitizeHtml(body);
     this.replaceChildren(card);
+    // DOM was rebuilt -- annotations from the previous tree are gone
+    invalidateAnnotationCache(this._annotationCache);
   }
 
   private _renderMissingConfig(theme: string, svgTheme: string): void {
@@ -539,8 +541,6 @@ export class UnifiNetworkMapCard extends HTMLElement {
       this._svgContent = result.data.svg ?? "";
       this._themeBackground = result.data.background ?? undefined;
       this._error = undefined;
-      // Invalidate annotation cache when new SVG content is loaded
-      invalidateAnnotationCache(this._annotationCache);
     }
     this._lastSvgUrl = url;
     this._loading = false;
@@ -593,8 +593,6 @@ export class UnifiNetworkMapCard extends HTMLElement {
       this._error = `Failed to load payload (${result.error})`;
     } else if ("data" in result) {
       this._payload = result.data;
-      // Invalidate annotation cache when payload changes (includes node_types and edges)
-      invalidateAnnotationCache(this._annotationCache);
     }
     this._lastDataUrl = url;
     this._dataLoading = false;
