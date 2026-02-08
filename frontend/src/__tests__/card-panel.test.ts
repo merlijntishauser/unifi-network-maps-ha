@@ -155,7 +155,7 @@ describe("unifi-network-map card panel", () => {
     expect(element.innerHTML).toContain("Live Status");
   });
 
-  it("renders overview device breakdown including other types", () => {
+  it("renders overview device breakdown including client subtypes", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     const card = element as unknown as { _svgContent?: string; _payload?: unknown };
     card._svgContent = makeSvg("Unknown");
@@ -165,7 +165,7 @@ describe("unifi-network-map card panel", () => {
       node_status: {},
     };
     element.setConfig({ svg_url: "/map.svg" });
-    expect(element.innerHTML).toContain("Other");
+    expect(element.innerHTML).toContain("Clients");
   });
 
   it("clears selection when back button is clicked", () => {

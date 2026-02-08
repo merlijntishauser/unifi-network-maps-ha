@@ -6356,10 +6356,18 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     const labels = this._getFilterLabels();
     const filterBar = this._getFilterBar(container);
     for (const type of this._filterDeviceTypes()) {
+      const count = counts[type] ?? 0;
+      const existing = filterBar.querySelector(
+        `button[data-filter-type="${type}"]`
+      );
+      if (count === 0) {
+        existing?.remove();
+        continue;
+      }
       const button = this._getFilterButton(filterBar, type);
       this._updateFilterButton(button, {
         type,
-        count: counts[type] ?? 0,
+        count,
         theme,
         label: labels[type]
       });

@@ -680,10 +680,18 @@ export class UnifiNetworkMapCard extends HTMLElement {
     const filterBar = this._getFilterBar(container);
 
     for (const type of this._filterDeviceTypes()) {
+      const count = counts[type] ?? 0;
+      const existing = filterBar.querySelector(
+        `button[data-filter-type="${type}"]`,
+      ) as HTMLButtonElement | null;
+      if (count === 0) {
+        existing?.remove();
+        continue;
+      }
       const button = this._getFilterButton(filterBar, type);
       this._updateFilterButton(button, {
         type,
-        count: counts[type] ?? 0,
+        count,
         theme,
         label: labels[type],
       });
