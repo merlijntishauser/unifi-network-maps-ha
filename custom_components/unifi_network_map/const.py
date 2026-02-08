@@ -79,6 +79,7 @@ UNIFI_MODEL_NAMES: dict[str, str] = {
     "UCGUltra": "UniFi Cloud Gateway Ultra",
     "UCG-Max": "UniFi Cloud Gateway Max",
     "UCGMax": "UniFi Cloud Gateway Max",
+    "UDMA6A8": "UniFi Cloud Gateway Fiber",
     # Switches - Standard
     "US-8": "UniFi Switch 8",
     "US-8-60W": "UniFi Switch 8 60W",
