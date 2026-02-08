@@ -34,6 +34,11 @@ class RenderSettings:
     svg_theme: str | None = None
     icon_set: str | None = None
     show_wan: bool = True
+    wan_label: str = ""
+    wan_speed: str = ""
+    wan2_label: str = ""
+    wan2_speed: str = ""
+    wan2_disabled: str = "auto"
 
 
 class ClientDict(TypedDict, total=False):
@@ -296,6 +301,30 @@ def _extract_wan_info(devices: list[Device], settings: RenderSettings) -> WanInf
     """Extract WAN info from the gateway device if show_wan is enabled."""
     if not settings.show_wan:
         return None
+    gateway = _find_gateway_device(devices)
+    if gateway is None:
+        return None
+    wan_info = extract_wan_info(
+        gateway,
+        wan1_label=settings.wan_label or None,
+        wan1_isp_speed=settings.wan_speed or None,
+        wan2_label=settings.wan2_label or None,
+        wan2_isp_speed=settings.wan2_speed or None,
+        wan2_disabled=settings.wan2_disabled,
+    )
+    if wan_info and (wan_info.wan1 or wan_info.wan2):
+        LOGGER.debug(
+            "renderer wan_info_extracted gateway=%s wan1=%s wan2=%s",
+            gateway.name,
+            wan_info.wan1 is not None,
+            wan_info.wan2 is not None,
+        )
+        return wan_info
+    return None
+
+
+def _find_gateway_device(devices: list[Device]) -> Device | None:
+    """Find the first gateway device by type grouping."""
     groups = group_devices_by_type(devices)
     gateway_names = groups.get("gateway", [])
     if not gateway_names:
@@ -303,16 +332,7 @@ def _extract_wan_info(devices: list[Device], settings: RenderSettings) -> WanInf
     gateway_name = gateway_names[0]
     for device in devices:
         if device.name == gateway_name:
-            wan_info = extract_wan_info(device)
-            if wan_info and (wan_info.wan1 or wan_info.wan2):
-                LOGGER.debug(
-                    "renderer wan_info_extracted gateway=%s wan1=%s wan2=%s",
-                    gateway_name,
-                    wan_info.wan1 is not None,
-                    wan_info.wan2 is not None,
-                )
-                return wan_info
-            break
+            return device
     return None
 
 

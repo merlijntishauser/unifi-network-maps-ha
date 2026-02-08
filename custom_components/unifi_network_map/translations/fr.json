@@ -67,7 +67,13 @@
           "request_timeout_seconds": "Délai d'attente (secondes)",
           "payload_cache_ttl": "TTL du cache de payload (secondes)",
           "use_cache": "Mettre en cache la carte rendue",
-          "tracked_clients": "MACs des clients suivis"
+          "tracked_clients": "MACs des clients suivis",
+          "show_wan": "Afficher le WAN en amont",
+          "wan_label": "Nom du FAI WAN",
+          "wan_speed": "Vitesse du FAI WAN",
+          "wan2_label": "Nom du FAI WAN2",
+          "wan2_speed": "Vitesse du FAI WAN2",
+          "wan2_disabled": "Statut WAN2"
         },
         "data_description": {
           "scan_interval": "Fréquence de rafraîchissement des données depuis le contrôleur UniFi.",
@@ -81,7 +87,13 @@
           "request_timeout_seconds": "Interrompt les appels à l'API UniFi après ce nombre de secondes.",
           "payload_cache_ttl": "Met en cache les données de payload enrichies pendant ce nombre de secondes. Définir à 0 pour désactiver.",
           "use_cache": "Réutilise le dernier rendu entre les sondages.",
-          "tracked_clients": "Adresses MAC des clients pour créer des capteurs de présence. Une par ligne, ex. aa:bb:cc:dd:ee:ff"
+          "tracked_clients": "Adresses MAC des clients pour créer des capteurs de présence. Une par ligne, ex. aa:bb:cc:dd:ee:ff",
+          "show_wan": "Affiche l'icône globe et les infos d'interface WAN au-dessus de la passerelle.",
+          "wan_label": "Label personnalisé pour WAN1 (ex. Free Fibre). Laissez vide pour la détection automatique.",
+          "wan_speed": "Vitesse FAI personnalisée pour WAN1 (ex. 1 Gbps). Laissez vide pour la détection automatique.",
+          "wan2_label": "Label personnalisé pour WAN2. Laissez vide pour la détection automatique.",
+          "wan2_speed": "Vitesse FAI personnalisée pour WAN2. Laissez vide pour la détection automatique.",
+          "wan2_disabled": "Détecte automatiquement depuis le contrôleur. Définir sur Désactivé pour masquer WAN2."
         }
       }
     },

@@ -65,7 +65,13 @@
           "request_timeout_seconds": "Request timeout (seconds)",
           "payload_cache_ttl": "Payload cache TTL (seconds)",
           "use_cache": "Cache rendered map",
-          "tracked_clients": "Tracked client MACs"
+          "tracked_clients": "Tracked client MACs",
+          "show_wan": "Show WAN upstream",
+          "wan_label": "WAN ISP name",
+          "wan_speed": "WAN ISP speed",
+          "wan2_label": "WAN2 ISP name",
+          "wan2_speed": "WAN2 ISP speed",
+          "wan2_disabled": "WAN2 status"
         },
         "data_description": {
           "scan_interval": "How often to refresh data from the UniFi controller.",
@@ -79,7 +85,13 @@
           "request_timeout_seconds": "Abort UniFi API calls after this many seconds.",
           "payload_cache_ttl": "Cache enriched payload data for this many seconds. Set to 0 to disable.",
           "use_cache": "Re-use the last render between polls.",
-          "tracked_clients": "MAC addresses of clients to create presence sensors for. One per line, e.g. aa:bb:cc:dd:ee:ff"
+          "tracked_clients": "MAC addresses of clients to create presence sensors for. One per line, e.g. aa:bb:cc:dd:ee:ff",
+          "show_wan": "Display globe icon and WAN interface info above the gateway.",
+          "wan_label": "Custom label for WAN1 (e.g. KPN Fiber). Leave blank to auto-detect.",
+          "wan_speed": "Custom ISP speed for WAN1 (e.g. 1 Gbps). Leave blank to auto-detect.",
+          "wan2_label": "Custom label for WAN2. Leave blank to auto-detect.",
+          "wan2_speed": "Custom ISP speed for WAN2. Leave blank to auto-detect.",
+          "wan2_disabled": "Auto detects from controller. Set to Disabled to hide WAN2."
         }
       }
     },

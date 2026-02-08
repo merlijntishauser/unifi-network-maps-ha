@@ -67,7 +67,13 @@
           "request_timeout_seconds": "Tiempo de espera de solicitud (segundos)",
           "payload_cache_ttl": "TTL de caché de payload (segundos)",
           "use_cache": "Guardar en caché el mapa renderizado",
-          "tracked_clients": "MACs de clientes rastreados"
+          "tracked_clients": "MACs de clientes rastreados",
+          "show_wan": "Mostrar WAN upstream",
+          "wan_label": "Nombre del ISP WAN",
+          "wan_speed": "Velocidad del ISP WAN",
+          "wan2_label": "Nombre del ISP WAN2",
+          "wan2_speed": "Velocidad del ISP WAN2",
+          "wan2_disabled": "Estado de WAN2"
         },
         "data_description": {
           "scan_interval": "Frecuencia de actualización de datos desde el controlador UniFi.",
@@ -81,7 +87,13 @@
           "request_timeout_seconds": "Interrumpe las llamadas a la API de UniFi después de este número de segundos.",
           "payload_cache_ttl": "Almacena en caché los datos de payload enriquecidos durante este número de segundos. Establece en 0 para desactivar.",
           "use_cache": "Reutiliza el último renderizado entre actualizaciones.",
-          "tracked_clients": "Direcciones MAC de clientes para crear sensores de presencia. Una por línea, ej. aa:bb:cc:dd:ee:ff"
+          "tracked_clients": "Direcciones MAC de clientes para crear sensores de presencia. Una por línea, ej. aa:bb:cc:dd:ee:ff",
+          "show_wan": "Muestra el icono de globo e info de interfaz WAN sobre la puerta de enlace.",
+          "wan_label": "Etiqueta personalizada para WAN1 (ej. Movistar Fibra). Deja en blanco para detección automática.",
+          "wan_speed": "Velocidad ISP personalizada para WAN1 (ej. 1 Gbps). Deja en blanco para detección automática.",
+          "wan2_label": "Etiqueta personalizada para WAN2. Deja en blanco para detección automática.",
+          "wan2_speed": "Velocidad ISP personalizada para WAN2. Deja en blanco para detección automática.",
+          "wan2_disabled": "Detecta automáticamente desde el controlador. Establece en Desactivado para ocultar WAN2."
         }
       }
     },

@@ -18,6 +18,7 @@ from .const import (
     CONF_PAYLOAD_CACHE_TTL,
     CONF_REQUEST_TIMEOUT_SECONDS,
     CONF_SCAN_INTERVAL,
+    CONF_SHOW_WAN,
     CONF_SITE,
     CONF_SVG_HEIGHT,
     CONF_SVG_ISOMETRIC,
@@ -25,6 +26,11 @@ from .const import (
     CONF_TRACKED_CLIENTS,
     CONF_USE_CACHE,
     CONF_VERIFY_SSL,
+    CONF_WAN2_DISABLED,
+    CONF_WAN2_LABEL,
+    CONF_WAN2_SPEED,
+    CONF_WAN_LABEL,
+    CONF_WAN_SPEED,
     DEFAULT_CLIENT_SCOPE,
     DEFAULT_INCLUDE_CLIENTS,
     DEFAULT_INCLUDE_PORTS,
@@ -32,11 +38,17 @@ from .const import (
     DEFAULT_PAYLOAD_CACHE_TTL_SECONDS,
     DEFAULT_REQUEST_TIMEOUT_SECONDS,
     DEFAULT_SCAN_INTERVAL_MINUTES,
+    DEFAULT_SHOW_WAN,
     DEFAULT_SITE,
     DEFAULT_SVG_ISOMETRIC,
     DEFAULT_TRACKED_CLIENTS,
     DEFAULT_USE_CACHE,
     DEFAULT_VERIFY_SSL,
+    DEFAULT_WAN2_DISABLED,
+    DEFAULT_WAN2_LABEL,
+    DEFAULT_WAN2_SPEED,
+    DEFAULT_WAN_LABEL,
+    DEFAULT_WAN_SPEED,
     DOMAIN,
     LOGGER,
     MAX_PAYLOAD_CACHE_TTL_SECONDS,
@@ -182,6 +194,12 @@ def _options_schema_fields(options: dict[str, Any]) -> dict[vol.Marker, object]:
         opt(CONF_SVG_ISOMETRIC, DEFAULT_SVG_ISOMETRIC): _boolean_selector(),
         opt(CONF_USE_CACHE, DEFAULT_USE_CACHE): _boolean_selector(),
         opt(CONF_TRACKED_CLIENTS, DEFAULT_TRACKED_CLIENTS): _tracked_clients_selector(),
+        opt(CONF_SHOW_WAN, DEFAULT_SHOW_WAN): _boolean_selector(),
+        opt(CONF_WAN_LABEL, DEFAULT_WAN_LABEL): _text_selector(),
+        opt(CONF_WAN_SPEED, DEFAULT_WAN_SPEED): _text_selector(),
+        opt(CONF_WAN2_LABEL, DEFAULT_WAN2_LABEL): _text_selector(),
+        opt(CONF_WAN2_SPEED, DEFAULT_WAN2_SPEED): _text_selector(),
+        opt(CONF_WAN2_DISABLED, DEFAULT_WAN2_DISABLED): _wan2_disabled_selector(),
     }
 
 
@@ -232,6 +250,23 @@ def _client_scope_selector() -> selector.SelectSelector:
                 selector.SelectOptionDict(value="wired", label="Wired"),
                 selector.SelectOptionDict(value="wireless", label="Wireless"),
                 selector.SelectOptionDict(value="all", label="All"),
+            ],
+            mode=selector.SelectSelectorMode.DROPDOWN,
+        )
+    )
+
+
+def _text_selector() -> selector.TextSelector:
+    return selector.TextSelector()
+
+
+def _wan2_disabled_selector() -> selector.SelectSelector:
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=[
+                selector.SelectOptionDict(value="auto", label="Auto"),
+                selector.SelectOptionDict(value="false", label="Enabled"),
+                selector.SelectOptionDict(value="true", label="Disabled"),
             ],
             mode=selector.SelectSelectorMode.DROPDOWN,
         )

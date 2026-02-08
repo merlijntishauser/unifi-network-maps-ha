@@ -5,10 +5,16 @@ from typing import Callable, cast
 
 from custom_components.unifi_network_map import config_flow as config_flow_module
 from custom_components.unifi_network_map.const import (
+    CONF_SHOW_WAN,
     CONF_SITE,
     CONF_SVG_HEIGHT,
     CONF_SVG_WIDTH,
     CONF_VERIFY_SSL,
+    CONF_WAN2_DISABLED,
+    CONF_WAN2_LABEL,
+    CONF_WAN2_SPEED,
+    CONF_WAN_LABEL,
+    CONF_WAN_SPEED,
     DEFAULT_SITE,
     DEFAULT_VERIFY_SSL,
 )
@@ -345,3 +351,62 @@ def test_step_user_rejects_empty_url(monkeypatch):
 
     assert result["type"] == "form"
     assert result["errors"]["base"] == "invalid_url"
+
+
+def test_options_flow_passes_wan_fields():
+    flow = config_flow_module.UniFiNetworkMapOptionsFlow(FakeEntry())
+    user_input = {
+        "include_ports": True,
+        CONF_SHOW_WAN: True,
+        CONF_WAN_LABEL: "KPN Fiber",
+        CONF_WAN_SPEED: "1 Gbps",
+        CONF_WAN2_LABEL: "Backup",
+        CONF_WAN2_SPEED: "100 Mbps",
+        CONF_WAN2_DISABLED: "auto",
+    }
+
+    result = _run(flow.async_step_init(user_input))
+
+    assert result["type"] == "create_entry"
+    assert result["data"][CONF_SHOW_WAN] is True
+    assert result["data"][CONF_WAN_LABEL] == "KPN Fiber"
+    assert result["data"][CONF_WAN_SPEED] == "1 Gbps"
+    assert result["data"][CONF_WAN2_LABEL] == "Backup"
+    assert result["data"][CONF_WAN2_SPEED] == "100 Mbps"
+    assert result["data"][CONF_WAN2_DISABLED] == "auto"
+
+
+def test_options_schema_includes_wan_fields() -> None:
+    options_schema_fields = cast(
+        Callable[[dict[str, object]], dict[str, object]],
+        getattr(config_flow_module, "_options_schema_fields"),
+    )
+    fields = options_schema_fields({})
+
+    field_names = {getattr(marker, "schema", None) for marker in fields.keys()}
+    assert CONF_SHOW_WAN in field_names
+    assert CONF_WAN_LABEL in field_names
+    assert CONF_WAN_SPEED in field_names
+    assert CONF_WAN2_LABEL in field_names
+    assert CONF_WAN2_SPEED in field_names
+    assert CONF_WAN2_DISABLED in field_names
+
+
+def test_text_selector_returns_instance() -> None:
+    text_selector = cast(
+        Callable[[], config_flow_module.selector.TextSelector],
+        getattr(config_flow_module, "_text_selector"),
+    )
+    selector_instance = text_selector()
+
+    assert isinstance(selector_instance, config_flow_module.selector.TextSelector)
+
+
+def test_wan2_disabled_selector_returns_instance() -> None:
+    wan2_disabled_selector = cast(
+        Callable[[], config_flow_module.selector.SelectSelector],
+        getattr(config_flow_module, "_wan2_disabled_selector"),
+    )
+    selector_instance = wan2_disabled_selector()
+
+    assert isinstance(selector_instance, config_flow_module.selector.SelectSelector)

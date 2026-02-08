@@ -30,6 +30,7 @@ from custom_components.unifi_network_map.renderer import (
     _client_vlan,
     _client_vlan_from_network_name,
     _edge_to_dict,
+    _extract_wan_info,
     _is_default_vlan_name,
     _network_name,
     _network_vlan_id,
@@ -749,3 +750,102 @@ class TestRendererErrorHandling:
             )
             with pytest.raises(UniFiNetworkMapError):
                 renderer.render(config, settings)
+
+
+class TestExtractWanInfo:
+    """Tests for _extract_wan_info function."""
+
+    def test_passes_wan_params_to_extract_wan_info(self) -> None:
+        gateway = MockDevice(name="Gateway")
+        devices = [gateway]
+        settings = RenderSettings(
+            include_ports=True,
+            include_clients=False,
+            client_scope="wired",
+            only_unifi=False,
+            svg_isometric=False,
+            svg_width=None,
+            svg_height=None,
+            use_cache=False,
+            show_wan=True,
+            wan_label="KPN Fiber",
+            wan_speed="1 Gbps",
+            wan2_label="Backup ISP",
+            wan2_speed="100 Mbps",
+            wan2_disabled="true",
+        )
+        with (
+            patch(
+                "custom_components.unifi_network_map.renderer.group_devices_by_type",
+                return_value={"gateway": ["Gateway"]},
+            ),
+            patch(
+                "custom_components.unifi_network_map.renderer.extract_wan_info",
+            ) as mock_extract,
+        ):
+            mock_extract.return_value = None
+            _extract_wan_info(devices, settings)
+
+            mock_extract.assert_called_once_with(
+                gateway,
+                wan1_label="KPN Fiber",
+                wan1_isp_speed="1 Gbps",
+                wan2_label="Backup ISP",
+                wan2_isp_speed="100 Mbps",
+                wan2_disabled="true",
+            )
+
+    def test_empty_labels_passed_as_none(self) -> None:
+        gateway = MockDevice(name="Gateway")
+        devices = [gateway]
+        settings = RenderSettings(
+            include_ports=True,
+            include_clients=False,
+            client_scope="wired",
+            only_unifi=False,
+            svg_isometric=False,
+            svg_width=None,
+            svg_height=None,
+            use_cache=False,
+            show_wan=True,
+            wan_label="",
+            wan_speed="",
+            wan2_label="",
+            wan2_speed="",
+            wan2_disabled="auto",
+        )
+        with (
+            patch(
+                "custom_components.unifi_network_map.renderer.group_devices_by_type",
+                return_value={"gateway": ["Gateway"]},
+            ),
+            patch(
+                "custom_components.unifi_network_map.renderer.extract_wan_info",
+            ) as mock_extract,
+        ):
+            mock_extract.return_value = None
+            _extract_wan_info(devices, settings)
+
+            mock_extract.assert_called_once_with(
+                gateway,
+                wan1_label=None,
+                wan1_isp_speed=None,
+                wan2_label=None,
+                wan2_isp_speed=None,
+                wan2_disabled="auto",
+            )
+
+    def test_returns_none_when_show_wan_disabled(self) -> None:
+        settings = RenderSettings(
+            include_ports=True,
+            include_clients=False,
+            client_scope="wired",
+            only_unifi=False,
+            svg_isometric=False,
+            svg_width=None,
+            svg_height=None,
+            use_cache=False,
+            show_wan=False,
+        )
+        result = _extract_wan_info([], settings)
+        assert result is None

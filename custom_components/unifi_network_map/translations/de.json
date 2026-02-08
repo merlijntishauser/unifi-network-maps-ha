@@ -67,7 +67,13 @@
           "request_timeout_seconds": "Anfrage-Timeout (Sekunden)",
           "payload_cache_ttl": "Payload-Cache-TTL (Sekunden)",
           "use_cache": "Gerenderte Karte cachen",
-          "tracked_clients": "Verfolgte Client-MACs"
+          "tracked_clients": "Verfolgte Client-MACs",
+          "show_wan": "WAN-Upstream anzeigen",
+          "wan_label": "WAN ISP-Name",
+          "wan_speed": "WAN ISP-Geschwindigkeit",
+          "wan2_label": "WAN2 ISP-Name",
+          "wan2_speed": "WAN2 ISP-Geschwindigkeit",
+          "wan2_disabled": "WAN2-Status"
         },
         "data_description": {
           "scan_interval": "Wie oft Daten vom UniFi-Controller abgerufen werden.",
@@ -81,7 +87,13 @@
           "request_timeout_seconds": "UniFi-API-Aufrufe nach dieser Anzahl Sekunden abbrechen.",
           "payload_cache_ttl": "Angereicherte Payload-Daten für diese Anzahl Sekunden cachen. Auf 0 setzen zum Deaktivieren.",
           "use_cache": "Letztes Rendering zwischen Abfragen wiederverwenden.",
-          "tracked_clients": "MAC-Adressen von Clients für Präsenzsensoren. Eine pro Zeile, z.B. aa:bb:cc:dd:ee:ff"
+          "tracked_clients": "MAC-Adressen von Clients für Präsenzsensoren. Eine pro Zeile, z.B. aa:bb:cc:dd:ee:ff",
+          "show_wan": "Zeigt Globus-Symbol und WAN-Schnittstelleninfo über dem Gateway an.",
+          "wan_label": "Benutzerdefiniertes Label für WAN1 (z.B. Telekom Glasfaser). Leer lassen für automatische Erkennung.",
+          "wan_speed": "Benutzerdefinierte ISP-Geschwindigkeit für WAN1 (z.B. 1 Gbps). Leer lassen für automatische Erkennung.",
+          "wan2_label": "Benutzerdefiniertes Label für WAN2. Leer lassen für automatische Erkennung.",
+          "wan2_speed": "Benutzerdefinierte ISP-Geschwindigkeit für WAN2. Leer lassen für automatische Erkennung.",
+          "wan2_disabled": "Erkennt automatisch vom Controller. Auf Deaktiviert setzen, um WAN2 auszublenden."
         }
       }
     },

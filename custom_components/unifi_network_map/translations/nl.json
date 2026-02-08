@@ -67,7 +67,13 @@
           "request_timeout_seconds": "Time-out verzoek (seconden)",
           "payload_cache_ttl": "Payload-cache-TTL (seconden)",
           "use_cache": "Gerenderde kaart cachen",
-          "tracked_clients": "Gevolgde client-MACs"
+          "tracked_clients": "Gevolgde client-MACs",
+          "show_wan": "WAN-upstream tonen",
+          "wan_label": "WAN ISP-naam",
+          "wan_speed": "WAN ISP-snelheid",
+          "wan2_label": "WAN2 ISP-naam",
+          "wan2_speed": "WAN2 ISP-snelheid",
+          "wan2_disabled": "WAN2-status"
         },
         "data_description": {
           "scan_interval": "Hoe vaak gegevens worden opgehaald van de UniFi-controller.",
@@ -81,7 +87,13 @@
           "request_timeout_seconds": "Breek UniFi API-aanroepen af na dit aantal seconden.",
           "payload_cache_ttl": "Cache verrijkte payload-gegevens gedurende dit aantal seconden. Stel in op 0 om uit te schakelen.",
           "use_cache": "Hergebruik de laatste render tussen polls.",
-          "tracked_clients": "MAC-adressen van clients voor aanwezigheidssensoren. Eén per regel, bijv. aa:bb:cc:dd:ee:ff"
+          "tracked_clients": "MAC-adressen van clients voor aanwezigheidssensoren. Eén per regel, bijv. aa:bb:cc:dd:ee:ff",
+          "show_wan": "Toon wereldbol-icoon en WAN-interface-info boven de gateway.",
+          "wan_label": "Aangepast label voor WAN1 (bijv. KPN Fiber). Laat leeg voor automatische detectie.",
+          "wan_speed": "Aangepaste ISP-snelheid voor WAN1 (bijv. 1 Gbps). Laat leeg voor automatische detectie.",
+          "wan2_label": "Aangepast label voor WAN2. Laat leeg voor automatische detectie.",
+          "wan2_speed": "Aangepaste ISP-snelheid voor WAN2. Laat leeg voor automatische detectie.",
+          "wan2_disabled": "Detecteert automatisch via de controller. Stel in op Uitgeschakeld om WAN2 te verbergen."
         }
       }
     },

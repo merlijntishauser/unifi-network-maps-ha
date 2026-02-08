@@ -25,6 +25,11 @@ from .const import (
     CONF_SVG_WIDTH,
     CONF_USE_CACHE,
     CONF_VERIFY_SSL,
+    CONF_WAN2_DISABLED,
+    CONF_WAN2_LABEL,
+    CONF_WAN2_SPEED,
+    CONF_WAN_LABEL,
+    CONF_WAN_SPEED,
     DEFAULT_CLIENT_SCOPE,
     DEFAULT_ICON_SET,
     DEFAULT_INCLUDE_CLIENTS,
@@ -36,6 +41,11 @@ from .const import (
     DEFAULT_SVG_ISOMETRIC,
     DEFAULT_SVG_THEME,
     DEFAULT_USE_CACHE,
+    DEFAULT_WAN2_DISABLED,
+    DEFAULT_WAN2_LABEL,
+    DEFAULT_WAN2_SPEED,
+    DEFAULT_WAN_LABEL,
+    DEFAULT_WAN_SPEED,
     DOMAIN,
     LOGGER,
 )
@@ -198,6 +208,11 @@ def _build_settings(entry: ConfigEntry) -> RenderSettings:
         svg_theme=options.get(CONF_SVG_THEME, DEFAULT_SVG_THEME),
         icon_set=options.get(CONF_ICON_SET, DEFAULT_ICON_SET),
         show_wan=options.get(CONF_SHOW_WAN, DEFAULT_SHOW_WAN),
+        wan_label=options.get(CONF_WAN_LABEL, DEFAULT_WAN_LABEL),
+        wan_speed=options.get(CONF_WAN_SPEED, DEFAULT_WAN_SPEED),
+        wan2_label=options.get(CONF_WAN2_LABEL, DEFAULT_WAN2_LABEL),
+        wan2_speed=options.get(CONF_WAN2_SPEED, DEFAULT_WAN2_SPEED),
+        wan2_disabled=options.get(CONF_WAN2_DISABLED, DEFAULT_WAN2_DISABLED),
     )
 
 
