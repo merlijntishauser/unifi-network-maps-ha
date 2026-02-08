@@ -6720,7 +6720,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     const tabName = tab.getAttribute("data-tab");
     if (tabName && tabName !== this._activeTab) {
       this._activeTab = tabName;
-      this._render();
+      this._updateSelectionOnly();
     }
     return true;
   }
