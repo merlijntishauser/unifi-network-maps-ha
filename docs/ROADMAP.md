@@ -56,14 +56,14 @@ Visual clustering of devices by network segment:
 - Optional visual boundaries around network segments
 - Subnet-based grouping (192.168.1.x grouped together)
 - Drag-to-collapse network segments for cleaner overview
-- **Upstream**: ✅ Layout engine support for logical grouping ([#19](https://github.com/merlijntishauser/unifi-network-maps/issues/19) - Done in v1.5.0)
+- **Upstream**: [x] Layout engine support for logical grouping ([#19](https://github.com/merlijntishauser/unifi-network-maps/issues/19) - Done in v1.5.0)
 
 ### 6.3 Edge VLAN Coloring
 Extend VLAN colors from nodes to connections:
 - Color edges based on the VLAN of the traffic/connection
 - Cross-VLAN connections shown with gradient or distinct style
 - Highlight inter-VLAN routing paths
-- **Upstream**: ✅ Edge metadata with VLAN info ([#20](https://github.com/merlijntishauser/unifi-network-maps/issues/20) - Done in v1.5.0)
+- **Upstream**: [x] Edge metadata with VLAN info ([#20](https://github.com/merlijntishauser/unifi-network-maps/issues/20) - Done in v1.5.0)
 
 ### 6.4 VLAN Details Panel
 Dedicated panel view for network segments:
