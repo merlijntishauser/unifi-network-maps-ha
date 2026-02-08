@@ -31,6 +31,7 @@ export function renderFilterBar(options: FilterBarOptions): string {
 
   const buttons = DEVICE_TYPE_ORDER.map((type) => {
     const count = counts[type] ?? 0;
+    if (count === 0) return "";
     const active = filters[type];
     const activeClass = active ? "filter-button--active" : "filter-button--inactive";
     const icon = getNodeTypeIcon(type);

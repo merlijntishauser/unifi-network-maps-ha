@@ -539,7 +539,7 @@ describe("filter bar", () => {
     expect(html).toContain('data-filter-type="switch"');
     expect(html).toContain('data-filter-type="ap"');
     expect(html).toContain('data-filter-type="client"');
-    expect(html).toContain('data-filter-type="other"');
+    expect(html).not.toContain('data-filter-type="other"'); // hidden when count=0
     expect(html).toContain("unifi-icon");
     expect(html).toContain(">1<"); // gateway count
     expect(html).toContain(">2<"); // switch count
