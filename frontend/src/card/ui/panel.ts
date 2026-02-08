@@ -8,6 +8,7 @@ import type {
 } from "../core/types";
 import type { IconName } from "./icons";
 import { getNodeIpFromPayload } from "../shared/node-utils";
+import { CLIENT_SUBTYPES } from "../interaction/filter-state";
 
 export type PanelContext = {
   payload?: MapPayload;
@@ -771,14 +772,19 @@ function renderOverviewDeviceBreakdown(counts: DeviceCounts, helpers: PanelHelpe
   `;
 }
 
+function isClientType(type: string): boolean {
+  return (CLIENT_SUBTYPES as readonly string[]).includes(type);
+}
+
 function countDevicesByType(nodes: string[], nodeTypes: Record<string, string>): DeviceCounts {
   return {
     gateways: nodes.filter((n) => nodeTypes[n] === "gateway").length,
     switches: nodes.filter((n) => nodeTypes[n] === "switch").length,
     aps: nodes.filter((n) => nodeTypes[n] === "ap").length,
-    clients: nodes.filter((n) => nodeTypes[n] === "client").length,
-    other: nodes.filter((n) => !["gateway", "switch", "ap", "client"].includes(nodeTypes[n]))
-      .length,
+    clients: nodes.filter((n) => isClientType(nodeTypes[n])).length,
+    other: nodes.filter(
+      (n) => !["gateway", "switch", "ap"].includes(nodeTypes[n]) && !isClientType(nodeTypes[n]),
+    ).length,
   };
 }
 

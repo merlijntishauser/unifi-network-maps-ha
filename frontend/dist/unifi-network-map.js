@@ -2345,6 +2345,53 @@ function getRelatedNodeIp(payload, nodeName) {
   return related.find((entity) => entity.ip)?.ip ?? null;
 }
 
+// src/card/interaction/filter-state.ts
+var CLIENT_SUBTYPES = [
+  "client",
+  "camera",
+  "tv",
+  "phone",
+  "printer",
+  "nas",
+  "speaker",
+  "game_console",
+  "iot",
+  "client_cluster"
+];
+function createFilterState() {
+  return {
+    gateway: true,
+    switch: true,
+    ap: true,
+    client: true,
+    other: true
+  };
+}
+function toggleFilter(state, type) {
+  return {
+    ...state,
+    [type]: !state[type]
+  };
+}
+function enableFilter(state, type) {
+  if (state[type]) {
+    return state;
+  }
+  return {
+    ...state,
+    [type]: true
+  };
+}
+function normalizeDeviceType(type) {
+  if (type === "gateway" || type === "switch" || type === "ap") {
+    return type;
+  }
+  if (CLIENT_SUBTYPES.includes(type)) {
+    return "client";
+  }
+  return "other";
+}
+
 // src/card/ui/panel.ts
 function renderPanelContent(context, helpers) {
   if (!context.selectedNode) {
@@ -2929,13 +2976,18 @@ function renderOverviewDeviceBreakdown(counts, helpers) {
     </div>
   `;
 }
+function isClientType(type) {
+  return CLIENT_SUBTYPES.includes(type);
+}
 function countDevicesByType(nodes, nodeTypes) {
   return {
     gateways: nodes.filter((n) => nodeTypes[n] === "gateway").length,
     switches: nodes.filter((n) => nodeTypes[n] === "switch").length,
     aps: nodes.filter((n) => nodeTypes[n] === "ap").length,
-    clients: nodes.filter((n) => nodeTypes[n] === "client").length,
-    other: nodes.filter((n) => !["gateway", "switch", "ap", "client"].includes(nodeTypes[n])).length
+    clients: nodes.filter((n) => isClientType(nodeTypes[n])).length,
+    other: nodes.filter(
+      (n) => !["gateway", "switch", "ap"].includes(nodeTypes[n]) && !isClientType(nodeTypes[n])
+    ).length
   };
 }
 function countNodeStatus(nodeStatus) {
@@ -3988,53 +4040,6 @@ function handleMapClick(params) {
   }
   params.state.selectedNode = label;
   return label;
-}
-
-// src/card/interaction/filter-state.ts
-var CLIENT_SUBTYPES = [
-  "client",
-  "camera",
-  "tv",
-  "phone",
-  "printer",
-  "nas",
-  "speaker",
-  "game_console",
-  "iot",
-  "client_cluster"
-];
-function createFilterState() {
-  return {
-    gateway: true,
-    switch: true,
-    ap: true,
-    client: true,
-    other: true
-  };
-}
-function toggleFilter(state, type) {
-  return {
-    ...state,
-    [type]: !state[type]
-  };
-}
-function enableFilter(state, type) {
-  if (state[type]) {
-    return state;
-  }
-  return {
-    ...state,
-    [type]: true
-  };
-}
-function normalizeDeviceType(type) {
-  if (type === "gateway" || type === "switch" || type === "ap") {
-    return type;
-  }
-  if (CLIENT_SUBTYPES.includes(type)) {
-    return "client";
-  }
-  return "other";
 }
 
 // src/card/ui/filter-bar.ts
