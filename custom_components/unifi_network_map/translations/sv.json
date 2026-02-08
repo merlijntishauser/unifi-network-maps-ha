@@ -1,0 +1,102 @@
+{
+  "title": "UniFi Network Map",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Anslut till UniFi",
+        "description": "Ange dina UniFi-kontrolleruppgifter.",
+        "data": {
+          "url": "Kontroller-URL",
+          "username": "Användarnamn",
+          "password": "Lösenord",
+          "site": "Plats",
+          "verify_ssl": "Verifiera SSL"
+        },
+        "data_description": {
+          "url": "Inkludera schemat (http eller https) och port vid behov."
+        }
+      },
+      "init": {
+        "title": "Kartalternativ",
+        "description": "Välj vad som visas på kartan och hur den renderas.",
+        "data": {
+          "include_ports": "Visa portetiketter",
+          "include_clients": "Visa klienter",
+          "client_scope": "Klientomfattning",
+          "only_unifi": "Endast UniFi-enheter",
+          "svg_isometric": "Isometrisk layout",
+          "svg_width": "SVG-bredd (px)",
+          "svg_height": "SVG-höjd (px)",
+          "request_timeout_seconds": "Timeout för förfrågan (sekunder)",
+          "use_cache": "Cachelagra renderad karta"
+        },
+        "data_description": {
+          "include_ports": "Lägger till switchportetiketter på länkar.",
+          "include_clients": "Inkluderar klientenheter i topologin.",
+          "client_scope": "Välj tråd, trådlösa eller alla klienter.",
+          "only_unifi": "Dölj enheter som inte är UniFi i topologin.",
+          "svg_isometric": "Rendera en 3D-liknande vy.",
+          "svg_width": "Lämna tomt för automatisk storlek.",
+          "svg_height": "Lämna tomt för automatisk storlek.",
+          "request_timeout_seconds": "Avbryt UniFi API-anrop efter detta antal sekunder.",
+          "use_cache": "Återanvänd senaste renderingen mellan pollningar."
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "Ange en giltig kontroller-URL inklusive http eller https.",
+      "url_has_credentials": "Inkludera inte användarnamn eller lösenord i URL:en. Använd de separata fälten nedan."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Kartalternativ",
+        "description": "Välj vad som visas på kartan och hur den renderas.",
+        "data": {
+          "scan_interval": "Uppdateringsintervall (minuter)",
+          "include_ports": "Visa portetiketter",
+          "include_clients": "Visa klienter",
+          "client_scope": "Klientomfattning",
+          "only_unifi": "Endast UniFi-enheter",
+          "svg_isometric": "Isometrisk layout",
+          "svg_width": "SVG-bredd (px)",
+          "svg_height": "SVG-höjd (px)",
+          "request_timeout_seconds": "Timeout för förfrågan (sekunder)",
+          "payload_cache_ttl": "Payload-cache-TTL (sekunder)",
+          "use_cache": "Cachelagra renderad karta",
+          "tracked_clients": "Spårade klient-MAC-adresser",
+          "show_wan": "Visa WAN-uppström",
+          "wan_label": "WAN ISP-namn",
+          "wan_speed": "WAN ISP-hastighet",
+          "wan2_label": "WAN2 ISP-namn",
+          "wan2_speed": "WAN2 ISP-hastighet",
+          "wan2_disabled": "WAN2-status"
+        },
+        "data_description": {
+          "scan_interval": "Hur ofta data hämtas från UniFi-kontrollern.",
+          "include_ports": "Lägger till switchportetiketter på länkar.",
+          "include_clients": "Inkluderar klientenheter i topologin.",
+          "client_scope": "Välj tråd, trådlösa eller alla klienter.",
+          "only_unifi": "Dölj enheter som inte är UniFi i topologin.",
+          "svg_isometric": "Rendera en 3D-liknande vy.",
+          "svg_width": "Lämna tomt för automatisk storlek.",
+          "svg_height": "Lämna tomt för automatisk storlek.",
+          "request_timeout_seconds": "Avbryt UniFi API-anrop efter detta antal sekunder.",
+          "payload_cache_ttl": "Cachelagra berikad payload-data under detta antal sekunder. Sätt till 0 för att inaktivera.",
+          "use_cache": "Återanvänd senaste renderingen mellan pollningar.",
+          "tracked_clients": "MAC-adresser för klienter att skapa närvarosensorer för. En per rad, t.ex. aa:bb:cc:dd:ee:ff",
+          "show_wan": "Visa globikon och WAN-gränssnittsinformation ovanför gatewayen.",
+          "wan_label": "Anpassad etikett för WAN1 (t.ex. KPN Fiber). Lämna tomt för automatisk identifiering.",
+          "wan_speed": "Anpassad ISP-hastighet för WAN1 (t.ex. 1 Gbps). Lämna tomt för automatisk identifiering.",
+          "wan2_label": "Anpassad etikett för WAN2. Lämna tomt för automatisk identifiering.",
+          "wan2_speed": "Anpassad ISP-hastighet för WAN2. Lämna tomt för automatisk identifiering.",
+          "wan2_disabled": "Identifieras automatiskt från kontrollern. Sätt till Inaktiverad för att dölja WAN2."
+        }
+      }
+    },
+    "error": {
+      "expected_int": "Ange ett heltal i pixlar eller lämna fältet tomt."
+    }
+  }
+}

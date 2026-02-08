@@ -1,0 +1,102 @@
+{
+  "title": "UniFi-verkkokartta",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Yhdistä UniFi-ohjaimeen",
+        "description": "Syötä UniFi-ohjaimen tiedot.",
+        "data": {
+          "url": "Ohjaimen URL",
+          "username": "Käyttäjänimi",
+          "password": "Salasana",
+          "site": "Sivusto",
+          "verify_ssl": "Vahvista SSL"
+        },
+        "data_description": {
+          "url": "Sisällytä protokolla (http tai https) ja portti tarvittaessa."
+        }
+      },
+      "init": {
+        "title": "Kartta-asetukset",
+        "description": "Valitse mitä kartalla näkyy ja miten se piirretään.",
+        "data": {
+          "include_ports": "Näytä porttien nimet",
+          "include_clients": "Näytä asiakkaat",
+          "client_scope": "Asiakaslaajuus",
+          "only_unifi": "Vain UniFi-laitteet",
+          "svg_isometric": "Isometrinen asettelu",
+          "svg_width": "SVG-leveys (px)",
+          "svg_height": "SVG-korkeus (px)",
+          "request_timeout_seconds": "Pyynnön aikakatkaisu (sekuntia)",
+          "use_cache": "Välimuistita piirretty kartta"
+        },
+        "data_description": {
+          "include_ports": "Lisää kytkimen porttien nimet linkkeihin.",
+          "include_clients": "Sisällyttää asiakaslaitteet topologiaan.",
+          "client_scope": "Valitse langalliset, langattomat tai kaikki asiakkaat.",
+          "only_unifi": "Piilota muut kuin UniFi-laitteet topologiasta.",
+          "svg_isometric": "Piirrä 3D-tyylinen näkymä.",
+          "svg_width": "Jätä tyhjäksi automaattista mitoitusta varten.",
+          "svg_height": "Jätä tyhjäksi automaattista mitoitusta varten.",
+          "request_timeout_seconds": "Keskeytä UniFi API -kutsut tämän sekuntimäärän jälkeen.",
+          "use_cache": "Käytä viimeisintä piirtoa kyselyvälien aikana."
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "Syötä kelvollinen ohjaimen URL, joka sisältää http tai https.",
+      "url_has_credentials": "Älä sisällytä käyttäjänimeä tai salasanaa URL-osoitteeseen. Käytä erillisiä kenttiä alla."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Kartta-asetukset",
+        "description": "Valitse mitä kartalla näkyy ja miten se piirretään.",
+        "data": {
+          "scan_interval": "Päivitysväli (minuuttia)",
+          "include_ports": "Näytä porttien nimet",
+          "include_clients": "Näytä asiakkaat",
+          "client_scope": "Asiakaslaajuus",
+          "only_unifi": "Vain UniFi-laitteet",
+          "svg_isometric": "Isometrinen asettelu",
+          "svg_width": "SVG-leveys (px)",
+          "svg_height": "SVG-korkeus (px)",
+          "request_timeout_seconds": "Pyynnön aikakatkaisu (sekuntia)",
+          "payload_cache_ttl": "Kuorman välimuistin elinaika (sekuntia)",
+          "use_cache": "Välimuistita piirretty kartta",
+          "tracked_clients": "Seurattavat MAC-osoitteet",
+          "show_wan": "Näytä WAN-yhteys",
+          "wan_label": "WAN-operaattorin nimi",
+          "wan_speed": "WAN-operaattorin nopeus",
+          "wan2_label": "WAN2-operaattorin nimi",
+          "wan2_speed": "WAN2-operaattorin nopeus",
+          "wan2_disabled": "WAN2-tila"
+        },
+        "data_description": {
+          "scan_interval": "Kuinka usein tiedot päivitetään UniFi-ohjaimelta.",
+          "include_ports": "Lisää kytkimen porttien nimet linkkeihin.",
+          "include_clients": "Sisällyttää asiakaslaitteet topologiaan.",
+          "client_scope": "Valitse langalliset, langattomat tai kaikki asiakkaat.",
+          "only_unifi": "Piilota muut kuin UniFi-laitteet topologiasta.",
+          "svg_isometric": "Piirrä 3D-tyylinen näkymä.",
+          "svg_width": "Jätä tyhjäksi automaattista mitoitusta varten.",
+          "svg_height": "Jätä tyhjäksi automaattista mitoitusta varten.",
+          "request_timeout_seconds": "Keskeytä UniFi API -kutsut tämän sekuntimäärän jälkeen.",
+          "payload_cache_ttl": "Välimuistita rikastettu kuormadata tämän sekuntimäärän ajan. Aseta 0 poistaaksesi käytöstä.",
+          "use_cache": "Käytä viimeisintä piirtoa kyselyvälien aikana.",
+          "tracked_clients": "Asiakkaiden MAC-osoitteet, joille luodaan läsnäoloanturit. Yksi per rivi, esim. aa:bb:cc:dd:ee:ff",
+          "show_wan": "Näytä maapallokuvake ja WAN-liitännän tiedot yhdyskäytävän yläpuolella.",
+          "wan_label": "Mukautettu nimi WAN1:lle (esim. Elisa Valokuitu). Jätä tyhjäksi automaattista tunnistusta varten.",
+          "wan_speed": "Mukautettu nopeus WAN1:lle (esim. 1 Gbps). Jätä tyhjäksi automaattista tunnistusta varten.",
+          "wan2_label": "Mukautettu nimi WAN2:lle. Jätä tyhjäksi automaattista tunnistusta varten.",
+          "wan2_speed": "Mukautettu nopeus WAN2:lle. Jätä tyhjäksi automaattista tunnistusta varten.",
+          "wan2_disabled": "Tunnistetaan automaattisesti ohjaimelta. Aseta Pois käytöstä piilottaaksesi WAN2."
+        }
+      }
+    },
+    "error": {
+      "expected_int": "Syötä kokonaisluku pikseleinä tai jätä kenttä tyhjäksi."
+    }
+  }
+}
