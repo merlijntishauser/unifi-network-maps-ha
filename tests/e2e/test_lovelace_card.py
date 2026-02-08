@@ -14,11 +14,48 @@ if TYPE_CHECKING:
 
 HA_URL = os.environ.get("HA_URL", "http://localhost:28123")
 
+# Static path where the integration serves the JS bundle
+_JS_RESOURCE_URL = "/unifi-network-map/unifi-network-map.js"
+
 # All tests in this module use Playwright browser - skip in CI
 pytestmark = [
     pytest.mark.usefixtures("docker_services"),
     SKIP_BROWSER_IN_CI,
 ]
+
+
+def _navigate_and_load_card_resource(page: "Page") -> None:
+    """Navigate to a HA page and ensure the custom element JS is loaded.
+
+    On HA < 2026.2, navigating to /lovelace/ loads lovelace resources
+    (including our custom card JS) automatically.
+
+    On HA >= 2026.2, /lovelace/ redirects to /home/overview which does
+    NOT load lovelace resources. In that case we manually inject the
+    script tag so the custom element gets registered.
+    """
+    page.goto(f"{HA_URL}/lovelace/e2e-test")
+    page.wait_for_load_state("networkidle")
+
+    already_registered = page.evaluate("customElements.get('unifi-network-map') !== undefined")
+    if already_registered:
+        return
+
+    # HA 2026.2+ redirected away from lovelace -- inject script manually
+    page.evaluate(
+        """(src) => {
+            const s = document.createElement('script');
+            s.type = 'module';
+            s.src = src;
+            document.head.appendChild(s);
+        }""",
+        _JS_RESOURCE_URL,
+    )
+
+    page.wait_for_function(
+        "customElements.get('unifi-network-map') !== undefined",
+        timeout=10000,
+    )
 
 
 def _create_test_card(page: Page, entry_id: str, auth_token: str) -> None:
@@ -126,15 +163,7 @@ def test_custom_card_element_registered(
     """
     page = authenticated_page
 
-    # Navigate to Lovelace so custom resources are loaded
-    page.goto(f"{HA_URL}/lovelace/e2e-test")
-    page.wait_for_load_state("networkidle")
-
-    # Wait for the custom element registration
-    page.wait_for_function(
-        "customElements.get('unifi-network-map') !== undefined",
-        timeout=10000,
-    )
+    _navigate_and_load_card_resource(page)
 
     # Check if our custom element is registered
     is_registered = page.evaluate("""() => {
@@ -154,15 +183,7 @@ def test_card_can_be_instantiated(
     """
     page = authenticated_page
 
-    # Navigate to Lovelace so custom resources are loaded
-    page.goto(f"{HA_URL}/lovelace/e2e-test")
-    page.wait_for_load_state("networkidle")
-
-    # Wait for the custom element registration
-    page.wait_for_function(
-        "customElements.get('unifi-network-map') !== undefined",
-        timeout=10000,
-    )
+    _navigate_and_load_card_resource(page)
 
     # Try to instantiate the custom element
     result = page.evaluate("""() => {
@@ -191,12 +212,7 @@ def test_node_click_selects_node(
     """Test that clicking on a node selects it and updates the panel."""
     page = authenticated_page
 
-    page.goto(f"{HA_URL}/lovelace/e2e-test")
-    page.wait_for_load_state("networkidle")
-    page.wait_for_function(
-        "customElements.get('unifi-network-map') !== undefined",
-        timeout=10000,
-    )
+    _navigate_and_load_card_resource(page)
 
     _create_test_card(page, entry_id, ha_auth_token)
 
@@ -230,12 +246,7 @@ def test_node_click_selects_node_with_small_drag(
     """Test that a small pointer jitter does not prevent selection."""
     page = authenticated_page
 
-    page.goto(f"{HA_URL}/lovelace/e2e-test")
-    page.wait_for_load_state("networkidle")
-    page.wait_for_function(
-        "customElements.get('unifi-network-map') !== undefined",
-        timeout=10000,
-    )
+    _navigate_and_load_card_resource(page)
 
     _create_test_card(page, entry_id, ha_auth_token)
 
@@ -272,12 +283,7 @@ def test_context_menu_opens_on_right_click(
     """Test that right-clicking on a node opens the context menu."""
     page = authenticated_page
 
-    page.goto(f"{HA_URL}/lovelace/e2e-test")
-    page.wait_for_load_state("networkidle")
-    page.wait_for_function(
-        "customElements.get('unifi-network-map') !== undefined",
-        timeout=10000,
-    )
+    _navigate_and_load_card_resource(page)
 
     _create_test_card(page, entry_id, ha_auth_token)
 
@@ -318,12 +324,7 @@ def test_context_menu_opens_with_small_drag(
     """Test that a small pointer jitter does not block context menu."""
     page = authenticated_page
 
-    page.goto(f"{HA_URL}/lovelace/e2e-test")
-    page.wait_for_load_state("networkidle")
-    page.wait_for_function(
-        "customElements.get('unifi-network-map') !== undefined",
-        timeout=10000,
-    )
+    _navigate_and_load_card_resource(page)
 
     _create_test_card(page, entry_id, ha_auth_token)
 
@@ -367,12 +368,7 @@ def test_node_click_works_inside_ha_card(
     """
     page = authenticated_page
 
-    page.goto(f"{HA_URL}/lovelace/e2e-test")
-    page.wait_for_load_state("networkidle")
-    page.wait_for_function(
-        "customElements.get('unifi-network-map') !== undefined",
-        timeout=10000,
-    )
+    _navigate_and_load_card_resource(page)
 
     _create_test_card_in_ha_card(page, entry_id, ha_auth_token)
 
@@ -409,12 +405,7 @@ def test_context_menu_works_inside_ha_card(
     """
     page = authenticated_page
 
-    page.goto(f"{HA_URL}/lovelace/e2e-test")
-    page.wait_for_load_state("networkidle")
-    page.wait_for_function(
-        "customElements.get('unifi-network-map') !== undefined",
-        timeout=10000,
-    )
+    _navigate_and_load_card_resource(page)
 
     _create_test_card_in_ha_card(page, entry_id, ha_auth_token)
 
@@ -446,12 +437,7 @@ def test_filter_bar_renders_with_device_counts(
     """Test that the filter bar renders with correct device type counts."""
     page = authenticated_page
 
-    page.goto(f"{HA_URL}/lovelace/e2e-test")
-    page.wait_for_load_state("networkidle")
-    page.wait_for_function(
-        "customElements.get('unifi-network-map') !== undefined",
-        timeout=10000,
-    )
+    _navigate_and_load_card_resource(page)
 
     _create_test_card(page, entry_id, ha_auth_token)
 
@@ -480,8 +466,10 @@ def test_filter_bar_renders_with_device_counts(
     }""")
 
     assert result["filterBarExists"], "Filter bar should exist"
-    assert result["buttonCount"] == 5, (
-        "Should have 5 filter buttons (gateway, switch, ap, client, other)"
+    # Zero-count buttons are hidden, so only types with devices appear
+    assert result["buttonCount"] == 4, (
+        "Should have 4 filter buttons (gateway, switch, ap, client); "
+        "other is hidden because it has 0 devices"
     )
     assert result["counts"].get("gateway") == 1, "Should have 1 gateway"
     assert result["counts"].get("switch") == 1, "Should have 1 switch"
@@ -498,12 +486,7 @@ def test_filter_button_toggles_node_visibility(
     """Test that clicking a filter button hides/shows nodes of that type."""
     page = authenticated_page
 
-    page.goto(f"{HA_URL}/lovelace/e2e-test")
-    page.wait_for_load_state("networkidle")
-    page.wait_for_function(
-        "customElements.get('unifi-network-map') !== undefined",
-        timeout=10000,
-    )
+    _navigate_and_load_card_resource(page)
 
     _create_test_card(page, entry_id, ha_auth_token)
     page.wait_for_selector("#test-card .filter-bar", timeout=10000)
@@ -566,12 +549,7 @@ def test_filter_hides_edges_when_endpoint_filtered(
     """Test that edges are hidden when either endpoint node is filtered."""
     page = authenticated_page
 
-    page.goto(f"{HA_URL}/lovelace/e2e-test")
-    page.wait_for_load_state("networkidle")
-    page.wait_for_function(
-        "customElements.get('unifi-network-map') !== undefined",
-        timeout=10000,
-    )
+    _navigate_and_load_card_resource(page)
 
     _create_test_card(page, entry_id, ha_auth_token)
     page.wait_for_selector("#test-card .filter-bar", timeout=10000)
@@ -635,12 +613,7 @@ def test_filter_state_persists_across_selection(
     """Test that filter state persists when selecting nodes."""
     page = authenticated_page
 
-    page.goto(f"{HA_URL}/lovelace/e2e-test")
-    page.wait_for_load_state("networkidle")
-    page.wait_for_function(
-        "customElements.get('unifi-network-map') !== undefined",
-        timeout=10000,
-    )
+    _navigate_and_load_card_resource(page)
 
     _create_test_card(page, entry_id, ha_auth_token)
     page.wait_for_selector("#test-card .filter-bar", timeout=10000)
