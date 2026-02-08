@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from functools import lru_cache
 from pathlib import Path
 import inspect
 import importlib
@@ -248,11 +247,13 @@ def _frontend_bundle_path() -> Path:
     return Path(__file__).resolve().parent / "frontend" / "unifi-network-map.js"
 
 
-@lru_cache(maxsize=1)
-def _integration_version() -> str:
+def _read_integration_version() -> str:
     manifest_path = Path(__file__).resolve().parent / "manifest.json"
     with manifest_path.open() as f:
         return json.load(f)["version"]
+
+
+_INTEGRATION_VERSION = _read_integration_version()
 
 
 def _frontend_bundle_base_url() -> str:
@@ -260,7 +261,7 @@ def _frontend_bundle_base_url() -> str:
 
 
 def _frontend_bundle_url() -> str:
-    version = _integration_version()
+    version = _INTEGRATION_VERSION
     bundle = _frontend_bundle_path()
     if bundle.exists():
         mtime = int(bundle.stat().st_mtime)
