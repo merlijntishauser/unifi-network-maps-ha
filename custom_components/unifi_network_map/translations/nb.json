@@ -1,0 +1,102 @@
+{
+  "title": "UniFi Network Map",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Koble til UniFi",
+        "description": "Oppgi tilkoblingsdetaljene for UniFi-kontrolleren.",
+        "data": {
+          "url": "Kontroller-URL",
+          "username": "Brukernavn",
+          "password": "Passord",
+          "site": "Nettsted",
+          "verify_ssl": "Verifiser SSL"
+        },
+        "data_description": {
+          "url": "Inkluder protokoll (http eller https) og port hvis nodvendig."
+        }
+      },
+      "init": {
+        "title": "Kartinnstillinger",
+        "description": "Velg hva som vises pa kartet og hvordan det gjengis.",
+        "data": {
+          "include_ports": "Vis portetiketter",
+          "include_clients": "Vis klienter",
+          "client_scope": "Klientomfang",
+          "only_unifi": "Kun UniFi-enheter",
+          "svg_isometric": "Isometrisk oppsett",
+          "svg_width": "SVG-bredde (px)",
+          "svg_height": "SVG-hoyde (px)",
+          "request_timeout_seconds": "Tidsavbrudd for foresprsel (sekunder)",
+          "use_cache": "Mellomlagre gjengitt kart"
+        },
+        "data_description": {
+          "include_ports": "Legger til portetiketter pa koblinger mellom svitsjer.",
+          "include_clients": "Inkluderer klientenheter i topologien.",
+          "client_scope": "Velg kablede, tradlose eller alle klienter.",
+          "only_unifi": "Skjul enheter som ikke er UniFi i topologien.",
+          "svg_isometric": "Gjengi i 3D-stil.",
+          "svg_width": "La sta tomt for automatisk storrelse.",
+          "svg_height": "La sta tomt for automatisk storrelse.",
+          "request_timeout_seconds": "Avbryt UniFi API-kall etter dette antall sekunder.",
+          "use_cache": "Gjenbruk forrige gjengivelse mellom oppdateringer."
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "Oppgi en gyldig kontroller-URL inkludert http eller https.",
+      "url_has_credentials": "Ikke inkluder brukernavn eller passord i URL-en. Bruk de separate feltene nedenfor."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Kartinnstillinger",
+        "description": "Velg hva som vises pa kartet og hvordan det gjengis.",
+        "data": {
+          "scan_interval": "Oppdateringsintervall (minutter)",
+          "include_ports": "Vis portetiketter",
+          "include_clients": "Vis klienter",
+          "client_scope": "Klientomfang",
+          "only_unifi": "Kun UniFi-enheter",
+          "svg_isometric": "Isometrisk oppsett",
+          "svg_width": "SVG-bredde (px)",
+          "svg_height": "SVG-hoyde (px)",
+          "request_timeout_seconds": "Tidsavbrudd for foresprsel (sekunder)",
+          "payload_cache_ttl": "TTL for nyttelastbuffer (sekunder)",
+          "use_cache": "Mellomlagre gjengitt kart",
+          "tracked_clients": "Sporede klient-MAC-adresser",
+          "show_wan": "Vis WAN-oppkobling",
+          "wan_label": "WAN ISP-navn",
+          "wan_speed": "WAN ISP-hastighet",
+          "wan2_label": "WAN2 ISP-navn",
+          "wan2_speed": "WAN2 ISP-hastighet",
+          "wan2_disabled": "WAN2-status"
+        },
+        "data_description": {
+          "scan_interval": "Hvor ofte data hentes fra UniFi-kontrolleren.",
+          "include_ports": "Legger til portetiketter pa koblinger mellom svitsjer.",
+          "include_clients": "Inkluderer klientenheter i topologien.",
+          "client_scope": "Velg kablede, tradlose eller alle klienter.",
+          "only_unifi": "Skjul enheter som ikke er UniFi i topologien.",
+          "svg_isometric": "Gjengi i 3D-stil.",
+          "svg_width": "La sta tomt for automatisk storrelse.",
+          "svg_height": "La sta tomt for automatisk storrelse.",
+          "request_timeout_seconds": "Avbryt UniFi API-kall etter dette antall sekunder.",
+          "payload_cache_ttl": "Mellomlagre beriket nyttelast i dette antall sekunder. Sett til 0 for a deaktivere.",
+          "use_cache": "Gjenbruk forrige gjengivelse mellom oppdateringer.",
+          "tracked_clients": "MAC-adresser for klienter det skal opprettes tilstedevrelssensorer for. En per linje, f.eks. aa:bb:cc:dd:ee:ff",
+          "show_wan": "Vis globusikon og WAN-grensesnittinfo over gatewayen.",
+          "wan_label": "Egendefinert etikett for WAN1 (f.eks. Telenor Fiber). La sta tomt for automatisk gjenkjenning.",
+          "wan_speed": "Egendefinert ISP-hastighet for WAN1 (f.eks. 1 Gbps). La sta tomt for automatisk gjenkjenning.",
+          "wan2_label": "Egendefinert etikett for WAN2. La sta tomt for automatisk gjenkjenning.",
+          "wan2_speed": "Egendefinert ISP-hastighet for WAN2. La sta tomt for automatisk gjenkjenning.",
+          "wan2_disabled": "Oppdages automatisk fra kontrolleren. Sett til Deaktivert for a skjule WAN2."
+        }
+      }
+    },
+    "error": {
+      "expected_int": "Oppgi et heltall i piksler eller la feltet sta tomt."
+    }
+  }
+}

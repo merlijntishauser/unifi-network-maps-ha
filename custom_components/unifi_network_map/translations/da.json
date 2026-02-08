@@ -1,0 +1,102 @@
+{
+  "title": "UniFi Network Map",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Opret forbindelse til UniFi",
+        "description": "Indtast oplysningerne for din UniFi-controller.",
+        "data": {
+          "url": "Controller-URL",
+          "username": "Brugernavn",
+          "password": "Adgangskode",
+          "site": "Site",
+          "verify_ssl": "Bekræft SSL"
+        },
+        "data_description": {
+          "url": "Angiv skemaet (http eller https) og port, hvis nødvendigt."
+        }
+      },
+      "init": {
+        "title": "Kortindstillinger",
+        "description": "Vælg hvad der vises på kortet, og hvordan det gengives.",
+        "data": {
+          "include_ports": "Vis portetiketter",
+          "include_clients": "Vis klienter",
+          "client_scope": "Klientomfang",
+          "only_unifi": "Kun UniFi-enheder",
+          "svg_isometric": "Isometrisk layout",
+          "svg_width": "SVG-bredde (px)",
+          "svg_height": "SVG-højde (px)",
+          "request_timeout_seconds": "Timeout for forespørgsel (sekunder)",
+          "use_cache": "Cache gengivet kort"
+        },
+        "data_description": {
+          "include_ports": "Tilføjer switchportetiketter til forbindelser.",
+          "include_clients": "Inkluderer klientenheder i topologien.",
+          "client_scope": "Vælg kablede, trådløse eller alle klienter.",
+          "only_unifi": "Skjul enheder der ikke er UniFi i topologien.",
+          "svg_isometric": "Gengiv en 3D-lignende visning.",
+          "svg_width": "Lad stå tomt for automatisk størrelse.",
+          "svg_height": "Lad stå tomt for automatisk størrelse.",
+          "request_timeout_seconds": "Afbryd UniFi API-kald efter dette antal sekunder.",
+          "use_cache": "Genbrug den seneste gengivelse mellem opdateringer."
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "Indtast en gyldig controller-URL inklusive http eller https.",
+      "url_has_credentials": "Medtag ikke brugernavn eller adgangskode i URL'en. Brug de separate felter nedenfor."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Kortindstillinger",
+        "description": "Vælg hvad der vises på kortet, og hvordan det gengives.",
+        "data": {
+          "scan_interval": "Opdateringsinterval (minutter)",
+          "include_ports": "Vis portetiketter",
+          "include_clients": "Vis klienter",
+          "client_scope": "Klientomfang",
+          "only_unifi": "Kun UniFi-enheder",
+          "svg_isometric": "Isometrisk layout",
+          "svg_width": "SVG-bredde (px)",
+          "svg_height": "SVG-højde (px)",
+          "request_timeout_seconds": "Timeout for forespørgsel (sekunder)",
+          "payload_cache_ttl": "Payload-cache-TTL (sekunder)",
+          "use_cache": "Cache gengivet kort",
+          "tracked_clients": "Sporede klient-MAC-adresser",
+          "show_wan": "Vis WAN-upstream",
+          "wan_label": "WAN ISP-navn",
+          "wan_speed": "WAN ISP-hastighed",
+          "wan2_label": "WAN2 ISP-navn",
+          "wan2_speed": "WAN2 ISP-hastighed",
+          "wan2_disabled": "WAN2-status"
+        },
+        "data_description": {
+          "scan_interval": "Hvor ofte data hentes fra UniFi-controlleren.",
+          "include_ports": "Tilføjer switchportetiketter til forbindelser.",
+          "include_clients": "Inkluderer klientenheder i topologien.",
+          "client_scope": "Vælg kablede, trådløse eller alle klienter.",
+          "only_unifi": "Skjul enheder der ikke er UniFi i topologien.",
+          "svg_isometric": "Gengiv en 3D-lignende visning.",
+          "svg_width": "Lad stå tomt for automatisk størrelse.",
+          "svg_height": "Lad stå tomt for automatisk størrelse.",
+          "request_timeout_seconds": "Afbryd UniFi API-kald efter dette antal sekunder.",
+          "payload_cache_ttl": "Cache beriget payload-data i dette antal sekunder. Sæt til 0 for at deaktivere.",
+          "use_cache": "Genbrug den seneste gengivelse mellem opdateringer.",
+          "tracked_clients": "MAC-adresser på klienter, der skal oprettes tilstedeværelsessensorer for. En pr. linje, f.eks. aa:bb:cc:dd:ee:ff",
+          "show_wan": "Vis globusikon og WAN-interfaceoplysninger over gatewayen.",
+          "wan_label": "Brugerdefineret etiket for WAN1 (f.eks. KPN Fiber). Lad stå tomt for automatisk registrering.",
+          "wan_speed": "Brugerdefineret ISP-hastighed for WAN1 (f.eks. 1 Gbps). Lad stå tomt for automatisk registrering.",
+          "wan2_label": "Brugerdefineret etiket for WAN2. Lad stå tomt for automatisk registrering.",
+          "wan2_speed": "Brugerdefineret ISP-hastighed for WAN2. Lad stå tomt for automatisk registrering.",
+          "wan2_disabled": "Registreres automatisk fra controlleren. Sæt til Deaktiveret for at skjule WAN2."
+        }
+      }
+    },
+    "error": {
+      "expected_int": "Indtast et helt antal pixels, eller lad feltet stå tomt."
+    }
+  }
+}

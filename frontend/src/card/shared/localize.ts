@@ -1,20 +1,30 @@
 import type { Hass } from "../core/types";
+import { da } from "./locales/da";
 import { de } from "./locales/de";
 import { en } from "./locales/en";
 import { es } from "./locales/es";
+import { fi } from "./locales/fi";
 import { fr } from "./locales/fr";
+import { is } from "./locales/is";
+import { nb } from "./locales/nb";
 import { nl } from "./locales/nl";
+import { sv } from "./locales/sv";
 
 export type LocalizeFunc = (key: string, replacements?: Record<string, string | number>) => string;
 
 type TranslationMap = Record<string, string>;
 
 const TRANSLATIONS: Record<string, TranslationMap> = {
+  da,
   de,
   en,
   es,
+  fi,
   fr,
+  is,
+  nb,
   nl,
+  sv,
 };
 
 function normalizeLanguage(language: string | undefined): string | undefined {

@@ -1,0 +1,102 @@
+{
+  "title": "UniFi Network Map",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Tengjast UniFi",
+        "description": "Sláðu inn upplýsingar um UniFi-stýribúnaðinn.",
+        "data": {
+          "url": "URL stýribúnaðar",
+          "username": "Notandanafn",
+          "password": "Lykilorð",
+          "site": "Svæði",
+          "verify_ssl": "Staðfesta SSL"
+        },
+        "data_description": {
+          "url": "Hafðu með samskiptareglu (http eða https) og gátt ef þörf er á."
+        }
+      },
+      "init": {
+        "title": "Kortastillingar",
+        "description": "Veldu hvað birtist á kortinu og hvernig það er teiknað.",
+        "data": {
+          "include_ports": "Sýna gáttamerki",
+          "include_clients": "Sýna biðlara",
+          "client_scope": "Umfang biðlara",
+          "only_unifi": "Aðeins UniFi-tæki",
+          "svg_isometric": "Ísómetrísk uppsetning",
+          "svg_width": "SVG-breidd (px)",
+          "svg_height": "SVG-hæð (px)",
+          "request_timeout_seconds": "Tímamörk beiðni (sekúndur)",
+          "use_cache": "Vista teiknað kort í skyndiminni"
+        },
+        "data_description": {
+          "include_ports": "Bætir gáttamerkjum við tengla milli rofa.",
+          "include_clients": "Tekur biðlaratæki með í staðfræðina.",
+          "client_scope": "Veldu snúrutengda, þráðlausa eða alla biðlara.",
+          "only_unifi": "Fela tæki sem eru ekki UniFi í staðfræðinni.",
+          "svg_isometric": "Teikna í þrívíðri mynd.",
+          "svg_width": "Skildu eftir autt til sjálfvirkrar stærðar.",
+          "svg_height": "Skildu eftir autt til sjálfvirkrar stærðar.",
+          "request_timeout_seconds": "Hætta við UniFi API-köll eftir þetta margar sekúndur.",
+          "use_cache": "Endurnýta síðustu teikningu á milli uppfærslna."
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "Sláðu inn gilda URL stýribúnaðar ásamt http eða https.",
+      "url_has_credentials": "Ekki setja notandanafn eða lykilorð í URL-ið. Notaðu aðskilda reitina hér að neðan."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Kortastillingar",
+        "description": "Veldu hvað birtist á kortinu og hvernig það er teiknað.",
+        "data": {
+          "scan_interval": "Uppfærslubil (mínútur)",
+          "include_ports": "Sýna gáttamerki",
+          "include_clients": "Sýna biðlara",
+          "client_scope": "Umfang biðlara",
+          "only_unifi": "Aðeins UniFi-tæki",
+          "svg_isometric": "Ísómetrísk uppsetning",
+          "svg_width": "SVG-breidd (px)",
+          "svg_height": "SVG-hæð (px)",
+          "request_timeout_seconds": "Tímamörk beiðni (sekúndur)",
+          "payload_cache_ttl": "TTL skyndiminnis hleðslu (sekúndur)",
+          "use_cache": "Vista teiknað kort í skyndiminni",
+          "tracked_clients": "Raktar MAC-vistföng biðlara",
+          "show_wan": "Sýna WAN-uppstreymi",
+          "wan_label": "WAN ISP-heiti",
+          "wan_speed": "WAN ISP-hraði",
+          "wan2_label": "WAN2 ISP-heiti",
+          "wan2_speed": "WAN2 ISP-hraði",
+          "wan2_disabled": "WAN2-staða"
+        },
+        "data_description": {
+          "scan_interval": "Hversu oft gögn eru sótt frá UniFi-stýribúnaðinum.",
+          "include_ports": "Bætir gáttamerkjum við tengla milli rofa.",
+          "include_clients": "Tekur biðlaratæki með í staðfræðina.",
+          "client_scope": "Veldu snúrutengda, þráðlausa eða alla biðlara.",
+          "only_unifi": "Fela tæki sem eru ekki UniFi í staðfræðinni.",
+          "svg_isometric": "Teikna í þrívíðri mynd.",
+          "svg_width": "Skildu eftir autt til sjálfvirkrar stærðar.",
+          "svg_height": "Skildu eftir autt til sjálfvirkrar stærðar.",
+          "request_timeout_seconds": "Hætta við UniFi API-köll eftir þetta margar sekúndur.",
+          "payload_cache_ttl": "Vista auðguð gögn í skyndiminni í þetta margar sekúndur. Settu á 0 til að slökkva.",
+          "use_cache": "Endurnýta síðustu teikningu á milli uppfærslna.",
+          "tracked_clients": "MAC-vistföng biðlara til að búa til viðveruskynjara fyrir. Eitt í hverja línu, t.d. aa:bb:cc:dd:ee:ff",
+          "show_wan": "Sýna hnattarmerki og WAN-viðmótsupplýsingar fyrir ofan gáttina.",
+          "wan_label": "Sérsniðið merki fyrir WAN1 (t.d. Siminn Ljósleiðari). Skildu eftir autt til sjálfvirkrar greiningar.",
+          "wan_speed": "Sérsniðinn ISP-hraði fyrir WAN1 (t.d. 1 Gbps). Skildu eftir autt til sjálfvirkrar greiningar.",
+          "wan2_label": "Sérsniðið merki fyrir WAN2. Skildu eftir autt til sjálfvirkrar greiningar.",
+          "wan2_speed": "Sérsniðinn ISP-hraði fyrir WAN2. Skildu eftir autt til sjálfvirkrar greiningar.",
+          "wan2_disabled": "Greinist sjálfkrafa frá stýribúnaðinum. Settu á Óvirkt til að fela WAN2."
+        }
+      }
+    },
+    "error": {
+      "expected_int": "Sláðu inn heiltölu í pixlum eða skildu reitinn eftir auðan."
+    }
+  }
+}
