@@ -35,7 +35,7 @@ help:
 	@echo "  pre-commit-run  Run all pre-commit hooks"
 	@echo "  ci              Run full local CI (pre-commit hooks)"
 	@echo "  version-bump    Bump integration and card versions, build frontend bundle, tag, and push"
-	@echo "  release         Build release zip and print the gh release command"
+	@echo "  release         Build release zip and print the gh release command (SKIP_E2E=1 to skip E2E tests)"
 	@echo "  release-hotfix  Rebuild bundle, retag, and print gh upload command"
 	@echo "  clean           Remove .venv"
 
@@ -166,7 +166,7 @@ ci: pre-commit-run
 
 version: version-bump
 
-release: ci test-e2e version-bump
+release: ci $(if $(SKIP_E2E),,test-e2e) version-bump
 	@version=$$(cat $(VERSION_FILE)); \
 	if ! echo "$$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$$'; then \
 		echo "Invalid semver in $(VERSION_FILE): $$version"; exit 1; \
