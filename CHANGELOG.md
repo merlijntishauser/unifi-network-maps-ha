@@ -5,20 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.0] - 2026-02-05
-Release 0.3.0 upgrades to unifi-network-maps 1.5.0, bringing extended device type icons, built-in theme selection, and WAN upstream visualization with a globe icon showing connection details.
+## [0.3.0] - 2026-02-08
+Release 0.3.0 upgrades to unifi-network-maps 1.5.2, bringing extended device type icons, built-in theme selection, WAN upstream visualization, and configurable WAN settings (custom ISP labels, speeds, WAN2 toggle).
 
 ### Added
 - Extended device type icons: camera, TV, phone, printer, NAS, speaker, game console, IoT, client cluster
 - SVG theme selection dropdown with 6 built-in themes: unifi, unifi-dark, minimal, minimal-dark, classic, classic-dark
 - Icon set selection dropdown: modern (default), isometric
 - WAN upstream visualization showing globe icon with link speeds, ISP info, and IP addresses
-- Translations for new options in all 5 languages (en, de, es, fr, nl)
+- WAN upstream configuration: toggle visibility, custom ISP names and speeds for WAN1/WAN2, WAN2 auto/enabled/disabled control
+- Dynamic card background color matching the active SVG theme
+- UCG Fiber (UDMA6A8) added to model name fallback mapping
+- Translations for all new options in all 5 languages (en, de, es, fr, nl)
 
 ### Changed
-- Upgraded unifi-network-maps from 1.4.15 to 1.5.0
+- Upgraded unifi-network-maps from 1.4.15 to 1.5.2
 - Client device subtypes now grouped under "Clients" filter button
 - Default icon set changed to "modern"
+- Card forwards svg_theme and icon_set selection to the backend renderer
+- Cache-busting version query added to frontend JS resource URL
+
+### Fixed
+- Edge tooltips disappearing after tab switch, node click, or back navigation
+- PoE bolt icons not hidden when their edge is filtered out
+- Filter buttons appearing for device types with zero devices
+- Device type breakdown miscounting client subtypes as "other"
+- Card editor dropdowns for svg_theme and icon_set not working
+- Theme loading failure in Docker-based Home Assistant environments
 
 ## [0.2.0] - 2026-02-01
 Release 0.2.0 expands the integration with new Home Assistant entities and automations: per-device binary sensors (gateway/switch/AP), client connectivity and VLAN client-count sensors, plus ready-to-use blueprints for common alerts (offline/online, AP overload, VLAN threshold). It also improves the underlying unifi-network-maps dependency and UI, with better related-entity discovery, more reliable VLAN reporting, and multiple rendering/visual fixes.
