@@ -133,6 +133,40 @@ describe("svg", () => {
       expect(poeText.getAttribute("data-edge-right")).toBe("B");
     });
 
+    it("annotates PoE bolt use elements", () => {
+      const svg = createSvg();
+      const path = createPath("A", "B");
+      const poeUse = document.createElementNS("http://www.w3.org/2000/svg", "use");
+      poeUse.setAttribute("href", "#poe-bolt");
+      const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      group.appendChild(path);
+      group.appendChild(poeUse);
+      svg.appendChild(group);
+
+      const edges: Edge[] = [{ left: "A", right: "B" }];
+      annotateEdges(svg, edges);
+
+      expect(poeUse.getAttribute("data-edge-left")).toBe("A");
+      expect(poeUse.getAttribute("data-edge-right")).toBe("B");
+    });
+
+    it("annotates iso-poe-bolt use elements", () => {
+      const svg = createSvg();
+      const path = createPath("A", "B");
+      const poeUse = document.createElementNS("http://www.w3.org/2000/svg", "use");
+      poeUse.setAttribute("href", "#iso-poe-bolt");
+      const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      group.appendChild(path);
+      group.appendChild(poeUse);
+      svg.appendChild(group);
+
+      const edges: Edge[] = [{ left: "A", right: "B" }];
+      annotateEdges(svg, edges);
+
+      expect(poeUse.getAttribute("data-edge-left")).toBe("A");
+      expect(poeUse.getAttribute("data-edge-right")).toBe("B");
+    });
+
     it("handles PoE text with POE label", () => {
       const svg = createSvg();
       const path = createPath("A", "B");

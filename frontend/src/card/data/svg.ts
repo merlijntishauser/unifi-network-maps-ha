@@ -44,7 +44,7 @@ function annotateElementWithEdge(element: Element, svg: SVGElement): void {
 }
 
 function annotatePoeIcons(svg: SVGElement): void {
-  // Find all text elements that might be PoE icons
+  // Find text elements with PoE emoji (legacy)
   const textElements = svg.querySelectorAll("text");
   for (const text of textElements) {
     if (!isPoeLabel(text.textContent)) {
@@ -52,6 +52,13 @@ function annotatePoeIcons(svg: SVGElement): void {
     }
     annotateElementWithEdge(text, svg);
     annotatePoeParent(text);
+  }
+
+  // Find <use> elements referencing poe-bolt symbols (modern)
+  const useElements = svg.querySelectorAll('use[href*="poe-bolt"]');
+  for (const el of useElements) {
+    annotateElementWithEdge(el, svg);
+    annotatePoeParent(el);
   }
 }
 

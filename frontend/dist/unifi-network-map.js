@@ -1135,6 +1135,11 @@ function annotatePoeIcons(svg3) {
     annotateElementWithEdge(text2, svg3);
     annotatePoeParent(text2);
   }
+  const useElements = svg3.querySelectorAll('use[href*="poe-bolt"]');
+  for (const el of useElements) {
+    annotateElementWithEdge(el, svg3);
+    annotatePoeParent(el);
+  }
 }
 function isPoeLabel(text2) {
   const content = text2?.trim() ?? "";
