@@ -32,6 +32,7 @@ Release 0.3.0 upgrades to unifi-network-maps 1.5.2, bringing extended device typ
 - Device type breakdown miscounting client subtypes as "other"
 - Card editor dropdowns for svg_theme and icon_set not working
 - Theme loading failure in Docker-based Home Assistant environments
+- Map view resetting pan/zoom when switching detail panel tabs
 
 ## [0.2.0] - 2026-02-01
 Release 0.2.0 expands the integration with new Home Assistant entities and automations: per-device binary sensors (gateway/switch/AP), client connectivity and VLAN client-count sensors, plus ready-to-use blueprints for common alerts (offline/online, AP overload, VLAN threshold). It also improves the underlying unifi-network-maps dependency and UI, with better related-entity discovery, more reliable VLAN reporting, and multiple rendering/visual fixes.
