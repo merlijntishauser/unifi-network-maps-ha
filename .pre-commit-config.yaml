@@ -1,6 +1,11 @@
 repos:
   - repo: local
     hooks:
+      - id: check-requirements
+        name: requirements.txt matches manifest.json
+        entry: bash -c 'python3 scripts/version_sync.py check-requirements'
+        language: system
+        pass_filenames: false
       - id: hassfest
         name: hassfest (docker)
         entry: >-

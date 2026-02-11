@@ -12,6 +12,9 @@ Home Assistant custom integration that displays UniFi network topology as a live
 # Python setup (requires Python 3.13)
 make install-dev          # Create .venv and install all dependencies
 
+# Dependencies
+make dependency-update    # Sync requirements.txt from manifest.json and reinstall
+
 # Testing
 make test                 # Run pytest with coverage
 make frontend-test        # Run Jest tests
@@ -117,6 +120,14 @@ def test_something(authenticated_page: Page, entry_id: str, ha_auth_token: str):
     _create_test_card(page, entry_id, ha_auth_token)
     # Test interactions...
 ```
+
+## Dependency Management
+
+- **`manifest.json`** is the single source of truth for Python dependencies (in the `requirements` array)
+- **`requirements.txt`** is auto-generated from `manifest.json` -- never edit it directly
+- After changing a dependency in `manifest.json`, run `make dependency-update` to sync `requirements.txt` and reinstall
+- A pre-commit hook (`check-requirements`) will fail if the two files are out of sync
+- The `version-bump` target also syncs `requirements.txt` automatically
 
 ## Code Quality Standards
 
