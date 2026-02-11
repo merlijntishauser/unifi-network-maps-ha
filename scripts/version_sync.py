@@ -8,6 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 VERSION_FILE = ROOT / "VERSION"
 MANIFEST_FILE = ROOT / "custom_components" / "unifi_network_map" / "manifest.json"
+REQUIREMENTS_FILE = ROOT / "requirements.txt"
 FRONTEND_PACKAGE = ROOT / "frontend" / "package.json"
 FRONTEND_LOCK = ROOT / "frontend" / "package-lock.json"
 HACS_FILE = ROOT / "hacs.json"
@@ -60,14 +61,50 @@ def update_hacs(version: str) -> None:
     write_json(HACS_FILE, hacs)
 
 
+def sync_requirements() -> None:
+    """Generate requirements.txt from manifest.json requirements."""
+    manifest = load_json(MANIFEST_FILE)
+    reqs = manifest.get("requirements", [])
+    REQUIREMENTS_FILE.write_text("\n".join(reqs) + "\n", encoding="utf-8")
+
+
+def check_requirements() -> bool:
+    """Return True if requirements.txt matches manifest.json requirements."""
+    manifest = load_json(MANIFEST_FILE)
+    expected = manifest.get("requirements", [])
+    if not REQUIREMENTS_FILE.exists():
+        return not expected
+    actual = [
+        line
+        for line in REQUIREMENTS_FILE.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.startswith("#")
+    ]
+    return actual == expected
+
+
 def update_versions(version: str) -> None:
     update_manifest(version)
+    sync_requirements()
     update_frontend_package(version)
     update_frontend_lock(version)
     update_hacs(version)
 
 
 def main() -> int:
+    if len(sys.argv) > 1 and sys.argv[1] == "check-requirements":
+        if check_requirements():
+            return 0
+        print(
+            "requirements.txt is out of sync with manifest.json.\n"
+            "Run: python3 scripts/version_sync.py sync-requirements",
+            file=sys.stderr,
+        )
+        return 1
+
+    if len(sys.argv) > 1 and sys.argv[1] == "sync-requirements":
+        sync_requirements()
+        return 0
+
     try:
         version = read_version(VERSION_FILE)
         validate_version(version)

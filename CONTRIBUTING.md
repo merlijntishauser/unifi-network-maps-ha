@@ -39,6 +39,16 @@ Run all hooks manually:
 pre-commit run --all-files
 ```
 
+## Dependency management
+
+`manifest.json` is the single source of truth for Python runtime dependencies. `requirements.txt` is generated from it automatically -- never edit `requirements.txt` directly.
+
+To add or update a dependency:
+1. Edit the `requirements` array in `custom_components/unifi_network_map/manifest.json`
+2. Run `make dependency-update` (syncs `requirements.txt` and reinstalls into the venv)
+
+A pre-commit hook will catch any drift between the two files.
+
 ## Testing
 - Python: `make test`
 - Frontend: `make frontend-test`

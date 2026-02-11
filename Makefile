@@ -1,4 +1,4 @@
-.PHONY: help venv install install-dev test test-unit test-integration test-contract test-e2e test-e2e-reuse test-e2e-down test-e2e-debug test-e2e-all test-e2e-all-reuse format frontend-install frontend-build frontend-test frontend-typecheck frontend-lint frontend-format pre-commit-install pre-commit-run ci version-bump version release release-hotfix clean
+.PHONY: help venv install install-dev dependency-update test test-unit test-integration test-contract test-e2e test-e2e-reuse test-e2e-down test-e2e-debug test-e2e-all test-e2e-all-reuse format frontend-install frontend-build frontend-test frontend-typecheck frontend-lint frontend-format pre-commit-install pre-commit-run ci version-bump version release release-hotfix clean
 
 VENV_DIR := .venv
 PYTHON_BIN := $(shell command -v python3.13 >/dev/null 2>&1 && echo python3.13 || echo python3)
@@ -14,6 +14,7 @@ help:
 	@echo "  venv            Create local .venv"
 	@echo "  install         Install Python requirements into .venv"
 	@echo "  install-dev     Install Python dev requirements into .venv"
+	@echo "  dependency-update Sync requirements.txt from manifest.json and reinstall"
 	@echo "  test            Run all Python tests with coverage"
 	@echo "  test-unit       Run unit tests"
 	@echo "  test-integration Run integration tests"
@@ -48,6 +49,10 @@ install: venv
 
 install-dev: install
 	PIP_CACHE_DIR=$(PIP_CACHE_DIR) $(PIP) install -r requirements-dev.txt
+
+dependency-update:
+	python3 scripts/version_sync.py sync-requirements
+	$(MAKE) install
 
 test: install-dev
 	$(VENV_DIR)/bin/pytest -v --cov=custom_components --cov-report=term-missing tests/unit tests/integration tests/contract
@@ -241,7 +246,7 @@ version-bump:
 		echo "hacs.json filename did not update"; exit 1; \
 	fi; \
 	$(MAKE) frontend-build; \
-	git add $(VERSION_FILE) custom_components/unifi_network_map/manifest.json frontend/package.json frontend/package-lock.json hacs.json frontend/dist/unifi-network-map.js custom_components/unifi_network_map/frontend/unifi-network-map.js; \
+	git add $(VERSION_FILE) requirements.txt custom_components/unifi_network_map/manifest.json frontend/package.json frontend/package-lock.json hacs.json frontend/dist/unifi-network-map.js custom_components/unifi_network_map/frontend/unifi-network-map.js; \
 	git commit -m "Bump version to $$next"; \
 	git tag -a "v$$next" -m "v$$next"; \
 	git push origin HEAD; \
