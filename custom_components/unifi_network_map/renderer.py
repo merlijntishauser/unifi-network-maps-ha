@@ -1,24 +1,27 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Mapping, Protocol, TypedDict, cast
+from typing import Any, Mapping, Protocol, TypedDict, cast
 
-from unifi_network_maps.adapters.config import Config
-from unifi_network_maps.adapters.unifi import fetch_clients, fetch_devices
-from unifi_network_maps.cli.runtime import normalize_devices
-from unifi_network_maps.model.clients import build_client_edges, build_node_type_map
-from unifi_network_maps.model.edges import build_device_index, build_topology, group_devices_by_type
-from unifi_network_maps.model.topology import Device, Edge, TopologyResult, WanInfo
-from unifi_network_maps.model.wan import extract_wan_info
-from unifi_network_maps.render.svg import SvgOptions, render_svg
-from unifi_network_maps.render.svg_isometric import render_svg_isometric
+from unifi_network_maps.adapters import Config, fetch_clients, fetch_devices, fetch_networks
+from unifi_network_maps.model import (
+    Device,
+    Edge,
+    TopologyResult,
+    WanInfo,
+    build_client_edges,
+    build_device_index,
+    build_node_type_map,
+    build_topology,
+    extract_wan_info,
+    group_devices_by_type,
+    normalize_devices,
+)
+from unifi_network_maps.render import SvgOptions, render_svg, render_svg_isometric
 
 from .const import LOGGER, PAYLOAD_SCHEMA_VERSION
 from .data import UniFiNetworkMapData
 from .errors import UniFiNetworkMapError
-
-if TYPE_CHECKING:
-    from unifi_controller_api import UnifiController
 
 
 @dataclass(frozen=True)
@@ -176,79 +179,23 @@ def _load_all_clients(config: Config, settings: RenderSettings) -> list[ClientDa
     )
 
 
-def fetch_networks(
+def _fetch_networks_filtered(
     config: Config, *, site: str | None = None, use_cache: bool = True
 ) -> list[Mapping[str, Any]]:
-    """Fetch UniFi network configurations with fallback for older libraries."""
-    try:
-        from unifi_network_maps.adapters.unifi import fetch_networks as upstream_fetch_networks
-    except ImportError:
-        return _load_networks_fallback(config)
-    networks = upstream_fetch_networks(config, site=site, use_cache=use_cache)
+    """Fetch UniFi network configurations, filtering to Mapping objects."""
+    networks = fetch_networks(config, site=site, use_cache=use_cache)
     return [network for network in networks if isinstance(network, Mapping)]
 
 
 def _load_networks(config: Config, settings: RenderSettings) -> list[Mapping[str, Any]]:
     """Load UniFi network configurations to include VLANs with zero clients."""
     try:
-        networks = fetch_networks(config, site=config.site, use_cache=settings.use_cache)
+        return _fetch_networks_filtered(config, site=config.site, use_cache=settings.use_cache)
     except Exception as err:  # noqa: BLE001 - keep map rendering usable without networks
         LOGGER.debug(
             "renderer network_fetch_failed site=%s error=%s", config.site, type(err).__name__
         )
         return []
-    return networks
-
-
-def _load_networks_fallback(config: Config) -> list[Mapping[str, Any]]:
-    """Fallback network fetch for older unifi-network-maps versions."""
-    LOGGER.info(
-        "renderer network_fetch_fallback reason=missing_fetch_networks site=%s",
-        config.site,
-    )
-    try:
-        from unifi_controller_api import UnifiAuthenticationError, UnifiController
-    except ImportError:
-        return []
-
-    controller = _init_controller_for_networks(UnifiController, UnifiAuthenticationError, config)
-    if controller is None:
-        return []
-    try:
-        networks = controller.get_unifi_site_networkconf(site_name=config.site, raw=True)
-    except Exception as err:  # noqa: BLE001 - keep map rendering usable without networks
-        LOGGER.debug(
-            "renderer network_fetch_failed site=%s error=%s", config.site, type(err).__name__
-        )
-        return []
-    return [network for network in networks if isinstance(network, Mapping)]
-
-
-def _init_controller_for_networks(
-    controller_cls: type["UnifiController"],
-    auth_error: type[Exception],
-    config: Config,
-) -> "UnifiController | None":
-    try:
-        return controller_cls(
-            controller_url=config.url,
-            username=config.user,
-            password=config.password,
-            is_udm_pro=True,
-            verify_ssl=config.verify_ssl,
-        )
-    except auth_error:
-        pass
-    try:
-        return controller_cls(
-            controller_url=config.url,
-            username=config.user,
-            password=config.password,
-            is_udm_pro=False,
-            verify_ssl=config.verify_ssl,
-        )
-    except auth_error:
-        return None
 
 
 def _render_svg(
@@ -285,7 +232,7 @@ def _resolve_svg_theme(svg_theme: str | None, icon_set: str | None):
 
 def _load_builtin_svg_theme(theme_name: str | None):
     """Load a built-in SVG theme by name."""
-    from unifi_network_maps.render.theme import DEFAULT_SVG_THEME, resolve_themes
+    from unifi_network_maps.render import DEFAULT_SVG_THEME, resolve_themes
 
     if not theme_name:
         return DEFAULT_SVG_THEME

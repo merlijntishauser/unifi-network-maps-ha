@@ -10,11 +10,14 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
-from unifi_network_maps.model.topology import Edge, WanInfo
-from unifi_network_maps.render.svg import SvgOptions, render_svg
-from unifi_network_maps.render.svg_isometric import render_svg_isometric
-from unifi_network_maps.render.svg_theme import SvgTheme
-from unifi_network_maps.render.theme import resolve_themes
+from unifi_network_maps.model import Edge, WanInfo
+from unifi_network_maps.render import (
+    SvgOptions,
+    SvgTheme,
+    render_svg,
+    render_svg_isometric,
+    resolve_themes,
+)
 
 from .const import DOMAIN, LOGGER
 from .coordinator import UniFiNetworkMapCoordinator

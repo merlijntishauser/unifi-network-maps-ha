@@ -4,8 +4,8 @@ from typing import Any, Iterable
 
 from pytest import MonkeyPatch
 
-from unifi_network_maps.adapters.config import Config
-from unifi_network_maps.model.mock import MockOptions, generate_mock_payload
+from unifi_network_maps.adapters import Config
+from unifi_network_maps.model import MockOptions, generate_mock_payload
 
 from custom_components.unifi_network_map import renderer as renderer_module
 from custom_components.unifi_network_map.const import PAYLOAD_SCHEMA_VERSION
