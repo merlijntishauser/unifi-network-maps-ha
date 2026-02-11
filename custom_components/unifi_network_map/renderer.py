@@ -155,6 +155,7 @@ def _build_client_edges(
         device_index,
         include_ports=settings.include_ports,
         client_mode=settings.client_scope,
+        only_unifi=settings.only_unifi,
     )
 
 
