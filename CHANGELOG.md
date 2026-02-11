@@ -6,8 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.3.1] - 2026-02-11
 ### Added
-- Add Nordic translations (sv, nb, da, fi, is)
+- Nordic translations (sv, nb, da, fi, is)
+
+### Changed
+- Bumped unifi-network-maps from 1.5.3 to 1.6.2
+- Migrated all imports to upstream public API (sub-package exports)
+- Removed legacy fetch_networks fallback for older library versions
+
+### Fixed
+- UX7 in AP mode misclassified as gateway instead of AP (upstream fix in 1.6.2)
 
 ## [0.3.0] - 2026-02-08
 Release 0.3.0 upgrades to unifi-network-maps 1.5.3, bringing extended device type icons, built-in theme selection, WAN upstream visualization, and configurable WAN settings (custom ISP labels, speeds, WAN2 toggle).
@@ -204,7 +214,8 @@ The upcoming 0.2 release will have some major new features.
 ## [0.1.0] - 2026-01-17
 - Initial public release.
 
-[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.3.1...HEAD
+[0.3.0]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.3.1
 [0.3.0]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.3.0
 [0.2.0]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.2.0
 [0.1.11]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.1.11
