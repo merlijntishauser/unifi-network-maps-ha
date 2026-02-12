@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Home Assistant custom integration that displays UniFi network topology as a live SVG map with optional client visibility and drill-down details. Uses the `unifi-network-maps` Python library for rendering.
+Home Assistant custom integration that displays UniFi network topology as a live SVG map with optional client visibility and drill-down details. Uses the `unifi-network-maps` Python library (currently 1.6.2) for rendering.
 
 ## Development Commands
 
@@ -16,87 +16,155 @@ make install-dev          # Create .venv and install all dependencies
 make dependency-update    # Sync requirements.txt from manifest.json and reinstall
 
 # Testing
-make test                 # Run pytest with coverage
+make test                 # Run pytest with coverage (unit + integration + contract)
+make test-unit            # Run unit tests only
+make test-integration     # Run integration tests only
+make test-contract        # Run contract tests only
+make test-e2e             # Run E2E tests with Docker (SKIP_E2E=1 to skip in release)
+make test-e2e-reuse       # Run E2E tests, keep Docker stack running
+make test-e2e-debug       # Run E2E tests with visible browser
+make test-e2e-all         # Run E2E tests against all HA versions in ha-matrix.yaml
 make frontend-test        # Run Jest tests
 
 # Code quality
-make pre-commit-run       # Run all pre-commit hooks (hassfest, pytest, pyright, ruff, frontend checks)
+make pre-commit-run       # Run all pre-commit hooks
 make ci                   # Alias for pre-commit-run
+make format               # Run ruff format
 
 # Frontend
 make frontend-install     # Install Node dependencies
 make frontend-build       # Build TypeScript and copy to custom_components/
 make frontend-typecheck   # TypeScript strict checking
 make frontend-lint        # ESLint check
+make frontend-format      # Prettier format check
+
+# Release
+make version-bump         # Bump version across all files, build, tag, push
+make release              # CI + E2E + version-bump + release zip
+make release-hotfix       # Rebuild bundle, retag, upload asset
 ```
 
 ## Architecture
 
-### Backend Flow (Python)
-1. **Config Flow** (`config_flow.py`) - User enters UniFi controller credentials via HA UI
-2. **DataUpdateCoordinator** (`coordinator.py`) - Polls UniFi API every 60s (configurable)
-3. **API Client** (`api.py`) - Wraps `unifi-network-maps` library
-4. **Renderer** (`renderer.py`) - Transforms API data into SVG + JSON payload
-5. **HTTP Views** (`http.py`) - Serves `/api/unifi_network_map/{entry_id}/svg` and `/payload`
-6. **Sensor Entity** (`sensor.py`) - Exposes HA sensor with status info
+### Backend Modules (Python)
+
+| Module | Purpose |
+|--------|---------|
+| `__init__.py` | Entry point; sets up coordinator, HTTP views, WebSocket, sensors |
+| `config_flow.py` | Multi-step setup wizard: credentials, site selection, render options |
+| `coordinator.py` | `DataUpdateCoordinator` subclass; polls UniFi API, manages auth backoff |
+| `api.py` | Thin wrapper around `unifi-network-maps` library; handles SSL and caching |
+| `renderer.py` | Transforms topology data into SVG + JSON payload with node metadata |
+| `http.py` | Two `HomeAssistantView` endpoints: `/api/unifi_network_map/{entry_id}/svg` and `/payload` |
+| `websocket.py` | WebSocket subscription (`unifi_network_map/subscribe`); pushes payload on coordinator updates |
+| `sensor.py` | HA sensor entity with device count attributes; VLAN client count sensors |
+| `binary_sensor.py` | Per-device binary sensors (gateway/switch/AP) and client connectivity sensors |
+| `data.py` | Data class `UniFiNetworkMapData` wrapping SVG, payload, and WAN info |
+| `payload_cache.py` | Payload caching with configurable TTL (0-300s, default 30s) |
+| `entity_cache.py` | Caches entity registry index for MAC-to-entity lookups; rebuilds on registry changes |
+| `errors.py` | Custom exception hierarchy |
+| `diagnostics.py` | HA diagnostics support with redacted output |
+| `const.py` | Configuration keys, defaults, model name fallback mapping |
+| `utils.py` | Utility functions |
+
+### Backend Data Flow
+1. **Config Flow** - User enters UniFi controller credentials via HA UI
+2. **Coordinator** - Polls UniFi API every 10 min (configurable 1-60 min)
+3. **API Client** - Fetches devices, clients, networks from UniFi controller
+4. **Renderer** - Builds topology, renders SVG + JSON payload via `unifi-network-maps`
+5. **HTTP Views** - Serves SVG and enriched payload (with entity resolution)
+6. **WebSocket** - Pushes payload updates to subscribed frontend cards in real-time
+7. **Sensors** - Exposes device status, client connectivity, VLAN client counts
 
 ### Frontend Flow (TypeScript)
 1. **WebComponent** (`frontend/src/unifi-network-map.ts`) - Lovelace custom card
-2. Fetches SVG and payload from HA API with auth token
-3. Renders interactive SVG with pan/zoom/selection
-4. Detail panel shows device properties; links client MACs to HA UniFi integration entities
+2. Subscribes to WebSocket for real-time updates (falls back to HTTP polling at 30s)
+3. Fetches SVG from HTTP endpoint on initial load
+4. Renders interactive SVG with pan/zoom/selection
+5. Detail panel shows device properties; links client MACs to HA UniFi integration entities
 
 ### Frontend Module Structure
-The frontend is organized into focused modules under `frontend/src/card/`:
 
-- **`core/`** - Main card component and types
-  - `unifi-network-map-card.ts` - Main card class with rendering and state management
-  - `unifi-network-map-editor.ts` - Card configuration editor
-  - `types.ts` - TypeScript type definitions (MapPayload, CardConfig, etc.)
-  - `state.ts` - Config normalization and polling utilities
+```
+frontend/src/card/
+  core/             Main card, editor, types, state
+  data/             Auth, data fetching, WebSocket, SVG annotation, sanitization
+  interaction/      Pan/zoom, selection, filters, context menu, entity modal
+  ui/               Panel, icons, styles, filter bar, context menu, modals, VLAN colors
+  shared/           Constants, localization (10 locales), editor helpers, utilities
+```
 
-- **`interaction/`** - User interaction handlers
-  - `viewport.ts` - Pan/zoom/pinch gesture handling
-  - `selection.ts` - Node selection state
-  - `node.ts` - Node element utilities (find, highlight, annotate)
-  - `filter-state.ts` - Device type filter state management
-  - `context-menu-state.ts` - Right-click context menu controller
-  - `entity-modal-state.ts` - Entity details modal controller
+**`core/`**
+- `unifi-network-map-card.ts` - Main card class with rendering and state management
+- `unifi-network-map-editor.ts` - Card configuration editor
+- `types.ts` - TypeScript type definitions (MapPayload, CardConfig, etc.)
+- `state.ts` - Config normalization and polling utilities
 
-- **`ui/`** - UI rendering functions (return HTML strings)
-  - `panel.ts` - Side panel content rendering
-  - `icons.ts` - Device type and domain icons (emoji + Heroicons)
-  - `styles.ts` - CSS styles with theme variants (dark, light, unifi, unifi-dark)
-  - `filter-bar.ts` - Filter bar rendering
-  - `context-menu.ts` - Context menu rendering
-  - `entity-modal.ts` - Entity modal rendering
-  - `port-modal.ts` - Port details modal rendering
+**`data/`**
+- `auth.ts` - Authenticated fetch wrapper
+- `data.ts` - SVG and payload loaders
+- `websocket.ts` - WebSocket subscription for real-time map updates
+- `annotation-cache.ts` - SVG annotation caching based on content hashes
+- `sanitize.ts` - HTML/SVG sanitization (DOMPurify)
+- `svg.ts` - SVG edge annotation and tooltip rendering
 
-- **`data/`** - Data fetching and transformation
-  - `auth.ts` - Authenticated fetch wrapper
-  - `data.ts` - SVG and payload loaders
-  - `sanitize.ts` - HTML/SVG sanitization
-  - `svg.ts` - SVG edge annotation and tooltip rendering
+**`interaction/`**
+- `viewport.ts` - Pan/zoom/pinch gesture handling
+- `selection.ts` - Node selection state
+- `node.ts` - Node element utilities (find, highlight, annotate)
+- `filter-state.ts` - Device type filter state management
+- `context-menu-state.ts` - Right-click context menu controller
+- `entity-modal-state.ts` - Entity details modal controller
 
-- **`shared/`** - Shared utilities and constants
+**`ui/`**
+- `panel.ts` - Side panel content rendering
+- `icons.ts` - Device type and domain icons (Heroicons)
+- `styles.ts` - CSS styles with card theme variants (light, unifi, unifi-dark)
+- `filter-bar.ts` - Filter bar rendering
+- `context-menu.ts` - Context menu rendering
+- `entity-modal.ts` - Entity modal rendering
+- `port-modal.ts` - Port details modal rendering
+- `vlan-colors.ts` - VLAN-to-color palette mapping
+
+**`shared/`**
+- `constants.ts` - Shared constants
+- `localize.ts` - Localization helper
+- `locales/` - 10 language files (en, de, es, fr, nl, sv, da, fi, is, nb)
+- `feedback.ts` - Toast notification system
+- `node-utils.ts` - Node IP resolution utilities
+- `editor-helpers.ts` - Card editor form schema helpers
 
 ### Key Integration Points
 - Built JS bundle is copied to `custom_components/unifi_network_map/frontend/`
 - Card resource auto-registered at `/unifi-network-map/unifi-network-map.js`
 - Official UniFi integration domain is `unifi` (built-in), not `unifi_network`
+- Four automation blueprints in `custom_components/unifi_network_map/blueprints/automation/`
+
+### Theming
+
+Two separate theme systems:
+- **Card theme** (HA UI): `light`, `unifi`, `unifi-dark` -- set via `data-theme` attribute on `ha-card`
+- **SVG theme** (rendered map): `unifi`, `unifi-dark`, `minimal`, `minimal-dark`, `classic`, `classic-dark` -- passed to upstream renderer via `svg_theme` config option
+
+Icon sets: `modern` (default), `isometric`
 
 ## Testing
 
-### Unit/Integration Tests
-- **Python tests** in `tests/unit/` and `tests/integration/` - run with `make test`
-- **Frontend tests** in `frontend/src/__tests__/` - Jest tests run with `make frontend-test`
+### Test Structure
+- `tests/unit/` - Unit tests
+- `tests/integration/` - Integration tests
+- `tests/contract/` - Contract tests (validates upstream library interface)
+- `tests/e2e/` - E2E tests with Playwright + Docker-based Home Assistant
+- `frontend/src/__tests__/` - Frontend Jest tests
 
 ### E2E Tests
 Located in `tests/e2e/`, using Playwright with Docker-based Home Assistant:
 
 ```bash
-cd tests/e2e && pytest -v                    # Run all E2E tests
-cd tests/e2e && pytest -v test_lovelace_card.py  # Run card interaction tests
+make test-e2e                                    # Full run with Docker lifecycle
+make test-e2e-reuse                              # Reuse running Docker stack
+make test-e2e-debug                              # Visible browser, slow motion
+cd tests/e2e && pytest -v test_lovelace_card.py  # Run specific test file
 ```
 
 **E2E Infrastructure:**
@@ -104,12 +172,7 @@ cd tests/e2e && pytest -v test_lovelace_card.py  # Run card interaction tests
 - `docker-compose.yml` - HA container + mock UniFi controller
 - `mock-unifi/` - Mock UniFi API server with test topology fixture
 - `ha-config-*/` - HA configuration directories for different versions
-
-**Key E2E Fixtures:**
-- `docker_services` - Starts/stops Docker stack (session-scoped)
-- `ha_auth_token` - Obtains HA access token
-- `authenticated_page` - Playwright page with HA auth cookies
-- `entry_id` - Creates a config entry via HA API
+- `ha-matrix.yaml` - HA version matrix for `test-e2e-all`
 
 **E2E Test Pattern:**
 ```python
@@ -135,15 +198,9 @@ def test_something(authenticated_page: Page, entry_id: str, ha_auth_token: str):
 - **Frontend**: Prettier + ESLint, TypeScript strict, 100 char line length
 - Both use double quotes
 - Run `npm run format` in `frontend/` to fix Prettier issues
+- Pre-commit hooks: check-requirements, hassfest, pytest (unit/integration/contract), pyright, ruff, pylint similarities, radon complexity, frontend (test/typecheck/lint/format)
 
 ## Frontend Patterns
-
-### Theming
-Four theme variants: `dark`, `light`, `unifi`, `unifi-dark`. Theme is set via `data-theme` attribute on `ha-card`. Theme-specific CSS uses attribute selectors:
-```css
-ha-card[data-theme="light"] .some-class { ... }
-ha-card[data-theme="unifi"] .some-class { ... }
-```
 
 ### Node/Edge Filtering
 Visibility is controlled via CSS classes, not DOM removal:
@@ -162,6 +219,14 @@ The card uses simple property-based state (no external state library):
 - `_payload` - MapPayload from API
 
 UI updates call `_render()` for full re-render or targeted methods like `_updateSelectionOnly()` for partial updates.
+
+## Utility Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/version_sync.py` | Syncs VERSION to manifest.json, requirements.txt, package.json, hacs.json |
+| `scripts/build_release_zip.py` | Creates HACS release zip |
+| `scripts/radon_report.py` | Code complexity reporting (cyclomatic complexity + maintainability index) |
 
 ## Key Principles
 
