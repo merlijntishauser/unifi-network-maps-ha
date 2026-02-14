@@ -93,7 +93,9 @@ def _render_map(config: Config, settings: RenderSettings) -> UniFiNetworkMapData
         client_count,
         len(gateways),
     )
-    node_types = build_node_type_map(devices, clients, client_mode=settings.client_scope)
+    node_types = build_node_type_map(
+        devices, clients, client_mode=settings.client_scope, only_unifi=settings.only_unifi
+    )
     wan_info = _extract_wan_info(devices, settings)
     svg = _render_svg(edges, node_types, settings, wan_info)
     # Always fetch clients for stats (wireless counts per AP)
