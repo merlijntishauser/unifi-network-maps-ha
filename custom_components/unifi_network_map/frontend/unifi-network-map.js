@@ -7956,7 +7956,7 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
 };
 
 // src/unifi-network-map.ts
-var CARD_VERSION = "0.3.2";
+var CARD_VERSION = "0.3.3";
 customElements.define("unifi-network-map", UnifiNetworkMapCard);
 customElements.define("unifi-network-map-editor", UnifiNetworkMapEditor);
 window.customCards = window.customCards || [];
