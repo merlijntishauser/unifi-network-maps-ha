@@ -82,6 +82,8 @@ UNIFI_MODEL_NAMES: dict[str, str] = {
     "UDW": "UniFi Dream Wall",
     "UXG-Pro": "UniFi Next-Gen Gateway Pro",
     "UXGPRO": "UniFi Next-Gen Gateway Pro",
+    "UXG-Max": "UniFi Next-Gen Gateway Max",
+    "UXGB": "UniFi Next-Gen Gateway Max",
     "UXG-Lite": "UniFi Express",
     "UXGLite": "UniFi Express",
     "USG": "UniFi Security Gateway",
