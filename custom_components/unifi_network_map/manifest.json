@@ -15,5 +15,5 @@
   "requirements": [
     "unifi-network-maps==1.6.4"
   ],
-  "version": "0.3.3"
+  "version": "0.3.4"
 }
