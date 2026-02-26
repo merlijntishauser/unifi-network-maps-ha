@@ -6,7 +6,7 @@ import os
 from time import monotonic
 
 from unifi_topology import Config, fetch_devices
-from unifi_topology.adapters.unifi_api import UnifiAuthError
+from unifi_topology.adapters.unifi_api import UnifiApiError, UnifiAuthError
 from requests import RequestException
 from requests.exceptions import HTTPError
 
@@ -118,7 +118,14 @@ def _assert_unifi_connectivity(config: Config, site: str) -> None:
     except UnifiAuthError as exc:
         LOGGER.debug("api connectivity_check failed reason=auth_error site=%s", site)
         raise InvalidAuth("Authentication failed") from exc
-    except (OSError, RequestException, RuntimeError, TimeoutError, ValueError) as exc:
+    except (
+        OSError,
+        RequestException,
+        RuntimeError,
+        TimeoutError,
+        UnifiApiError,
+        ValueError,
+    ) as exc:
         LOGGER.debug(
             "api connectivity_check failed reason=connection_error site=%s error=%s",
             site,
@@ -133,7 +140,7 @@ def _render_map_payload(config: Config, settings: RenderSettings) -> UniFiNetwor
     except UnifiAuthError as exc:
         LOGGER.debug("api render_map failed reason=auth_error site=%s", config.site)
         raise _map_auth_error(exc) from exc
-    except (OSError, RequestException, RuntimeError, TimeoutError) as exc:
+    except (OSError, RequestException, RuntimeError, TimeoutError, UnifiApiError) as exc:
         LOGGER.debug(
             "api render_map failed reason=connection_error site=%s error=%s",
             config.site,

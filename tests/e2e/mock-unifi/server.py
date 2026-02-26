@@ -35,7 +35,7 @@ async def health_check(_request: Request) -> Response:
 
 
 async def login(request: Request) -> Response:
-    """Handle login requests."""
+    """Handle legacy login requests."""
     try:
         data = await request.json()
     except json.JSONDecodeError:
@@ -52,6 +52,26 @@ async def login(request: Request) -> Response:
         return response
 
     return web.json_response({"meta": {"rc": "error", "msg": "Invalid credentials"}}, status=401)
+
+
+async def login_udm(request: Request) -> Response:
+    """Handle UDM Pro (UniFi OS) login requests."""
+    try:
+        data = await request.json()
+    except json.JSONDecodeError:
+        return web.json_response({"code": 400, "message": "Invalid JSON"}, status=400)
+
+    username = data.get("username")
+    password = data.get("password")
+
+    if username == USERNAME and password == PASSWORD:
+        session_id = secrets.token_hex(16)
+        sessions[session_id] = True
+        response = web.json_response({"isSuperAdmin": True})
+        response.set_cookie("unifises", session_id, httponly=True)
+        return response
+
+    return web.json_response({"code": 401, "message": "Invalid credentials"}, status=401)
 
 
 async def logout(request: Request) -> Response:
@@ -127,6 +147,14 @@ async def get_sites(request: Request) -> Response:
     )
 
 
+async def get_networkconf(request: Request) -> Response:
+    """Return network configuration (VLANs)."""
+    if not check_auth(request):
+        return web.json_response({"meta": {"rc": "error", "msg": "Unauthorized"}}, status=401)
+
+    return web.json_response({"meta": {"rc": "ok"}, "data": []})
+
+
 async def get_sysinfo(request: Request) -> Response:
     """Return system info."""
     if not check_auth(request):
@@ -150,14 +178,23 @@ def create_app() -> web.Application:
     """Create the aiohttp application."""
     app = web.Application()
     app.router.add_get("/status", health_check)
+    # Authentication
     app.router.add_post("/api/login", login)
+    app.router.add_post("/api/auth/login", login_udm)
     app.router.add_post("/api/logout", logout)
+    # Legacy controller paths
     app.router.add_get("/api/self/sites", get_sites)
     app.router.add_get(f"/api/s/{SITE}/stat/device", get_devices)
     app.router.add_get(f"/api/s/{SITE}/stat/device-basic", get_devices_basic)
     app.router.add_get(f"/api/s/{SITE}/stat/sta", get_clients)
     app.router.add_get(f"/api/s/{SITE}/rest/user", get_clients)
+    app.router.add_get(f"/api/s/{SITE}/rest/networkconf", get_networkconf)
     app.router.add_get(f"/api/s/{SITE}/stat/sysinfo", get_sysinfo)
+    # UDM Pro paths (via /proxy/network prefix)
+    app.router.add_get(f"/proxy/network/api/s/{SITE}/stat/device", get_devices)
+    app.router.add_get(f"/proxy/network/api/s/{SITE}/stat/device-basic", get_devices_basic)
+    app.router.add_get(f"/proxy/network/api/s/{SITE}/stat/sta", get_clients)
+    app.router.add_get(f"/proxy/network/api/s/{SITE}/rest/networkconf", get_networkconf)
     return app
 
 
