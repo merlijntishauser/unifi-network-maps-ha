@@ -12,6 +12,14 @@
       "adopted": true,
       "state": 1,
       "uplink": {},
+      "lldp_info": [
+        {
+          "chassis_id": "00:11:22:33:44:02",
+          "port_id": "Port 1",
+          "local_port_name": "Port 1",
+          "local_port_idx": 1
+        }
+      ],
       "port_table": [
         {"port_idx": 1, "name": "Port 1", "up": true, "speed": 1000},
         {"port_idx": 2, "name": "Port 2", "up": true, "speed": 1000},
@@ -39,6 +47,20 @@
         "port_idx": 1,
         "type": "wire"
       },
+      "lldp_info": [
+        {
+          "chassis_id": "00:11:22:33:44:01",
+          "port_id": "Port 1",
+          "local_port_name": "Port 1",
+          "local_port_idx": 1
+        },
+        {
+          "chassis_id": "00:11:22:33:44:03",
+          "port_id": "Port 2",
+          "local_port_name": "Port 2",
+          "local_port_idx": 2
+        }
+      ],
       "port_table": [
         {"port_idx": 1, "name": "Port 1", "up": true, "speed": 1000},
         {"port_idx": 2, "name": "Port 2", "up": true, "speed": 1000},
@@ -70,6 +92,14 @@
         "port_idx": 2,
         "type": "wire"
       },
+      "lldp_info": [
+        {
+          "chassis_id": "00:11:22:33:44:02",
+          "port_id": "Port 2",
+          "local_port_name": "eth0",
+          "local_port_idx": 0
+        }
+      ],
       "radio_table": [
         {"name": "ra0", "radio": "ng", "channel": 6},
         {"name": "rai0", "radio": "na", "channel": 36}
