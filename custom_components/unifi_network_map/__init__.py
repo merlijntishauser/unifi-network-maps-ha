@@ -107,7 +107,7 @@ def _suppress_unifi_api_info_logs(hass: HomeAssistant) -> None:
     global _unifi_api_info_filter_added
     if _unifi_api_info_filter_added or getattr(getattr(hass, "config", None), "debug", False):
         return
-    logging.getLogger("unifi_controller_api.api_client").addFilter(_UnifiApiInfoFilter())
+    logging.getLogger("unifi_topology.adapters.unifi_api").addFilter(_UnifiApiInfoFilter())
     _unifi_api_info_filter_added = True
 
 

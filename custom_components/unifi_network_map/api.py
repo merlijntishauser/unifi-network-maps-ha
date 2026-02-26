@@ -6,6 +6,7 @@ import os
 from time import monotonic
 
 from unifi_topology import Config, fetch_devices
+from unifi_topology.adapters.unifi_api import UnifiAuthError
 from requests import RequestException
 from requests.exceptions import HTTPError
 
@@ -87,8 +88,7 @@ def validate_unifi_credentials(
     _ensure_unifi_ssl_warning_filter(verify_ssl)
     _ensure_unifi_request_timeout(None)
     config = _build_config(base_url, username, password, site, verify_ssl)
-    auth_error = _load_unifi_auth_error()
-    _assert_unifi_connectivity(config, site, auth_error)
+    _assert_unifi_connectivity(config, site)
     LOGGER.debug("api validate_credentials succeeded site=%s", site)
 
 
@@ -104,14 +104,6 @@ def _build_config(
     )
 
 
-def _load_unifi_auth_error():
-    try:
-        from unifi_controller_api import UnifiAuthenticationError
-    except ImportError as exc:
-        raise CannotConnect("Missing dependency: unifi-controller-api") from exc
-    return UnifiAuthenticationError
-
-
 def _ensure_unifi_request_timeout(timeout_seconds: float | None) -> None:
     value = DEFAULT_REQUEST_TIMEOUT_SECONDS if timeout_seconds is None else timeout_seconds
     if value <= 0:
@@ -120,10 +112,10 @@ def _ensure_unifi_request_timeout(timeout_seconds: float | None) -> None:
     os.environ["UNIFI_REQUEST_TIMEOUT_SECONDS"] = str(value)
 
 
-def _assert_unifi_connectivity(config: Config, site: str, auth_error: type[Exception]) -> None:
+def _assert_unifi_connectivity(config: Config, site: str) -> None:
     try:
         fetch_devices(config, site=site, detailed=False, use_cache=False)
-    except auth_error as exc:
+    except UnifiAuthError as exc:
         LOGGER.debug("api connectivity_check failed reason=auth_error site=%s", site)
         raise InvalidAuth("Authentication failed") from exc
     except (OSError, RequestException, RuntimeError, TimeoutError, ValueError) as exc:
@@ -138,7 +130,7 @@ def _assert_unifi_connectivity(config: Config, site: str, auth_error: type[Excep
 def _render_map_payload(config: Config, settings: RenderSettings) -> UniFiNetworkMapData:
     try:
         return UniFiNetworkMapRenderer().render(config, settings)
-    except _unifi_auth_error() as exc:
+    except UnifiAuthError as exc:
         LOGGER.debug("api render_map failed reason=auth_error site=%s", config.site)
         raise _map_auth_error(exc) from exc
     except (OSError, RequestException, RuntimeError, TimeoutError) as exc:
@@ -164,12 +156,6 @@ def _status_code_from_exception(exc: Exception) -> int | None:
     return None
 
 
-def _unifi_auth_error():
-    from unifi_controller_api import UnifiAuthenticationError
-
-    return UnifiAuthenticationError
-
-
 class _OnceSSLWarningFilter(logging.Filter):
     def __init__(self) -> None:
         super().__init__()
@@ -187,7 +173,7 @@ def _ensure_unifi_ssl_warning_filter(verify_ssl: bool) -> None:
     global _ssl_warning_filter_added, _ssl_warning_filter
     if verify_ssl or _ssl_warning_filter_added:
         return
-    logger = logging.getLogger("unifi_controller_api.api_client")
+    logger = logging.getLogger("unifi_topology.adapters.unifi_api")
     if _ssl_warning_filter is None:
         _ssl_warning_filter = _OnceSSLWarningFilter()
     logger.addFilter(_ssl_warning_filter)

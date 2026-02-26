@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import builtins
 import logging
 from dataclasses import dataclass
 from typing import Callable, cast
@@ -149,50 +148,28 @@ def test_status_code_from_exception_missing_cause() -> None:
     assert status_code_from_exception(Exception("boom")) is None
 
 
-def test_load_unifi_auth_error_import_failure(monkeypatch: pytest.MonkeyPatch) -> None:
-    real_import = builtins.__import__
-
-    def _import(name: str, globals=None, locals=None, fromlist=(), level=0):
-        if name == "unifi_controller_api":
-            raise ImportError("missing")
-        return real_import(name, globals, locals, fromlist, level)
-
-    monkeypatch.setattr(builtins, "__import__", _import)
-
-    with pytest.raises(CannotConnect):
-        load_unifi_auth_error = cast(
-            Callable[[], type[Exception]], getattr(api_module, "_load_unifi_auth_error")
-        )
-        load_unifi_auth_error()
-
-
 def test_assert_unifi_connectivity_maps_invalid_auth(monkeypatch: pytest.MonkeyPatch) -> None:
-    class AuthError(Exception):
-        pass
+    from unifi_topology.adapters.unifi_api import UnifiAuthError
 
     def _fetch_devices(*_args: object, **_kwargs: object) -> None:
-        raise AuthError("nope")
+        raise UnifiAuthError("nope")
 
     monkeypatch.setattr(api_module, "fetch_devices", _fetch_devices)
 
     with pytest.raises(InvalidAuth):
         assert_unifi_connectivity = cast(
-            Callable[[api_module.Config, str, type[Exception]], None],
+            Callable[[api_module.Config, str], None],
             getattr(api_module, "_assert_unifi_connectivity"),
         )
         assert_unifi_connectivity(
             api_module.Config("url", "site", "u", "p", True),
             "site",
-            AuthError,
         )
 
 
 def test_assert_unifi_connectivity_maps_cannot_connect(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    class AuthError(Exception):
-        pass
-
     def _fetch_devices(*_args: object, **_kwargs: object) -> None:
         raise OSError("down")
 
@@ -200,27 +177,21 @@ def test_assert_unifi_connectivity_maps_cannot_connect(
 
     with pytest.raises(CannotConnect):
         assert_unifi_connectivity = cast(
-            Callable[[api_module.Config, str, type[Exception]], None],
+            Callable[[api_module.Config, str], None],
             getattr(api_module, "_assert_unifi_connectivity"),
         )
         assert_unifi_connectivity(
             api_module.Config("url", "site", "u", "p", True),
             "site",
-            AuthError,
         )
 
 
 def test_render_map_payload_maps_auth_error(monkeypatch: pytest.MonkeyPatch) -> None:
-    class AuthError(Exception):
-        pass
-
-    def _unifi_auth_error():
-        return AuthError
+    from unifi_topology.adapters.unifi_api import UnifiAuthError
 
     def _renderer() -> FakeRenderer:
-        return FakeRenderer(error=AuthError("nope"))
+        return FakeRenderer(error=UnifiAuthError("nope"))
 
-    monkeypatch.setattr(api_module, "_unifi_auth_error", _unifi_auth_error)
     monkeypatch.setattr(api_module, "UniFiNetworkMapRenderer", _renderer)
 
     with pytest.raises(InvalidAuth):
@@ -232,7 +203,7 @@ def test_render_map_payload_maps_auth_error(monkeypatch: pytest.MonkeyPatch) -> 
 
 
 def test_ensure_ssl_warning_filter_adds_once() -> None:
-    logger = logging.getLogger("unifi_controller_api.api_client")
+    logger = logging.getLogger("unifi_topology.adapters.unifi_api")
     before = list(logger.filters)
 
     setattr(api_module, "_ssl_warning_filter_added", False)

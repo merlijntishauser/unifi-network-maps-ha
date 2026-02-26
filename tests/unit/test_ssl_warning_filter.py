@@ -15,7 +15,7 @@ class _ListHandler(logging.Handler):
 
 
 def test_ssl_warning_logged_once() -> None:
-    logger = logging.getLogger("unifi_controller_api.api_client")
+    logger = logging.getLogger("unifi_topology.adapters.unifi_api")
     handler = _ListHandler()
     logger.addHandler(handler)
     logger.setLevel(logging.WARNING)
