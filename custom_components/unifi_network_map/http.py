@@ -10,13 +10,14 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
-from unifi_network_maps.model import Edge, WanInfo
-from unifi_network_maps.render import (
+from unifi_topology import (
+    Edge,
     SvgOptions,
     SvgTheme,
+    WanInfo,
     render_svg,
     render_svg_isometric,
-    resolve_themes,
+    resolve_svg_themes,
 )
 
 from .const import DOMAIN, LOGGER
@@ -694,7 +695,7 @@ def _load_svg_theme(
     theme_name = svg_theme or settings.svg_theme or "unifi"
     icon_set_name = icon_set or settings.icon_set or "modern"
 
-    _, theme = resolve_themes(theme_name=theme_name)
+    theme = resolve_svg_themes(theme_name=theme_name)
     if theme.icon_set != icon_set_name:
         theme = replace(theme, icon_set=icon_set_name)
     return theme

@@ -13,7 +13,7 @@ from aiohttp import web
 from custom_components.unifi_network_map.data import UniFiNetworkMapData
 from custom_components.unifi_network_map.renderer import RenderSettings
 from tests.helpers import build_settings
-from unifi_network_maps.model import Edge
+from unifi_topology import Edge
 
 
 @dataclass

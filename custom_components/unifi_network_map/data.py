@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from unifi_network_maps.model import WanInfo
+from unifi_topology import WanInfo
 
 
 @dataclass(slots=True)

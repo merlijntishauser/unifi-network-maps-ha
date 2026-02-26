@@ -3,10 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Mapping, Protocol, TypedDict, cast
 
-from unifi_network_maps.adapters import Config, fetch_clients, fetch_devices, fetch_networks
-from unifi_network_maps.model import (
+from unifi_topology import (
+    Config,
     Device,
     Edge,
+    SvgOptions,
     TopologyResult,
     WanInfo,
     build_client_edges,
@@ -14,10 +15,14 @@ from unifi_network_maps.model import (
     build_node_type_map,
     build_topology,
     extract_wan_info,
+    fetch_clients,
+    fetch_devices,
+    fetch_networks,
     group_devices_by_type,
     normalize_devices,
+    render_svg,
+    render_svg_isometric,
 )
-from unifi_network_maps.render import SvgOptions, render_svg, render_svg_isometric
 
 from .const import LOGGER, PAYLOAD_SCHEMA_VERSION
 from .data import UniFiNetworkMapData
@@ -235,13 +240,12 @@ def _resolve_svg_theme(svg_theme: str | None, icon_set: str | None):
 
 def _load_builtin_svg_theme(theme_name: str | None):
     """Load a built-in SVG theme by name."""
-    from unifi_network_maps.render import DEFAULT_SVG_THEME, resolve_themes
+    from unifi_topology import DEFAULT_SVG_THEME, resolve_svg_themes
 
     if not theme_name:
         return DEFAULT_SVG_THEME
     try:
-        _, svg_theme = resolve_themes(theme_name=theme_name)
-        return svg_theme
+        return resolve_svg_themes(theme_name=theme_name)
     except ValueError as err:
         LOGGER.warning("renderer unknown_theme theme=%s error=%s", theme_name, err)
         return DEFAULT_SVG_THEME

@@ -5,7 +5,7 @@ import logging
 import os
 from time import monotonic
 
-from unifi_network_maps.adapters import Config, fetch_devices
+from unifi_topology import Config, fetch_devices
 from requests import RequestException
 from requests.exceptions import HTTPError
 

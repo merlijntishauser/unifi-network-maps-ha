@@ -9,4 +9,4 @@ This is a minimal HA integration skeleton for future extraction.
 - Decide on storage strategy for SVG/JSON caching.
 
 ## Notes
-- Rendering uses `unifi_network_maps` adapters for device/client fetch + SVG output.
+- Rendering uses `unifi_topology` for device/client fetch + SVG output.
