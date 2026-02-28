@@ -71,7 +71,8 @@
           "wan_speed": "WAN ISP-hraði",
           "wan2_label": "WAN2 ISP-heiti",
           "wan2_speed": "WAN2 ISP-hraði",
-          "wan2_disabled": "WAN2-staða"
+          "wan2_disabled": "WAN2-staða",
+          "show_vpn": "Show VPN tunnels"
         },
         "data_description": {
           "scan_interval": "Hversu oft gögn eru sótt frá UniFi-stýribúnaðinum.",
@@ -91,7 +92,8 @@
           "wan_speed": "Sérsniðinn ISP-hraði fyrir WAN1 (t.d. 1 Gbps). Skildu eftir autt til sjálfvirkrar greiningar.",
           "wan2_label": "Sérsniðið merki fyrir WAN2. Skildu eftir autt til sjálfvirkrar greiningar.",
           "wan2_speed": "Sérsniðinn ISP-hraði fyrir WAN2. Skildu eftir autt til sjálfvirkrar greiningar.",
-          "wan2_disabled": "Greinist sjálfkrafa frá stýribúnaðinum. Settu á Óvirkt til að fela WAN2."
+          "wan2_disabled": "Greinist sjálfkrafa frá stýribúnaðinum. Settu á Óvirkt til að fela WAN2.",
+          "show_vpn": "Display VPN tunnels (site-to-site) below the gateway with status indicators."
         }
       }
     },

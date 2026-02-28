@@ -73,7 +73,8 @@
           "wan_speed": "Velocidad del ISP WAN",
           "wan2_label": "Nombre del ISP WAN2",
           "wan2_speed": "Velocidad del ISP WAN2",
-          "wan2_disabled": "Estado de WAN2"
+          "wan2_disabled": "Estado de WAN2",
+          "show_vpn": "Show VPN tunnels"
         },
         "data_description": {
           "scan_interval": "Frecuencia de actualización de datos desde el controlador UniFi.",
@@ -93,7 +94,8 @@
           "wan_speed": "Velocidad ISP personalizada para WAN1 (ej. 1 Gbps). Deja en blanco para detección automática.",
           "wan2_label": "Etiqueta personalizada para WAN2. Deja en blanco para detección automática.",
           "wan2_speed": "Velocidad ISP personalizada para WAN2. Deja en blanco para detección automática.",
-          "wan2_disabled": "Detecta automáticamente desde el controlador. Establece en Desactivado para ocultar WAN2."
+          "wan2_disabled": "Detecta automáticamente desde el controlador. Establece en Desactivado para ocultar WAN2.",
+          "show_vpn": "Display VPN tunnels (site-to-site) below the gateway with status indicators."
         }
       }
     },

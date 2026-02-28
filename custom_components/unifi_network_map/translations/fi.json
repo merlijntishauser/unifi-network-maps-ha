@@ -71,7 +71,8 @@
           "wan_speed": "WAN-operaattorin nopeus",
           "wan2_label": "WAN2-operaattorin nimi",
           "wan2_speed": "WAN2-operaattorin nopeus",
-          "wan2_disabled": "WAN2-tila"
+          "wan2_disabled": "WAN2-tila",
+          "show_vpn": "Show VPN tunnels"
         },
         "data_description": {
           "scan_interval": "Kuinka usein tiedot päivitetään UniFi-ohjaimelta.",
@@ -91,7 +92,8 @@
           "wan_speed": "Mukautettu nopeus WAN1:lle (esim. 1 Gbps). Jätä tyhjäksi automaattista tunnistusta varten.",
           "wan2_label": "Mukautettu nimi WAN2:lle. Jätä tyhjäksi automaattista tunnistusta varten.",
           "wan2_speed": "Mukautettu nopeus WAN2:lle. Jätä tyhjäksi automaattista tunnistusta varten.",
-          "wan2_disabled": "Tunnistetaan automaattisesti ohjaimelta. Aseta Pois käytöstä piilottaaksesi WAN2."
+          "wan2_disabled": "Tunnistetaan automaattisesti ohjaimelta. Aseta Pois käytöstä piilottaaksesi WAN2.",
+          "show_vpn": "Display VPN tunnels (site-to-site) below the gateway with status indicators."
         }
       }
     },

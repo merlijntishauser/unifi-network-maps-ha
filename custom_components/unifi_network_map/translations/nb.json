@@ -71,7 +71,8 @@
           "wan_speed": "WAN ISP-hastighet",
           "wan2_label": "WAN2 ISP-navn",
           "wan2_speed": "WAN2 ISP-hastighet",
-          "wan2_disabled": "WAN2-status"
+          "wan2_disabled": "WAN2-status",
+          "show_vpn": "Show VPN tunnels"
         },
         "data_description": {
           "scan_interval": "Hvor ofte data hentes fra UniFi-kontrolleren.",
@@ -91,7 +92,8 @@
           "wan_speed": "Egendefinert ISP-hastighet for WAN1 (f.eks. 1 Gbps). La sta tomt for automatisk gjenkjenning.",
           "wan2_label": "Egendefinert etikett for WAN2. La sta tomt for automatisk gjenkjenning.",
           "wan2_speed": "Egendefinert ISP-hastighet for WAN2. La sta tomt for automatisk gjenkjenning.",
-          "wan2_disabled": "Oppdages automatisk fra kontrolleren. Sett til Deaktivert for a skjule WAN2."
+          "wan2_disabled": "Oppdages automatisk fra kontrolleren. Sett til Deaktivert for a skjule WAN2.",
+          "show_vpn": "Display VPN tunnels (site-to-site) below the gateway with status indicators."
         }
       }
     },

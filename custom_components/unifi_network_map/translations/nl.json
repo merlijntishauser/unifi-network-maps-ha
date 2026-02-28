@@ -73,7 +73,8 @@
           "wan_speed": "WAN ISP-snelheid",
           "wan2_label": "WAN2 ISP-naam",
           "wan2_speed": "WAN2 ISP-snelheid",
-          "wan2_disabled": "WAN2-status"
+          "wan2_disabled": "WAN2-status",
+          "show_vpn": "Show VPN tunnels"
         },
         "data_description": {
           "scan_interval": "Hoe vaak gegevens worden opgehaald van de UniFi-controller.",
@@ -93,7 +94,8 @@
           "wan_speed": "Aangepaste ISP-snelheid voor WAN1 (bijv. 1 Gbps). Laat leeg voor automatische detectie.",
           "wan2_label": "Aangepast label voor WAN2. Laat leeg voor automatische detectie.",
           "wan2_speed": "Aangepaste ISP-snelheid voor WAN2. Laat leeg voor automatische detectie.",
-          "wan2_disabled": "Detecteert automatisch via de controller. Stel in op Uitgeschakeld om WAN2 te verbergen."
+          "wan2_disabled": "Detecteert automatisch via de controller. Stel in op Uitgeschakeld om WAN2 te verbergen.",
+          "show_vpn": "Display VPN tunnels (site-to-site) below the gateway with status indicators."
         }
       }
     },
