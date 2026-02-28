@@ -5,6 +5,7 @@ import type {
   NodeStatus,
   StatusCounts,
   VlanInfo,
+  VpnTunnel,
 } from "../core/types";
 import type { IconName } from "./icons";
 import { getNodeIpFromPayload } from "../shared/node-utils";
@@ -151,9 +152,11 @@ function renderOverviewTab(context: PanelContext, name: string, helpers: PanelHe
 
   const relatedEntitiesSection = renderRelatedEntitiesSection(context, name, helpers);
   const vlanSection = renderVlanSection(context, name, helpers);
+  const vpnSection = renderVpnTunnelsSection(context, name, helpers);
 
   return `
     ${vlanSection}
+    ${vpnSection}
     <div class="panel-section">
       <div class="panel-section__title">${helpers.localize("panel.connected_devices")}</div>
       <div class="neighbor-list neighbor-list--compact">${neighborList}</div>
@@ -218,6 +221,66 @@ function renderVlanSection(context: PanelContext, name: string, helpers: PanelHe
       </div>
     </div>
   `;
+}
+
+function renderVpnTunnelsSection(
+  context: PanelContext,
+  name: string,
+  helpers: PanelHelpers,
+): string {
+  const nodeType = context.payload?.node_types?.[name];
+  if (nodeType !== "gateway") return "";
+
+  const tunnels = getNodeVpnTunnels(name, context.payload);
+  if (tunnels.length === 0) return "";
+
+  const tunnelRows = tunnels
+    .map((t) => {
+      const statusClass = t.up ? "badge--online" : "badge--offline";
+      const statusLabel = t.up
+        ? helpers.localize("panel.vpn.status_up")
+        : helpers.localize("panel.vpn.status_down");
+      const safeName = helpers.escapeHtml(t.name);
+      const safeType = helpers.escapeHtml(t.vpn_type);
+      const subnets = t.remote_subnets.map((s) => helpers.escapeHtml(s)).join(", ");
+      const ifnameRow = t.ifname
+        ? `<div class="stats-row"><span class="stats-row__label">${helpers.localize("panel.vpn.interface")}</span><span class="stats-row__value"><code>${helpers.escapeHtml(t.ifname)}</code></span></div>`
+        : "";
+      const subnetsRow = subnets
+        ? `<div class="stats-row"><span class="stats-row__label">${helpers.localize("panel.vpn.remote_subnets")}</span><span class="stats-row__value">${subnets}</span></div>`
+        : "";
+      return `
+        <div class="vpn-tunnel">
+          <div class="stats-row">
+            <span class="stats-row__label">${safeName}</span>
+            <span class="badge ${statusClass}">${statusLabel}</span>
+          </div>
+          <div class="stats-row">
+            <span class="stats-row__label">${helpers.localize("panel.vpn.type")}</span>
+            <span class="stats-row__value">${safeType}</span>
+          </div>
+          ${ifnameRow}
+          ${subnetsRow}
+        </div>
+      `;
+    })
+    .join("");
+
+  return `
+    <div class="panel-section">
+      <div class="panel-section__title">${helpers.localize("panel.vpn_tunnels")}</div>
+      <div class="stats-list">${tunnelRows}</div>
+    </div>
+  `;
+}
+
+function getNodeVpnTunnels(name: string, payload?: MapPayload): VpnTunnel[] {
+  if (!payload?.vpn_tunnels) return [];
+  const deviceMac = payload.device_macs?.[name]?.toLowerCase();
+  if (!deviceMac) return payload.vpn_tunnels;
+  return payload.vpn_tunnels.filter(
+    (t) => !t.gateway_mac || t.gateway_mac.toLowerCase() === deviceMac,
+  );
 }
 
 function renderRelatedEntitiesSection(

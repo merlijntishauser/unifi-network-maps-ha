@@ -18,6 +18,7 @@ from .const import (
     CONF_PAYLOAD_CACHE_TTL,
     CONF_REQUEST_TIMEOUT_SECONDS,
     CONF_SCAN_INTERVAL,
+    CONF_SHOW_VPN,
     CONF_SHOW_WAN,
     CONF_SITE,
     CONF_SVG_HEIGHT,
@@ -38,6 +39,7 @@ from .const import (
     DEFAULT_PAYLOAD_CACHE_TTL_SECONDS,
     DEFAULT_REQUEST_TIMEOUT_SECONDS,
     DEFAULT_SCAN_INTERVAL_MINUTES,
+    DEFAULT_SHOW_VPN,
     DEFAULT_SHOW_WAN,
     DEFAULT_SITE,
     DEFAULT_SVG_ISOMETRIC,
@@ -200,6 +202,7 @@ def _options_schema_fields(options: dict[str, Any]) -> dict[vol.Marker, object]:
         opt(CONF_WAN2_LABEL, DEFAULT_WAN2_LABEL): _text_selector(),
         opt(CONF_WAN2_SPEED, DEFAULT_WAN2_SPEED): _text_selector(),
         opt(CONF_WAN2_DISABLED, DEFAULT_WAN2_DISABLED): _wan2_disabled_selector(),
+        opt(CONF_SHOW_VPN, DEFAULT_SHOW_VPN): _boolean_selector(),
     }
 
 

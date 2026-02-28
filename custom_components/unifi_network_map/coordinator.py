@@ -17,6 +17,7 @@ from .const import (
     CONF_ONLY_UNIFI,
     CONF_REQUEST_TIMEOUT_SECONDS,
     CONF_SCAN_INTERVAL,
+    CONF_SHOW_VPN,
     CONF_SHOW_WAN,
     CONF_SITE,
     CONF_SVG_HEIGHT,
@@ -37,6 +38,7 @@ from .const import (
     DEFAULT_ONLY_UNIFI,
     DEFAULT_REQUEST_TIMEOUT_SECONDS,
     DEFAULT_SCAN_INTERVAL_MINUTES,
+    DEFAULT_SHOW_VPN,
     DEFAULT_SHOW_WAN,
     DEFAULT_SVG_ISOMETRIC,
     DEFAULT_SVG_THEME,
@@ -213,6 +215,7 @@ def _build_settings(entry: ConfigEntry) -> RenderSettings:
         wan2_label=options.get(CONF_WAN2_LABEL, DEFAULT_WAN2_LABEL),
         wan2_speed=options.get(CONF_WAN2_SPEED, DEFAULT_WAN2_SPEED),
         wan2_disabled=options.get(CONF_WAN2_DISABLED, DEFAULT_WAN2_DISABLED),
+        show_vpn=options.get(CONF_SHOW_VPN, DEFAULT_SHOW_VPN),
     )
 
 

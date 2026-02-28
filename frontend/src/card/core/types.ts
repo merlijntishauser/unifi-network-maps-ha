@@ -153,6 +153,16 @@ export type VlanInfo = {
   name: string;
 };
 
+export type VpnTunnel = {
+  name: string;
+  vpn_type: string;
+  remote_subnets: string[];
+  ifname: string | null;
+  enabled: boolean;
+  up: boolean;
+  gateway_mac: string | null;
+};
+
 export type DeviceDetails = {
   mac?: string | null;
   ip?: string | null;
@@ -180,6 +190,7 @@ export type MapPayload = {
   ap_client_counts?: Record<string, number>;
   device_details?: Record<string, DeviceDetails>;
   device_ports?: Record<string, DevicePort[]>;
+  vpn_tunnels?: VpnTunnel[];
 };
 
 export type DeviceType = "gateway" | "switch" | "ap" | "client" | "other";

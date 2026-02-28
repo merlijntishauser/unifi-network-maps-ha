@@ -9,11 +9,13 @@ from unifi_topology import (
     Edge,
     SvgOptions,
     TopologyResult,
+    VpnTunnel,
     WanInfo,
     build_client_edges,
     build_device_index,
     build_node_type_map,
     build_topology,
+    extract_vpn_tunnels,
     extract_wan_info,
     fetch_clients,
     fetch_devices,
@@ -47,6 +49,7 @@ class RenderSettings:
     wan2_label: str = ""
     wan2_speed: str = ""
     wan2_disabled: str = "auto"
+    show_vpn: bool = True
 
 
 class ClientDict(TypedDict, total=False):
@@ -102,13 +105,16 @@ def _render_map(config: Config, settings: RenderSettings) -> UniFiNetworkMapData
         devices, clients, client_mode=settings.client_scope, only_unifi=settings.only_unifi
     )
     wan_info = _extract_wan_info(devices, settings)
-    svg = _render_svg(edges, node_types, settings, wan_info)
+    vpn_tunnels = _extract_vpn_info(devices, settings)
+    svg = _render_svg(edges, node_types, settings, wan_info, vpn_tunnels)
     # Always fetch clients for stats (wireless counts per AP)
     all_clients = _load_all_clients(config, settings)
     networks = _load_networks(config, settings)
-    payload = _build_payload(edges, node_types, gateways, clients, devices, all_clients, networks)
+    payload = _build_payload(
+        edges, node_types, gateways, clients, devices, all_clients, networks, vpn_tunnels
+    )
     LOGGER.debug("renderer completed nodes=%d svg_bytes=%d", len(node_types), len(svg))
-    return UniFiNetworkMapData(svg=svg, payload=payload, wan_info=wan_info)
+    return UniFiNetworkMapData(svg=svg, payload=payload, wan_info=wan_info, vpn_tunnels=vpn_tunnels)
 
 
 def _load_devices(config: Config, settings: RenderSettings) -> list[Device]:
@@ -211,21 +217,35 @@ def _render_svg(
     node_types: dict[str, str],
     settings: RenderSettings,
     wan_info: WanInfo | None = None,
+    vpn_tunnels: list[VpnTunnel] | None = None,
 ) -> str:
     LOGGER.debug(
-        "renderer svg_render_started svg_theme=%s icon_set=%s isometric=%s wan=%s",
+        "renderer svg_render_started svg_theme=%s icon_set=%s isometric=%s wan=%s vpn=%d",
         settings.svg_theme,
         settings.icon_set,
         settings.svg_isometric,
         wan_info is not None,
+        len(vpn_tunnels) if vpn_tunnels else 0,
     )
     options = SvgOptions(width=settings.svg_width, height=settings.svg_height)
     theme = _resolve_svg_theme(settings.svg_theme, settings.icon_set)
     if settings.svg_isometric:
         return render_svg_isometric(
-            edges, node_types=node_types, options=options, theme=theme, wan_info=wan_info
+            edges,
+            node_types=node_types,
+            options=options,
+            theme=theme,
+            wan_info=wan_info,
+            vpn_tunnels=vpn_tunnels or None,
         )
-    return render_svg(edges, node_types=node_types, options=options, theme=theme, wan_info=wan_info)
+    return render_svg(
+        edges,
+        node_types=node_types,
+        options=options,
+        theme=theme,
+        wan_info=wan_info,
+        vpn_tunnels=vpn_tunnels or None,
+    )
 
 
 def _resolve_svg_theme(svg_theme: str | None, icon_set: str | None):
@@ -307,6 +327,36 @@ def _find_gateway_device(devices: list[Device]) -> Device | None:
     return None
 
 
+def _extract_vpn_info(devices: list[Device], settings: RenderSettings) -> list[VpnTunnel] | None:
+    """Extract VPN tunnel information from gateway devices."""
+    if not settings.show_vpn:
+        return None
+    tunnels: list[VpnTunnel] = []
+    for device in devices:
+        tunnels.extend(extract_vpn_tunnels(device))
+    if not tunnels:
+        return None
+    LOGGER.debug("renderer vpn_tunnels_extracted count=%d", len(tunnels))
+    return tunnels
+
+
+def _build_vpn_tunnel_list(tunnels: list[VpnTunnel] | None) -> list[dict[str, Any]]:
+    if not tunnels:
+        return []
+    return [
+        {
+            "name": t.name,
+            "vpn_type": t.vpn_type,
+            "remote_subnets": list(t.remote_subnets),
+            "ifname": t.ifname,
+            "enabled": t.enabled,
+            "up": t.up,
+            "gateway_mac": t.gateway_mac,
+        }
+        for t in tunnels
+    ]
+
+
 def _build_payload(
     edges: list[Edge],
     node_types: dict[str, str],
@@ -315,6 +365,7 @@ def _build_payload(
     devices: list[Device],
     all_clients: list[ClientData],
     networks: list[Mapping[str, Any]],
+    vpn_tunnels: list[VpnTunnel] | None = None,
 ) -> dict[str, Any]:
     return {
         "schema_version": PAYLOAD_SCHEMA_VERSION,
@@ -331,6 +382,7 @@ def _build_payload(
         "device_details": _build_device_details(devices),
         "client_details": _build_client_details(all_clients),
         "device_ports": _build_device_ports(devices),
+        "vpn_tunnels": _build_vpn_tunnel_list(vpn_tunnels),
     }
 
 

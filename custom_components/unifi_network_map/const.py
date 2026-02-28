@@ -5,7 +5,7 @@ import logging
 
 DOMAIN = "unifi_network_map"
 PLATFORMS = ["sensor", "binary_sensor"]
-PAYLOAD_SCHEMA_VERSION = "1.4"
+PAYLOAD_SCHEMA_VERSION = "1.5"
 
 SERVICE_REFRESH = "refresh"
 ATTR_ENTRY_ID = "entry_id"
@@ -54,12 +54,14 @@ CONF_WAN_SPEED = "wan_speed"
 CONF_WAN2_LABEL = "wan2_label"
 CONF_WAN2_SPEED = "wan2_speed"
 CONF_WAN2_DISABLED = "wan2_disabled"
+CONF_SHOW_VPN = "show_vpn"
 
 DEFAULT_WAN_LABEL = ""
 DEFAULT_WAN_SPEED = ""
 DEFAULT_WAN2_LABEL = ""
 DEFAULT_WAN2_SPEED = ""
 DEFAULT_WAN2_DISABLED = "auto"
+DEFAULT_SHOW_VPN = True
 
 MIN_SCAN_INTERVAL_MINUTES = 1
 MAX_SCAN_INTERVAL_MINUTES = 60
