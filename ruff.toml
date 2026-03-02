@@ -15,7 +15,7 @@ extend-select = [
 ]
 
 [lint.per-file-ignores]
-"tests/**" = ["B009", "B010"]
+"tests/**" = ["B009", "B010", "TCH002", "TCH003"]
 
 [lint.mccabe]
 max-complexity = 10

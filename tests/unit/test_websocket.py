@@ -19,6 +19,11 @@ from custom_components.unifi_network_map.websocket import (
     websocket_subscribe_map,
 )
 
+# The real @async_response decorator wraps the async function
+# into a sync scheduler. Access the original async function via
+# __wrapped__ for direct testing.
+_subscribe_map_async = websocket_subscribe_map.__wrapped__
+
 
 class TestAsyncRegisterWebsocketApi:
     """Tests for async_register_websocket_api function."""
@@ -147,7 +152,7 @@ class TestWebsocketSubscribeMap:
         connection = MagicMock()
         msg: dict[str, Any] = {"id": 1, "entry_id": "unknown"}
 
-        await websocket_subscribe_map(hass, connection, msg)
+        await _subscribe_map_async(hass, connection, msg)
 
         connection.send_error.assert_called_once()
         args = connection.send_error.call_args[0]
@@ -165,7 +170,7 @@ class TestWebsocketSubscribeMap:
         connection = MagicMock()
         msg: dict[str, Any] = {"id": 1, "entry_id": "entry123"}
 
-        await websocket_subscribe_map(hass, connection, msg)
+        await _subscribe_map_async(hass, connection, msg)
 
         connection.send_error.assert_called_once()
         args = connection.send_error.call_args[0]
@@ -193,7 +198,7 @@ class TestWebsocketSubscribeMap:
             "custom_components.unifi_network_map.websocket.build_enriched_payload"
         ) as mock_enrich:
             mock_enrich.return_value = {"enriched": True}
-            await websocket_subscribe_map(hass, connection, msg)
+            await _subscribe_map_async(hass, connection, msg)
 
         # Should send initial message
         connection.send_message.assert_called_once()
@@ -233,7 +238,7 @@ class TestWebsocketSubscribeMap:
             "custom_components.unifi_network_map.websocket.build_enriched_payload"
         ) as mock_enrich:
             mock_enrich.return_value = {"enriched": True}
-            await websocket_subscribe_map(hass, connection, msg)
+            await _subscribe_map_async(hass, connection, msg)
 
         # Reset mock to check update call
         connection.send_message.reset_mock()
@@ -274,7 +279,7 @@ class TestWebsocketSubscribeMap:
             "custom_components.unifi_network_map.websocket.build_enriched_payload"
         ) as mock_enrich:
             mock_enrich.return_value = {"enriched": True}
-            await websocket_subscribe_map(hass, connection, msg)
+            await _subscribe_map_async(hass, connection, msg)
 
         # Reset mock and set data to None
         connection.send_message.reset_mock()

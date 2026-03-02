@@ -42,3 +42,18 @@ def test_validate_unifi_credentials_maps_connection_error(monkeypatch):
             site="default",
             verify_ssl=True,
         )
+
+
+def test_validate_unifi_credentials_success(monkeypatch):
+    def _fetch_devices(*_args: Any, **_kwargs: Any):
+        return []
+
+    monkeypatch.setattr(api_module, "fetch_devices", _fetch_devices)
+
+    api_module.validate_unifi_credentials(
+        base_url="https://unifi.local",
+        username="admin",
+        password="secret",
+        site="default",
+        verify_ssl=True,
+    )

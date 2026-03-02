@@ -41,7 +41,7 @@ help:
 	@echo "  clean           Remove .venv"
 
 venv:
-	$(PYTHON_BIN) -m venv $(VENV_DIR)
+	@test -x $(PYTHON) || $(PYTHON_BIN) -m venv $(VENV_DIR)
 
 install: venv
 	$(PIP) install --upgrade pip
@@ -55,7 +55,7 @@ dependency-update:
 	$(MAKE) install
 
 test: install-dev
-	$(VENV_DIR)/bin/pytest -v --cov=custom_components --cov-report=term-missing tests/unit tests/integration tests/contract
+	$(VENV_DIR)/bin/pytest -v --cov=custom_components --cov-report=term-missing --cov-fail-under=95 tests/unit tests/integration tests/contract
 
 test-unit: install-dev
 	$(VENV_DIR)/bin/pytest -v tests/unit

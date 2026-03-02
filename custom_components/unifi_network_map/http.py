@@ -855,6 +855,9 @@ def _edge_from_payload(edge: Mapping[str, object]) -> Edge:
     )
 
 
+_MAC_PATTERN = re.compile(r"^(?:[0-9a-f]{2}:){5}[0-9a-f]{2}$", re.IGNORECASE)
+
+
 def _format_mac(value: str) -> str | None:
     formatter = getattr(dr, "format_mac", None)
     if formatter is None:
@@ -868,6 +871,9 @@ def _format_mac(value: str) -> str | None:
             type(err).__name__,
         )
         return None
-    if isinstance(formatted, str) and formatted.strip():
-        return formatted.strip().lower()
+    if not isinstance(formatted, str):
+        return None
+    result = formatted.strip().lower()
+    if _MAC_PATTERN.match(result):
+        return result
     return None

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
 
@@ -9,6 +10,9 @@ from requests import Response
 from requests.exceptions import HTTPError, RequestException
 
 from custom_components.unifi_network_map import api as api_module
+from custom_components.unifi_network_map.api import (
+    _ensure_unifi_request_timeout,
+)
 from custom_components.unifi_network_map.data import (
     UniFiNetworkMapData,
 )
@@ -263,3 +267,41 @@ def test_ensure_ssl_warning_filter_adds_once() -> None:
                 logger.removeFilter(filt)
         setattr(api_module, "_ssl_warning_filter_added", False)
         setattr(api_module, "_ssl_warning_filter", None)
+
+
+def test_ensure_request_timeout_negative_removes_env_var() -> None:
+    env_key = "UNIFI_REQUEST_TIMEOUT_SECONDS"
+    os.environ[env_key] = "30"
+    try:
+        _ensure_unifi_request_timeout(-1)
+        assert env_key not in os.environ
+    finally:
+        os.environ.pop(env_key, None)
+
+
+def test_get_cached_map_returns_none_when_cache_disabled() -> None:
+    settings = build_settings(use_cache=False)
+    client = api_module.UniFiNetworkMapClient(
+        base_url="https://controller",
+        username="user",
+        password="pass",
+        site="default",
+        verify_ssl=True,
+        settings=settings,
+    )
+    assert client._get_cached_map() is None
+
+
+def test_store_cache_noop_when_cache_disabled() -> None:
+    settings = build_settings(use_cache=False)
+    client = api_module.UniFiNetworkMapClient(
+        base_url="https://controller",
+        username="user",
+        password="pass",
+        site="default",
+        verify_ssl=True,
+        settings=settings,
+    )
+    data = UniFiNetworkMapData(svg="<svg />", payload={})
+    client._store_cache(data)
+    assert client._cache_data is None

@@ -1,35 +1,26 @@
 from __future__ import annotations
 
-import asyncio
-from dataclasses import dataclass, field
+from unittest.mock import patch
 
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import UpdateFailed
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.unifi_network_map.const import DOMAIN
 from custom_components.unifi_network_map.coordinator import (
     AUTH_BACKOFF_BASE_SECONDS,
     UniFiNetworkMapCoordinator,
+    _should_backoff,
+    _validate_required_keys,
 )
 from custom_components.unifi_network_map.data import UniFiNetworkMapData
 from custom_components.unifi_network_map.errors import (
     CannotConnect,
     InvalidAuth,
+    UniFiNetworkMapError,
 )
 from custom_components.unifi_network_map.renderer import RenderSettings
-
-
-@dataclass
-class FakeEntry:
-    data: dict[str, object]
-    options: dict[str, object]
-    entry_id: str = "test_entry_id"
-    reauth_calls: list[dict[str, object]] = field(default_factory=list)
-
-    def async_start_reauth(
-        self, hass: object, *, data: object = None, **_kw: object
-    ) -> None:
-        self.reauth_calls.append({"data": data})
 
 
 class FakeClient:
@@ -55,8 +46,9 @@ class FakeClient:
         return response
 
 
-def _build_entry() -> FakeEntry:
-    return FakeEntry(
+def _build_entry() -> MockConfigEntry:
+    return MockConfigEntry(
+        domain=DOMAIN,
         data={
             "url": "https://controller.local",
             "username": "user",
@@ -67,24 +59,26 @@ def _build_entry() -> FakeEntry:
     )
 
 
-def test_auth_backoff_blocks_immediate_retry(
+async def test_auth_backoff_blocks_immediate_retry(
+    hass: HomeAssistant,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    def _now() -> float:
-        return 100.0
-
     monkeypatch.setattr(
         "custom_components.unifi_network_map.coordinator.monotonic_seconds",
-        _now,
+        lambda: 100.0,
     )
+    entry = _build_entry()
     coordinator = UniFiNetworkMapCoordinator(
-        HomeAssistant(),
-        _build_entry(),
+        hass,
+        entry,
         client=FakeClient([InvalidAuth("Authentication failed")]),
     )
 
-    with pytest.raises(UpdateFailed):
-        asyncio.run(coordinator.async_fetch_for_testing())
+    with (
+        patch.object(entry, "async_start_reauth"),
+        pytest.raises(UpdateFailed),
+    ):
+        await coordinator.async_fetch_for_testing()
 
     assert coordinator.auth_backoff_until == pytest.approx(
         100.0 + AUTH_BACKOFF_BASE_SECONDS
@@ -92,23 +86,22 @@ def test_auth_backoff_blocks_immediate_retry(
     assert coordinator.auth_backoff_seconds == AUTH_BACKOFF_BASE_SECONDS * 2
 
     with pytest.raises(UpdateFailed) as exc:
-        asyncio.run(coordinator.async_fetch_for_testing())
+        await coordinator.async_fetch_for_testing()
     assert "Auth backoff active" in str(exc.value)
 
 
-def test_auth_backoff_resets_after_success(
+async def test_auth_backoff_resets_after_success(
+    hass: HomeAssistant,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    def _start_time() -> float:
-        return 100.0
-
     monkeypatch.setattr(
         "custom_components.unifi_network_map.coordinator.monotonic_seconds",
-        _start_time,
+        lambda: 100.0,
     )
+    entry = _build_entry()
     coordinator = UniFiNetworkMapCoordinator(
-        HomeAssistant(),
-        _build_entry(),
+        hass,
+        entry,
         client=FakeClient(
             [
                 InvalidAuth("Authentication failed"),
@@ -117,87 +110,117 @@ def test_auth_backoff_resets_after_success(
         ),
     )
 
-    with pytest.raises(UpdateFailed):
-        asyncio.run(coordinator.async_fetch_for_testing())
-
-    def _resume_time() -> float:
-        return 100.0 + AUTH_BACKOFF_BASE_SECONDS + 1
+    with (
+        patch.object(entry, "async_start_reauth"),
+        pytest.raises(UpdateFailed),
+    ):
+        await coordinator.async_fetch_for_testing()
 
     monkeypatch.setattr(
         "custom_components.unifi_network_map.coordinator.monotonic_seconds",
-        _resume_time,
+        lambda: 100.0 + AUTH_BACKOFF_BASE_SECONDS + 1,
     )
-    data = asyncio.run(coordinator.async_fetch_for_testing())
+    data = await coordinator.async_fetch_for_testing()
 
     assert data.svg == "<svg />"
     assert coordinator.auth_backoff_until is None
     assert coordinator.auth_backoff_seconds == AUTH_BACKOFF_BASE_SECONDS
 
 
-def test_invalid_auth_triggers_reauth(
+async def test_invalid_auth_triggers_reauth(
+    hass: HomeAssistant,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    def _now() -> float:
-        return 100.0
-
     monkeypatch.setattr(
         "custom_components.unifi_network_map.coordinator.monotonic_seconds",
-        _now,
+        lambda: 100.0,
     )
     entry = _build_entry()
     coordinator = UniFiNetworkMapCoordinator(
-        HomeAssistant(),
+        hass,
         entry,
         client=FakeClient([InvalidAuth("Authentication failed")]),
     )
 
-    with pytest.raises(UpdateFailed):
-        asyncio.run(coordinator.async_fetch_for_testing())
+    with (
+        patch.object(entry, "async_start_reauth") as mock_reauth,
+        pytest.raises(UpdateFailed),
+    ):
+        await coordinator.async_fetch_for_testing()
 
-    assert len(entry.reauth_calls) == 1
-    assert entry.reauth_calls[0]["data"] == entry.data
+    mock_reauth.assert_called_once()
 
 
-def test_connect_error_does_not_trigger_reauth(
+async def test_connect_error_does_not_trigger_reauth(
+    hass: HomeAssistant,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    def _now() -> float:
-        return 100.0
-
     monkeypatch.setattr(
         "custom_components.unifi_network_map.coordinator.monotonic_seconds",
-        _now,
+        lambda: 100.0,
     )
     entry = _build_entry()
     coordinator = UniFiNetworkMapCoordinator(
-        HomeAssistant(),
+        hass,
         entry,
         client=FakeClient([CannotConnect("connection refused")]),
     )
 
-    with pytest.raises(UpdateFailed):
-        asyncio.run(coordinator.async_fetch_for_testing())
+    with (
+        patch.object(entry, "async_start_reauth") as mock_reauth,
+        pytest.raises(UpdateFailed),
+    ):
+        await coordinator.async_fetch_for_testing()
 
-    assert len(entry.reauth_calls) == 0
+    mock_reauth.assert_not_called()
 
 
-def test_rate_limit_triggers_backoff(monkeypatch: pytest.MonkeyPatch) -> None:
-    def _rate_limit_time() -> float:
-        return 200.0
-
+async def test_rate_limit_triggers_backoff(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(
         "custom_components.unifi_network_map.coordinator.monotonic_seconds",
-        _rate_limit_time,
+        lambda: 200.0,
     )
     coordinator = UniFiNetworkMapCoordinator(
-        HomeAssistant(),
+        hass,
         _build_entry(),
         client=FakeClient([CannotConnect("Rate limited by UniFi controller")]),
     )
 
     with pytest.raises(UpdateFailed):
-        asyncio.run(coordinator.async_fetch_for_testing())
+        await coordinator.async_fetch_for_testing()
 
     assert coordinator.auth_backoff_until == pytest.approx(
         200.0 + AUTH_BACKOFF_BASE_SECONDS
     )
+
+
+def test_should_backoff_returns_false_for_generic_error() -> None:
+    err = UniFiNetworkMapError("generic")
+    assert _should_backoff(err) is False
+
+
+def test_should_backoff_returns_false_for_non_rate_limited_connect_error() -> (
+    None
+):
+    err = CannotConnect("timeout")
+    assert _should_backoff(err) is False
+
+
+def test_validate_required_keys_raises_for_missing_keys() -> None:
+    with pytest.raises(UniFiNetworkMapError, match="Missing required"):
+        _validate_required_keys({})
+
+
+async def test_update_settings_rebuilds_client(
+    hass: HomeAssistant,
+) -> None:
+    entry = _build_entry()
+    coordinator = UniFiNetworkMapCoordinator(hass, entry)
+
+    coordinator.update_settings()
+
+    assert isinstance(coordinator.settings, RenderSettings)
+    await coordinator.async_shutdown()

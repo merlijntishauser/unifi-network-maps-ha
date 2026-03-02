@@ -109,6 +109,14 @@ class _FakeConfigEntries:
         return [e for e in self.entries if True]
 
 
+def _make_service_call(data: dict[str, object]) -> ServiceCall:
+    """Create a ServiceCall with the required positional args."""
+    from types import SimpleNamespace
+
+    fake_hass = SimpleNamespace()
+    return ServiceCall(fake_hass, "unifi_network_map", "refresh", data)
+
+
 def _build_entry(entry_id: str) -> FakeEntry:
     return FakeEntry(
         entry_id=entry_id,
@@ -294,7 +302,7 @@ def test_select_coordinators_filters_by_entry_id() -> None:
     assert selected == [coordinator]
 
 
-def test_refresh_handler_raises_when_no_match() -> None:
+async def test_refresh_handler_raises_when_no_match() -> None:
     hass = FakeHass()
     hass.config_entries.entries = []
     build_refresh_handler = cast(
@@ -306,15 +314,12 @@ def test_refresh_handler_raises_when_no_match() -> None:
     )
     handler = build_refresh_handler(hass)
 
+    call = _make_service_call({"entry_id": "missing"})
     with pytest.raises(HomeAssistantError):
-
-        async def _call_handler() -> None:
-            await handler(ServiceCall({"entry_id": "missing"}))
-
-        asyncio.run(_call_handler())
+        await handler(call)
 
 
-def test_refresh_handler_calls_matching_coordinator() -> None:
+async def test_refresh_handler_calls_matching_coordinator() -> None:
     hass = FakeHass()
     entry = _build_entry("entry-1")
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
@@ -336,10 +341,8 @@ def test_refresh_handler_calls_matching_coordinator() -> None:
     )
     handler = build_refresh_handler(hass)
 
-    async def _call_handler() -> None:
-        await handler(ServiceCall({"entry_id": "entry-1"}))
-
-    asyncio.run(_call_handler())
+    call = _make_service_call({"entry_id": "entry-1"})
+    await handler(call)
 
     assert called == ["ok"]
 

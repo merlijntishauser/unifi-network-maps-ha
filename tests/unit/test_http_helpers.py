@@ -20,6 +20,7 @@ from custom_components.unifi_network_map.http import (
     _is_entity_enabled,
     _is_state_mac_candidate,
     _iter_state_entries,
+    _mac_from_device,
     _mac_from_state_entry,
     _mac_from_unique_id,
     _normalize_mac,
@@ -29,6 +30,7 @@ from custom_components.unifi_network_map.http import (
     _store_payload_field,
     _svg_options_from_settings,
     _valid_edge_payload,
+    build_enriched_payload,
     resolve_node_entity_map,
     resolve_node_status_map,
 )
@@ -657,3 +659,76 @@ class TestResolveNodeStatusMap:
         node_entities = {"my_phone": "device_tracker.my_phone"}
         result = resolve_node_status_map(hass, node_entities)
         assert "my_phone" not in result
+
+
+class TestBuildEnrichedPayload:
+    """Tests for build_enriched_payload function."""
+
+    def test_returns_unchanged_when_client_macs_not_dict(self) -> None:
+        hass = MagicMock()
+        payload: dict[str, object] = {
+            "client_macs": "not-a-dict",
+            "device_macs": {},
+        }
+        result = build_enriched_payload(hass, payload)
+        assert result is payload
+
+    def test_returns_unchanged_when_device_macs_not_dict(self) -> None:
+        hass = MagicMock()
+        payload: dict[str, object] = {
+            "client_macs": {},
+            "device_macs": ["not", "a", "dict"],
+        }
+        result = build_enriched_payload(hass, payload)
+        assert result is payload
+
+
+class TestFormatMacNonMacString:
+    """Additional _format_mac edge cases."""
+
+    def test_returns_none_for_non_mac_string(self) -> None:
+        with patch("custom_components.unifi_network_map.http.dr") as mock_dr:
+            mock_dr.format_mac.return_value = "not-a-mac"
+            result = _format_mac("not-a-mac")
+            assert result is None
+
+
+class TestMacFromDevice:
+    """Tests for _mac_from_device function."""
+
+    def test_returns_none_when_no_device_id(self) -> None:
+        entry = MagicMock()
+        entry.device_id = None
+        device_registry = MagicMock()
+        result = _mac_from_device(entry, device_registry)
+        assert result is None
+
+    def test_returns_none_when_device_not_found(self) -> None:
+        entry = MagicMock()
+        entry.device_id = "device123"
+        device_registry = MagicMock()
+        device_registry.async_get.return_value = None
+        result = _mac_from_device(entry, device_registry)
+        assert result is None
+
+    def test_returns_none_when_no_identifiers_match(self) -> None:
+        entry = MagicMock()
+        entry.device_id = "device123"
+        device = MagicMock()
+        device.identifiers = {("other_domain", "not_a_mac")}
+        device.connections = set()
+        device_registry = MagicMock()
+        device_registry.async_get.return_value = device
+        result = _mac_from_device(entry, device_registry)
+        assert result is None
+
+    def test_extracts_mac_from_identifiers(self) -> None:
+        entry = MagicMock()
+        entry.device_id = "device123"
+        device = MagicMock()
+        device.identifiers = {("unifi", "aa:bb:cc:dd:ee:ff")}
+        device.connections = set()
+        device_registry = MagicMock()
+        device_registry.async_get.return_value = device
+        result = _mac_from_device(entry, device_registry)
+        assert result == "aa:bb:cc:dd:ee:ff"

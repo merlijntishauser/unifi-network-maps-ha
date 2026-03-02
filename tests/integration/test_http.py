@@ -11,7 +11,7 @@ from aiohttp import web
 
 from custom_components.unifi_network_map import http as http_module
 from custom_components.unifi_network_map.data import UniFiNetworkMapData
-from tests.helpers import build_settings
+from tests.helpers import FakeBus, build_settings
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -60,27 +60,6 @@ class FakeConfigEntries:
 
     def async_get_entry(self, entry_id: str) -> object | None:
         return self.entries_by_id.get(entry_id)
-
-
-class FakeBus:
-    def __init__(self) -> None:
-        self.listeners: dict[str, list[Callable[..., None]]] = {}
-
-    def async_listen(
-        self, event_type: str, callback: Callable[..., None]
-    ) -> Callable[[], None]:
-        if event_type not in self.listeners:
-            self.listeners[event_type] = []
-        self.listeners[event_type].append(callback)
-
-        def unsub() -> None:
-            if (
-                event_type in self.listeners
-                and callback in self.listeners[event_type]
-            ):
-                self.listeners[event_type].remove(callback)
-
-        return unsub
 
 
 class FakeHassWithHttp(FakeHass):
@@ -232,7 +211,7 @@ def test_svg_view_renders_theme_when_requested(
     assert response.headers == {"X-Theme-Background": "#1c1e21"}
 
 
-def test_payload_view_returns_mapped_entities(
+async def test_payload_view_returns_mapped_entities(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     data = UniFiNetworkMapData(
@@ -248,35 +227,21 @@ def test_payload_view_returns_mapped_entities(
     def _json_response(payload: object) -> SimpleNamespace:
         return SimpleNamespace(status=200, body=bytes(str(payload), "utf-8"))
 
-    def _resolve_client_entity_map(*_args: object) -> dict[str, str]:
-        return {"One": "a"}
-
-    def _resolve_device_entity_map(*_args: object) -> dict[str, str]:
-        return {"Two": "b"}
-
-    def _resolve_node_entity_map(*_args: object) -> dict[str, str]:
-        return {"One": "a"}
-
-    def _resolve_node_status_map(*_args: object) -> dict[str, dict[str, str]]:
-        return {"One": {"state": "online"}}
+    enriched = {
+        "node_entities": {"One": "a"},
+        "node_status": {"One": {"state": "online"}},
+    }
 
     http_module.web.json_response = _json_response
     monkeypatch.setattr(
-        http_module, "resolve_client_entity_map", _resolve_client_entity_map
-    )
-    monkeypatch.setattr(
-        http_module, "resolve_device_entity_map", _resolve_device_entity_map
-    )
-    monkeypatch.setattr(
-        http_module, "resolve_node_entity_map", _resolve_node_entity_map
-    )
-    monkeypatch.setattr(
-        http_module, "resolve_node_status_map", _resolve_node_status_map
+        http_module,
+        "_get_or_build_enriched_payload",
+        lambda _hass, _eid, _payload: enriched,
     )
     request = SimpleNamespace(app={"hass": hass})
 
     view = http_module.UniFiNetworkMapPayloadView()
-    response = _run(view.get(request, "entry-1"))
+    response = await view.get(request, "entry-1")
 
     assert response.status == 200
     assert response.body

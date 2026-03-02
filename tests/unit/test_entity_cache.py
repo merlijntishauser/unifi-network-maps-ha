@@ -3,15 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from types import SimpleNamespace
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from custom_components.unifi_network_map import entity_cache
 from custom_components.unifi_network_map.const import DOMAIN
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
+from tests.helpers import FakeBus
 
 
 @dataclass
@@ -62,32 +59,6 @@ class FakeConfigEntries:
 
     def async_get_entry(self, entry_id: str) -> FakeConfigEntry | None:
         return self._entries_by_id.get(entry_id)
-
-
-class FakeBus:
-    def __init__(self) -> None:
-        self.listeners: dict[str, list[Callable[..., None]]] = {}
-
-    def async_listen(
-        self, event_type: str, callback: Callable[..., None]
-    ) -> Callable[[], None]:
-        if event_type not in self.listeners:
-            self.listeners[event_type] = []
-        self.listeners[event_type].append(callback)
-
-        def unsub() -> None:
-            if (
-                event_type in self.listeners
-                and callback in self.listeners[event_type]
-            ):
-                self.listeners[event_type].remove(callback)
-
-        return unsub
-
-    def fire(self, event_type: str, data: dict[str, str]) -> None:
-        event = SimpleNamespace(data=data)
-        for listener in self.listeners.get(event_type, []):
-            listener(event)
 
 
 class FakeHass:

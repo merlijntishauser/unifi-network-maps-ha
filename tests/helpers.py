@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
+from types import SimpleNamespace
 
 from custom_components.unifi_network_map.renderer import RenderSettings
 
@@ -30,6 +32,34 @@ def build_entry(options: dict[str, object] | None = None) -> FakeEntry:
         },
         options=options or {},
     )
+
+
+class FakeBus:
+    def __init__(self) -> None:
+        self.listeners: dict[str, list[Callable[..., None]]] = {}
+
+    def async_listen(
+        self,
+        event_type: str,
+        callback: Callable[..., None],
+    ) -> Callable[[], None]:
+        if event_type not in self.listeners:
+            self.listeners[event_type] = []
+        self.listeners[event_type].append(callback)
+
+        def unsub() -> None:
+            if (
+                event_type in self.listeners
+                and callback in self.listeners[event_type]
+            ):
+                self.listeners[event_type].remove(callback)
+
+        return unsub
+
+    def fire(self, event_type: str, data: dict[str, str]) -> None:
+        event = SimpleNamespace(data=data)
+        for listener in self.listeners.get(event_type, []):
+            listener(event)
 
 
 def build_settings(
