@@ -11,6 +11,7 @@ class FakeEntry:
     title: str
     data: dict[str, object]
     options: dict[str, object]
+    runtime_data: object = None
 
     def async_on_unload(self, callback: object) -> None:
         """Mock async_on_unload - does nothing in tests."""

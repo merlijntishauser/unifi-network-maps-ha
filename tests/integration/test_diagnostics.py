@@ -75,7 +75,7 @@ def test_diagnostics_summary_with_payload(
             "last_exception": None,
         },
     )()
-    hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
+    entry.runtime_data = coordinator
 
     monkeypatch.setattr(
         diagnostics,

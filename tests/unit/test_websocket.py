@@ -52,29 +52,35 @@ class TestGetCoordinator:
 
     def test_returns_coordinator_if_found(self) -> None:
         coordinator = MagicMock(spec=UniFiNetworkMapCoordinator)
+        entry = MagicMock()
+        entry.runtime_data = coordinator
         hass = MagicMock()
-        hass.data = {DOMAIN: {"entry123": coordinator}}
+        hass.config_entries.async_get_entry.return_value = entry
 
         result = _get_coordinator(hass, "entry123")
         assert result is coordinator
 
     def test_returns_none_if_not_found(self) -> None:
         hass = MagicMock()
-        hass.data = {DOMAIN: {}}
+        hass.config_entries.async_get_entry.return_value = None
 
         result = _get_coordinator(hass, "entry123")
         assert result is None
 
     def test_returns_none_if_wrong_type(self) -> None:
+        entry = MagicMock()
+        entry.runtime_data = "not a coordinator"
         hass = MagicMock()
-        hass.data = {DOMAIN: {"entry123": "not a coordinator"}}
+        hass.config_entries.async_get_entry.return_value = entry
 
         result = _get_coordinator(hass, "entry123")
         assert result is None
 
-    def test_returns_none_if_no_domain_data(self) -> None:
+    def test_returns_none_if_no_runtime_data(self) -> None:
+        entry = MagicMock()
+        entry.runtime_data = None
         hass = MagicMock()
-        hass.data = {}
+        hass.config_entries.async_get_entry.return_value = entry
 
         result = _get_coordinator(hass, "entry123")
         assert result is None
@@ -137,7 +143,7 @@ class TestWebsocketSubscribeMap:
     @pytest.mark.asyncio  # type: ignore[misc]
     async def test_sends_error_if_coordinator_not_found(self) -> None:
         hass = MagicMock()
-        hass.data = {}
+        hass.config_entries.async_get_entry.return_value = None
         connection = MagicMock()
         msg: dict[str, Any] = {"id": 1, "entry_id": "unknown"}
 
@@ -152,8 +158,10 @@ class TestWebsocketSubscribeMap:
     async def test_sends_error_if_no_data(self) -> None:
         coordinator = MagicMock(spec=UniFiNetworkMapCoordinator)
         coordinator.data = None
+        entry = MagicMock()
+        entry.runtime_data = coordinator
         hass = MagicMock()
-        hass.data = {DOMAIN: {"entry123": coordinator}}
+        hass.config_entries.async_get_entry.return_value = entry
         connection = MagicMock()
         msg: dict[str, Any] = {"id": 1, "entry_id": "entry123"}
 
@@ -173,8 +181,10 @@ class TestWebsocketSubscribeMap:
         )
         coordinator.async_add_listener = MagicMock(return_value=MagicMock())
 
+        entry = MagicMock()
+        entry.runtime_data = coordinator
         hass = MagicMock()
-        hass.data = {DOMAIN: {"entry123": coordinator}}
+        hass.config_entries.async_get_entry.return_value = entry
         connection = MagicMock()
         connection.subscriptions = {}
         msg: dict[str, Any] = {"id": 1, "entry_id": "entry123"}
@@ -211,8 +221,10 @@ class TestWebsocketSubscribeMap:
 
         coordinator.async_add_listener = capture_listener
 
+        entry = MagicMock()
+        entry.runtime_data = coordinator
         hass = MagicMock()
-        hass.data = {DOMAIN: {"entry123": coordinator}}
+        hass.config_entries.async_get_entry.return_value = entry
         connection = MagicMock()
         connection.subscriptions = {}
         msg: dict[str, Any] = {"id": 1, "entry_id": "entry123"}
@@ -250,8 +262,10 @@ class TestWebsocketSubscribeMap:
 
         coordinator.async_add_listener = capture_listener
 
+        entry = MagicMock()
+        entry.runtime_data = coordinator
         hass = MagicMock()
-        hass.data = {DOMAIN: {"entry123": coordinator}}
+        hass.config_entries.async_get_entry.return_value = entry
         connection = MagicMock()
         connection.subscriptions = {}
         msg: dict[str, Any] = {"id": 1, "entry_id": "entry123"}

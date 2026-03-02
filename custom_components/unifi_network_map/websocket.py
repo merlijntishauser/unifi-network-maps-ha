@@ -76,9 +76,12 @@ def _get_coordinator(
     hass: HomeAssistant, entry_id: str
 ) -> UniFiNetworkMapCoordinator | None:
     """Get coordinator by entry ID."""
-    coordinator = hass.data.get(DOMAIN, {}).get(entry_id)
-    if isinstance(coordinator, UniFiNetworkMapCoordinator):
-        return coordinator
+    entry = hass.config_entries.async_get_entry(entry_id)
+    if entry is None:
+        return None
+    data = getattr(entry, "runtime_data", None)
+    if isinstance(data, UniFiNetworkMapCoordinator):
+        return data
     return None
 
 

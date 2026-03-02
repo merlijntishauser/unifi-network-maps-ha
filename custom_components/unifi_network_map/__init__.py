@@ -30,6 +30,8 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant, ServiceCall
 
+    from .data import UniFiNetworkMapConfigEntry
+
 ResourceItem = Mapping[str, Any]
 _unifi_api_info_filter_added = False
 
@@ -69,7 +71,10 @@ class LovelaceResourcesInfo(Protocol):
     ) -> Awaitable[None] | None: ...
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: UniFiNetworkMapConfigEntry,
+) -> bool:
     from .http import register_unifi_http_views
 
     _suppress_unifi_api_info_logs(hass)
@@ -77,7 +82,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _configure_payload_cache_ttl(hass, entry)
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
     await _initialize_coordinator(coordinator)
-    _store_coordinator(hass, entry.entry_id, coordinator)
+    entry.runtime_data = coordinator
     _register_runtime_services(hass, register_unifi_http_views)
     await _forward_entry_setups(hass, entry)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
@@ -86,21 +91,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def _async_options_updated(
-    hass: HomeAssistant, entry: ConfigEntry
+    hass: HomeAssistant,
+    entry: UniFiNetworkMapConfigEntry,
 ) -> None:
-    """Handle options update - rebuild coordinator client and refresh."""
+    """Handle options update -- rebuild coordinator and refresh."""
     from .payload_cache import invalidate_payload_cache
 
     _configure_payload_cache_ttl(hass, entry)
     invalidate_payload_cache(hass, entry.entry_id)
-    coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
-    if isinstance(coordinator, UniFiNetworkMapCoordinator):
-        coordinator.update_settings()
-        await coordinator.async_request_refresh()
-        LOGGER.debug("init options_updated entry_id=%s", entry.entry_id)
+    coordinator = entry.runtime_data
+    coordinator.update_settings()
+    await coordinator.async_request_refresh()
+    LOGGER.debug("init options_updated entry_id=%s", entry.entry_id)
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(
+    hass: HomeAssistant,
+    entry: UniFiNetworkMapConfigEntry,
+) -> bool:
     from .entity_cache import invalidate_entity_cache
     from .payload_cache import invalidate_payload_cache
 
@@ -108,7 +116,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         entry, PLATFORMS
     )
     if unload_ok:
-        hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
         invalidate_entity_cache(hass)
         invalidate_payload_cache(hass, entry.entry_id)
     return unload_ok
@@ -150,12 +157,6 @@ async def _initialize_coordinator(
     coordinator: UniFiNetworkMapCoordinator,
 ) -> None:
     await coordinator.async_config_entry_first_refresh()
-
-
-def _store_coordinator(
-    hass: HomeAssistant, entry_id: str, coordinator: UniFiNetworkMapCoordinator
-) -> None:
-    hass.data.setdefault(DOMAIN, {})[entry_id] = coordinator
 
 
 def _register_runtime_services(
@@ -798,11 +799,11 @@ def _as_resource_list(value: object) -> list[ResourceItem] | None:
 def _select_coordinators(
     hass: HomeAssistant, entry_id: str | None
 ) -> list[UniFiNetworkMapCoordinator]:
-    entries = hass.data.get(DOMAIN, {}).items()
-    coordinators = [
-        value
-        for key, value in entries
-        if isinstance(value, UniFiNetworkMapCoordinator)
-        and (entry_id is None or key == entry_id)
+    entries = hass.config_entries.async_entries(DOMAIN)
+    return [
+        entry.runtime_data
+        for entry in entries
+        if hasattr(entry, "runtime_data")
+        and isinstance(entry.runtime_data, UniFiNetworkMapCoordinator)
+        and (entry_id is None or entry.entry_id == entry_id)
     ]
-    return coordinators

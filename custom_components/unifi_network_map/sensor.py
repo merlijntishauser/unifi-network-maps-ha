@@ -9,25 +9,27 @@ from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, PAYLOAD_SCHEMA_VERSION
-from .coordinator import UniFiNetworkMapCoordinator
 from .data import UniFiNetworkMapData
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
-    from homeassistant.helpers.entity_platform import AddEntitiesCallback
+    from homeassistant.helpers.entity_platform import (
+        AddEntitiesCallback,
+    )
+
+    from .coordinator import UniFiNetworkMapCoordinator
+    from .data import UniFiNetworkMapConfigEntry
 
 EntityList = list["UniFiNetworkMapSensor | UniFiVlanClientsSensor"]
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: UniFiNetworkMapConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up sensors from a config entry."""
-    coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
-    if not isinstance(coordinator, UniFiNetworkMapCoordinator):
-        return
+    coordinator = entry.runtime_data
 
     # Always add the status sensor
     async_add_entities([UniFiNetworkMapSensor(coordinator, entry)])

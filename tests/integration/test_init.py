@@ -10,7 +10,6 @@ from homeassistant.core import ServiceCall
 from homeassistant.exceptions import HomeAssistantError
 
 import custom_components.unifi_network_map as init_module
-from custom_components.unifi_network_map.const import DOMAIN
 from custom_components.unifi_network_map.coordinator import (
     UniFiNetworkMapCoordinator,
 )
@@ -24,6 +23,7 @@ class FakeEntry:
     entry_id: str
     data: dict[str, object]
     options: dict[str, object]
+    runtime_data: object = None
 
     def add_update_listener(
         self, _callback: Callable[..., object]
@@ -92,6 +92,7 @@ class _FakeConfigEntries:
     def __init__(self) -> None:
         self.forwarded: list[tuple[object, list[str]]] = []
         self.unloaded: list[tuple[object, list[str]]] = []
+        self._entries: list[FakeEntry] = []
 
     async def async_forward_entry_setups(
         self, entry: object, platforms: list[str]
@@ -103,6 +104,9 @@ class _FakeConfigEntries:
     ) -> bool:
         self.unloaded.append((entry, list(platforms)))
         return True
+
+    def async_entries(self, domain: str) -> list[FakeEntry]:
+        return [e for e in self._entries if True]
 
 
 def _build_entry(entry_id: str) -> FakeEntry:
@@ -162,23 +166,21 @@ def test_async_setup_entry_stores_coordinator() -> None:
         setattr(init_module, "_log_api_endpoints", original_log)
 
     assert result is True
-    stored = cast("dict[str, object]", hass.data[DOMAIN])
-    assert isinstance(stored[entry.entry_id], FakeCoordinator)
+    assert isinstance(entry.runtime_data, FakeCoordinator)
     assert called["runtime"] is True
     assert called["logged"] is True
 
 
-def test_async_unload_entry_removes_coordinator() -> None:
+def test_async_unload_entry_unloads_platforms() -> None:
     hass = FakeHass()
     entry = _build_entry("entry-1")
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
-    hass.data[DOMAIN] = {"entry-1": coordinator}
+    entry.runtime_data = coordinator
 
     result = asyncio.run(init_module.async_unload_entry(hass, entry))
 
     assert result is True
-    stored = cast("dict[str, object]", hass.data[DOMAIN])
-    assert "entry-1" not in stored
+    assert hass.config_entries.unloaded
 
 
 def test_register_runtime_services_calls_helpers() -> None:
@@ -274,8 +276,14 @@ def test_log_api_endpoints_logs(caplog: pytest.LogCaptureFixture) -> None:
 
 def test_select_coordinators_filters_by_entry_id() -> None:
     hass = FakeHass()
-    coordinator = UniFiNetworkMapCoordinator(hass, _build_entry("entry-1"))
-    hass.data[DOMAIN] = {"entry-1": coordinator, "other": object()}
+    entry = _build_entry("entry-1")
+    coordinator = UniFiNetworkMapCoordinator(hass, entry)
+    entry.runtime_data = coordinator
+
+    other_entry = _build_entry("other")
+    other_entry.runtime_data = object()
+
+    hass.config_entries._entries = [entry, other_entry]
 
     select_coordinators = cast(
         "Callable[[FakeHass, str | None], list[UniFiNetworkMapCoordinator]]",
@@ -288,6 +296,7 @@ def test_select_coordinators_filters_by_entry_id() -> None:
 
 def test_refresh_handler_raises_when_no_match() -> None:
     hass = FakeHass()
+    hass.config_entries._entries = []
     build_refresh_handler = cast(
         "Callable["
         "[FakeHass],"
@@ -315,7 +324,8 @@ def test_refresh_handler_calls_matching_coordinator() -> None:
         called.append("ok")
 
     coordinator.async_request_refresh = _refresh
-    hass.data[DOMAIN] = {"entry-1": coordinator}
+    entry.runtime_data = coordinator
+    hass.config_entries._entries = [entry]
 
     build_refresh_handler = cast(
         "Callable["
@@ -536,8 +546,14 @@ def test_maybe_await_list_handles_sync_value() -> None:
 
 def test_select_coordinators_without_entry_id() -> None:
     hass = FakeHass()
-    coordinator = UniFiNetworkMapCoordinator(hass, _build_entry("entry-1"))
-    hass.data[DOMAIN] = {"entry-1": coordinator, "other": object()}
+    entry = _build_entry("entry-1")
+    coordinator = UniFiNetworkMapCoordinator(hass, entry)
+    entry.runtime_data = coordinator
+
+    other_entry = _build_entry("other")
+    other_entry.runtime_data = object()
+
+    hass.config_entries._entries = [entry, other_entry]
 
     select_coordinators = cast(
         "Callable[[FakeHass, str | None], list[UniFiNetworkMapCoordinator]]",

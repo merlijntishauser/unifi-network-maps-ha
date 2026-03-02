@@ -56,33 +56,6 @@ def _build_payload_with_devices() -> dict[str, Any]:
     }
 
 
-def test_setup_skips_without_coordinator() -> None:
-    hass = FakeHass()
-    entry = build_entry()
-    added: list[object] = []
-
-    def _add_entities(entities):
-        added.extend(entities)
-
-    asyncio.run(binary_sensor.async_setup_entry(hass, entry, _add_entities))
-
-    assert added == []
-
-
-def test_setup_skips_with_wrong_coordinator_type() -> None:
-    hass = FakeHass()
-    entry = build_entry()
-    hass.data["unifi_network_map"] = {entry.entry_id: "not a coordinator"}
-    added: list[object] = []
-
-    def _add_entities(entities):
-        added.extend(entities)
-
-    asyncio.run(binary_sensor.async_setup_entry(hass, entry, _add_entities))
-
-    assert added == []
-
-
 def test_setup_creates_entities_for_devices() -> None:
     hass = FakeHass()
     entry = build_entry()
@@ -91,7 +64,7 @@ def test_setup_creates_entities_for_devices() -> None:
         svg="<svg />", payload=_build_payload_with_devices()
     )
     coordinator.last_exception = None
-    hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
+    entry.runtime_data = coordinator
     added: list[UniFiDevicePresenceSensor] = []
 
     def _add_entities(entities):
@@ -113,7 +86,7 @@ def test_setup_excludes_client_and_other_types() -> None:
         svg="<svg />", payload=_build_payload_with_devices()
     )
     coordinator.last_exception = None
-    hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
+    entry.runtime_data = coordinator
     added: list[UniFiDevicePresenceSensor] = []
 
     def _add_entities(entities):
@@ -132,7 +105,7 @@ def test_setup_creates_no_entities_when_no_data() -> None:
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
     coordinator.data = None
     coordinator.last_exception = None
-    hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
+    entry.runtime_data = coordinator
     added: list[object] = []
 
     def _add_entities(entities):
@@ -149,7 +122,7 @@ def test_setup_creates_no_entities_when_empty_payload() -> None:
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
     coordinator.data = UniFiNetworkMapData(svg="<svg />", payload={})
     coordinator.last_exception = None
-    hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
+    entry.runtime_data = coordinator
     added: list[object] = []
 
     def _add_entities(entities):
@@ -168,7 +141,7 @@ def test_entities_link_to_parent_device() -> None:
         svg="<svg />", payload=_build_payload_with_devices()
     )
     coordinator.last_exception = None
-    hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
+    entry.runtime_data = coordinator
     added: list[UniFiDevicePresenceSensor] = []
 
     def _add_entities(entities):
@@ -192,7 +165,7 @@ def test_entities_have_connectivity_device_class() -> None:
         svg="<svg />", payload=_build_payload_with_devices()
     )
     coordinator.last_exception = None
-    hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
+    entry.runtime_data = coordinator
     added: list[UniFiDevicePresenceSensor] = []
 
     def _add_entities(entities):
@@ -238,7 +211,7 @@ def test_setup_creates_client_entities_from_tracked_macs() -> None:
         svg="<svg />", payload=_build_payload_with_clients()
     )
     coordinator.last_exception = None
-    hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
+    entry.runtime_data = coordinator
     added: list[object] = []
 
     def _add_entities(entities):
@@ -266,7 +239,7 @@ def test_setup_skips_clients_when_no_tracked_macs() -> None:
         svg="<svg />", payload=_build_payload_with_clients()
     )
     coordinator.last_exception = None
-    hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
+    entry.runtime_data = coordinator
     added: list[object] = []
 
     def _add_entities(entities):
@@ -289,7 +262,7 @@ def test_client_entities_have_connectivity_device_class() -> None:
         svg="<svg />", payload=_build_payload_with_clients()
     )
     coordinator.last_exception = None
-    hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
+    entry.runtime_data = coordinator
     added: list[object] = []
 
     def _add_entities(entities):
@@ -315,7 +288,7 @@ def test_client_entities_link_to_parent_device() -> None:
         svg="<svg />", payload=_build_payload_with_clients()
     )
     coordinator.last_exception = None
-    hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
+    entry.runtime_data = coordinator
     added: list[object] = []
 
     def _add_entities(entities):
@@ -348,7 +321,7 @@ def test_setup_skips_invalid_macs_in_tracked_clients() -> None:
         svg="<svg />", payload=_build_payload_with_clients()
     )
     coordinator.last_exception = None
-    hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
+    entry.runtime_data = coordinator
     added: list[object] = []
 
     def _add_entities(entities):

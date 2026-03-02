@@ -4,7 +4,12 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
     from unifi_topology import VpnTunnel, WanInfo
+
+    from .coordinator import UniFiNetworkMapCoordinator
+
+type UniFiNetworkMapConfigEntry = ConfigEntry[UniFiNetworkMapCoordinator]
 
 
 @dataclass(slots=True)

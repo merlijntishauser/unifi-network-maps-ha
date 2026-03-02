@@ -47,7 +47,10 @@ def register_unifi_http_views(hass: HomeAssistant) -> None:
 def _get_coordinator(
     hass: HomeAssistant, entry_id: str
 ) -> UniFiNetworkMapCoordinator | None:
-    return hass.data.get(DOMAIN, {}).get(entry_id)
+    entry = hass.config_entries.async_get_entry(entry_id)
+    if entry is None:
+        return None
+    return getattr(entry, "runtime_data", None)
 
 
 def _get_data(

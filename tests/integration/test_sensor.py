@@ -20,26 +20,13 @@ class FakeHass:
         return func(*args)
 
 
-def test_sensor_setup_skips_without_coordinator() -> None:
-    hass = FakeHass()
-    entry = build_entry()
-    added: list[object] = []
-
-    def _add_entities(entities):
-        added.extend(entities)
-
-    asyncio.run(sensor.async_setup_entry(hass, entry, _add_entities))
-
-    assert added == []
-
-
 def test_sensor_state_and_attributes() -> None:
     hass = FakeHass()
     entry = build_entry()
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
     coordinator.data = UniFiNetworkMapData(svg="<svg />", payload={})
     coordinator.last_exception = None
-    hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
+    entry.runtime_data = coordinator
     added: list[sensor.UniFiNetworkMapSensor] = []
 
     def _add_entities(entities):
@@ -62,7 +49,7 @@ def test_sensor_error_state() -> None:
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
     coordinator.data = None
     coordinator.last_exception = RuntimeError("boom")
-    hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
+    entry.runtime_data = coordinator
     added: list[sensor.UniFiNetworkMapSensor] = []
 
     def _add_entities(entities):
@@ -106,7 +93,7 @@ def test_setup_creates_vlan_sensors() -> None:
         svg="<svg />", payload=_build_payload_with_vlans()
     )
     coordinator.last_exception = None
-    hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
+    entry.runtime_data = coordinator
     added: list[object] = []
 
     def _add_entities(entities):
@@ -127,7 +114,7 @@ def test_vlan_sensor_state_shows_client_count() -> None:
         svg="<svg />", payload=_build_payload_with_vlans()
     )
     coordinator.last_exception = None
-    hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
+    entry.runtime_data = coordinator
     added: list[object] = []
 
     def _add_entities(entities):
@@ -151,7 +138,7 @@ def test_vlan_sensor_attributes() -> None:
         svg="<svg />", payload=_build_payload_with_vlans()
     )
     coordinator.last_exception = None
-    hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
+    entry.runtime_data = coordinator
     added: list[object] = []
 
     def _add_entities(entities):
@@ -176,7 +163,7 @@ def test_vlan_sensor_unique_id_format() -> None:
         svg="<svg />", payload=_build_payload_with_vlans()
     )
     coordinator.last_exception = None
-    hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
+    entry.runtime_data = coordinator
     added: list[object] = []
 
     def _add_entities(entities):
@@ -198,7 +185,7 @@ def test_no_vlan_sensors_when_vlan_info_empty() -> None:
         svg="<svg />", payload={"vlan_info": {}}
     )
     coordinator.last_exception = None
-    hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
+    entry.runtime_data = coordinator
     added: list[object] = []
 
     def _add_entities(entities):
@@ -216,7 +203,7 @@ def test_no_vlan_sensors_when_no_data() -> None:
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
     coordinator.data = None
     coordinator.last_exception = None
-    hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
+    entry.runtime_data = coordinator
     added: list[object] = []
 
     def _add_entities(entities):

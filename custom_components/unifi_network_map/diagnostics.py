@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 
-from .const import DOMAIN
 from .http import (
     get_state_entity_macs,
     get_unifi_entity_mac_stats,
@@ -17,18 +16,20 @@ from .http import (
 )
 
 if TYPE_CHECKING:
-    from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
 
-    from .data import UniFiNetworkMapData
+    from .data import (
+        UniFiNetworkMapConfigEntry,
+        UniFiNetworkMapData,
+    )
 
 _REDACT_KEYS = {CONF_PASSWORD, CONF_USERNAME}
 
 
 async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant, entry: ConfigEntry
+    hass: HomeAssistant, entry: UniFiNetworkMapConfigEntry
 ) -> dict[str, Any]:
-    coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    coordinator = entry.runtime_data
     data = coordinator.data if coordinator else None
     return {
         "entry": {

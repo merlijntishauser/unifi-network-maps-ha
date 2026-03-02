@@ -12,12 +12,16 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import CONF_TRACKED_CLIENTS, DOMAIN, UNIFI_MODEL_NAMES
-from .coordinator import UniFiNetworkMapCoordinator
 from .data import UniFiNetworkMapData
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
-    from homeassistant.helpers.entity_platform import AddEntitiesCallback
+    from homeassistant.helpers.entity_platform import (
+        AddEntitiesCallback,
+    )
+
+    from .coordinator import UniFiNetworkMapCoordinator
+    from .data import UniFiNetworkMapConfigEntry
 
 DEVICE_TYPES_TO_TRACK = frozenset({"gateway", "switch", "ap"})
 EntityList = list["UniFiDevicePresenceSensor | UniFiClientPresenceSensor"]
@@ -90,13 +94,11 @@ class _EntityTracker:
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: UniFiNetworkMapConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up device and client presence binary sensors from a config entry."""
-    coordinator = hass.data.get(DOMAIN, {}).get(entry.entry_id)
-    if not isinstance(coordinator, UniFiNetworkMapCoordinator):
-        return
+    """Set up device and client presence binary sensors."""
+    coordinator = entry.runtime_data
 
     tracker = _EntityTracker(coordinator, entry, async_add_entities)
     tracker.add_new_entities()

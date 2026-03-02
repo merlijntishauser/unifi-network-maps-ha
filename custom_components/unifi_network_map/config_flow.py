@@ -83,9 +83,15 @@ class UniFiNetworkMapConfigFlow(  # type: ignore[reportUntypedBaseClass,reportGe
             )
             data, error = await self._validate_user_input(user_input)
             if error:
-                LOGGER.debug("config_flow validation_failed error=%s", error)
+                LOGGER.debug(
+                    "config_flow validation_failed error=%s",
+                    error,
+                )
                 errors["base"] = error
             else:
+                unique_id = _build_unique_id(data)
+                await self.async_set_unique_id(unique_id)
+                self._abort_if_unique_id_configured()
                 title = _build_entry_title(data)
                 LOGGER.debug("config_flow entry_created title=%s", title)
                 return self.async_create_entry(title=title, data=data)
@@ -364,6 +370,12 @@ def _validate_credentials(user_input: dict[str, Any]) -> None:
         raise EmptyCredential
     if not isinstance(site, str) or not site.strip():
         raise EmptyCredential
+
+
+def _build_unique_id(data: dict[str, Any]) -> str:
+    url = data.get(CONF_URL, "")
+    site = data.get(CONF_SITE, DEFAULT_SITE)
+    return f"{url}_{site}"
 
 
 def _build_entry_title(data: dict[str, Any]) -> str:

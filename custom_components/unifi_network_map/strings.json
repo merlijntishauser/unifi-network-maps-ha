@@ -49,6 +49,9 @@
       "url_has_credentials": "Do not include username or password in the URL. Use the separate fields below.",
       "invalid_port": "The URL contains an invalid port number. Ports must be between 1 and 65535.",
       "empty_credential": "Username, password, and site cannot be empty."
+    },
+    "abort": {
+      "already_configured": "This controller and site are already configured."
     }
   },
   "options": {

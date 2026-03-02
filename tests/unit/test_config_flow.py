@@ -49,6 +49,13 @@ def _run(coro):
 def _make_flow():
     flow = config_flow_module.UniFiNetworkMapConfigFlow()
     flow.hass = FakeHass()
+    flow._unique_id = None
+
+    async def _async_set_unique_id(uid):
+        flow._unique_id = uid
+
+    flow.async_set_unique_id = _async_set_unique_id
+    flow._abort_if_unique_id_configured = lambda: None
     return flow
 
 
