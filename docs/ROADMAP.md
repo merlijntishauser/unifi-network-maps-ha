@@ -200,20 +200,44 @@ Long-term goal: Submit this integration for inclusion in the official Home Assis
 
 Must meet **Silver tier** minimum on the [Integration Quality Scale](https://developers.home-assistant.io/docs/integration_quality_scale_index/):
 
-- [x] Config flow for setup
-- [x] Unique IDs for all entities
-- [x] Translations (en, de, es, fr, nl)
-- [ ] **Diagnostics support** - Add `diagnostics.py` for debug info download
-- [ ] **Reconfigure flow** - Allow changing credentials without removing integration
-- [ ] **Entity device info** - Ensure all entities link to proper devices
-- [ ] **Strict typing** - Full mypy strict compliance (currently using pyright)
+**Bronze:**
+- [x] Config flow for setup (`config-flow`)
+- [x] Unique IDs for all entities (`entity-unique-id`)
+- [x] Translations (10 languages)
+- [x] Test before configure (`test-before-configure`)
+- [x] `has-entity-name` with translation keys
+- [x] `runtime-data` (typed ConfigEntry.runtime_data)
+- [x] `unique-config-entry` (abort on duplicate controller+site)
+- [x] `common-modules` (clean module structure)
+- [x] `entity-event-setup` (proper lifecycle)
+- [x] `test-before-setup` (connectivity check)
+- [ ] Documentation PRs (deferred until code is stable)
+
+**Silver:**
+- [x] `reauthentication-flow` (async_step_reauth)
+- [x] `parallel-updates` (PARALLEL_UPDATES = 1)
+- [x] `entity-unavailable` (CoordinatorEntity handles this)
+- [x] `config-entry-unloading` (clean resource cleanup)
+- [x] `log-when-unavailable` (availability transitions logged)
+- [x] `action-exceptions` (HomeAssistantError on failure)
+- [x] `test-coverage` (96.81%, enforced at 95%)
+- [x] Diagnostics support (`diagnostics.py`)
+
+**Gold (easy wins):**
+- [x] `reconfiguration-flow` (async_step_reconfigure)
+- [x] `entity-category` (EntityCategory.DIAGNOSTIC)
+- [x] `entity-device-class` (BinarySensorDeviceClass.CONNECTIVITY)
+- [x] `entity-translations` and `icon-translations`
+- [x] `exception-translations`
+- [x] Device sensor unique IDs (MAC-based with migration)
+- [x] Config entry versioning (MINOR_VERSION + async_migrate_entry)
 
 ### 11.2 Code Architecture Changes
 
 **API Library Separation:**
-- [ ] Ensure `unifi-network-maps` is stable and well-documented on PyPI
-- [ ] Library must not have HA-specific code
-- [ ] Consider if topology rendering belongs in library or integration
+- [x] `unifi-network-maps` stable on PyPI (v1.6.x)
+- [x] Library has no HA-specific code
+- [x] Topology rendering in library, integration wraps it
 
 **Frontend Card Separation:**
 - [ ] Custom Lovelace cards are NOT part of HA core
@@ -222,18 +246,18 @@ Must meet **Silver tier** minimum on the [Integration Quality Scale](https://dev
 - [ ] Alternative: Propose as a built-in panel (like Energy dashboard) - significant effort
 
 **Code Cleanup:**
-- [ ] Follow HA's exact code style (may differ from current ruff config)
-- [ ] Remove any deprecated patterns
-- [ ] Ensure all imports follow HA conventions
-- [ ] Add type hints to 100% of code
+- [x] HA Core code style (79-char lines, expanded ruff rules)
+- [x] Pyright strict mode (all unknown-type rules enabled)
+- [x] All imports follow HA conventions (isort, TYPE_CHECKING blocks)
+- [x] Type hints on all production code
 
 ### 11.3 Testing Requirements
 
-- [ ] **90%+ test coverage** for all Python code
-- [ ] Use HA's pytest fixtures and test patterns
-- [ ] Mock all external API calls properly
-- [ ] Add tests for error conditions and edge cases
-- [ ] Integration tests using `pytest-homeassistant-custom-component`
+- [x] **95%+ test coverage** enforced (96.81% actual, 521 tests)
+- [x] HA pytest fixtures via `pytest-homeassistant-custom-component`
+- [x] All external API calls mocked (unifi-topology library)
+- [x] Error conditions and edge cases covered
+- [x] Integration tests with real HA entity/device registries
 
 ### 11.4 Documentation
 
@@ -270,7 +294,7 @@ HA already has a built-in `unifi` integration. Must clearly articulate why this 
 
 If core inclusion is rejected or too complex, enhance HACS presence:
 
-- [ ] Apply for HACS "default" repository status
+- [x] HACS "default" repository status (already listed)
 - [ ] Improve discoverability with better metadata
 - [ ] Create video tutorials for setup
 - [ ] Build community around the integration
@@ -346,7 +370,7 @@ Priority areas for contribution:
 
 ---
 
-*Last updated: 2026-02-07*
+*Last updated: 2026-03-02*
 
 ## Version History
 
