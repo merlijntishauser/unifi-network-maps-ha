@@ -24,6 +24,16 @@ class FakeEntry:
     data: dict[str, object]
     options: dict[str, object]
     entry_id: str = "test_entry_id"
+    _reauth_calls: list[dict[str, object]] = None  # type: ignore[assignment]
+
+    def __post_init__(self) -> None:
+        if self._reauth_calls is None:
+            self._reauth_calls = []
+
+    def async_start_reauth(
+        self, hass: object, *, data: object = None, **_kw: object
+    ) -> None:
+        self._reauth_calls.append({"data": data})
 
 
 class FakeClient:
@@ -126,6 +136,53 @@ def test_auth_backoff_resets_after_success(
     assert data.svg == "<svg />"
     assert coordinator.auth_backoff_until is None
     assert coordinator.auth_backoff_seconds == AUTH_BACKOFF_BASE_SECONDS
+
+
+def test_invalid_auth_triggers_reauth(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _now() -> float:
+        return 100.0
+
+    monkeypatch.setattr(
+        "custom_components.unifi_network_map.coordinator.monotonic_seconds",
+        _now,
+    )
+    entry = _build_entry()
+    coordinator = UniFiNetworkMapCoordinator(
+        HomeAssistant(),
+        entry,
+        client=FakeClient([InvalidAuth("Authentication failed")]),
+    )
+
+    with pytest.raises(UpdateFailed):
+        asyncio.run(coordinator.async_fetch_for_testing())
+
+    assert len(entry._reauth_calls) == 1
+    assert entry._reauth_calls[0]["data"] == entry.data
+
+
+def test_connect_error_does_not_trigger_reauth(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _now() -> float:
+        return 100.0
+
+    monkeypatch.setattr(
+        "custom_components.unifi_network_map.coordinator.monotonic_seconds",
+        _now,
+    )
+    entry = _build_entry()
+    coordinator = UniFiNetworkMapCoordinator(
+        HomeAssistant(),
+        entry,
+        client=FakeClient([CannotConnect("connection refused")]),
+    )
+
+    with pytest.raises(UpdateFailed):
+        asyncio.run(coordinator.async_fetch_for_testing())
+
+    assert len(entry._reauth_calls) == 0
 
 
 def test_rate_limit_triggers_backoff(monkeypatch: pytest.MonkeyPatch) -> None:

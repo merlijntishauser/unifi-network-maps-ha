@@ -147,6 +147,11 @@ class UniFiNetworkMapCoordinator(DataUpdateCoordinator[UniFiNetworkMapData]):  #
             )
             if _should_backoff(err):
                 self._advance_auth_backoff()
+            if isinstance(err, InvalidAuth):
+                self._entry.async_start_reauth(
+                    self.hass,
+                    data=dict(self._entry.data),
+                )
             raise UpdateFailed(str(err)) from err
 
     async def async_fetch_for_testing(self) -> UniFiNetworkMapData:

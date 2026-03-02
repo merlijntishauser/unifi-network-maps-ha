@@ -2,6 +2,14 @@
   "title": "UniFi Network Map",
   "config": {
     "step": {
+      "reauth_confirm": {
+        "title": "Opnieuw authenticeren",
+        "description": "Je UniFi-inloggegevens zijn niet meer geldig. Voer je gebruikersnaam en wachtwoord opnieuw in.",
+        "data": {
+          "username": "Gebruikersnaam",
+          "password": "Wachtwoord"
+        }
+      },
       "user": {
         "title": "Verbinden met UniFi",
         "description": "Voer je UniFi-controllergegevens in.",
@@ -48,6 +56,10 @@
       "url_has_credentials": "Voeg geen gebruikersnaam of wachtwoord toe aan de URL. Gebruik de aparte velden hieronder.",
       "invalid_port": "De URL bevat een ongeldig poortnummer. Poorten moeten tussen 1 en 65535 liggen.",
       "empty_credential": "Gebruikersnaam, wachtwoord en site mogen niet leeg zijn."
+    },
+    "abort": {
+      "already_configured": "Deze controller en site zijn al geconfigureerd.",
+      "reauth_successful": "Herauthenticatie geslaagd."
     }
   },
   "options": {

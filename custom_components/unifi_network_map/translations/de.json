@@ -2,6 +2,14 @@
   "title": "UniFi Network Map",
   "config": {
     "step": {
+      "reauth_confirm": {
+        "title": "Erneut authentifizieren",
+        "description": "Deine UniFi-Anmeldedaten sind nicht mehr gültig. Bitte gib deinen Benutzernamen und dein Passwort erneut ein.",
+        "data": {
+          "username": "Benutzername",
+          "password": "Passwort"
+        }
+      },
       "user": {
         "title": "Mit UniFi verbinden",
         "description": "Gib die Daten deines UniFi-Controllers ein.",
@@ -48,6 +56,10 @@
       "url_has_credentials": "Füge keinen Benutzernamen oder kein Passwort in die URL ein. Verwende die separaten Felder unten.",
       "invalid_port": "Die URL enthält eine ungültige Portnummer. Ports müssen zwischen 1 und 65535 liegen.",
       "empty_credential": "Benutzername, Passwort und Site dürfen nicht leer sein."
+    },
+    "abort": {
+      "already_configured": "Dieser Controller und diese Site sind bereits konfiguriert.",
+      "reauth_successful": "Erneute Authentifizierung erfolgreich."
     }
   },
   "options": {

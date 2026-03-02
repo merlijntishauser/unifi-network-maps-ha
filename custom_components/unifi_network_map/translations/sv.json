@@ -2,6 +2,14 @@
   "title": "UniFi Network Map",
   "config": {
     "step": {
+      "reauth_confirm": {
+        "title": "Autentisera igen",
+        "description": "Dina UniFi-inloggningsuppgifter är inte längre giltiga. Ange ditt användarnamn och lösenord igen.",
+        "data": {
+          "username": "Användarnamn",
+          "password": "Lösenord"
+        }
+      },
       "user": {
         "title": "Anslut till UniFi",
         "description": "Ange dina UniFi-kontrolleruppgifter.",
@@ -46,6 +54,10 @@
     "error": {
       "invalid_url": "Ange en giltig kontroller-URL inklusive http eller https.",
       "url_has_credentials": "Inkludera inte användarnamn eller lösenord i URL:en. Använd de separata fälten nedan."
+    },
+    "abort": {
+      "already_configured": "Denna kontroller och plats är redan konfigurerade.",
+      "reauth_successful": "Omautentisering lyckades."
     }
   },
   "options": {

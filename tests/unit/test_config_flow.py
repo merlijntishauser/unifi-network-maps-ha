@@ -59,6 +59,24 @@ def _make_flow():
     return flow
 
 
+def _make_reauth_flow(entry_data=None):
+    flow = config_flow_module.UniFiNetworkMapConfigFlow()
+    flow.hass = FakeHass()
+
+    reauth_entry = FakeEntry()
+    reauth_entry.data = entry_data or _base_input()
+
+    flow._get_reauth_entry = lambda: reauth_entry
+
+    def _update_reload_abort(entry, *, data=None, **_kw):
+        if data is not None:
+            entry.data = data
+        return {"type": "abort", "reason": "reauth_successful"}
+
+    flow.async_update_reload_and_abort = _update_reload_abort
+    return flow
+
+
 def _base_input() -> dict[str, object]:
     return {
         CONF_URL: "https://unifi.local/",
@@ -466,3 +484,65 @@ def test_wan2_disabled_selector_returns_instance() -> None:
     assert isinstance(
         selector_instance, config_flow_module.selector.SelectSelector
     )
+
+
+def test_reauth_shows_confirm_form():
+    flow = _make_reauth_flow()
+    result = _run(flow.async_step_reauth(entry_data=_base_input()))
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "reauth_confirm"
+
+
+def test_reauth_confirm_success(monkeypatch):
+    def _validate(*_args: object, **_kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(
+        config_flow_module, "validate_unifi_credentials", _validate
+    )
+    flow = _make_reauth_flow()
+    result = _run(
+        flow.async_step_reauth_confirm(
+            {CONF_USERNAME: "newadmin", CONF_PASSWORD: "newsecret"}
+        )
+    )
+
+    assert result["type"] == "abort"
+    assert result["reason"] == "reauth_successful"
+
+
+def test_reauth_confirm_invalid_auth(monkeypatch):
+    def _validate(*_args: object, **_kwargs: object) -> None:
+        raise InvalidAuth("bad auth")
+
+    monkeypatch.setattr(
+        config_flow_module, "validate_unifi_credentials", _validate
+    )
+    flow = _make_reauth_flow()
+    result = _run(
+        flow.async_step_reauth_confirm(
+            {CONF_USERNAME: "wrong", CONF_PASSWORD: "wrong"}
+        )
+    )
+
+    assert result["type"] == "form"
+    assert result["errors"]["base"] == "invalid_auth"
+
+
+def test_reauth_confirm_cannot_connect(monkeypatch):
+    def _validate(*_args: object, **_kwargs: object) -> None:
+        raise CannotConnect("no route")
+
+    monkeypatch.setattr(
+        config_flow_module, "validate_unifi_credentials", _validate
+    )
+    flow = _make_reauth_flow()
+    result = _run(
+        flow.async_step_reauth_confirm(
+            {CONF_USERNAME: "admin", CONF_PASSWORD: "secret"}
+        )
+    )
+
+    assert result["type"] == "form"
+    assert result["errors"]["base"] == "cannot_connect"

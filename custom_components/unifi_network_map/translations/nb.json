@@ -2,6 +2,14 @@
   "title": "UniFi Network Map",
   "config": {
     "step": {
+      "reauth_confirm": {
+        "title": "Autentiser på nytt",
+        "description": "UniFi-legitimasjonen din er ikke lenger gyldig. Vennligst oppgi brukernavn og passord på nytt.",
+        "data": {
+          "username": "Brukernavn",
+          "password": "Passord"
+        }
+      },
       "user": {
         "title": "Koble til UniFi",
         "description": "Oppgi tilkoblingsdetaljene for UniFi-kontrolleren.",
@@ -46,6 +54,10 @@
     "error": {
       "invalid_url": "Oppgi en gyldig kontroller-URL inkludert http eller https.",
       "url_has_credentials": "Ikke inkluder brukernavn eller passord i URL-en. Bruk de separate feltene nedenfor."
+    },
+    "abort": {
+      "already_configured": "Denne kontrolleren og dette nettstedet er allerede konfigurert.",
+      "reauth_successful": "Autentisering på nytt var vellykket."
     }
   },
   "options": {

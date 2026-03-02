@@ -2,6 +2,14 @@
   "title": "UniFi Network Map",
   "config": {
     "step": {
+      "reauth_confirm": {
+        "title": "Endurauðkenna",
+        "description": "UniFi-innskráningarupplýsingarnar þínar eru ekki lengur gildar. Vinsamlegast sláðu inn notandanafn og lykilorð aftur.",
+        "data": {
+          "username": "Notandanafn",
+          "password": "Lykilorð"
+        }
+      },
       "user": {
         "title": "Tengjast UniFi",
         "description": "Sláðu inn upplýsingar um UniFi-stýribúnaðinn.",
@@ -46,6 +54,10 @@
     "error": {
       "invalid_url": "Sláðu inn gilda URL stýribúnaðar ásamt http eða https.",
       "url_has_credentials": "Ekki setja notandanafn eða lykilorð í URL-ið. Notaðu aðskilda reitina hér að neðan."
+    },
+    "abort": {
+      "already_configured": "Þessi stýribúnaður og svæði eru þegar stillt.",
+      "reauth_successful": "Endurauðkenning tókst."
     }
   },
   "options": {

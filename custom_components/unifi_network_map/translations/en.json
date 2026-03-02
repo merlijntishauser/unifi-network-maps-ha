@@ -2,6 +2,14 @@
   "title": "UniFi Network Map",
   "config": {
     "step": {
+      "reauth_confirm": {
+        "title": "Re-authenticate",
+        "description": "Your UniFi credentials are no longer valid. Please re-enter your username and password.",
+        "data": {
+          "username": "Username",
+          "password": "Password"
+        }
+      },
       "user": {
         "title": "Connect to UniFi",
         "description": "Enter your UniFi controller details.",
@@ -46,6 +54,10 @@
     "error": {
       "invalid_url": "Enter a valid controller URL including http or https.",
       "url_has_credentials": "Do not include username or password in the URL. Use the separate fields below."
+    },
+    "abort": {
+      "already_configured": "This controller and site are already configured.",
+      "reauth_successful": "Re-authentication successful."
     }
   },
   "options": {

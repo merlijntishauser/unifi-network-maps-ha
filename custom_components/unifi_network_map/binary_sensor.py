@@ -14,6 +14,8 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import CONF_TRACKED_CLIENTS, DOMAIN, UNIFI_MODEL_NAMES
 from .data import UniFiNetworkMapData
 
+PARALLEL_UPDATES = 1
+
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.helpers.entity_platform import (

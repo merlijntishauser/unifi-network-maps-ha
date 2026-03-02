@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 # pyright: reportUntypedBaseClass=false, reportCallIssue=false
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 import voluptuous as vol
 from homeassistant import config_entries
@@ -72,6 +75,41 @@ class UniFiNetworkMapConfigFlow(  # type: ignore[reportUntypedBaseClass,reportGe
     config_entries.ConfigFlow, domain=DOMAIN
 ):
     VERSION = 1
+
+    async def async_step_reauth(self, entry_data: Mapping[str, Any]):
+        """Handle reauth when credentials become invalid."""
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ):
+        """Handle reauth credential input."""
+        errors: dict[str, str] = {}
+        reauth_entry = self._get_reauth_entry()
+
+        if user_input is not None:
+            data = {**reauth_entry.data, **user_input}
+            try:
+                await self._async_validate_auth(data)
+            except InvalidAuth:
+                errors["base"] = "invalid_auth"
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
+            else:
+                return self.async_update_reload_and_abort(
+                    reauth_entry, data=data
+                )
+
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_USERNAME): str,
+                    vol.Required(CONF_PASSWORD): str,
+                }
+            ),
+            errors=errors,
+        )
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None):
         errors: dict[str, str] = {}

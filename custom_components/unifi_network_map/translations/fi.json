@@ -2,6 +2,14 @@
   "title": "UniFi-verkkokartta",
   "config": {
     "step": {
+      "reauth_confirm": {
+        "title": "Todenna uudelleen",
+        "description": "UniFi-tunnistetietosi eivät ole enää voimassa. Syötä käyttäjänimesi ja salasanasi uudelleen.",
+        "data": {
+          "username": "Käyttäjänimi",
+          "password": "Salasana"
+        }
+      },
       "user": {
         "title": "Yhdistä UniFi-ohjaimeen",
         "description": "Syötä UniFi-ohjaimen tiedot.",
@@ -46,6 +54,10 @@
     "error": {
       "invalid_url": "Syötä kelvollinen ohjaimen URL, joka sisältää http tai https.",
       "url_has_credentials": "Älä sisällytä käyttäjänimeä tai salasanaa URL-osoitteeseen. Käytä erillisiä kenttiä alla."
+    },
+    "abort": {
+      "already_configured": "Tämä ohjain ja sivusto on jo määritetty.",
+      "reauth_successful": "Uudelleentodennus onnistui."
     }
   },
   "options": {
