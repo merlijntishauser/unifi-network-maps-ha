@@ -37,7 +37,9 @@ def main() -> None:
         version_file = Path("tests/e2e/.ha-version.json")
         env["E2E_VERSION_FILE"] = str(version_file)
         print(
-            f"==> Running e2e for {name} ({image_tag}) using {config_path} ({make_target})",
+            f"==> Running e2e for {name}"
+            f" ({image_tag}) using"
+            f" {config_path} ({make_target})",
             flush=True,
         )
         result = subprocess.run(["make", make_target], env=env)
@@ -63,7 +65,11 @@ def main() -> None:
     print("\nE2E Matrix Summary")
     print(f"{'Name':<10} {'Image Tag':<10} {'HA Version':<12} Result")
     for row in results:
-        print(f"{row['name']:<10} {row['image_tag']:<10} {row['version']:<12} {row['result']}")
+        name = row["name"]
+        tag = row["image_tag"]
+        ver = row["version"]
+        res = row["result"]
+        print(f"{name:<10} {tag:<10} {ver:<12} {res}")
     if any(row["result"] != "passed" for row in results):
         raise SystemExit(1)
 

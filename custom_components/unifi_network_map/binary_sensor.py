@@ -1,22 +1,23 @@
 from __future__ import annotations
 
 # pyright: reportUntypedBaseClass=false
-
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import CONF_TRACKED_CLIENTS, DOMAIN, UNIFI_MODEL_NAMES
 from .coordinator import UniFiNetworkMapCoordinator
 from .data import UniFiNetworkMapData
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 DEVICE_TYPES_TO_TRACK = frozenset({"gateway", "switch", "ap"})
 EntityList = list["UniFiDevicePresenceSensor | UniFiClientPresenceSensor"]
@@ -51,15 +52,25 @@ class _EntityTracker:
 
     def _collect_device_entities(self, entities: EntityList) -> None:
         """Collect new device entities."""
-        for entity in _create_device_presence_entities(self._coordinator, self._entry):
-            if entity.unique_id and entity.unique_id not in self._added_devices:
+        for entity in _create_device_presence_entities(
+            self._coordinator, self._entry
+        ):
+            if (
+                entity.unique_id
+                and entity.unique_id not in self._added_devices
+            ):
                 self._added_devices.add(entity.unique_id)
                 entities.append(entity)
 
     def _collect_client_entities(self, entities: EntityList) -> None:
         """Collect new client entities."""
-        for entity in _create_client_presence_entities(self._coordinator, self._entry):
-            if entity.unique_id and entity.unique_id not in self._added_clients:
+        for entity in _create_client_presence_entities(
+            self._coordinator, self._entry
+        ):
+            if (
+                entity.unique_id
+                and entity.unique_id not in self._added_clients
+            ):
                 self._added_clients.add(entity.unique_id)
                 entities.append(entity)
 
@@ -72,7 +83,9 @@ class _EntityTracker:
         def _handle_update() -> None:
             self.add_new_entities()
 
-        self._entry.async_on_unload(self._coordinator.async_add_listener(_handle_update))
+        self._entry.async_on_unload(
+            self._coordinator.async_add_listener(_handle_update)
+        )
 
 
 async def async_setup_entry(
@@ -93,7 +106,7 @@ async def async_setup_entry(
 def _create_device_presence_entities(
     coordinator: UniFiNetworkMapCoordinator,
     entry: ConfigEntry,
-) -> list["UniFiDevicePresenceSensor"]:
+) -> list[UniFiDevicePresenceSensor]:
     """Create binary sensors for network devices."""
     if not coordinator.data or not coordinator.data.payload:
         return []
@@ -171,7 +184,8 @@ class UniFiDevicePresenceSensor(  # type: ignore[reportUntypedBaseClass]
             attrs["ip"] = details["ip"]
         if details.get("model"):
             attrs["model"] = details["model"]
-            # Use model_name from API, fallback to static mapping, then model code
+            # Use model_name from API, fallback to
+            # static mapping, then model code
             model_name = details.get("model_name")
             model_code = details["model"]
             if not model_name or model_name == model_code:
@@ -190,7 +204,9 @@ class UniFiDevicePresenceSensor(  # type: ignore[reportUntypedBaseClass]
         """Get device details from current coordinator data."""
         if not self.coordinator.data or not self.coordinator.data.payload:
             return self._initial_details
-        device_details = self.coordinator.data.payload.get("device_details", {})
+        device_details = self.coordinator.data.payload.get(
+            "device_details", {}
+        )
         return device_details.get(self._device_name, self._initial_details)
 
     def _get_ap_client_counts(self) -> dict[str, int]:
@@ -212,7 +228,7 @@ def _normalize_name(name: str) -> str:
 def _create_client_presence_entities(
     coordinator: UniFiNetworkMapCoordinator,
     entry: ConfigEntry,
-) -> list["UniFiClientPresenceSensor"]:
+) -> list[UniFiClientPresenceSensor]:
     """Create binary sensors for tracked clients."""
     tracked_macs = _parse_tracked_clients(entry)
     if not tracked_macs:
@@ -330,7 +346,9 @@ class UniFiClientPresenceSensor(  # type: ignore[reportUntypedBaseClass]
         """Get client details from current coordinator data."""
         if not self.coordinator.data or not self.coordinator.data.payload:
             return None
-        client_details = self.coordinator.data.payload.get("client_details", {})
+        client_details = self.coordinator.data.payload.get(
+            "client_details", {}
+        )
         return client_details.get(self._client_mac)
 
     def _resolve_device_name(self, mac: str) -> str | None:

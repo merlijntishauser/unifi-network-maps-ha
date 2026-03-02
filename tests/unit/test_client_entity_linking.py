@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable
-
-from pytest import MonkeyPatch
+from typing import TYPE_CHECKING
 
 from custom_components.unifi_network_map import http as http_module
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from pytest import MonkeyPatch
 
 
 class _FakeConfigEntries:
@@ -20,13 +23,18 @@ class _FakeBus:
     def __init__(self) -> None:
         self.listeners: dict[str, list[Callable[..., None]]] = {}
 
-    def async_listen(self, event_type: str, callback: Callable[..., None]) -> Callable[[], None]:
+    def async_listen(
+        self, event_type: str, callback: Callable[..., None]
+    ) -> Callable[[], None]:
         if event_type not in self.listeners:
             self.listeners[event_type] = []
         self.listeners[event_type].append(callback)
 
         def unsub() -> None:
-            if event_type in self.listeners and callback in self.listeners[event_type]:
+            if (
+                event_type in self.listeners
+                and callback in self.listeners[event_type]
+            ):
                 self.listeners[event_type].remove(callback)
 
         return unsub
@@ -92,7 +100,9 @@ def test_resolve_client_entities_happy_path(monkeypatch: MonkeyPatch) -> None:
     assert result == {"iPad": "sensor.unifi_client_ipad"}
 
 
-def test_resolve_client_entities_empty_payload(monkeypatch: MonkeyPatch) -> None:
+def test_resolve_client_entities_empty_payload(
+    monkeypatch: MonkeyPatch,
+) -> None:
     hass = _FakeHass(set())
     monkeypatch.setattr(
         http_module,
@@ -107,16 +117,22 @@ def test_resolve_client_entities_empty_payload(monkeypatch: MonkeyPatch) -> None
 
 def test_resolve_client_entities_no_match(monkeypatch: MonkeyPatch) -> None:
     hass = _FakeHass({"unifi"})
-    monkeypatch.setattr(http_module, "_build_mac_entity_index", _fake_entity_index({}))
+    monkeypatch.setattr(
+        http_module, "_build_mac_entity_index", _fake_entity_index({})
+    )
 
-    result = http_module.resolve_client_entity_map(hass, {"iPad": "AA:BB:CC:DD:EE:FF"})
+    result = http_module.resolve_client_entity_map(
+        hass, {"iPad": "AA:BB:CC:DD:EE:FF"}
+    )
 
     assert result == {}
 
 
 def test_mac_from_unique_id() -> None:
     hass = _FakeHass(set())
-    entry = _FakeEntry(entity_id="sensor.unifi_client_ipad", unique_id="client_001122334455")
+    entry = _FakeEntry(
+        entity_id="sensor.unifi_client_ipad", unique_id="client_001122334455"
+    )
     device_registry = _FakeDeviceRegistry({})
 
     result = http_module.mac_from_entity_entry(hass, entry, device_registry)
@@ -126,8 +142,12 @@ def test_mac_from_unique_id() -> None:
 
 def test_mac_from_device_identifier() -> None:
     hass = _FakeHass(set())
-    entry = _FakeEntry(entity_id="sensor.unifi_client_ipad", device_id="device-1")
-    device = _FakeDevice(identifiers={("unifi", "AA-BB-CC-DD-EE-FF")}, connections=set())
+    entry = _FakeEntry(
+        entity_id="sensor.unifi_client_ipad", device_id="device-1"
+    )
+    device = _FakeDevice(
+        identifiers={("unifi", "AA-BB-CC-DD-EE-FF")}, connections=set()
+    )
     device_registry = _FakeDeviceRegistry({"device-1": device})
 
     result = http_module.mac_from_entity_entry(hass, entry, device_registry)
@@ -161,7 +181,9 @@ def test_resolve_client_entities_from_state(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setattr(http_module.er, "async_get", _fake_async_get)
     monkeypatch.setattr(http_module.dr, "async_get", _fake_async_get)
 
-    result = http_module.resolve_client_entity_map(hass, {"AppleTV 4K": "50:de:06:76:60:00"})
+    result = http_module.resolve_client_entity_map(
+        hass, {"AppleTV 4K": "50:de:06:76:60:00"}
+    )
 
     assert result == {"AppleTV 4K": "device_tracker.appletv_4k"}
 

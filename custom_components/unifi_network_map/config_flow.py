@@ -1,6 +1,6 @@
 from __future__ import annotations
-# pyright: reportUntypedBaseClass=false, reportCallIssue=false
 
+# pyright: reportUntypedBaseClass=false, reportCallIssue=false
 from typing import Any
 
 import voluptuous as vol
@@ -139,10 +139,15 @@ class UniFiNetworkMapOptionsFlow(config_entries.OptionsFlow):  # type: ignore[re
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         if user_input is not None:
-            LOGGER.debug("options_flow started entry_id=%s", self._entry.entry_id)
+            LOGGER.debug(
+                "options_flow started entry_id=%s", self._entry.entry_id
+            )
             data, errors = _normalize_options(user_input)
             if errors:
-                LOGGER.debug("options_flow validation_failed errors=%s", list(errors.keys()))
+                LOGGER.debug(
+                    "options_flow validation_failed errors=%s",
+                    list(errors.keys()),
+                )
                 return self.async_show_form(
                     step_id="init",
                     data_schema=_build_options_schema(self._entry.options),
@@ -177,12 +182,16 @@ def _build_options_schema(options: dict[str, Any]) -> vol.Schema:
     return vol.Schema(_options_schema_fields(options))
 
 
-def _options_schema_fields(options: dict[str, Any]) -> dict[vol.Marker, object]:
+def _options_schema_fields(
+    options: dict[str, Any],
+) -> dict[vol.Marker, object]:
     def opt(key: str, default: object) -> vol.Optional:
         return vol.Optional(key, default=options.get(key, default))
 
     return {
-        opt(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_MINUTES): _scan_interval_selector(),
+        opt(
+            CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_MINUTES
+        ): _scan_interval_selector(),
         opt(
             CONF_REQUEST_TIMEOUT_SECONDS, DEFAULT_REQUEST_TIMEOUT_SECONDS
         ): _request_timeout_selector(),
@@ -190,18 +199,24 @@ def _options_schema_fields(options: dict[str, Any]) -> dict[vol.Marker, object]:
             CONF_PAYLOAD_CACHE_TTL, DEFAULT_PAYLOAD_CACHE_TTL_SECONDS
         ): _payload_cache_ttl_selector(),
         opt(CONF_INCLUDE_PORTS, DEFAULT_INCLUDE_PORTS): _boolean_selector(),
-        opt(CONF_INCLUDE_CLIENTS, DEFAULT_INCLUDE_CLIENTS): _boolean_selector(),
+        opt(
+            CONF_INCLUDE_CLIENTS, DEFAULT_INCLUDE_CLIENTS
+        ): _boolean_selector(),
         opt(CONF_CLIENT_SCOPE, DEFAULT_CLIENT_SCOPE): _client_scope_selector(),
         opt(CONF_ONLY_UNIFI, DEFAULT_ONLY_UNIFI): _boolean_selector(),
         opt(CONF_SVG_ISOMETRIC, DEFAULT_SVG_ISOMETRIC): _boolean_selector(),
         opt(CONF_USE_CACHE, DEFAULT_USE_CACHE): _boolean_selector(),
-        opt(CONF_TRACKED_CLIENTS, DEFAULT_TRACKED_CLIENTS): _tracked_clients_selector(),
+        opt(
+            CONF_TRACKED_CLIENTS, DEFAULT_TRACKED_CLIENTS
+        ): _tracked_clients_selector(),
         opt(CONF_SHOW_WAN, DEFAULT_SHOW_WAN): _boolean_selector(),
         opt(CONF_WAN_LABEL, DEFAULT_WAN_LABEL): _text_selector(),
         opt(CONF_WAN_SPEED, DEFAULT_WAN_SPEED): _text_selector(),
         opt(CONF_WAN2_LABEL, DEFAULT_WAN2_LABEL): _text_selector(),
         opt(CONF_WAN2_SPEED, DEFAULT_WAN2_SPEED): _text_selector(),
-        opt(CONF_WAN2_DISABLED, DEFAULT_WAN2_DISABLED): _wan2_disabled_selector(),
+        opt(
+            CONF_WAN2_DISABLED, DEFAULT_WAN2_DISABLED
+        ): _wan2_disabled_selector(),
         opt(CONF_SHOW_VPN, DEFAULT_SHOW_VPN): _boolean_selector(),
     }
 
@@ -284,7 +299,9 @@ def _tracked_clients_selector() -> selector.TextSelector:
     )
 
 
-def _normalize_options(user_input: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]]:
+def _normalize_options(
+    user_input: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, str]]:
     cleaned = dict(user_input)
     errors: dict[str, str] = {}
     for key in (CONF_SVG_WIDTH, CONF_SVG_HEIGHT, CONF_REQUEST_TIMEOUT_SECONDS):

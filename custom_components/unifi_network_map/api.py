@@ -1,22 +1,26 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import logging
 import os
+from dataclasses import dataclass, field
 from time import monotonic
+from typing import TYPE_CHECKING
 
-from unifi_topology import Config, fetch_devices
-from unifi_topology.adapters.unifi_api import UnifiApiError, UnifiAuthError
 from requests import RequestException
 from requests.exceptions import HTTPError
+from unifi_topology import Config, fetch_devices
+from unifi_topology.adapters.unifi_api import UnifiApiError, UnifiAuthError
 
-from .data import UniFiNetworkMapData
+from .const import DEFAULT_RENDER_CACHE_SECONDS, LOGGER
 from .errors import CannotConnect, InvalidAuth, UniFiNetworkMapError
 from .renderer import RenderSettings, UniFiNetworkMapRenderer
-from .const import DEFAULT_RENDER_CACHE_SECONDS, LOGGER
+
+if TYPE_CHECKING:
+    from .data import UniFiNetworkMapData
 
 SSL_WARNING_MESSAGE = (
-    "SSL certificate verification is disabled. This is not recommended for production use."
+    "SSL certificate verification is disabled."
+    " This is not recommended for production use."
 )
 DEFAULT_REQUEST_TIMEOUT_SECONDS = 30.0
 
@@ -84,7 +88,11 @@ def validate_unifi_credentials(
     site: str,
     verify_ssl: bool,
 ) -> None:
-    LOGGER.debug("api validate_credentials started site=%s verify_ssl=%s", site, verify_ssl)
+    LOGGER.debug(
+        "api validate_credentials started site=%s verify_ssl=%s",
+        site,
+        verify_ssl,
+    )
     _ensure_unifi_ssl_warning_filter(verify_ssl)
     _ensure_unifi_request_timeout(None)
     config = _build_config(base_url, username, password, site, verify_ssl)
@@ -105,7 +113,11 @@ def _build_config(
 
 
 def _ensure_unifi_request_timeout(timeout_seconds: float | None) -> None:
-    value = DEFAULT_REQUEST_TIMEOUT_SECONDS if timeout_seconds is None else timeout_seconds
+    value = (
+        DEFAULT_REQUEST_TIMEOUT_SECONDS
+        if timeout_seconds is None
+        else timeout_seconds
+    )
     if value <= 0:
         os.environ.pop("UNIFI_REQUEST_TIMEOUT_SECONDS", None)
         return
@@ -116,7 +128,9 @@ def _assert_unifi_connectivity(config: Config, site: str) -> None:
     try:
         fetch_devices(config, site=site, detailed=False, use_cache=False)
     except UnifiAuthError as exc:
-        LOGGER.debug("api connectivity_check failed reason=auth_error site=%s", site)
+        LOGGER.debug(
+            "api connectivity_check failed reason=auth_error site=%s", site
+        )
         raise InvalidAuth("Authentication failed") from exc
     except (
         OSError,
@@ -127,20 +141,32 @@ def _assert_unifi_connectivity(config: Config, site: str) -> None:
         ValueError,
     ) as exc:
         LOGGER.debug(
-            "api connectivity_check failed reason=connection_error site=%s error=%s",
+            "api connectivity_check failed"
+            " reason=connection_error"
+            " site=%s error=%s",
             site,
             type(exc).__name__,
         )
         raise CannotConnect("Unable to connect") from exc
 
 
-def _render_map_payload(config: Config, settings: RenderSettings) -> UniFiNetworkMapData:
+def _render_map_payload(
+    config: Config, settings: RenderSettings
+) -> UniFiNetworkMapData:
     try:
         return UniFiNetworkMapRenderer().render(config, settings)
     except UnifiAuthError as exc:
-        LOGGER.debug("api render_map failed reason=auth_error site=%s", config.site)
+        LOGGER.debug(
+            "api render_map failed reason=auth_error site=%s", config.site
+        )
         raise _map_auth_error(exc) from exc
-    except (OSError, RequestException, RuntimeError, TimeoutError, UnifiApiError) as exc:
+    except (
+        OSError,
+        RequestException,
+        RuntimeError,
+        TimeoutError,
+        UnifiApiError,
+    ) as exc:
         LOGGER.debug(
             "api render_map failed reason=connection_error site=%s error=%s",
             config.site,
@@ -169,7 +195,10 @@ class _OnceSSLWarningFilter(logging.Filter):
         self._seen = False
 
     def filter(self, record: logging.LogRecord) -> bool:
-        if record.levelno == logging.WARNING and record.getMessage() == SSL_WARNING_MESSAGE:
+        if (
+            record.levelno == logging.WARNING
+            and record.getMessage() == SSL_WARNING_MESSAGE
+        ):
             if self._seen:
                 return False
             self._seen = True

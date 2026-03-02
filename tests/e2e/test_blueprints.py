@@ -15,7 +15,7 @@ BLUEPRINT_DOMAIN = "unifi_network_map"
 
 
 def _wait_for_device_sensors(
-    ha_client: "httpx.Client", timeout: int = 30
+    ha_client: httpx.Client, timeout: int = 30
 ) -> list[dict[str, object]]:
     """Wait for device binary sensors to be created.
 
@@ -31,7 +31,8 @@ def _wait_for_device_sensors(
                 s
                 for s in states
                 if s["entity_id"].startswith("binary_sensor.")
-                and s.get("attributes", {}).get("device_type") in ("gateway", "switch", "ap")
+                and s.get("attributes", {}).get("device_type")
+                in ("gateway", "switch", "ap")
             ]
             if device_sensors:
                 return device_sensors
@@ -39,7 +40,9 @@ def _wait_for_device_sensors(
     return []
 
 
-def _wait_for_automation(ha_client: "httpx.Client", entity_id: str, timeout: int = 10) -> bool:
+def _wait_for_automation(
+    ha_client: httpx.Client, entity_id: str, timeout: int = 10
+) -> bool:
     """Wait for an automation entity to be created."""
     start = time.time()
     while time.time() - start < timeout:
@@ -50,14 +53,20 @@ def _wait_for_automation(ha_client: "httpx.Client", entity_id: str, timeout: int
     return False
 
 
-def _wait_for_vlan_sensors(ha_client: "httpx.Client", timeout: int = 30) -> list[dict[str, object]]:
+def _wait_for_vlan_sensors(
+    ha_client: httpx.Client, timeout: int = 30
+) -> list[dict[str, object]]:
     """Wait for VLAN sensors to be created."""
     start = time.time()
     while time.time() - start < timeout:
         response = ha_client.get("/api/states")
         if response.status_code == 200:
             states = response.json()
-            vlan_sensors = [s for s in states if s["entity_id"].startswith("sensor.unifi_vlan_")]
+            vlan_sensors = [
+                s
+                for s in states
+                if s["entity_id"].startswith("sensor.unifi_vlan_")
+            ]
             if vlan_sensors:
                 return vlan_sensors
         time.sleep(2)
@@ -87,7 +96,11 @@ class TestAutomationCreation:
             response = ha_client.get("/api/states")
             all_entities = [s["entity_id"] for s in response.json()]
             unifi_entities = [e for e in all_entities if "unifi" in e.lower()]
-            pytest.skip(f"No device sensors found. UniFi entities: {unifi_entities[:10]}")
+            pytest.skip(
+                "No device sensors found."
+                " UniFi entities:"
+                f" {unifi_entities[:10]}"
+            )
 
         device_entity = device_sensors[0]["entity_id"]
 
@@ -108,7 +121,9 @@ class TestAutomationCreation:
             "/api/config/automation/config/e2e_test_device_offline",
             json=automation_config,
         )
-        assert response.status_code == 200, f"Failed to create automation: {response.text}"
+        assert response.status_code == 200, (
+            f"Failed to create automation: {response.text}"
+        )
 
         # Reload automations
         ha_client.post("/api/services/automation/reload", json={})
@@ -121,12 +136,20 @@ class TestAutomationCreation:
             # Debug: show what automation entities exist
             response = ha_client.get("/api/states")
             automations = [
-                s["entity_id"] for s in response.json() if s["entity_id"].startswith("automation.")
+                s["entity_id"]
+                for s in response.json()
+                if s["entity_id"].startswith("automation.")
             ]
-            pytest.fail(f"Automation entity {entity_id} not found. Automations: {automations}")
+            pytest.fail(
+                f"Automation entity {entity_id}"
+                " not found."
+                f" Automations: {automations}"
+            )
 
         # Clean up
-        ha_client.delete("/api/config/automation/config/e2e_test_device_offline")
+        ha_client.delete(
+            "/api/config/automation/config/e2e_test_device_offline"
+        )
 
     def test_create_automation_from_device_online_blueprint(
         self,
@@ -156,18 +179,26 @@ class TestAutomationCreation:
             "/api/config/automation/config/e2e_test_device_online",
             json=automation_config,
         )
-        assert response.status_code == 200, f"Failed to create automation: {response.text}"
+        assert response.status_code == 200, (
+            f"Failed to create automation: {response.text}"
+        )
 
         # Reload automations
         ha_client.post("/api/services/automation/reload", json={})
         time.sleep(2)
 
         # Verify automation entity was created
-        response = ha_client.get("/api/states/automation.e2e_test_device_online_alert")
-        assert response.status_code == 200, "Automation entity not found after creation"
+        response = ha_client.get(
+            "/api/states/automation.e2e_test_device_online_alert"
+        )
+        assert response.status_code == 200, (
+            "Automation entity not found after creation"
+        )
 
         # Clean up
-        ha_client.delete("/api/config/automation/config/e2e_test_device_online")
+        ha_client.delete(
+            "/api/config/automation/config/e2e_test_device_online"
+        )
 
     def test_create_automation_from_ap_overload_blueprint(
         self,
@@ -182,7 +213,9 @@ class TestAutomationCreation:
 
         # Find an AP sensor (has device_type=ap attribute)
         ap_sensors = [
-            s for s in device_sensors if s.get("attributes", {}).get("device_type") == "ap"
+            s
+            for s in device_sensors
+            if s.get("attributes", {}).get("device_type") == "ap"
         ]
 
         if ap_sensors:
@@ -207,15 +240,21 @@ class TestAutomationCreation:
             "/api/config/automation/config/e2e_test_ap_overload",
             json=automation_config,
         )
-        assert response.status_code == 200, f"Failed to create automation: {response.text}"
+        assert response.status_code == 200, (
+            f"Failed to create automation: {response.text}"
+        )
 
         # Reload automations
         ha_client.post("/api/services/automation/reload", json={})
         time.sleep(2)
 
         # Verify automation entity was created
-        response = ha_client.get("/api/states/automation.e2e_test_ap_overload_alert")
-        assert response.status_code == 200, "Automation entity not found after creation"
+        response = ha_client.get(
+            "/api/states/automation.e2e_test_ap_overload_alert"
+        )
+        assert response.status_code == 200, (
+            "Automation entity not found after creation"
+        )
 
         # Clean up
         ha_client.delete("/api/config/automation/config/e2e_test_ap_overload")
@@ -249,15 +288,21 @@ class TestAutomationCreation:
             "/api/config/automation/config/e2e_test_vlan_client",
             json=automation_config,
         )
-        assert response.status_code == 200, f"Failed to create automation: {response.text}"
+        assert response.status_code == 200, (
+            f"Failed to create automation: {response.text}"
+        )
 
         # Reload automations
         ha_client.post("/api/services/automation/reload", json={})
         time.sleep(2)
 
         # Verify automation entity was created
-        response = ha_client.get("/api/states/automation.e2e_test_vlan_client_alert")
-        assert response.status_code == 200, "Automation entity not found after creation"
+        response = ha_client.get(
+            "/api/states/automation.e2e_test_vlan_client_alert"
+        )
+        assert response.status_code == 200, (
+            "Automation entity not found after creation"
+        )
 
         # Clean up
         ha_client.delete("/api/config/automation/config/e2e_test_vlan_client")
@@ -266,7 +311,8 @@ class TestAutomationCreation:
 class TestAutomationTrigger:
     """Test that automations created from blueprints actually trigger.
 
-    These tests verify the automation engine triggers correctly when state changes.
+    These tests verify the automation engine triggers
+    correctly when state changes.
     They are somewhat flaky as they depend on Home Assistant's internal timing
     and state propagation. The core blueprint functionality is tested by
     TestAutomationCreation above.
@@ -376,5 +422,6 @@ class TestAutomationTrigger:
         # The automation should have triggered and created a notification
         assert len(notifications) > 0, (
             "Expected notification from automation trigger. "
-            "Check that blueprints are correctly installed and automation triggered."
+            "Check that blueprints are correctly"
+            " installed and automation triggered."
         )

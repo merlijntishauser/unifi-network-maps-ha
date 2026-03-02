@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import asyncio
-
-import pytest
+from typing import TYPE_CHECKING
 
 from custom_components.unifi_network_map import diagnostics
 from custom_components.unifi_network_map.data import UniFiNetworkMapData
 from tests.helpers import build_entry
+
+if TYPE_CHECKING:
+    import pytest
 
 
 class FakeHass:
@@ -14,7 +16,9 @@ class FakeHass:
         self.data: dict[str, object] = {}
 
 
-def _resolve_client_entity_map(_hass: FakeHass, _macs: dict[str, str]) -> dict[str, str]:
+def _resolve_client_entity_map(
+    _hass: FakeHass, _macs: dict[str, str]
+) -> dict[str, str]:
     return {"Client": "device_tracker.client"}
 
 
@@ -38,14 +42,18 @@ def test_diagnostics_without_coordinator() -> None:
     hass = FakeHass()
     entry = build_entry()
 
-    result = asyncio.run(diagnostics.async_get_config_entry_diagnostics(hass, entry))
+    result = asyncio.run(
+        diagnostics.async_get_config_entry_diagnostics(hass, entry)
+    )
 
     assert result["entry"]["entry_id"] == entry.entry_id
     assert result["coordinator"]["last_update_success"] is None
     assert result["map_summary"] is None
 
 
-def test_diagnostics_summary_with_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_diagnostics_summary_with_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     hass = FakeHass()
     entry = build_entry()
     data = UniFiNetworkMapData(
@@ -95,7 +103,9 @@ def test_diagnostics_summary_with_payload(monkeypatch: pytest.MonkeyPatch) -> No
         _normalize_mac_value,
     )
 
-    result = asyncio.run(diagnostics.async_get_config_entry_diagnostics(hass, entry))
+    result = asyncio.run(
+        diagnostics.async_get_config_entry_diagnostics(hass, entry)
+    )
     summary = result["map_summary"]
 
     assert summary["node_count"] == 2

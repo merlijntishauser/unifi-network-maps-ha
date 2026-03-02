@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock
 
+from custom_components.unifi_network_map.data import UniFiNetworkMapData
 from custom_components.unifi_network_map.diagnostics import (
     _calculate_data_age,
     _format_timestamp,
@@ -16,7 +17,6 @@ from custom_components.unifi_network_map.diagnostics import (
     _summarize_clients,
     _summarize_map_data,
 )
-from custom_components.unifi_network_map.data import UniFiNetworkMapData
 
 
 class TestFormatTimestamp:
@@ -27,7 +27,7 @@ class TestFormatTimestamp:
         assert result is None
 
     def test_returns_iso_format(self) -> None:
-        dt = datetime(2024, 1, 15, 10, 30, 45, tzinfo=timezone.utc)
+        dt = datetime(2024, 1, 15, 10, 30, 45, tzinfo=UTC)
         result = _format_timestamp(dt)
         assert result == "2024-01-15T10:30:45+00:00"
 
@@ -46,7 +46,7 @@ class TestCalculateDataAge:
 
     def test_calculates_age_for_utc_datetime(self) -> None:
         # Set time to 1 minute ago
-        dt = datetime.now(timezone.utc) - timedelta(seconds=60)
+        dt = datetime.now(UTC) - timedelta(seconds=60)
         result = _calculate_data_age(dt)
         assert result is not None
         # Allow 2 second tolerance for test execution time
@@ -55,7 +55,7 @@ class TestCalculateDataAge:
     def test_handles_naive_datetime(self) -> None:
         # Naive datetime is converted to UTC by the function
         # Create a naive datetime that represents 30 seconds ago in UTC
-        dt = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(seconds=30)
+        dt = datetime.now(UTC).replace(tzinfo=None) - timedelta(seconds=30)
         result = _calculate_data_age(dt)
         assert result is not None
         # Should be around 30 seconds (allow for test execution time)
@@ -121,7 +121,10 @@ class TestNormalizeMacValues:
     """Tests for _normalize_mac_values function."""
 
     def test_normalizes_mac_values(self) -> None:
-        mac_map = {"client1": "AA:BB:CC:DD:EE:FF", "client2": "11:22:33:44:55:66"}
+        mac_map = {
+            "client1": "AA:BB:CC:DD:EE:FF",
+            "client2": "11:22:33:44:55:66",
+        }
         result = _normalize_mac_values(mac_map)
         assert len(result) == 2
 
@@ -131,7 +134,11 @@ class TestNormalizeMacValues:
         assert len(result) == 1
 
     def test_skips_non_string_values(self) -> None:
-        mac_map = {"client1": "AA:BB:CC:DD:EE:FF", "client2": None, "client3": 123}
+        mac_map = {
+            "client1": "AA:BB:CC:DD:EE:FF",
+            "client2": None,
+            "client3": 123,
+        }
         result = _normalize_mac_values(mac_map)
         assert len(result) == 1
 
@@ -150,7 +157,11 @@ class TestSummarizeClients:
         assert result["total_count"] == 2
 
     def test_counts_wired_clients(self) -> None:
-        node_types = {"gw": "gateway", "client1": "client", "client2": "client"}
+        node_types = {
+            "gw": "gateway",
+            "client1": "client",
+            "client2": "client",
+        }
         edges = [
             {"left": "gw", "right": "client1", "wireless": False},
             {"left": "gw", "right": "client2", "wireless": False},
@@ -170,7 +181,12 @@ class TestSummarizeClients:
         assert result["wired_count"] == 0
 
     def test_counts_mixed_clients(self) -> None:
-        node_types = {"sw": "switch", "ap": "ap", "wired": "client", "wireless": "client"}
+        node_types = {
+            "sw": "switch",
+            "ap": "ap",
+            "wired": "client",
+            "wireless": "client",
+        }
         edges = [
             {"left": "sw", "right": "wired", "wireless": False},
             {"left": "ap", "right": "wireless", "wireless": True},
@@ -198,7 +214,8 @@ class TestSummarizeClients:
             {"left": "ap", "right": "client1", "wireless": False},
         ]
         result = _summarize_clients(node_types, edges, {})
-        # Client should only be counted once even though it appears in two edges
+        # Client should only be counted once even though
+        # it appears in two edges
         assert result["wired_count"] == 1
 
 

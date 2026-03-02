@@ -7,7 +7,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION_FILE = ROOT / "VERSION"
-MANIFEST_FILE = ROOT / "custom_components" / "unifi_network_map" / "manifest.json"
+MANIFEST_FILE = (
+    ROOT / "custom_components" / "unifi_network_map" / "manifest.json"
+)
 REQUIREMENTS_FILE = ROOT / "requirements.txt"
 FRONTEND_PACKAGE = ROOT / "frontend" / "package.json"
 FRONTEND_LOCK = ROOT / "frontend" / "package-lock.json"

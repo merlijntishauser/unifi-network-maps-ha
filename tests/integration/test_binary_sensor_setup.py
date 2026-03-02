@@ -8,7 +8,9 @@ from custom_components.unifi_network_map.binary_sensor import (
     UniFiClientPresenceSensor,
     UniFiDevicePresenceSensor,
 )
-from custom_components.unifi_network_map.coordinator import UniFiNetworkMapCoordinator
+from custom_components.unifi_network_map.coordinator import (
+    UniFiNetworkMapCoordinator,
+)
 from custom_components.unifi_network_map.data import UniFiNetworkMapData
 from tests.helpers import build_entry
 
@@ -85,7 +87,9 @@ def test_setup_creates_entities_for_devices() -> None:
     hass = FakeHass()
     entry = build_entry()
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
-    coordinator.data = UniFiNetworkMapData(svg="<svg />", payload=_build_payload_with_devices())
+    coordinator.data = UniFiNetworkMapData(
+        svg="<svg />", payload=_build_payload_with_devices()
+    )
     coordinator.last_exception = None
     hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
     added: list[UniFiDevicePresenceSensor] = []
@@ -105,7 +109,9 @@ def test_setup_excludes_client_and_other_types() -> None:
     hass = FakeHass()
     entry = build_entry()
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
-    coordinator.data = UniFiNetworkMapData(svg="<svg />", payload=_build_payload_with_devices())
+    coordinator.data = UniFiNetworkMapData(
+        svg="<svg />", payload=_build_payload_with_devices()
+    )
     coordinator.last_exception = None
     hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
     added: list[UniFiDevicePresenceSensor] = []
@@ -158,7 +164,9 @@ def test_entities_link_to_parent_device() -> None:
     hass = FakeHass()
     entry = build_entry()
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
-    coordinator.data = UniFiNetworkMapData(svg="<svg />", payload=_build_payload_with_devices())
+    coordinator.data = UniFiNetworkMapData(
+        svg="<svg />", payload=_build_payload_with_devices()
+    )
     coordinator.last_exception = None
     hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
     added: list[UniFiDevicePresenceSensor] = []
@@ -171,14 +179,18 @@ def test_entities_link_to_parent_device() -> None:
     for entity in added:
         device_info = entity.device_info
         assert device_info is not None
-        assert ("unifi_network_map", entry.entry_id) in device_info["identifiers"]
+        assert ("unifi_network_map", entry.entry_id) in device_info[
+            "identifiers"
+        ]
 
 
 def test_entities_have_connectivity_device_class() -> None:
     hass = FakeHass()
     entry = build_entry()
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
-    coordinator.data = UniFiNetworkMapData(svg="<svg />", payload=_build_payload_with_devices())
+    coordinator.data = UniFiNetworkMapData(
+        svg="<svg />", payload=_build_payload_with_devices()
+    )
     coordinator.last_exception = None
     hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
     added: list[UniFiDevicePresenceSensor] = []
@@ -218,9 +230,13 @@ def _build_payload_with_clients() -> dict[str, Any]:
 
 def test_setup_creates_client_entities_from_tracked_macs() -> None:
     hass = FakeHass()
-    entry = build_entry(options={"tracked_clients": "aa:bb:cc:dd:ee:ff\n11:22:33:44:55:66"})
+    entry = build_entry(
+        options={"tracked_clients": "aa:bb:cc:dd:ee:ff\n11:22:33:44:55:66"}
+    )
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
-    coordinator.data = UniFiNetworkMapData(svg="<svg />", payload=_build_payload_with_clients())
+    coordinator.data = UniFiNetworkMapData(
+        svg="<svg />", payload=_build_payload_with_clients()
+    )
     coordinator.last_exception = None
     hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
     added: list[object] = []
@@ -231,8 +247,12 @@ def test_setup_creates_client_entities_from_tracked_macs() -> None:
     asyncio.run(binary_sensor.async_setup_entry(hass, entry, _add_entities))
 
     # Should create 1 device sensor + 2 client sensors
-    device_sensors = [e for e in added if isinstance(e, UniFiDevicePresenceSensor)]
-    client_sensors = [e for e in added if isinstance(e, UniFiClientPresenceSensor)]
+    device_sensors = [
+        e for e in added if isinstance(e, UniFiDevicePresenceSensor)
+    ]
+    client_sensors = [
+        e for e in added if isinstance(e, UniFiClientPresenceSensor)
+    ]
 
     assert len(device_sensors) == 1
     assert len(client_sensors) == 2
@@ -242,7 +262,9 @@ def test_setup_skips_clients_when_no_tracked_macs() -> None:
     hass = FakeHass()
     entry = build_entry()  # No tracked_clients option
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
-    coordinator.data = UniFiNetworkMapData(svg="<svg />", payload=_build_payload_with_clients())
+    coordinator.data = UniFiNetworkMapData(
+        svg="<svg />", payload=_build_payload_with_clients()
+    )
     coordinator.last_exception = None
     hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
     added: list[object] = []
@@ -253,7 +275,9 @@ def test_setup_skips_clients_when_no_tracked_macs() -> None:
     asyncio.run(binary_sensor.async_setup_entry(hass, entry, _add_entities))
 
     # Should only create device sensors, no client sensors
-    client_sensors = [e for e in added if isinstance(e, UniFiClientPresenceSensor)]
+    client_sensors = [
+        e for e in added if isinstance(e, UniFiClientPresenceSensor)
+    ]
     assert len(client_sensors) == 0
 
 
@@ -261,7 +285,9 @@ def test_client_entities_have_connectivity_device_class() -> None:
     hass = FakeHass()
     entry = build_entry(options={"tracked_clients": "aa:bb:cc:dd:ee:ff"})
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
-    coordinator.data = UniFiNetworkMapData(svg="<svg />", payload=_build_payload_with_clients())
+    coordinator.data = UniFiNetworkMapData(
+        svg="<svg />", payload=_build_payload_with_clients()
+    )
     coordinator.last_exception = None
     hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
     added: list[object] = []
@@ -273,7 +299,9 @@ def test_client_entities_have_connectivity_device_class() -> None:
 
     from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 
-    client_sensors = [e for e in added if isinstance(e, UniFiClientPresenceSensor)]
+    client_sensors = [
+        e for e in added if isinstance(e, UniFiClientPresenceSensor)
+    ]
     assert len(client_sensors) == 1
     for entity in client_sensors:
         assert entity.device_class == BinarySensorDeviceClass.CONNECTIVITY
@@ -283,7 +311,9 @@ def test_client_entities_link_to_parent_device() -> None:
     hass = FakeHass()
     entry = build_entry(options={"tracked_clients": "aa:bb:cc:dd:ee:ff"})
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
-    coordinator.data = UniFiNetworkMapData(svg="<svg />", payload=_build_payload_with_clients())
+    coordinator.data = UniFiNetworkMapData(
+        svg="<svg />", payload=_build_payload_with_clients()
+    )
     coordinator.last_exception = None
     hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
     added: list[object] = []
@@ -293,20 +323,30 @@ def test_client_entities_link_to_parent_device() -> None:
 
     asyncio.run(binary_sensor.async_setup_entry(hass, entry, _add_entities))
 
-    client_sensors = [e for e in added if isinstance(e, UniFiClientPresenceSensor)]
+    client_sensors = [
+        e for e in added if isinstance(e, UniFiClientPresenceSensor)
+    ]
     for entity in client_sensors:
         device_info = entity.device_info
         assert device_info is not None
-        assert ("unifi_network_map", entry.entry_id) in device_info["identifiers"]
+        assert ("unifi_network_map", entry.entry_id) in device_info[
+            "identifiers"
+        ]
 
 
 def test_setup_skips_invalid_macs_in_tracked_clients() -> None:
     hass = FakeHass()
     entry = build_entry(
-        options={"tracked_clients": "aa:bb:cc:dd:ee:ff\ninvalid_mac\n11:22:33:44:55:66"}
+        options={
+            "tracked_clients": (
+                "aa:bb:cc:dd:ee:ff\ninvalid_mac\n11:22:33:44:55:66"
+            )
+        }
     )
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
-    coordinator.data = UniFiNetworkMapData(svg="<svg />", payload=_build_payload_with_clients())
+    coordinator.data = UniFiNetworkMapData(
+        svg="<svg />", payload=_build_payload_with_clients()
+    )
     coordinator.last_exception = None
     hass.data["unifi_network_map"] = {entry.entry_id: coordinator}
     added: list[object] = []
@@ -317,5 +357,7 @@ def test_setup_skips_invalid_macs_in_tracked_clients() -> None:
     asyncio.run(binary_sensor.async_setup_entry(hass, entry, _add_entities))
 
     # Should only create 2 client sensors (invalid one skipped)
-    client_sensors = [e for e in added if isinstance(e, UniFiClientPresenceSensor)]
+    client_sensors = [
+        e for e in added if isinstance(e, UniFiClientPresenceSensor)
+    ]
     assert len(client_sensors) == 2

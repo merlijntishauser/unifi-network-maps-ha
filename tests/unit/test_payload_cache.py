@@ -265,7 +265,10 @@ def test_payload_cache_integration_scenario() -> None:
         "client_macs": {},
         "device_macs": {},
     }
-    enriched_payload = {**source_payload, "node_entities": {"Gateway": "device_tracker.gateway"}}
+    enriched_payload = {
+        **source_payload,
+        "node_entities": {"Gateway": "device_tracker.gateway"},
+    }
     source_hash = payload_cache.compute_payload_hash(source_payload)
 
     assert cache.get("entry1", source_hash) is None

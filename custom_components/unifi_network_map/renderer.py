@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping, Protocol, TypedDict, cast
+from typing import Any, Protocol, TypedDict, cast
 
 from unifi_topology import (
     Config,
@@ -70,7 +71,9 @@ ClientData = ClientLike | Mapping[str, Any]
 
 
 class UniFiNetworkMapRenderer:
-    def render(self, config: Config, settings: RenderSettings) -> UniFiNetworkMapData:
+    def render(
+        self, config: Config, settings: RenderSettings
+    ) -> UniFiNetworkMapData:
         try:
             return _render_map(config, settings)
         except (KeyError, TypeError, ValueError) as err:
@@ -80,10 +83,14 @@ class UniFiNetworkMapRenderer:
                 type(err).__name__,
                 str(err),
             )
-            raise UniFiNetworkMapError(f"Failed to render UniFi network map: {err}") from err
+            raise UniFiNetworkMapError(
+                f"Failed to render UniFi network map: {err}"
+            ) from err
 
 
-def _render_map(config: Config, settings: RenderSettings) -> UniFiNetworkMapData:
+def _render_map(
+    config: Config, settings: RenderSettings
+) -> UniFiNetworkMapData:
     LOGGER.debug(
         "renderer started site=%s include_clients=%s client_scope=%s",
         config.site,
@@ -102,7 +109,10 @@ def _render_map(config: Config, settings: RenderSettings) -> UniFiNetworkMapData
         len(gateways),
     )
     node_types = build_node_type_map(
-        devices, clients, client_mode=settings.client_scope, only_unifi=settings.only_unifi
+        devices,
+        clients,
+        client_mode=settings.client_scope,
+        only_unifi=settings.only_unifi,
     )
     wan_info = _extract_wan_info(devices, settings)
     vpn_tunnels = _extract_vpn_info(devices, settings)
@@ -111,10 +121,21 @@ def _render_map(config: Config, settings: RenderSettings) -> UniFiNetworkMapData
     all_clients = _load_all_clients(config, settings)
     networks = _load_networks(config, settings)
     payload = _build_payload(
-        edges, node_types, gateways, clients, devices, all_clients, networks, vpn_tunnels
+        edges,
+        node_types,
+        gateways,
+        clients,
+        devices,
+        all_clients,
+        networks,
+        vpn_tunnels,
     )
-    LOGGER.debug("renderer completed nodes=%d svg_bytes=%d", len(node_types), len(svg))
-    return UniFiNetworkMapData(svg=svg, payload=payload, wan_info=wan_info, vpn_tunnels=vpn_tunnels)
+    LOGGER.debug(
+        "renderer completed nodes=%d svg_bytes=%d", len(node_types), len(svg)
+    )
+    return UniFiNetworkMapData(
+        svg=svg, payload=payload, wan_info=wan_info, vpn_tunnels=vpn_tunnels
+    )
 
 
 def _load_devices(config: Config, settings: RenderSettings) -> list[Device]:
@@ -176,20 +197,35 @@ def _select_edges(topology: TopologyResult) -> list[Edge]:
     return topology.tree_edges or topology.raw_edges or []
 
 
-def _load_clients(config: Config, settings: RenderSettings) -> list[ClientData] | None:
+def _load_clients(
+    config: Config, settings: RenderSettings
+) -> list[ClientData] | None:
     if not settings.include_clients:
         return None
     return cast(
-        list[ClientData],
-        list(fetch_clients(config, site=config.site, use_cache=settings.use_cache)),
+        "list[ClientData]",
+        list(
+            fetch_clients(
+                config, site=config.site, use_cache=settings.use_cache
+            )
+        ),
     )
 
 
-def _load_all_clients(config: Config, settings: RenderSettings) -> list[ClientData]:
-    """Load all clients for stats purposes (always fetched regardless of include_clients)."""
+def _load_all_clients(
+    config: Config, settings: RenderSettings
+) -> list[ClientData]:
+    """Load all clients for stats purposes.
+
+    Always fetched regardless of include_clients.
+    """
     return cast(
-        list[ClientData],
-        list(fetch_clients(config, site=config.site, use_cache=settings.use_cache)),
+        "list[ClientData]",
+        list(
+            fetch_clients(
+                config, site=config.site, use_cache=settings.use_cache
+            )
+        ),
     )
 
 
@@ -201,13 +237,19 @@ def _fetch_networks_filtered(
     return [network for network in networks if isinstance(network, Mapping)]
 
 
-def _load_networks(config: Config, settings: RenderSettings) -> list[Mapping[str, Any]]:
+def _load_networks(
+    config: Config, settings: RenderSettings
+) -> list[Mapping[str, Any]]:
     """Load UniFi network configurations to include VLANs with zero clients."""
     try:
-        return _fetch_networks_filtered(config, site=config.site, use_cache=settings.use_cache)
+        return _fetch_networks_filtered(
+            config, site=config.site, use_cache=settings.use_cache
+        )
     except Exception as err:  # noqa: BLE001 - keep map rendering usable without networks
         LOGGER.debug(
-            "renderer network_fetch_failed site=%s error=%s", config.site, type(err).__name__
+            "renderer network_fetch_failed site=%s error=%s",
+            config.site,
+            type(err).__name__,
         )
         return []
 
@@ -220,7 +262,9 @@ def _render_svg(
     vpn_tunnels: list[VpnTunnel] | None = None,
 ) -> str:
     LOGGER.debug(
-        "renderer svg_render_started svg_theme=%s icon_set=%s isometric=%s wan=%s vpn=%d",
+        "renderer svg_render_started"
+        " svg_theme=%s icon_set=%s"
+        " isometric=%s wan=%s vpn=%d",
         settings.svg_theme,
         settings.icon_set,
         settings.svg_isometric,
@@ -267,11 +311,15 @@ def _load_builtin_svg_theme(theme_name: str | None):
     try:
         return resolve_svg_themes(theme_name=theme_name)
     except ValueError as err:
-        LOGGER.warning("renderer unknown_theme theme=%s error=%s", theme_name, err)
+        LOGGER.warning(
+            "renderer unknown_theme theme=%s error=%s", theme_name, err
+        )
         return DEFAULT_SVG_THEME
 
 
-def _extract_wan_info(devices: list[Device], settings: RenderSettings) -> WanInfo | None:
+def _extract_wan_info(
+    devices: list[Device], settings: RenderSettings
+) -> WanInfo | None:
     """Extract WAN info from the gateway device if show_wan is enabled."""
     if not settings.show_wan:
         return None
@@ -293,7 +341,9 @@ def _log_gateway_lookup(gateway: Device) -> None:
     )
 
 
-def _query_wan_info(gateway: Device, settings: RenderSettings) -> WanInfo | None:
+def _query_wan_info(
+    gateway: Device, settings: RenderSettings
+) -> WanInfo | None:
     wan_info = extract_wan_info(
         gateway,
         wan1_label=settings.wan_label or None,
@@ -327,7 +377,9 @@ def _find_gateway_device(devices: list[Device]) -> Device | None:
     return None
 
 
-def _extract_vpn_info(devices: list[Device], settings: RenderSettings) -> list[VpnTunnel] | None:
+def _extract_vpn_info(
+    devices: list[Device], settings: RenderSettings
+) -> list[VpnTunnel] | None:
     """Extract VPN tunnel information from gateway devices."""
     if not settings.show_vpn:
         return None
@@ -340,7 +392,9 @@ def _extract_vpn_info(devices: list[Device], settings: RenderSettings) -> list[V
     return tunnels
 
 
-def _build_vpn_tunnel_list(tunnels: list[VpnTunnel] | None) -> list[dict[str, Any]]:
+def _build_vpn_tunnel_list(
+    tunnels: list[VpnTunnel] | None,
+) -> list[dict[str, Any]]:
     if not tunnels:
         return []
     return [
@@ -398,7 +452,9 @@ def _edge_to_dict(edge: Edge) -> dict[str, Any]:
     }
 
 
-def _build_client_mac_index(clients: list[ClientData] | None) -> dict[str, str]:
+def _build_client_mac_index(
+    clients: list[ClientData] | None,
+) -> dict[str, str]:
     if not clients:
         return {}
     client_macs: dict[str, str] = {}
@@ -517,9 +573,14 @@ def _build_node_vlan_index(
 def _build_vlan_info(
     clients: list[ClientData] | None, networks: list[Mapping[str, Any]]
 ) -> dict[int, dict[str, Any]]:
-    """Build VLAN metadata (id, name, client_count, clients) from client + network data."""
+    """Build VLAN metadata from client + network data.
+
+    Returns dict of id, name, client_count, clients.
+    """
     network_name_map = _build_network_name_map(networks)
-    vlan_info, vlan_clients = _build_vlan_info_from_clients(clients, network_name_map)
+    vlan_info, vlan_clients = _build_vlan_info_from_clients(
+        clients, network_name_map
+    )
     _merge_vlan_info_from_networks(vlan_info, networks)
     _finalize_vlan_info(vlan_info, vlan_clients)
     return vlan_info
@@ -603,7 +664,9 @@ def _is_default_vlan_name(value: object) -> bool:
     return isinstance(value, str) and value.lower().startswith("vlan ")
 
 
-def _build_network_name_map(networks: list[Mapping[str, Any]]) -> dict[str, int]:
+def _build_network_name_map(
+    networks: list[Mapping[str, Any]],
+) -> dict[str, int]:
     name_map: dict[str, int] = {}
     for network in networks:
         vlan_id = _network_vlan_id(network)
@@ -624,10 +687,13 @@ def _client_vlan_from_network_name(
     return network_name_map.get(network_name.strip().lower())
 
 
-def _build_ap_client_counts(clients: list[ClientData], devices: list[Device]) -> dict[str, int]:
+def _build_ap_client_counts(
+    clients: list[ClientData], devices: list[Device]
+) -> dict[str, int]:
     """Build wireless client counts per access point.
 
-    Returns a dict mapping AP name to the number of wireless clients connected to it.
+    Returns a dict mapping AP name to the number of
+    wireless clients connected to it.
     """
     # Build MAC to device name mapping for APs
     ap_mac_to_name: dict[str, str] = {}
@@ -653,7 +719,8 @@ def _build_ap_client_counts(clients: list[ClientData], devices: list[Device]) ->
 def _build_device_details(devices: list[Device]) -> dict[str, dict[str, Any]]:
     """Build detailed device info for entity attributes.
 
-    Returns a dict mapping device name to details including mac, ip, model, and uplink.
+    Returns a dict mapping device name to details
+    including mac, ip, model, and uplink.
     """
     details: dict[str, dict[str, Any]] = {}
     for device in devices:
@@ -670,7 +737,9 @@ def _build_device_details(devices: list[Device]) -> dict[str, dict[str, Any]]:
     return details
 
 
-def _build_device_ports(devices: list[Device]) -> dict[str, list[dict[str, Any]]]:
+def _build_device_ports(
+    devices: list[Device],
+) -> dict[str, list[dict[str, Any]]]:
     """Build port information for each device.
 
     Returns a dict mapping device name to list of port details including
@@ -702,10 +771,13 @@ def _build_device_ports(devices: list[Device]) -> dict[str, list[dict[str, Any]]
     return result
 
 
-def _build_client_details(clients: list[ClientData]) -> dict[str, dict[str, Any]]:
+def _build_client_details(
+    clients: list[ClientData],
+) -> dict[str, dict[str, Any]]:
     """Build detailed client info indexed by MAC address.
 
-    Returns a dict mapping client MAC to details for presence sensor attributes.
+    Returns a dict mapping client MAC to details
+    for presence sensor attributes.
     """
     details: dict[str, dict[str, Any]] = {}
     for client in clients:
@@ -714,7 +786,9 @@ def _build_client_details(clients: list[ClientData]) -> dict[str, dict[str, Any]
             continue
         mac_normalized = mac.strip().lower()
         is_wired = _client_field(client, "is_wired")
-        connected_to_mac = _client_field(client, "ap_mac") or _client_field(client, "sw_mac")
+        connected_to_mac = _client_field(client, "ap_mac") or _client_field(
+            client, "sw_mac"
+        )
         connected_to_mac_str: str | None = None
         if isinstance(connected_to_mac, str) and connected_to_mac.strip():
             connected_to_mac_str = connected_to_mac.strip().lower()

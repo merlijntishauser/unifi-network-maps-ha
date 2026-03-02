@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-from dataclasses import dataclass
 import importlib.util
+import sys
+from dataclasses import dataclass
+from pathlib import Path
 from types import ModuleType
 from typing import Any, cast
 
@@ -27,21 +27,27 @@ if str(PROJECT_ROOT) not in sys.path:
 
 
 def _create_module(name: str) -> Any:
-    return cast(Any, ModuleType(name))
+    return cast("Any", ModuleType(name))
 
 
 def _create_homeassistant_modules() -> dict[str, Any]:
     return {
         "homeassistant": _create_module("homeassistant"),
-        "homeassistant.config_entries": _create_module("homeassistant.config_entries"),
+        "homeassistant.config_entries": _create_module(
+            "homeassistant.config_entries"
+        ),
         "homeassistant.core": _create_module("homeassistant.core"),
         "homeassistant.const": _create_module("homeassistant.const"),
         "homeassistant.components": _create_module("homeassistant.components"),
-        "homeassistant.components.http": _create_module("homeassistant.components.http"),
+        "homeassistant.components.http": _create_module(
+            "homeassistant.components.http"
+        ),
         "homeassistant.components.diagnostics": _create_module(
             "homeassistant.components.diagnostics"
         ),
-        "homeassistant.components.sensor": _create_module("homeassistant.components.sensor"),
+        "homeassistant.components.sensor": _create_module(
+            "homeassistant.components.sensor"
+        ),
         "homeassistant.components.binary_sensor": _create_module(
             "homeassistant.components.binary_sensor"
         ),
@@ -52,7 +58,9 @@ def _create_homeassistant_modules() -> dict[str, Any]:
         "homeassistant.helpers.update_coordinator": _create_module(
             "homeassistant.helpers.update_coordinator"
         ),
-        "homeassistant.helpers.selector": _create_module("homeassistant.helpers.selector"),
+        "homeassistant.helpers.selector": _create_module(
+            "homeassistant.helpers.selector"
+        ),
         "homeassistant.helpers.device_registry": _create_module(
             "homeassistant.helpers.device_registry"
         ),
@@ -76,7 +84,9 @@ def _register_config_entry_stubs(modules: dict[str, Any]) -> None:
         def __init_subclass__(cls, **_kwargs: object) -> None:
             return None
 
-        def async_show_form(self, *, step_id: str, data_schema, errors: dict[str, str]):
+        def async_show_form(
+            self, *, step_id: str, data_schema, errors: dict[str, str]
+        ):
             return {
                 "type": "form",
                 "step_id": step_id,
@@ -198,10 +208,14 @@ def _register_components_stubs(modules: dict[str, Any]) -> None:
     components_http = modules["homeassistant.components.http"]
     components_diagnostics = modules["homeassistant.components.diagnostics"]
     components_sensor = modules["homeassistant.components.sensor"]
-    components_binary_sensor = modules["homeassistant.components.binary_sensor"]
+    components_binary_sensor = modules[
+        "homeassistant.components.binary_sensor"
+    ]
     helpers_entity_platform = modules["homeassistant.helpers.entity_platform"]
 
-    def async_redact_data(data: dict[str, object], _keys: set[str]) -> dict[str, object]:
+    def async_redact_data(
+        data: dict[str, object], _keys: set[str]
+    ) -> dict[str, object]:
         return dict(data)
 
     class SensorEntity:  # minimal stub for imports
@@ -315,7 +329,9 @@ def _register_selector_stubs(modules: dict[str, Any]) -> None:
 
 
 def _register_websocket_stubs(modules: dict[str, Any]) -> None:
-    components_websocket_api = modules["homeassistant.components.websocket_api"]
+    components_websocket_api = modules[
+        "homeassistant.components.websocket_api"
+    ]
 
     def websocket_command(_schema: dict[str, object]):
         def decorator(func):
@@ -329,7 +345,9 @@ def _register_websocket_stubs(modules: dict[str, Any]) -> None:
     def async_register_command(_hass: object, _handler: object) -> None:
         pass
 
-    def event_message(msg_id: int, data: dict[str, object]) -> dict[str, object]:
+    def event_message(
+        msg_id: int, data: dict[str, object]
+    ) -> dict[str, object]:
         return {"id": msg_id, "type": "event", "event": data}
 
     class ActiveConnection:  # minimal stub for imports
@@ -368,8 +386,8 @@ def _install_homeassistant_stubs() -> None:
 
 
 def _install_aiohttp_stubs() -> None:
-    aiohttp = cast(Any, ModuleType("aiohttp"))
-    web = cast(Any, ModuleType("aiohttp.web"))
+    aiohttp = cast("Any", ModuleType("aiohttp"))
+    web = cast("Any", ModuleType("aiohttp.web"))
     aiohttp.web = web
     sys.modules.setdefault("aiohttp", aiohttp)
     sys.modules.setdefault("aiohttp.web", web)
@@ -380,7 +398,7 @@ def _install_voluptuous() -> None:
     if importlib.util.find_spec("voluptuous") is not None:
         return
     # If voluptuous is not installed, create a minimal stub
-    vol = cast(Any, ModuleType("voluptuous"))
+    vol = cast("Any", ModuleType("voluptuous"))
 
     def _schema(value: object) -> object:
         return value
@@ -403,7 +421,7 @@ def _install_yarl() -> None:
     if importlib.util.find_spec("yarl") is not None:
         return
     # If yarl is not installed, create a minimal stub
-    yarl_module = cast(Any, ModuleType("yarl"))
+    yarl_module = cast("Any", ModuleType("yarl"))
 
     class _FakeURL:
         def __init__(self, url: str) -> None:

@@ -1,23 +1,26 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any
 import hashlib
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.diagnostics import async_redact_data
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
-from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
-from .data import UniFiNetworkMapData
 from .http import (
+    get_state_entity_macs,
     get_unifi_entity_mac_stats,
     get_unifi_entity_macs,
-    get_state_entity_macs,
     normalize_mac_value,
     resolve_client_entity_map,
 )
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
+
+    from .data import UniFiNetworkMapData
 
 _REDACT_KEYS = {CONF_PASSWORD, CONF_USERNAME}
 
@@ -35,11 +38,14 @@ async def async_get_config_entry_diagnostics(
             "options": entry.options,
         },
         "coordinator": {
-            "last_update_success": getattr(coordinator, "last_update_success", None),
+            "last_update_success": getattr(
+                coordinator, "last_update_success", None
+            ),
             "last_update_success_time": _format_timestamp(
                 getattr(coordinator, "last_update_success_time", None)
             ),
-            "last_exception": str(getattr(coordinator, "last_exception", "")) or None,
+            "last_exception": str(getattr(coordinator, "last_exception", ""))
+            or None,
             "data_age_seconds": _calculate_data_age(
                 getattr(coordinator, "last_update_success_time", None)
             ),
@@ -59,9 +65,9 @@ def _calculate_data_age(dt: datetime | None) -> float | None:
     """Calculate age of data in seconds."""
     if dt is None:
         return None
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
     return (now - dt).total_seconds()
 
 
@@ -78,7 +84,9 @@ def _summarize_map_data(
     ap_client_counts = payload.get("ap_client_counts") or {}
     client_entities = resolve_client_entity_map(hass, client_macs)
     entity_stats = get_unifi_entity_mac_stats(hass)
-    payload_mac_set = _normalize_mac_values(client_macs) | _normalize_mac_values(device_macs)
+    payload_mac_set = _normalize_mac_values(
+        client_macs
+    ) | _normalize_mac_values(device_macs)
     entity_mac_set = get_unifi_entity_macs(hass)
     overlap = payload_mac_set & entity_mac_set
     state_mac_set = get_state_entity_macs(hass)
@@ -98,7 +106,9 @@ def _summarize_map_data(
         "state_mac_overlap_count": len(state_overlap),
         "state_mac_hashes": _hash_mac_samples(state_mac_set),
         "clients": _summarize_clients(node_types, edges, client_macs),
-        "ap_wireless_client_counts": _summarize_ap_client_counts(ap_client_counts),
+        "ap_wireless_client_counts": _summarize_ap_client_counts(
+            ap_client_counts
+        ),
         **entity_stats,
     }
 
@@ -110,7 +120,9 @@ def _summarize_clients(
 ) -> dict[str, Any]:
     """Summarize client information with anonymized sample names."""
     # Find all client nodes
-    client_names = [name for name, ntype in node_types.items() if ntype == "client"]
+    client_names = [
+        name for name, ntype in node_types.items() if ntype == "client"
+    ]
 
     # Count wired vs wireless clients from edges
     wired_clients: list[str] = []
@@ -142,7 +154,9 @@ def _summarize_clients(
     }
 
 
-def _summarize_ap_client_counts(ap_client_counts: dict[str, int]) -> dict[str, Any]:
+def _summarize_ap_client_counts(
+    ap_client_counts: dict[str, int],
+) -> dict[str, Any]:
     """Summarize AP client counts with anonymized AP names."""
     if not ap_client_counts:
         return {"ap_count": 0, "total_wireless_clients": 0}
@@ -154,7 +168,10 @@ def _summarize_ap_client_counts(ap_client_counts: dict[str, int]) -> dict[str, A
         "ap_count": len(ap_client_counts),
         "total_wireless_clients": total_clients,
         "ap_sample_hashed": [
-            {"name_hash": _hash_value(name), "client_count": ap_client_counts[name]}
+            {
+                "name_hash": _hash_value(name),
+                "client_count": ap_client_counts[name],
+            }
             for name in sorted(ap_names)[:5]
         ],
     }

@@ -39,7 +39,9 @@ async def login(request: Request) -> Response:
     try:
         data = await request.json()
     except json.JSONDecodeError:
-        return web.json_response({"meta": {"rc": "error", "msg": "Invalid JSON"}}, status=400)
+        return web.json_response(
+            {"meta": {"rc": "error", "msg": "Invalid JSON"}}, status=400
+        )
 
     username = data.get("username")
     password = data.get("password")
@@ -51,7 +53,9 @@ async def login(request: Request) -> Response:
         response.set_cookie("unifises", session_id, httponly=True)
         return response
 
-    return web.json_response({"meta": {"rc": "error", "msg": "Invalid credentials"}}, status=401)
+    return web.json_response(
+        {"meta": {"rc": "error", "msg": "Invalid credentials"}}, status=401
+    )
 
 
 async def login_udm(request: Request) -> Response:
@@ -59,7 +63,9 @@ async def login_udm(request: Request) -> Response:
     try:
         data = await request.json()
     except json.JSONDecodeError:
-        return web.json_response({"code": 400, "message": "Invalid JSON"}, status=400)
+        return web.json_response(
+            {"code": 400, "message": "Invalid JSON"}, status=400
+        )
 
     username = data.get("username")
     password = data.get("password")
@@ -71,7 +77,9 @@ async def login_udm(request: Request) -> Response:
         response.set_cookie("unifises", session_id, httponly=True)
         return response
 
-    return web.json_response({"code": 401, "message": "Invalid credentials"}, status=401)
+    return web.json_response(
+        {"code": 401, "message": "Invalid credentials"}, status=401
+    )
 
 
 async def logout(request: Request) -> Response:
@@ -93,7 +101,9 @@ def check_auth(request: Request) -> bool:
 async def get_devices(request: Request) -> Response:
     """Return device topology (full details)."""
     if not check_auth(request):
-        return web.json_response({"meta": {"rc": "error", "msg": "Unauthorized"}}, status=401)
+        return web.json_response(
+            {"meta": {"rc": "error", "msg": "Unauthorized"}}, status=401
+        )
 
     topology = load_fixture("topology")
     devices = topology.get("devices", [])
@@ -103,7 +113,9 @@ async def get_devices(request: Request) -> Response:
 async def get_devices_basic(request: Request) -> Response:
     """Return device topology (basic info)."""
     if not check_auth(request):
-        return web.json_response({"meta": {"rc": "error", "msg": "Unauthorized"}}, status=401)
+        return web.json_response(
+            {"meta": {"rc": "error", "msg": "Unauthorized"}}, status=401
+        )
 
     topology = load_fixture("topology")
     devices = topology.get("devices", [])
@@ -127,7 +139,9 @@ async def get_devices_basic(request: Request) -> Response:
 async def get_clients(request: Request) -> Response:
     """Return client list."""
     if not check_auth(request):
-        return web.json_response({"meta": {"rc": "error", "msg": "Unauthorized"}}, status=401)
+        return web.json_response(
+            {"meta": {"rc": "error", "msg": "Unauthorized"}}, status=401
+        )
 
     topology = load_fixture("topology")
     clients = topology.get("clients", [])
@@ -137,12 +151,16 @@ async def get_clients(request: Request) -> Response:
 async def get_sites(request: Request) -> Response:
     """Return site list."""
     if not check_auth(request):
-        return web.json_response({"meta": {"rc": "error", "msg": "Unauthorized"}}, status=401)
+        return web.json_response(
+            {"meta": {"rc": "error", "msg": "Unauthorized"}}, status=401
+        )
 
     return web.json_response(
         {
             "meta": {"rc": "ok"},
-            "data": [{"name": SITE, "desc": "Default Site", "_id": "default123"}],
+            "data": [
+                {"name": SITE, "desc": "Default Site", "_id": "default123"}
+            ],
         }
     )
 
@@ -150,7 +168,9 @@ async def get_sites(request: Request) -> Response:
 async def get_networkconf(request: Request) -> Response:
     """Return network configuration (VLANs)."""
     if not check_auth(request):
-        return web.json_response({"meta": {"rc": "error", "msg": "Unauthorized"}}, status=401)
+        return web.json_response(
+            {"meta": {"rc": "error", "msg": "Unauthorized"}}, status=401
+        )
 
     return web.json_response({"meta": {"rc": "ok"}, "data": []})
 
@@ -158,7 +178,9 @@ async def get_networkconf(request: Request) -> Response:
 async def get_sysinfo(request: Request) -> Response:
     """Return system info."""
     if not check_auth(request):
-        return web.json_response({"meta": {"rc": "error", "msg": "Unauthorized"}}, status=401)
+        return web.json_response(
+            {"meta": {"rc": "error", "msg": "Unauthorized"}}, status=401
+        )
 
     return web.json_response(
         {
@@ -192,9 +214,13 @@ def create_app() -> web.Application:
     app.router.add_get(f"/api/s/{SITE}/stat/sysinfo", get_sysinfo)
     # UDM Pro paths (via /proxy/network prefix)
     app.router.add_get(f"/proxy/network/api/s/{SITE}/stat/device", get_devices)
-    app.router.add_get(f"/proxy/network/api/s/{SITE}/stat/device-basic", get_devices_basic)
+    app.router.add_get(
+        f"/proxy/network/api/s/{SITE}/stat/device-basic", get_devices_basic
+    )
     app.router.add_get(f"/proxy/network/api/s/{SITE}/stat/sta", get_clients)
-    app.router.add_get(f"/proxy/network/api/s/{SITE}/rest/networkconf", get_networkconf)
+    app.router.add_get(
+        f"/proxy/network/api/s/{SITE}/rest/networkconf", get_networkconf
+    )
     return app
 
 

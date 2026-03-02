@@ -1,4 +1,5 @@
-"""Tests for the Lovelace card registration and interaction using Playwright."""
+"""Tests for the Lovelace card registration
+and interaction using Playwright."""
 
 from __future__ import annotations
 
@@ -6,7 +7,6 @@ import os
 from typing import TYPE_CHECKING
 
 import pytest
-
 from conftest import SKIP_BROWSER_IN_CI
 
 if TYPE_CHECKING:
@@ -24,7 +24,7 @@ pytestmark = [
 ]
 
 
-def _navigate_and_load_card_resource(page: "Page") -> None:
+def _navigate_and_load_card_resource(page: Page) -> None:
     """Navigate to a HA page and ensure the custom element JS is loaded.
 
     On HA < 2026.2, navigating to /lovelace/ loads lovelace resources
@@ -37,7 +37,9 @@ def _navigate_and_load_card_resource(page: "Page") -> None:
     page.goto(f"{HA_URL}/lovelace/e2e-test")
     page.wait_for_load_state("networkidle")
 
-    already_registered = page.evaluate("customElements.get('unifi-network-map') !== undefined")
+    already_registered = page.evaluate(
+        "customElements.get('unifi-network-map') !== undefined"
+    )
     if already_registered:
         return
 
@@ -92,7 +94,9 @@ def _create_test_card(page: Page, entry_id: str, auth_token: str) -> None:
     page.wait_for_timeout(500)  # Extra time for full initialization
 
 
-def _create_test_card_in_ha_card(page: Page, entry_id: str, auth_token: str) -> None:
+def _create_test_card_in_ha_card(
+    page: Page, entry_id: str, auth_token: str
+) -> None:
     """Create test card wrapped in ha-card to simulate real HA DOM structure.
 
     In production, cards are slotted inside ha-card's shadow DOM:
@@ -146,7 +150,7 @@ def _create_test_card_in_ha_card(page: Page, entry_id: str, auth_token: str) -> 
     page.wait_for_timeout(500)  # Extra time for full initialization
 
 
-def _node_locator(page: Page, node_name: str) -> "Locator":
+def _node_locator(page: Page, node_name: str) -> Locator:
     selector = f'#test-card [data-node-id="{node_name}"]'
     page.wait_for_selector(selector, timeout=10000)
     return page.locator(selector)
@@ -170,7 +174,9 @@ def test_custom_card_element_registered(
         return customElements.get('unifi-network-map') !== undefined;
     }""")
 
-    assert is_registered, "unifi-network-map custom element should be registered"
+    assert is_registered, (
+        "unifi-network-map custom element should be registered"
+    )
 
 
 def test_card_can_be_instantiated(
@@ -199,7 +205,9 @@ def test_card_can_be_instantiated(
         }
     }""")
 
-    assert result["success"], f"Failed to instantiate card: {result.get('error')}"
+    assert result["success"], (
+        f"Failed to instantiate card: {result.get('error')}"
+    )
     assert result["tagName"] == "unifi-network-map"
     assert result["hasSetConfig"], "Card should have setConfig method"
 
@@ -234,8 +242,12 @@ def test_node_click_selects_node(
     }""")
 
     assert result["selectedCount"] == 1, "One node should be selected"
-    assert result["selectedId"] == "Office Switch", "Office Switch should be selected"
-    assert result["panelContainsNodeName"], "Panel should show selected node name"
+    assert result["selectedId"] == "Office Switch", (
+        "Office Switch should be selected"
+    )
+    assert result["panelContainsNodeName"], (
+        "Panel should show selected node name"
+    )
 
 
 def test_node_click_selects_node_with_small_drag(
@@ -271,8 +283,12 @@ def test_node_click_selects_node_with_small_drag(
         };
     }""")
 
-    assert result["selectedCount"] == 1, "Node should be selected after small drag"
-    assert result["selectedId"] == "Office Switch", "Office Switch should be selected"
+    assert result["selectedCount"] == 1, (
+        "Node should be selected after small drag"
+    )
+    assert result["selectedId"] == "Office Switch", (
+        "Office Switch should be selected"
+    )
 
 
 def test_context_menu_opens_on_right_click(
@@ -294,26 +310,48 @@ def test_context_menu_opens_on_right_click(
 
     # Verify context menu appears
     result = page.evaluate("""() => {
-        const menu = document.querySelector(".context-menu");
-        const card = document.getElementById("test-card");
+        const menu = document.querySelector(
+            ".context-menu"
+        );
+        const card = document.getElementById(
+            "test-card"
+        );
         const payload = card?._payload;
-        const hasIp = !!payload?.related_entities?.["UDM Pro"]?.some((entity) => entity.ip);
+        const re = payload?.related_entities;
+        const hasIp = !!re?.["UDM Pro"]?.some(
+            (entity) => entity.ip
+        );
+        const vis = menu
+            ? getComputedStyle(menu).display !== "none"
+            : false;
         return {
             menuExists: !!menu,
-            menuVisible: menu ? getComputedStyle(menu).display !== "none" : false,
-            menuNode: menu?.getAttribute("data-context-node"),
-            hasCopyMacAction: !!menu?.querySelector('[data-context-action="copy-mac"]'),
-            hasCopyIpAction: !!menu?.querySelector('[data-context-action="copy-ip"]'),
+            menuVisible: vis,
+            menuNode: menu?.getAttribute(
+                "data-context-node"
+            ),
+            hasCopyMacAction: !!menu?.querySelector(
+                '[data-context-action="copy-mac"]'
+            ),
+            hasCopyIpAction: !!menu?.querySelector(
+                '[data-context-action="copy-ip"]'
+            ),
             expectsCopyIp: hasIp
         };
     }""")
 
     assert result["menuExists"], "Context menu should exist"
     assert result["menuVisible"], "Context menu should be visible"
-    assert result["menuNode"] == "UDM Pro", "Context menu should be for UDM Pro"
-    assert result["hasCopyMacAction"], "Context menu should have copy MAC action"
+    assert result["menuNode"] == "UDM Pro", (
+        "Context menu should be for UDM Pro"
+    )
+    assert result["hasCopyMacAction"], (
+        "Context menu should have copy MAC action"
+    )
     if result["expectsCopyIp"]:
-        assert result["hasCopyIpAction"], "Context menu should have copy IP action"
+        assert result["hasCopyIpAction"], (
+            "Context menu should have copy IP action"
+        )
 
 
 def test_context_menu_opens_with_small_drag(
@@ -341,17 +379,26 @@ def test_context_menu_opens_with_small_drag(
     page.wait_for_timeout(500)
 
     result = page.evaluate("""() => {
-        const menu = document.querySelector(".context-menu");
+        const menu = document.querySelector(
+            ".context-menu"
+        );
+        const vis = menu
+            ? getComputedStyle(menu).display !== "none"
+            : false;
         return {
             menuExists: !!menu,
-            menuVisible: menu ? getComputedStyle(menu).display !== "none" : false,
-            menuNode: menu?.getAttribute("data-context-node")
+            menuVisible: vis,
+            menuNode: menu?.getAttribute(
+                "data-context-node"
+            )
         };
     }""")
 
     assert result["menuExists"], "Context menu should exist"
     assert result["menuVisible"], "Context menu should be visible"
-    assert result["menuNode"] == "UDM Pro", "Context menu should be for UDM Pro"
+    assert result["menuNode"] == "UDM Pro", (
+        "Context menu should be for UDM Pro"
+    )
 
 
 def test_node_click_works_inside_ha_card(
@@ -389,9 +436,15 @@ def test_node_click_works_inside_ha_card(
         };
     }""")
 
-    assert result["selectedCount"] == 1, "One node should be selected inside ha-card"
-    assert result["selectedId"] == "Office Switch", "Office Switch should be selected"
-    assert result["panelContainsNodeName"], "Panel should show selected node name"
+    assert result["selectedCount"] == 1, (
+        "One node should be selected inside ha-card"
+    )
+    assert result["selectedId"] == "Office Switch", (
+        "Office Switch should be selected"
+    )
+    assert result["panelContainsNodeName"], (
+        "Panel should show selected node name"
+    )
 
 
 def test_context_menu_works_inside_ha_card(
@@ -416,17 +469,28 @@ def test_context_menu_works_inside_ha_card(
 
     # Verify context menu appears
     result = page.evaluate("""() => {
-        const menu = document.querySelector(".context-menu");
+        const menu = document.querySelector(
+            ".context-menu"
+        );
+        const vis = menu
+            ? getComputedStyle(menu).display !== "none"
+            : false;
         return {
             menuExists: !!menu,
-            menuVisible: menu ? getComputedStyle(menu).display !== "none" : false,
-            menuNode: menu?.getAttribute("data-context-node")
+            menuVisible: vis,
+            menuNode: menu?.getAttribute(
+                "data-context-node"
+            )
         };
     }""")
 
     assert result["menuExists"], "Context menu should exist inside ha-card"
-    assert result["menuVisible"], "Context menu should be visible inside ha-card"
-    assert result["menuNode"] == "UDM Pro", "Context menu should be for UDM Pro"
+    assert result["menuVisible"], (
+        "Context menu should be visible inside ha-card"
+    )
+    assert result["menuNode"] == "UDM Pro", (
+        "Context menu should be for UDM Pro"
+    )
 
 
 def test_filter_bar_renders_with_device_counts(
@@ -461,7 +525,11 @@ def test_filter_bar_renders_with_device_counts(
             filterBarExists: !!filterBar,
             buttonCount: buttons.length,
             counts: counts,
-            allActive: Array.from(buttons).every(b => b.classList.contains("filter-button--active"))
+            allActive: Array.from(buttons).every(
+                b => b.classList.contains(
+                    "filter-button--active"
+                )
+            )
         };
     }""")
 
@@ -492,53 +560,103 @@ def test_filter_button_toggles_node_visibility(
     page.wait_for_selector("#test-card .filter-bar", timeout=10000)
 
     # Initially all clients should be visible
-    initial_result = page.evaluate("""() => {
-        const card = document.getElementById("test-card");
-        const clientNodes = card.querySelectorAll('[data-node-id="MacBook Pro"], [data-node-id="Desktop PC"], [data-node-id="iPhone"]');
+    _sel = (
+        '[data-node-id="MacBook Pro"],'
+        ' [data-node-id="Desktop PC"],'
+        ' [data-node-id="iPhone"]'
+    )
+    initial_result = page.evaluate(
+        """(sel) => {
+        const card = document.getElementById(
+            "test-card"
+        );
+        const clientNodes = card.querySelectorAll(sel);
         return {
             clientCount: clientNodes.length,
-            allVisible: Array.from(clientNodes).every(n => !n.classList.contains("node--filtered"))
+            allVisible: Array.from(clientNodes).every(
+                n => !n.classList.contains(
+                    "node--filtered"
+                )
+            )
         };
-    }""")
+    }""",
+        _sel,
+    )
 
     assert initial_result["clientCount"] == 3, "Should find 3 client nodes"
-    assert initial_result["allVisible"], "All client nodes should be visible initially"
+    assert initial_result["allVisible"], (
+        "All client nodes should be visible initially"
+    )
 
     # Click the client filter button to hide clients
-    client_filter = page.locator('#test-card .filter-button[data-filter-type="client"]')
+    client_filter = page.locator(
+        '#test-card .filter-button[data-filter-type="client"]'
+    )
     client_filter.click()
     page.wait_for_timeout(300)
 
     # Verify clients are now hidden
-    after_hide = page.evaluate("""() => {
-        const card = document.getElementById("test-card");
-        const clientNodes = card.querySelectorAll('[data-node-id="MacBook Pro"], [data-node-id="Desktop PC"], [data-node-id="iPhone"]');
-        const filterBtn = card.querySelector('.filter-button[data-filter-type="client"]');
+    after_hide = page.evaluate(
+        """(sel) => {
+        const card = document.getElementById(
+            "test-card"
+        );
+        const clientNodes = card.querySelectorAll(sel);
+        const filterBtn = card.querySelector(
+            '.filter-button[data-filter-type="client"]'
+        );
         return {
-            allHidden: Array.from(clientNodes).every(n => n.classList.contains("node--filtered")),
-            buttonInactive: filterBtn?.classList.contains("filter-button--inactive")
+            allHidden: Array.from(clientNodes).every(
+                n => n.classList.contains(
+                    "node--filtered"
+                )
+            ),
+            buttonInactive: filterBtn?.classList
+                .contains("filter-button--inactive")
         };
-    }""")
+    }""",
+        _sel,
+    )
 
-    assert after_hide["allHidden"], "All client nodes should be hidden after clicking filter"
-    assert after_hide["buttonInactive"], "Client filter button should be inactive"
+    assert after_hide["allHidden"], (
+        "All client nodes should be hidden after clicking filter"
+    )
+    assert after_hide["buttonInactive"], (
+        "Client filter button should be inactive"
+    )
 
     # Click again to show clients
     client_filter.click()
     page.wait_for_timeout(300)
 
-    after_show = page.evaluate("""() => {
-        const card = document.getElementById("test-card");
-        const clientNodes = card.querySelectorAll('[data-node-id="MacBook Pro"], [data-node-id="Desktop PC"], [data-node-id="iPhone"]');
-        const filterBtn = card.querySelector('.filter-button[data-filter-type="client"]');
+    after_show = page.evaluate(
+        """(sel) => {
+        const card = document.getElementById(
+            "test-card"
+        );
+        const clientNodes = card.querySelectorAll(sel);
+        const filterBtn = card.querySelector(
+            '.filter-button[data-filter-type="client"]'
+        );
         return {
-            allVisible: Array.from(clientNodes).every(n => !n.classList.contains("node--filtered")),
-            buttonActive: filterBtn?.classList.contains("filter-button--active")
+            allVisible: Array.from(clientNodes).every(
+                n => !n.classList.contains(
+                    "node--filtered"
+                )
+            ),
+            buttonActive: filterBtn?.classList
+                .contains("filter-button--active")
         };
-    }""")
+    }""",
+        _sel,
+    )
 
-    assert after_show["allVisible"], "All client nodes should be visible after toggling filter back"
-    assert after_show["buttonActive"], "Client filter button should be active again"
+    assert after_show["allVisible"], (
+        "All client nodes should be visible after toggling filter back"
+    )
+    assert after_show["buttonActive"], (
+        "Client filter button should be active again"
+    )
 
 
 def test_filter_hides_edges_when_endpoint_filtered(
@@ -556,11 +674,19 @@ def test_filter_hides_edges_when_endpoint_filtered(
 
     # Count edges initially visible
     initial_edges = page.evaluate("""() => {
-        const card = document.getElementById("test-card");
-        const edges = card.querySelectorAll("path[data-edge]");
+        const card = document.getElementById(
+            "test-card"
+        );
+        const edges = card.querySelectorAll(
+            "path[data-edge]"
+        );
         return {
             total: edges.length,
-            visible: Array.from(edges).filter(e => !e.classList.contains("edge--filtered")).length
+            visible: Array.from(edges).filter(
+                e => !e.classList.contains(
+                    "edge--filtered"
+                )
+            ).length
         };
     }""")
 
@@ -570,32 +696,52 @@ def test_filter_hides_edges_when_endpoint_filtered(
     )
 
     # Hide AP nodes - this should hide edges to the AP
-    ap_filter = page.locator('#test-card .filter-button[data-filter-type="ap"]')
+    ap_filter = page.locator(
+        '#test-card .filter-button[data-filter-type="ap"]'
+    )
     ap_filter.click()
     page.wait_for_timeout(300)
 
     after_ap_filter = page.evaluate("""() => {
-        const card = document.getElementById("test-card");
-        const edges = card.querySelectorAll("path[data-edge]");
-        const hiddenEdges = Array.from(edges).filter(e => e.classList.contains("edge--filtered"));
+        const card = document.getElementById(
+            "test-card"
+        );
+        const edges = card.querySelectorAll(
+            "path[data-edge]"
+        );
+        const hiddenEdges = Array.from(edges).filter(
+            e => e.classList.contains("edge--filtered")
+        );
         return {
             total: edges.length,
             hidden: hiddenEdges.length,
-            hiddenEdgeIds: hiddenEdges.map(e => e.getAttribute("data-edge"))
+            hiddenEdgeIds: hiddenEdges.map(
+                e => e.getAttribute("data-edge")
+            )
         };
     }""")
 
-    assert after_ap_filter["hidden"] > 0, "Some edges should be hidden when AP is filtered"
+    assert after_ap_filter["hidden"] > 0, (
+        "Some edges should be hidden when AP is filtered"
+    )
 
     # Re-enable AP filter
     ap_filter.click()
     page.wait_for_timeout(300)
 
     after_restore = page.evaluate("""() => {
-        const card = document.getElementById("test-card");
-        const edges = card.querySelectorAll("path[data-edge]");
+        const card = document.getElementById(
+            "test-card"
+        );
+        const edges = card.querySelectorAll(
+            "path[data-edge]"
+        );
         return {
-            visible: Array.from(edges).filter(e => !e.classList.contains("edge--filtered")).length,
+            visible: Array.from(edges).filter(
+                e => !e.classList.contains(
+                    "edge--filtered"
+                )
+            ).length,
             total: edges.length
         };
     }""")
@@ -619,7 +765,9 @@ def test_filter_state_persists_across_selection(
     page.wait_for_selector("#test-card .filter-bar", timeout=10000)
 
     # Hide clients
-    client_filter = page.locator('#test-card .filter-button[data-filter-type="client"]')
+    client_filter = page.locator(
+        '#test-card .filter-button[data-filter-type="client"]'
+    )
     client_filter.click()
     page.wait_for_timeout(300)
 
@@ -629,20 +777,49 @@ def test_filter_state_persists_across_selection(
     page.wait_for_timeout(500)
 
     # Verify filter state is preserved after selection
-    result = page.evaluate("""() => {
-        const card = document.getElementById("test-card");
-        const clientNodes = card.querySelectorAll('[data-node-id="MacBook Pro"], [data-node-id="Desktop PC"], [data-node-id="iPhone"]');
-        const filterBtn = card.querySelector('.filter-button[data-filter-type="client"]');
-        const selectedNode = card.querySelector('[data-selected="true"]');
+    _sel = (
+        '[data-node-id="MacBook Pro"],'
+        ' [data-node-id="Desktop PC"],'
+        ' [data-node-id="iPhone"]'
+    )
+    result = page.evaluate(
+        """(sel) => {
+        const card = document.getElementById(
+            "test-card"
+        );
+        const clientNodes = card.querySelectorAll(sel);
+        const filterBtn = card.querySelector(
+            '.filter-button[data-filter-type="client"]'
+        );
+        const selectedNode = card.querySelector(
+            '[data-selected="true"]'
+        );
         return {
-            clientsStillHidden: Array.from(clientNodes).every(n => n.classList.contains("node--filtered")),
-            filterStillInactive: filterBtn?.classList.contains("filter-button--inactive"),
+            clientsStillHidden: Array.from(
+                clientNodes
+            ).every(
+                n => n.classList.contains(
+                    "node--filtered"
+                )
+            ),
+            filterStillInactive: filterBtn?.classList
+                .contains("filter-button--inactive"),
             hasSelection: !!selectedNode,
-            selectedNodeId: selectedNode?.getAttribute("data-node-id")
+            selectedNodeId: selectedNode?.getAttribute(
+                "data-node-id"
+            )
         };
-    }""")
+    }""",
+        _sel,
+    )
 
-    assert result["clientsStillHidden"], "Clients should remain hidden after selecting another node"
-    assert result["filterStillInactive"], "Filter button should remain inactive"
+    assert result["clientsStillHidden"], (
+        "Clients should remain hidden after selecting another node"
+    )
+    assert result["filterStillInactive"], (
+        "Filter button should remain inactive"
+    )
     assert result["hasSelection"], "Should have a selected node"
-    assert result["selectedNodeId"] == "Office Switch", "Office Switch should be selected"
+    assert result["selectedNodeId"] == "Office Switch", (
+        "Office Switch should be selected"
+    )

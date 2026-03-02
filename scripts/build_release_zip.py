@@ -26,7 +26,9 @@ def main() -> int:
         print(f"Integration path not found: {root}", file=sys.stderr)
         return 1
 
-    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+    with zipfile.ZipFile(
+        zip_path, "w", compression=zipfile.ZIP_DEFLATED
+    ) as archive:
         _add_path(archive, root, root)
     return 0
 

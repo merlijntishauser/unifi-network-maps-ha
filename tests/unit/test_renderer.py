@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from custom_components.unifi_network_map.errors import UniFiNetworkMapError
 from custom_components.unifi_network_map.renderer import (
     RenderSettings,
     UniFiNetworkMapRenderer,
@@ -36,7 +37,6 @@ from custom_components.unifi_network_map.renderer import (
     _network_vlan_id,
     _select_edges,
 )
-from custom_components.unifi_network_map.errors import UniFiNetworkMapError
 
 
 @dataclass
@@ -105,7 +105,10 @@ class TestClientField:
     """Tests for _client_field function."""
 
     def test_dict_client_existing_key(self) -> None:
-        client: dict[str, Any] = {"name": "test-client", "mac": "aa:bb:cc:dd:ee:ff"}
+        client: dict[str, Any] = {
+            "name": "test-client",
+            "mac": "aa:bb:cc:dd:ee:ff",
+        }
         assert _client_field(client, "name") == "test-client"
         assert _client_field(client, "mac") == "aa:bb:cc:dd:ee:ff"
 
@@ -127,7 +130,11 @@ class TestClientDisplayName:
     """Tests for _client_display_name function."""
 
     def test_returns_name_if_present(self) -> None:
-        client: dict[str, Any] = {"name": "My Device", "hostname": "device.local", "mac": "aa:bb"}
+        client: dict[str, Any] = {
+            "name": "My Device",
+            "hostname": "device.local",
+            "mac": "aa:bb",
+        }
         assert _client_display_name(client) == "My Device"
 
     def test_returns_hostname_if_no_name(self) -> None:
@@ -545,7 +552,9 @@ class TestBuildVlanInfo:
         assert result[99]["client_count"] == 0
 
     def test_limits_clients_list_to_20(self) -> None:
-        clients: list[dict[str, Any]] = [{"name": f"Client{i}", "vlan": 10} for i in range(30)]
+        clients: list[dict[str, Any]] = [
+            {"name": f"Client{i}", "vlan": 10} for i in range(30)
+        ]
         result = _build_vlan_info(clients, [])
         assert len(result[10]["clients"]) == 20
 
@@ -615,9 +624,20 @@ class TestBuildDevicePorts:
     def test_builds_port_list(self) -> None:
         ports = [
             MockPort(
-                port_idx=1, name="Port 1", speed=1000, poe_enable=True, poe_good=True, poe_power=5.5
+                port_idx=1,
+                name="Port 1",
+                speed=1000,
+                poe_enable=True,
+                poe_good=True,
+                poe_power=5.5,
             ),
-            MockPort(port_idx=2, name="Port 2", speed=100, poe_enable=False, poe_good=False),
+            MockPort(
+                port_idx=2,
+                name="Port 2",
+                speed=100,
+                poe_enable=False,
+                poe_good=False,
+            ),
         ]
         devices = [MockDevice(name="Switch1", port_table=ports)]
         result = _build_device_ports(devices)
@@ -685,7 +705,10 @@ class TestBuildClientDetails:
             {"mac": "aa:bb:cc:dd:ee:01", "sw_mac": "11:22:33:44:55:66"}
         ]
         result = _build_client_details(clients)
-        assert result["aa:bb:cc:dd:ee:01"]["connected_to_mac"] == "11:22:33:44:55:66"
+        assert (
+            result["aa:bb:cc:dd:ee:01"]["connected_to_mac"]
+            == "11:22:33:44:55:66"
+        )
 
 
 class TestRendererErrorHandling:

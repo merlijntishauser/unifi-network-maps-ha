@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
-
 from conftest import SKIP_BROWSER_IN_CI
 
 if TYPE_CHECKING:
@@ -21,11 +20,15 @@ HA_URL = os.environ.get("HA_URL", "http://localhost:28123")
 
 
 def _storage_dir() -> Path:
-    config_dir = Path(os.environ.get("HA_CONFIG_DIR", E2E_DIR / "ha-config-2026.1.2"))
+    config_dir = Path(
+        os.environ.get("HA_CONFIG_DIR", E2E_DIR / "ha-config-2026.1.2")
+    )
     return config_dir / ".storage"
 
 
-def _read_lovelace_resources_from_storage(timeout: int = 10) -> list[dict[str, object]]:
+def _read_lovelace_resources_from_storage(
+    timeout: int = 10,
+) -> list[dict[str, object]]:
     """Read Lovelace resources from storage, waiting for them to appear."""
     storage_path = _storage_dir() / "lovelace_resources"
     start = time.time()
@@ -47,18 +50,25 @@ def test_integration_loads_without_errors(ha_client: httpx.Client) -> None:
     response.raise_for_status()
 
     handlers = response.json()
-    assert "unifi_network_map" in handlers, "unifi_network_map not in available flow handlers"
+    assert "unifi_network_map" in handlers, (
+        "unifi_network_map not in available flow handlers"
+    )
 
 
-def test_frontend_bundle_served(ha_client: httpx.Client, entry_id: str) -> None:
+def test_frontend_bundle_served(
+    ha_client: httpx.Client, entry_id: str
+) -> None:
     """Verify frontend bundle is served at expected path.
 
-    Note: The frontend bundle is only registered after a config entry is created,
+    Note: The frontend bundle is only registered after
+    a config entry is created,
     so this test requires the entry_id fixture.
     """
     response = ha_client.get("/unifi-network-map/unifi-network-map.js")
 
-    assert response.status_code == 200, f"Frontend bundle not served: {response.status_code}"
+    assert response.status_code == 200, (
+        f"Frontend bundle not served: {response.status_code}"
+    )
     assert "text/javascript" in response.headers.get("content-type", ""), (
         "Wrong content type for JS bundle"
     )

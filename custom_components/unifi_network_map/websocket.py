@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any
 from copy import deepcopy
+from typing import Any
 
 import voluptuous as vol
 from homeassistant.components import websocket_api
@@ -40,15 +40,21 @@ async def websocket_subscribe_map(
     coordinator = _get_coordinator(hass, entry_id)
 
     if coordinator is None:
-        connection.send_error(msg["id"], "not_found", f"Entry {entry_id} not found")
+        connection.send_error(
+            msg["id"], "not_found", f"Entry {entry_id} not found"
+        )
         return
 
     if coordinator.data is None:
-        connection.send_error(msg["id"], "no_data", "Coordinator has no data yet")
+        connection.send_error(
+            msg["id"], "no_data", "Coordinator has no data yet"
+        )
         return
 
     payload = _build_payload(hass, coordinator)
-    connection.send_message(websocket_api.event_message(msg["id"], {"payload": payload}))
+    connection.send_message(
+        websocket_api.event_message(msg["id"], {"payload": payload})
+    )
 
     @callback  # type: ignore[reportUntypedFunctionDecorator]
     def _on_update() -> None:
@@ -57,14 +63,18 @@ async def websocket_subscribe_map(
             return
         updated_payload = _build_payload(hass, coordinator)
         connection.send_message(
-            websocket_api.event_message(msg["id"], {"payload": updated_payload})
+            websocket_api.event_message(
+                msg["id"], {"payload": updated_payload}
+            )
         )
 
     unsubscribe = coordinator.async_add_listener(_on_update)
     connection.subscriptions[msg["id"]] = unsubscribe
 
 
-def _get_coordinator(hass: HomeAssistant, entry_id: str) -> UniFiNetworkMapCoordinator | None:
+def _get_coordinator(
+    hass: HomeAssistant, entry_id: str
+) -> UniFiNetworkMapCoordinator | None:
     """Get coordinator by entry ID."""
     coordinator = hass.data.get(DOMAIN, {}).get(entry_id)
     if isinstance(coordinator, UniFiNetworkMapCoordinator):
@@ -72,7 +82,9 @@ def _get_coordinator(hass: HomeAssistant, entry_id: str) -> UniFiNetworkMapCoord
     return None
 
 
-def _build_payload(hass: HomeAssistant, coordinator: UniFiNetworkMapCoordinator) -> dict[str, Any]:
+def _build_payload(
+    hass: HomeAssistant, coordinator: UniFiNetworkMapCoordinator
+) -> dict[str, Any]:
     """Build full payload with resolved entities."""
     data = coordinator.data
     if data is None:

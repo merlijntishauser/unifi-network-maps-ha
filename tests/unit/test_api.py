@@ -2,16 +2,26 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Callable, cast
+from typing import TYPE_CHECKING, cast
 
 import pytest
 from requests import Response
 from requests.exceptions import HTTPError, RequestException
 
 from custom_components.unifi_network_map import api as api_module
-from custom_components.unifi_network_map.errors import CannotConnect, InvalidAuth
-from custom_components.unifi_network_map.renderer import RenderSettings
+from custom_components.unifi_network_map.data import (
+    UniFiNetworkMapData,
+)
+from custom_components.unifi_network_map.errors import (
+    CannotConnect,
+    InvalidAuth,
+)
 from tests.helpers import build_settings
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from custom_components.unifi_network_map.renderer import RenderSettings
 
 
 @dataclass
@@ -42,10 +52,12 @@ def test_client_cache_returns_cached(monkeypatch: pytest.MonkeyPatch) -> None:
         verify_ssl=True,
         settings=settings,
     )
-    data = api_module.UniFiNetworkMapData(svg="<svg />", payload={})
+    data = UniFiNetworkMapData(svg="<svg />", payload={})
     calls: list[str] = []
 
-    def _render_payload(*_args: object, **_kwargs: object) -> api_module.UniFiNetworkMapData:
+    def _render_payload(
+        *_args: object, **_kwargs: object
+    ) -> UniFiNetworkMapData:
         calls.append("render")
         return data
 
@@ -71,9 +83,13 @@ def test_client_cache_expires(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     counter = {"value": 0}
 
-    def _render_payload(*_args: object, **_kwargs: object) -> api_module.UniFiNetworkMapData:
+    def _render_payload(
+        *_args: object, **_kwargs: object
+    ) -> UniFiNetworkMapData:
         counter["value"] += 1
-        return api_module.UniFiNetworkMapData(svg=f"<svg {counter['value']} />", payload={})
+        return UniFiNetworkMapData(
+            svg=f"<svg {counter['value']} />", payload={}
+        )
 
     times = iter(
         [
@@ -93,7 +109,10 @@ def test_client_cache_expires(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_map_auth_error_rate_limit() -> None:
-    map_auth_error = cast(Callable[[Exception], Exception], getattr(api_module, "_map_auth_error"))
+    map_auth_error = cast(
+        "Callable[[Exception], Exception]",
+        getattr(api_module, "_map_auth_error"),
+    )
     response = Response()
     response.status_code = 429
     cause = HTTPError(response=response)
@@ -106,7 +125,10 @@ def test_map_auth_error_rate_limit() -> None:
 
 
 def test_map_auth_error_invalid_auth() -> None:
-    map_auth_error = cast(Callable[[Exception], Exception], getattr(api_module, "_map_auth_error"))
+    map_auth_error = cast(
+        "Callable[[Exception], Exception]",
+        getattr(api_module, "_map_auth_error"),
+    )
     response = Response()
     response.status_code = 401
     cause = HTTPError(response=response)
@@ -118,9 +140,11 @@ def test_map_auth_error_invalid_auth() -> None:
     assert isinstance(mapped, InvalidAuth)
 
 
-def test_render_map_payload_maps_request_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_render_map_payload_maps_request_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     render_map_payload = cast(
-        Callable[[api_module.Config, RenderSettings], object],
+        "Callable[[api_module.Config, RenderSettings], object]",
         getattr(api_module, "_render_map_payload"),
     )
 
@@ -130,11 +154,16 @@ def test_render_map_payload_maps_request_errors(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setattr(api_module, "UniFiNetworkMapRenderer", _renderer)
 
     with pytest.raises(CannotConnect):
-        render_map_payload(api_module.Config("url", "site", "u", "p", True), _build_settings())
+        render_map_payload(
+            api_module.Config("url", "site", "u", "p", True), _build_settings()
+        )
 
 
 def test_map_auth_error_falls_back_to_invalid_auth() -> None:
-    map_auth_error = cast(Callable[[Exception], Exception], getattr(api_module, "_map_auth_error"))
+    map_auth_error = cast(
+        "Callable[[Exception], Exception]",
+        getattr(api_module, "_map_auth_error"),
+    )
     mapped = map_auth_error(Exception("boom"))
 
     assert isinstance(mapped, InvalidAuth)
@@ -142,13 +171,16 @@ def test_map_auth_error_falls_back_to_invalid_auth() -> None:
 
 def test_status_code_from_exception_missing_cause() -> None:
     status_code_from_exception = cast(
-        Callable[[Exception], int | None], getattr(api_module, "_status_code_from_exception")
+        "Callable[[Exception], int | None]",
+        getattr(api_module, "_status_code_from_exception"),
     )
 
     assert status_code_from_exception(Exception("boom")) is None
 
 
-def test_assert_unifi_connectivity_maps_invalid_auth(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_assert_unifi_connectivity_maps_invalid_auth(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from unifi_topology.adapters.unifi_api import UnifiAuthError
 
     def _fetch_devices(*_args: object, **_kwargs: object) -> None:
@@ -158,7 +190,7 @@ def test_assert_unifi_connectivity_maps_invalid_auth(monkeypatch: pytest.MonkeyP
 
     with pytest.raises(InvalidAuth):
         assert_unifi_connectivity = cast(
-            Callable[[api_module.Config, str], None],
+            "Callable[[api_module.Config, str], None]",
             getattr(api_module, "_assert_unifi_connectivity"),
         )
         assert_unifi_connectivity(
@@ -177,7 +209,7 @@ def test_assert_unifi_connectivity_maps_cannot_connect(
 
     with pytest.raises(CannotConnect):
         assert_unifi_connectivity = cast(
-            Callable[[api_module.Config, str], None],
+            "Callable[[api_module.Config, str], None]",
             getattr(api_module, "_assert_unifi_connectivity"),
         )
         assert_unifi_connectivity(
@@ -186,7 +218,9 @@ def test_assert_unifi_connectivity_maps_cannot_connect(
         )
 
 
-def test_render_map_payload_maps_auth_error(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_render_map_payload_maps_auth_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from unifi_topology.adapters.unifi_api import UnifiAuthError
 
     def _renderer() -> FakeRenderer:
@@ -196,10 +230,14 @@ def test_render_map_payload_maps_auth_error(monkeypatch: pytest.MonkeyPatch) -> 
 
     with pytest.raises(InvalidAuth):
         render_map_payload = cast(
-            Callable[[api_module.Config, RenderSettings], api_module.UniFiNetworkMapData],
+            "Callable["
+            "[api_module.Config, RenderSettings],"
+            " UniFiNetworkMapData]",
             getattr(api_module, "_render_map_payload"),
         )
-        render_map_payload(api_module.Config("url", "site", "u", "p", True), _build_settings())
+        render_map_payload(
+            api_module.Config("url", "site", "u", "p", True), _build_settings()
+        )
 
 
 def test_ensure_ssl_warning_filter_adds_once() -> None:
@@ -210,7 +248,8 @@ def test_ensure_ssl_warning_filter_adds_once() -> None:
     setattr(api_module, "_ssl_warning_filter", None)
     try:
         ensure_filter = cast(
-            Callable[[bool], None], getattr(api_module, "_ensure_unifi_ssl_warning_filter")
+            "Callable[[bool], None]",
+            getattr(api_module, "_ensure_unifi_ssl_warning_filter"),
         )
         ensure_filter(False)
         ensure_filter(False)

@@ -6,7 +6,10 @@ import pytest
 from unifi_topology.adapters.unifi_api import UnifiAuthError
 
 from custom_components.unifi_network_map import api as api_module
-from custom_components.unifi_network_map.errors import CannotConnect, InvalidAuth
+from custom_components.unifi_network_map.errors import (
+    CannotConnect,
+    InvalidAuth,
+)
 
 
 def test_validate_unifi_credentials_maps_auth_error(monkeypatch):

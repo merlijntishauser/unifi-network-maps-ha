@@ -4,7 +4,6 @@ import asyncio
 from dataclasses import dataclass
 
 import pytest
-
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import UpdateFailed
 
@@ -13,7 +12,10 @@ from custom_components.unifi_network_map.coordinator import (
     UniFiNetworkMapCoordinator,
 )
 from custom_components.unifi_network_map.data import UniFiNetworkMapData
-from custom_components.unifi_network_map.errors import CannotConnect, InvalidAuth
+from custom_components.unifi_network_map.errors import (
+    CannotConnect,
+    InvalidAuth,
+)
 from custom_components.unifi_network_map.renderer import RenderSettings
 
 
@@ -25,7 +27,9 @@ class FakeEntry:
 
 
 class FakeClient:
-    def __init__(self, responses: list[UniFiNetworkMapData | Exception]) -> None:
+    def __init__(
+        self, responses: list[UniFiNetworkMapData | Exception]
+    ) -> None:
         self._responses = responses
         self.settings = RenderSettings(
             include_ports=False,
@@ -57,7 +61,9 @@ def _build_entry() -> FakeEntry:
     )
 
 
-def test_auth_backoff_blocks_immediate_retry(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_auth_backoff_blocks_immediate_retry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     def _now() -> float:
         return 100.0
 
@@ -66,13 +72,17 @@ def test_auth_backoff_blocks_immediate_retry(monkeypatch: pytest.MonkeyPatch) ->
         _now,
     )
     coordinator = UniFiNetworkMapCoordinator(
-        HomeAssistant(), _build_entry(), client=FakeClient([InvalidAuth("Authentication failed")])
+        HomeAssistant(),
+        _build_entry(),
+        client=FakeClient([InvalidAuth("Authentication failed")]),
     )
 
     with pytest.raises(UpdateFailed):
         asyncio.run(coordinator.async_fetch_for_testing())
 
-    assert coordinator.auth_backoff_until == pytest.approx(100.0 + AUTH_BACKOFF_BASE_SECONDS)
+    assert coordinator.auth_backoff_until == pytest.approx(
+        100.0 + AUTH_BACKOFF_BASE_SECONDS
+    )
     assert coordinator.auth_backoff_seconds == AUTH_BACKOFF_BASE_SECONDS * 2
 
     with pytest.raises(UpdateFailed) as exc:
@@ -80,7 +90,9 @@ def test_auth_backoff_blocks_immediate_retry(monkeypatch: pytest.MonkeyPatch) ->
     assert "Auth backoff active" in str(exc.value)
 
 
-def test_auth_backoff_resets_after_success(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_auth_backoff_resets_after_success(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     def _start_time() -> float:
         return 100.0
 
@@ -133,4 +145,6 @@ def test_rate_limit_triggers_backoff(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(UpdateFailed):
         asyncio.run(coordinator.async_fetch_for_testing())
 
-    assert coordinator.auth_backoff_until == pytest.approx(200.0 + AUTH_BACKOFF_BASE_SECONDS)
+    assert coordinator.auth_backoff_until == pytest.approx(
+        200.0 + AUTH_BACKOFF_BASE_SECONDS
+    )

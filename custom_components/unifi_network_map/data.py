@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from unifi_topology import VpnTunnel, WanInfo
+if TYPE_CHECKING:
+    from unifi_topology import VpnTunnel, WanInfo
 
 
 @dataclass(slots=True)

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Any, Mapping, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_URL, CONF_USERNAME
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.update_coordinator import (
+    DataUpdateCoordinator,
+    UpdateFailed,
+)
 
 from .api import UniFiNetworkMapClient
 from .const import (
@@ -55,6 +56,12 @@ from .data import UniFiNetworkMapData
 from .errors import CannotConnect, InvalidAuth, UniFiNetworkMapError
 from .renderer import RenderSettings
 from .utils import monotonic_seconds
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
 
 AUTH_BACKOFF_BASE_SECONDS = 30
 AUTH_BACKOFF_MAX_SECONDS = 600
@@ -111,16 +118,26 @@ class UniFiNetworkMapCoordinator(DataUpdateCoordinator[UniFiNetworkMapData]):  #
         backoff_remaining = self._auth_backoff_remaining()
         if backoff_remaining is not None:
             LOGGER.debug(
-                "coordinator fetch_skipped reason=backoff remaining=%ds entry_id=%s",
+                "coordinator fetch_skipped"
+                " reason=backoff remaining=%ds"
+                " entry_id=%s",
                 int(backoff_remaining),
                 self._entry.entry_id,
             )
-            raise UpdateFailed(f"Auth backoff active, retrying in {int(backoff_remaining)}s")
-        LOGGER.debug("coordinator fetch_started entry_id=%s", self._entry.entry_id)
+            raise UpdateFailed(
+                f"Auth backoff active, retrying in {int(backoff_remaining)}s"
+            )
+        LOGGER.debug(
+            "coordinator fetch_started entry_id=%s", self._entry.entry_id
+        )
         try:
-            data = await self.hass.async_add_executor_job(self._client.fetch_map)
+            data = await self.hass.async_add_executor_job(
+                self._client.fetch_map
+            )
             self._reset_auth_backoff()
-            LOGGER.debug("coordinator fetch_completed entry_id=%s", self._entry.entry_id)
+            LOGGER.debug(
+                "coordinator fetch_completed entry_id=%s", self._entry.entry_id
+            )
             return data
         except UniFiNetworkMapError as err:
             LOGGER.debug(
@@ -147,9 +164,13 @@ class UniFiNetworkMapCoordinator(DataUpdateCoordinator[UniFiNetworkMapData]):  #
         now = monotonic_seconds()
         delay = min(self._auth_backoff_seconds, AUTH_BACKOFF_MAX_SECONDS)
         self._auth_backoff_until = now + delay
-        next_delay = min(self._auth_backoff_seconds * 2, AUTH_BACKOFF_MAX_SECONDS)
+        next_delay = min(
+            self._auth_backoff_seconds * 2, AUTH_BACKOFF_MAX_SECONDS
+        )
         LOGGER.warning(
-            "coordinator backoff_activated delay=%ds next_delay=%ds entry_id=%s",
+            "coordinator backoff_activated"
+            " delay=%ds next_delay=%ds"
+            " entry_id=%s",
             delay,
             next_delay,
             self._entry.entry_id,
@@ -158,7 +179,9 @@ class UniFiNetworkMapCoordinator(DataUpdateCoordinator[UniFiNetworkMapData]):  #
 
     def _reset_auth_backoff(self) -> None:
         if self._auth_backoff_until is not None:
-            LOGGER.debug("coordinator backoff_cleared entry_id=%s", self._entry.entry_id)
+            LOGGER.debug(
+                "coordinator backoff_cleared entry_id=%s", self._entry.entry_id
+            )
         self._auth_backoff_until = None
         self._auth_backoff_seconds = AUTH_BACKOFF_BASE_SECONDS
 
@@ -171,7 +194,9 @@ def _should_backoff(err: UniFiNetworkMapError) -> bool:
     return False
 
 
-def _build_client(hass: HomeAssistant, entry: ConfigEntry) -> UniFiNetworkMapClient:
+def _build_client(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> UniFiNetworkMapClient:
     data = entry.data
     _validate_required_keys(data)
     return UniFiNetworkMapClient(
@@ -193,14 +218,18 @@ _REQUIRED_KEYS = (CONF_URL, CONF_USERNAME, CONF_PASSWORD, CONF_SITE)
 def _validate_required_keys(data: Mapping[str, Any]) -> None:
     missing = [key for key in _REQUIRED_KEYS if key not in data]
     if missing:
-        raise UniFiNetworkMapError(f"Missing required config keys: {', '.join(missing)}")
+        raise UniFiNetworkMapError(
+            f"Missing required config keys: {', '.join(missing)}"
+        )
 
 
 def _build_settings(entry: ConfigEntry) -> RenderSettings:
     options = entry.options
     return RenderSettings(
         include_ports=options.get(CONF_INCLUDE_PORTS, DEFAULT_INCLUDE_PORTS),
-        include_clients=options.get(CONF_INCLUDE_CLIENTS, DEFAULT_INCLUDE_CLIENTS),
+        include_clients=options.get(
+            CONF_INCLUDE_CLIENTS, DEFAULT_INCLUDE_CLIENTS
+        ),
         client_scope=options.get(CONF_CLIENT_SCOPE, DEFAULT_CLIENT_SCOPE),
         only_unifi=options.get(CONF_ONLY_UNIFI, DEFAULT_ONLY_UNIFI),
         svg_isometric=options.get(CONF_SVG_ISOMETRIC, DEFAULT_SVG_ISOMETRIC),
@@ -220,5 +249,7 @@ def _build_settings(entry: ConfigEntry) -> RenderSettings:
 
 
 def _get_scan_interval(entry: ConfigEntry) -> timedelta:
-    minutes = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_MINUTES)
+    minutes = entry.options.get(
+        CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_MINUTES
+    )
     return timedelta(minutes=int(minutes))

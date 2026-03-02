@@ -3,11 +3,14 @@ from __future__ import annotations
 import asyncio
 import sys
 from types import ModuleType
-from typing import Callable, Coroutine, cast
-
-import pytest
+from typing import TYPE_CHECKING, cast
 
 import custom_components.unifi_network_map as unifi_network_map
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Coroutine
+
+    import pytest
 
 
 class _FakeHass:
@@ -83,7 +86,9 @@ class _ResourceCollection:
         self.created.append(payload)
         self.items.append(payload)
 
-    async def async_update_item(self, item_id: str, payload: dict[str, object]) -> None:
+    async def async_update_item(
+        self, item_id: str, payload: dict[str, object]
+    ) -> None:
         """Update an existing resource."""
         self.updated.append((item_id, payload))
         for item in self.items:
@@ -110,7 +115,9 @@ class _ResourcesModule:
         """Return a resource collection (old API)."""
         return self._collection
 
-    async def async_create_item(self, _hass: object, payload: dict[str, object]) -> None:
+    async def async_create_item(
+        self, _hass: object, payload: dict[str, object]
+    ) -> None:
         """Create a new resource (fallback method)."""
         self.created.append(payload)
         self._collection.items.append(payload)
@@ -126,12 +133,17 @@ def _make_hass_with_collection(
 
 
 def test_lovelace_resource_create_with_new_api() -> None:
-    """Test resource creation using the new hass.data['lovelace'].resources API."""
+    """Test resource creation using the new
+    hass.data['lovelace'].resources API."""
     hass, collection = _make_hass_with_collection()
     resources = _ResourcesModule()
 
     create_resource = getattr(unifi_network_map, "_create_lovelace_resource")
-    asyncio.run(create_resource(hass, resources, "/unifi-network-map/unifi-network-map.js"))
+    asyncio.run(
+        create_resource(
+            hass, resources, "/unifi-network-map/unifi-network-map.js"
+        )
+    )
 
     assert len(collection.created) == 1
     payload = collection.created[0]
@@ -140,13 +152,18 @@ def test_lovelace_resource_create_with_new_api() -> None:
 
 
 def test_lovelace_resource_create_with_fallback_api() -> None:
-    """Test resource creation falls back to old API when new API not available."""
+    """Test resource creation falls back to old API
+    when new API not available."""
     hass = _FakeHass()
     # Don't set hass.data["lovelace"] to trigger fallback
     resources = _ResourcesModule()
 
     create_resource = getattr(unifi_network_map, "_create_lovelace_resource")
-    asyncio.run(create_resource(hass, resources, "/unifi-network-map/unifi-network-map.js"))
+    asyncio.run(
+        create_resource(
+            hass, resources, "/unifi-network-map/unifi-network-map.js"
+        )
+    )
 
     # Should have used fallback API
     assert len(resources.created) == 1
@@ -156,7 +173,8 @@ def test_lovelace_resource_create_with_fallback_api() -> None:
 
 
 def test_lovelace_resource_fetch_items_with_new_api() -> None:
-    """Test fetching items using the new hass.data['lovelace'].resources API."""
+    """Test fetching items using the new
+    hass.data['lovelace'].resources API."""
     existing_items: list[dict[str, object]] = [
         {"url": "/local/some-card.js", "type": "module"},
         {"url": "/local/another-card.js", "type": "js"},
@@ -182,11 +200,14 @@ def test_lovelace_resource_fetch_items_returns_empty_list() -> None:
 
 
 def test_schedule_lovelace_resource_when_running() -> None:
-    """Test resource registration is scheduled immediately when HA is running."""
+    """Test resource registration is scheduled
+    immediately when HA is running."""
     hass = _FakeHass()
     hass.is_running = True
 
-    schedule_registration = getattr(unifi_network_map, "_schedule_lovelace_resource_registration")
+    schedule_registration = getattr(
+        unifi_network_map, "_schedule_lovelace_resource_registration"
+    )
     schedule_registration(hass)
 
     # Should have created a task immediately
@@ -194,11 +215,14 @@ def test_schedule_lovelace_resource_when_running() -> None:
 
 
 def test_schedule_lovelace_resource_when_not_running() -> None:
-    """Test resource registration waits for start event when HA is not running."""
+    """Test resource registration waits for start event
+    when HA is not running."""
     hass = _FakeHass()
     hass.is_running = False
 
-    schedule_registration = getattr(unifi_network_map, "_schedule_lovelace_resource_registration")
+    schedule_registration = getattr(
+        unifi_network_map, "_schedule_lovelace_resource_registration"
+    )
     schedule_registration(hass)
 
     # Should not have created a task yet
@@ -212,7 +236,9 @@ def test_schedule_lovelace_resource_when_not_running() -> None:
 def test_ensure_lovelace_resource_skips_if_already_registered() -> None:
     """Test that resource registration is skipped if already registered."""
     versioned_url = getattr(unifi_network_map, "_frontend_bundle_url")()
-    hass, collection = _make_hass_with_collection([{"url": versioned_url, "type": "module"}])
+    hass, collection = _make_hass_with_collection(
+        [{"url": versioned_url, "type": "module"}]
+    )
     hass.data["unifi_network_map"] = {}
 
     ensure_resource = getattr(unifi_network_map, "_ensure_lovelace_resource")
@@ -237,7 +263,9 @@ def test_ensure_lovelace_resource_creates_when_not_exists() -> None:
     setattr(unifi_network_map, "_load_lovelace_resources", mock_load)
 
     try:
-        ensure_resource = getattr(unifi_network_map, "_ensure_lovelace_resource")
+        ensure_resource = getattr(
+            unifi_network_map, "_ensure_lovelace_resource"
+        )
         asyncio.run(ensure_resource(hass))
 
         # Should have created the resource
@@ -251,7 +279,8 @@ def test_ensure_lovelace_resource_creates_when_not_exists() -> None:
 
 
 def test_ensure_lovelace_resource_handles_missing_lovelace_data() -> None:
-    """Test that resource registration handles missing lovelace data gracefully."""
+    """Test that resource registration handles missing
+    lovelace data gracefully."""
     hass = _FakeHass()
     # Don't set hass.data["lovelace"]
     hass.data["unifi_network_map"] = {}
@@ -265,7 +294,9 @@ def test_ensure_lovelace_resource_handles_missing_lovelace_data() -> None:
     setattr(unifi_network_map, "_load_lovelace_resources", mock_load)
 
     try:
-        ensure_resource = getattr(unifi_network_map, "_ensure_lovelace_resource")
+        ensure_resource = getattr(
+            unifi_network_map, "_ensure_lovelace_resource"
+        )
         asyncio.run(ensure_resource(hass))
 
         # Should have handled missing data gracefully (no exception)
@@ -278,7 +309,9 @@ def test_schedule_lovelace_resource_retry_schedules_once() -> None:
     hass = _FakeHass()
     hass.data["unifi_network_map"] = {"lovelace_resource_attempts": 1}
 
-    schedule_retry = getattr(unifi_network_map, "_schedule_lovelace_resource_retry")
+    schedule_retry = getattr(
+        unifi_network_map, "_schedule_lovelace_resource_retry"
+    )
     schedule_retry(hass)
     schedule_retry(hass)
 
@@ -324,7 +357,9 @@ def test_ensure_lovelace_resource_retries_when_items_missing() -> None:
     setattr(unifi_network_map, "_load_lovelace_resources", lambda: resources)
     setattr(unifi_network_map, "_fetch_lovelace_items", _fetch)
     try:
-        ensure_resource = getattr(unifi_network_map, "_ensure_lovelace_resource")
+        ensure_resource = getattr(
+            unifi_network_map, "_ensure_lovelace_resource"
+        )
         asyncio.run(ensure_resource(hass))
     finally:
         setattr(unifi_network_map, "_load_lovelace_resources", original_load)
@@ -353,12 +388,16 @@ def test_ensure_lovelace_resource_retries_when_create_fails() -> None:
     setattr(unifi_network_map, "_fetch_lovelace_items", _fetch)
     setattr(unifi_network_map, "_create_lovelace_resource", _create)
     try:
-        ensure_resource = getattr(unifi_network_map, "_ensure_lovelace_resource")
+        ensure_resource = getattr(
+            unifi_network_map, "_ensure_lovelace_resource"
+        )
         asyncio.run(ensure_resource(hass))
     finally:
         setattr(unifi_network_map, "_load_lovelace_resources", original_load)
         setattr(unifi_network_map, "_fetch_lovelace_items", original_fetch)
-        setattr(unifi_network_map, "_create_lovelace_resource", original_create)
+        setattr(
+            unifi_network_map, "_create_lovelace_resource", original_create
+        )
 
     assert hass.data["unifi_network_map"]["lovelace_resource_attempts"] == 1
     assert hass.tasks
@@ -388,7 +427,9 @@ def test_ensure_lovelace_resource_serializes_concurrent_calls() -> None:
     setattr(unifi_network_map, "_create_lovelace_resource", _create)
 
     async def _run() -> None:
-        ensure_resource = getattr(unifi_network_map, "_ensure_lovelace_resource")
+        ensure_resource = getattr(
+            unifi_network_map, "_ensure_lovelace_resource"
+        )
         task1 = asyncio.create_task(ensure_resource(hass))
         await asyncio.sleep(0)
         task2 = asyncio.create_task(ensure_resource(hass))
@@ -402,14 +443,20 @@ def test_ensure_lovelace_resource_serializes_concurrent_calls() -> None:
     finally:
         setattr(unifi_network_map, "_load_lovelace_resources", original_load)
         setattr(unifi_network_map, "_fetch_lovelace_items", original_fetch)
-        setattr(unifi_network_map, "_create_lovelace_resource", original_create)
+        setattr(
+            unifi_network_map, "_create_lovelace_resource", original_create
+        )
 
     assert calls == ["fetch"]
-    assert hass.data["unifi_network_map"]["lovelace_resource_registered"] is True
+    assert (
+        hass.data["unifi_network_map"]["lovelace_resource_registered"] is True
+    )
     assert hass.data["unifi_network_map"]["lovelace_resource_attempts"] == 0
 
 
-def test_retry_lovelace_resource_calls_ensure(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_retry_lovelace_resource_calls_ensure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     hass = _FakeHass()
     called = {"ensure": False, "slept": False}
 
@@ -420,7 +467,9 @@ def test_retry_lovelace_resource_calls_ensure(monkeypatch: pytest.MonkeyPatch) -
         called["ensure"] = True
 
     monkeypatch.setattr(unifi_network_map.asyncio, "sleep", _sleep)
-    monkeypatch.setattr(unifi_network_map, "_ensure_lovelace_resource", _ensure)
+    monkeypatch.setattr(
+        unifi_network_map, "_ensure_lovelace_resource", _ensure
+    )
 
     retry = getattr(unifi_network_map, "_retry_lovelace_resource")
     asyncio.run(retry(hass, 0))
@@ -430,19 +479,25 @@ def test_retry_lovelace_resource_calls_ensure(monkeypatch: pytest.MonkeyPatch) -
 
 def test_ensure_lovelace_resource_marks_registered_on_existing() -> None:
     versioned_url = getattr(unifi_network_map, "_frontend_bundle_url")()
-    hass, _collection = _make_hass_with_collection([{"url": versioned_url, "type": "module"}])
+    hass, _collection = _make_hass_with_collection(
+        [{"url": versioned_url, "type": "module"}]
+    )
     hass.data["unifi_network_map"] = {}
     resources = _ResourcesModule()
 
     original_load = getattr(unifi_network_map, "_load_lovelace_resources")
     setattr(unifi_network_map, "_load_lovelace_resources", lambda: resources)
     try:
-        ensure_resource = getattr(unifi_network_map, "_ensure_lovelace_resource")
+        ensure_resource = getattr(
+            unifi_network_map, "_ensure_lovelace_resource"
+        )
         asyncio.run(ensure_resource(hass))
     finally:
         setattr(unifi_network_map, "_load_lovelace_resources", original_load)
 
-    assert hass.data["unifi_network_map"]["lovelace_resource_registered"] is True
+    assert (
+        hass.data["unifi_network_map"]["lovelace_resource_registered"] is True
+    )
 
 
 def test_schedule_lovelace_resource_registration_runs_on_start() -> None:
@@ -464,7 +519,9 @@ def test_schedule_lovelace_resource_registration_runs_on_start() -> None:
         schedule_registration(hass)
         asyncio.run(hass.bus.fire_event("homeassistant_start"))
     finally:
-        setattr(unifi_network_map, "_ensure_lovelace_resource", original_ensure)
+        setattr(
+            unifi_network_map, "_ensure_lovelace_resource", original_ensure
+        )
 
     assert called["ensure"] is True
 
@@ -479,7 +536,9 @@ def test_fetch_lovelace_items_returns_none_when_missing() -> None:
     assert result is None
 
 
-def test_fetch_lovelace_items_returns_none_when_missing_resources_attr() -> None:
+def test_fetch_lovelace_items_returns_none_when_missing_resources_attr() -> (
+    None
+):
     hass = _FakeHass()
     hass.data["lovelace"] = object()
     resources = _ResourcesModule()
@@ -524,7 +583,9 @@ def test_fetch_lovelace_items_handles_async_items_coroutine() -> None:
     assert result == [{"url": "/local/card.js"}]
 
 
-def test_fetch_lovelace_items_fallback_after_exception(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_fetch_lovelace_items_fallback_after_exception(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     class _Collection:
         def async_items(self):
             raise RuntimeError("boom")
@@ -559,7 +620,9 @@ def test_create_lovelace_resource_with_module_typeerror() -> None:
     resources = _Resources()
     payload = {"url": "/local/card.js", "res_type": "module"}
 
-    create_with_module = getattr(unifi_network_map, "_create_lovelace_resource_with_module")
+    create_with_module = getattr(
+        unifi_network_map, "_create_lovelace_resource_with_module"
+    )
     result = asyncio.run(create_with_module(hass, resources, payload))
 
     assert result is True
@@ -574,7 +637,9 @@ def test_create_lovelace_resource_with_module_missing() -> None:
     resources = _Resources()
     payload = {"url": "/local/card.js", "res_type": "module"}
 
-    create_with_module = getattr(unifi_network_map, "_create_lovelace_resource_with_module")
+    create_with_module = getattr(
+        unifi_network_map, "_create_lovelace_resource_with_module"
+    )
     result = asyncio.run(create_with_module(hass, resources, payload))
 
     assert result is False
@@ -583,7 +648,9 @@ def test_create_lovelace_resource_with_module_missing() -> None:
 def test_create_lovelace_resource_with_collection_missing() -> None:
     payload = {"url": "/local/card.js", "res_type": "module"}
 
-    create_with_collection = getattr(unifi_network_map, "_create_lovelace_resource_with_collection")
+    create_with_collection = getattr(
+        unifi_network_map, "_create_lovelace_resource_with_collection"
+    )
     result = asyncio.run(create_with_collection(object(), payload))
 
     assert result is False
@@ -608,7 +675,7 @@ def test_create_lovelace_resource_falls_back_to_collection() -> None:
     info = _Info()
     resources = _Resources(info)
     create_resource = cast(
-        Callable[[object, object, str], Coroutine[object, object, bool]],
+        "Callable[[object, object, str], Coroutine[object, object, bool]]",
         getattr(unifi_network_map, "_create_lovelace_resource"),
     )
     result = asyncio.run(create_resource(hass, resources, "/local/card.js"))
@@ -625,7 +692,8 @@ def test_load_lovelace_resources_prefers_module() -> None:
     sys.modules["homeassistant.components.lovelace"] = lovelace_module
 
     load_resources = cast(
-        Callable[[], object | None], getattr(unifi_network_map, "_load_lovelace_resources")
+        "Callable[[], object | None]",
+        getattr(unifi_network_map, "_load_lovelace_resources"),
     )
     result = load_resources()
 
@@ -662,7 +730,9 @@ def test_ensure_lovelace_resource_updates_old_version() -> None:
     original_load = getattr(unifi_network_map, "_load_lovelace_resources")
     setattr(unifi_network_map, "_load_lovelace_resources", lambda: resources)
     try:
-        ensure_resource = getattr(unifi_network_map, "_ensure_lovelace_resource")
+        ensure_resource = getattr(
+            unifi_network_map, "_ensure_lovelace_resource"
+        )
         asyncio.run(ensure_resource(hass))
     finally:
         setattr(unifi_network_map, "_load_lovelace_resources", original_load)
@@ -670,14 +740,22 @@ def test_ensure_lovelace_resource_updates_old_version() -> None:
     assert len(collection.created) == 0
     assert len(collection.updated) == 1
     assert collection.updated[0] == ("abc123", {"url": versioned_url})
-    assert hass.data["unifi_network_map"]["lovelace_resource_registered"] is True
+    assert (
+        hass.data["unifi_network_map"]["lovelace_resource_registered"] is True
+    )
 
 
 def test_ensure_lovelace_resource_updates_unversioned_url() -> None:
     """Test that an existing resource with no version query gets updated."""
     versioned_url = getattr(unifi_network_map, "_frontend_bundle_url")()
     hass, collection = _make_hass_with_collection(
-        [{"id": "xyz789", "url": "/unifi-network-map/unifi-network-map.js", "type": "module"}]
+        [
+            {
+                "id": "xyz789",
+                "url": "/unifi-network-map/unifi-network-map.js",
+                "type": "module",
+            }
+        ]
     )
     hass.data["unifi_network_map"] = {}
     resources = _ResourcesModule()
@@ -685,7 +763,9 @@ def test_ensure_lovelace_resource_updates_unversioned_url() -> None:
     original_load = getattr(unifi_network_map, "_load_lovelace_resources")
     setattr(unifi_network_map, "_load_lovelace_resources", lambda: resources)
     try:
-        ensure_resource = getattr(unifi_network_map, "_ensure_lovelace_resource")
+        ensure_resource = getattr(
+            unifi_network_map, "_ensure_lovelace_resource"
+        )
         asyncio.run(ensure_resource(hass))
     finally:
         setattr(unifi_network_map, "_load_lovelace_resources", original_load)
@@ -693,11 +773,14 @@ def test_ensure_lovelace_resource_updates_unversioned_url() -> None:
     assert len(collection.created) == 0
     assert len(collection.updated) == 1
     assert collection.updated[0] == ("xyz789", {"url": versioned_url})
-    assert hass.data["unifi_network_map"]["lovelace_resource_registered"] is True
+    assert (
+        hass.data["unifi_network_map"]["lovelace_resource_registered"] is True
+    )
 
 
 def test_ensure_lovelace_resource_current_version_is_noop() -> None:
-    """Test that an existing resource with the current version is left alone."""
+    """Test that an existing resource with the current
+    version is left alone."""
     versioned_url = getattr(unifi_network_map, "_frontend_bundle_url")()
     hass, collection = _make_hass_with_collection(
         [{"id": "cur456", "url": versioned_url, "type": "module"}]
@@ -708,11 +791,15 @@ def test_ensure_lovelace_resource_current_version_is_noop() -> None:
     original_load = getattr(unifi_network_map, "_load_lovelace_resources")
     setattr(unifi_network_map, "_load_lovelace_resources", lambda: resources)
     try:
-        ensure_resource = getattr(unifi_network_map, "_ensure_lovelace_resource")
+        ensure_resource = getattr(
+            unifi_network_map, "_ensure_lovelace_resource"
+        )
         asyncio.run(ensure_resource(hass))
     finally:
         setattr(unifi_network_map, "_load_lovelace_resources", original_load)
 
     assert len(collection.created) == 0
     assert len(collection.updated) == 0
-    assert hass.data["unifi_network_map"]["lovelace_resource_registered"] is True
+    assert (
+        hass.data["unifi_network_map"]["lovelace_resource_registered"] is True
+    )

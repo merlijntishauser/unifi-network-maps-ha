@@ -1,15 +1,21 @@
 from __future__ import annotations
 
-from typing import Any, Iterable
-
-from pytest import MonkeyPatch
+from typing import TYPE_CHECKING, Any
 
 from unifi_topology import Config
 from unifi_topology.model import MockOptions, generate_mock_payload
 
 from custom_components.unifi_network_map import renderer as renderer_module
 from custom_components.unifi_network_map.const import PAYLOAD_SCHEMA_VERSION
-from custom_components.unifi_network_map.renderer import RenderSettings, UniFiNetworkMapRenderer
+from custom_components.unifi_network_map.renderer import (
+    RenderSettings,
+    UniFiNetworkMapRenderer,
+)
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from pytest import MonkeyPatch
 
 
 def _mock_payload() -> dict[str, list[dict[str, Any]]]:
@@ -42,7 +48,9 @@ def _build_config() -> Config:
 def test_renderer_contract(monkeypatch: MonkeyPatch) -> None:
     payload = _mock_payload()
     _patch_unifi_fetchers(monkeypatch, payload)
-    result = UniFiNetworkMapRenderer().render(_build_config(), _build_settings())
+    result = UniFiNetworkMapRenderer().render(
+        _build_config(), _build_settings()
+    )
     assert result.svg.startswith("<svg")
     _assert_payload_schema(result.payload)
 
@@ -58,13 +66,19 @@ def test_renderer_contract_without_clients(monkeypatch: MonkeyPatch) -> None:
 def _patch_unifi_fetchers(
     monkeypatch: MonkeyPatch, payload: dict[str, list[dict[str, Any]]]
 ) -> None:
-    def _fetch_devices(*_args: object, **_kwargs: object) -> list[dict[str, Any]]:
+    def _fetch_devices(
+        *_args: object, **_kwargs: object
+    ) -> list[dict[str, Any]]:
         return payload["devices"]
 
-    def _fetch_clients(*_args: object, **_kwargs: object) -> list[dict[str, Any]]:
+    def _fetch_clients(
+        *_args: object, **_kwargs: object
+    ) -> list[dict[str, Any]]:
         return payload["clients"]
 
-    def _fetch_networks(*_args: object, **_kwargs: object) -> list[dict[str, Any]]:
+    def _fetch_networks(
+        *_args: object, **_kwargs: object
+    ) -> list[dict[str, Any]]:
         return payload.get("networks", [])
 
     monkeypatch.setattr(
@@ -135,7 +149,9 @@ def _assert_device_macs(device_macs: dict[str, Any]) -> None:
         assert isinstance(mac, str)
 
 
-def _assert_optional_types(data: dict[str, Any], expected: dict[str, tuple[type, ...]]) -> None:
+def _assert_optional_types(
+    data: dict[str, Any], expected: dict[str, tuple[type, ...]]
+) -> None:
     for key, types in expected.items():
         if key in data:
             assert isinstance(data[key], types)

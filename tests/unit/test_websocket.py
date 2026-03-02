@@ -8,7 +8,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from custom_components.unifi_network_map.const import DOMAIN
-from custom_components.unifi_network_map.coordinator import UniFiNetworkMapCoordinator
+from custom_components.unifi_network_map.coordinator import (
+    UniFiNetworkMapCoordinator,
+)
 from custom_components.unifi_network_map.data import UniFiNetworkMapData
 from custom_components.unifi_network_map.websocket import (
     _build_payload,
@@ -108,7 +110,10 @@ class TestBuildPayload:
 
     def test_deep_copies_payload(self) -> None:
         hass = MagicMock()
-        original_payload = {"edges": [{"left": "a", "right": "b"}], "node_types": {"a": "switch"}}
+        original_payload = {
+            "edges": [{"left": "a", "right": "b"}],
+            "node_types": {"a": "switch"},
+        }
         coordinator = MagicMock(spec=UniFiNetworkMapCoordinator)
         coordinator.data = UniFiNetworkMapData(
             svg="<svg></svg>",

@@ -1,19 +1,20 @@
 from __future__ import annotations
 
 # pyright: reportUntypedBaseClass=false
-
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, PAYLOAD_SCHEMA_VERSION
 from .coordinator import UniFiNetworkMapCoordinator
 from .data import UniFiNetworkMapData
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 EntityList = list["UniFiNetworkMapSensor | UniFiVlanClientsSensor"]
 
@@ -59,13 +60,15 @@ async def async_setup_entry(
 
     # Listen for future coordinator updates to add new VLAN sensors
     if hasattr(coordinator, "async_add_listener"):
-        entry.async_on_unload(coordinator.async_add_listener(_handle_coordinator_update))
+        entry.async_on_unload(
+            coordinator.async_add_listener(_handle_coordinator_update)
+        )
 
 
 def _create_vlan_sensors(
     coordinator: UniFiNetworkMapCoordinator,
     entry: ConfigEntry,
-) -> list["UniFiVlanClientsSensor"]:
+) -> list[UniFiVlanClientsSensor]:
     """Create VLAN client count sensors."""
     if not coordinator.data or not coordinator.data.payload:
         return []
@@ -96,7 +99,9 @@ class UniFiNetworkMapSensor(  # type: ignore[reportUntypedBaseClass]
     _attr_name = "Status"
     _attr_icon = "mdi:graph"
 
-    def __init__(self, coordinator: UniFiNetworkMapCoordinator, entry: ConfigEntry) -> None:
+    def __init__(
+        self, coordinator: UniFiNetworkMapCoordinator, entry: ConfigEntry
+    ) -> None:
         """Initialize the status sensor."""
         super().__init__(coordinator)
         self._entry = entry
@@ -198,4 +203,6 @@ class UniFiVlanClientsSensor(  # type: ignore[reportUntypedBaseClass]
             return None
         vlan_info = self.coordinator.data.payload.get("vlan_info", {})
         # Keys in JSON are always strings, but _vlan_id is stored as int
-        return vlan_info.get(str(self._vlan_id)) or vlan_info.get(self._vlan_id)
+        return vlan_info.get(str(self._vlan_id)) or vlan_info.get(
+            self._vlan_id
+        )

@@ -7,13 +7,16 @@ registry changes occur.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Callable
+from typing import TYPE_CHECKING
 
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 from .const import DOMAIN, LOGGER
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 _CACHE_KEY = "entity_registry_cache"
 
@@ -23,7 +26,9 @@ class EntityRegistryCache:
     """Cache for MAC-to-entity index data."""
 
     _mac_to_entity: dict[str, str] | None = field(default=None, repr=False)
-    _mac_to_all_entities: dict[str, list[str]] | None = field(default=None, repr=False)
+    _mac_to_all_entities: dict[str, list[str]] | None = field(
+        default=None, repr=False
+    )
     _unsub_entity: Callable[[], None] | None = field(default=None, repr=False)
     _unsub_device: Callable[[], None] | None = field(default=None, repr=False)
 
@@ -98,7 +103,9 @@ def cleanup_entity_cache(hass: HomeAssistant) -> None:
         LOGGER.debug("entity_cache cleanup completed")
 
 
-def _subscribe_to_registry_events(hass: HomeAssistant, cache: EntityRegistryCache) -> None:
+def _subscribe_to_registry_events(
+    hass: HomeAssistant, cache: EntityRegistryCache
+) -> None:
     """Subscribe to entity and device registry update events."""
     from .payload_cache import invalidate_payload_cache
 
@@ -110,7 +117,11 @@ def _subscribe_to_registry_events(hass: HomeAssistant, cache: EntityRegistryCach
             cache.invalidate()
             invalidate_payload_cache(hass)
             LOGGER.debug(
-                "entity_cache invalidated trigger=entity action=%s entity_id=%s", action, entity_id
+                "entity_cache invalidated"
+                " trigger=entity action=%s"
+                " entity_id=%s",
+                action,
+                entity_id,
             )
 
     @callback  # type: ignore[reportUntypedFunctionDecorator]
@@ -121,17 +132,27 @@ def _subscribe_to_registry_events(hass: HomeAssistant, cache: EntityRegistryCach
             cache.invalidate()
             invalidate_payload_cache(hass)
             LOGGER.debug(
-                "entity_cache invalidated trigger=device action=%s device_id=%s", action, device_id
+                "entity_cache invalidated"
+                " trigger=device action=%s"
+                " device_id=%s",
+                action,
+                device_id,
             )
 
     entity_event = _get_entity_registry_event()
     device_event = _get_device_registry_event()
 
-    unsub_entity = hass.bus.async_listen(entity_event, _on_entity_registry_updated)
-    unsub_device = hass.bus.async_listen(device_event, _on_device_registry_updated)
+    unsub_entity = hass.bus.async_listen(
+        entity_event, _on_entity_registry_updated
+    )
+    unsub_device = hass.bus.async_listen(
+        device_event, _on_device_registry_updated
+    )
     cache.set_unsubscribe_callbacks(unsub_entity, unsub_device)
     LOGGER.debug(
-        "entity_cache subscribed entity_event=%s device_event=%s", entity_event, device_event
+        "entity_cache subscribed entity_event=%s device_event=%s",
+        entity_event,
+        device_event,
     )
 
 

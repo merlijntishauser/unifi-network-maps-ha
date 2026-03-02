@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Callable, cast
+from typing import TYPE_CHECKING, cast
 
-from custom_components.unifi_network_map import config_flow as config_flow_module
+from homeassistant.const import CONF_PASSWORD, CONF_URL, CONF_USERNAME
+
+from custom_components.unifi_network_map import (
+    config_flow as config_flow_module,
+)
 from custom_components.unifi_network_map.const import (
     CONF_SHOW_WAN,
     CONF_SITE,
@@ -18,8 +22,13 @@ from custom_components.unifi_network_map.const import (
     DEFAULT_SITE,
     DEFAULT_VERIFY_SSL,
 )
-from custom_components.unifi_network_map.errors import CannotConnect, InvalidAuth
-from homeassistant.const import CONF_PASSWORD, CONF_URL, CONF_USERNAME
+from custom_components.unifi_network_map.errors import (
+    CannotConnect,
+    InvalidAuth,
+)
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class FakeHass:
@@ -57,7 +66,9 @@ def test_step_user_creates_entry_on_success(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         return None
 
-    monkeypatch.setattr(config_flow_module, "validate_unifi_credentials", _validate)
+    monkeypatch.setattr(
+        config_flow_module, "validate_unifi_credentials", _validate
+    )
     result = _run(_make_flow().async_step_user(_base_input()))
 
     assert result["type"] == "create_entry"
@@ -69,7 +80,9 @@ def test_step_user_reports_invalid_auth(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         raise InvalidAuth("bad auth")
 
-    monkeypatch.setattr(config_flow_module, "validate_unifi_credentials", _validate)
+    monkeypatch.setattr(
+        config_flow_module, "validate_unifi_credentials", _validate
+    )
     result = _run(_make_flow().async_step_user(_base_input()))
 
     assert result["type"] == "form"
@@ -80,7 +93,9 @@ def test_step_user_reports_cannot_connect(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         raise CannotConnect("no route")
 
-    monkeypatch.setattr(config_flow_module, "validate_unifi_credentials", _validate)
+    monkeypatch.setattr(
+        config_flow_module, "validate_unifi_credentials", _validate
+    )
     result = _run(_make_flow().async_step_user(_base_input()))
 
     assert result["type"] == "form"
@@ -91,7 +106,9 @@ def test_step_user_reports_invalid_url(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         return None
 
-    monkeypatch.setattr(config_flow_module, "validate_unifi_credentials", _validate)
+    monkeypatch.setattr(
+        config_flow_module, "validate_unifi_credentials", _validate
+    )
     bad_input = _base_input()
     bad_input[CONF_URL] = "not-a-url"
     result = _run(_make_flow().async_step_user(bad_input))
@@ -104,7 +121,9 @@ def test_step_user_rejects_url_with_credentials(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         return None
 
-    monkeypatch.setattr(config_flow_module, "validate_unifi_credentials", _validate)
+    monkeypatch.setattr(
+        config_flow_module, "validate_unifi_credentials", _validate
+    )
     bad_input = _base_input()
     bad_input[CONF_URL] = "https://user:pass@unifi.local/"
     result = _run(_make_flow().async_step_user(bad_input))
@@ -159,7 +178,9 @@ def test_options_flow_reports_invalid_svg_size(monkeypatch):
 
 def test_async_get_options_flow_returns_options_flow() -> None:
     entry = FakeEntry()
-    flow = config_flow_module.UniFiNetworkMapConfigFlow.async_get_options_flow(entry)
+    flow = config_flow_module.UniFiNetworkMapConfigFlow.async_get_options_flow(
+        entry
+    )
 
     assert isinstance(flow, config_flow_module.UniFiNetworkMapOptionsFlow)
 
@@ -167,13 +188,15 @@ def test_async_get_options_flow_returns_options_flow() -> None:
 def test_options_schema_fields_use_entry_defaults() -> None:
     options: dict[str, object] = {"include_ports": True}
     options_schema_fields = cast(
-        Callable[[dict[str, object]], dict[str, object]],
+        "Callable[[dict[str, object]], dict[str, object]]",
         getattr(config_flow_module, "_options_schema_fields"),
     )
     fields = options_schema_fields(options)
 
     include_ports_marker = next(
-        marker for marker in fields.keys() if getattr(marker, "schema", None) == "include_ports"
+        marker
+        for marker in fields
+        if getattr(marker, "schema", None) == "include_ports"
     )
 
     default_value = (
@@ -187,22 +210,26 @@ def test_options_schema_fields_use_entry_defaults() -> None:
 
 def test_boolean_selector_returns_instance() -> None:
     boolean_selector = cast(
-        Callable[[], config_flow_module.selector.BooleanSelector],
+        "Callable[[], config_flow_module.selector.BooleanSelector]",
         getattr(config_flow_module, "_boolean_selector"),
     )
     selector_instance = boolean_selector()
 
-    assert isinstance(selector_instance, config_flow_module.selector.BooleanSelector)
+    assert isinstance(
+        selector_instance, config_flow_module.selector.BooleanSelector
+    )
 
 
 def test_client_scope_selector_returns_instance() -> None:
     client_scope_selector = cast(
-        Callable[[], config_flow_module.selector.SelectSelector],
+        "Callable[[], config_flow_module.selector.SelectSelector]",
         getattr(config_flow_module, "_client_scope_selector"),
     )
     selector_instance = client_scope_selector()
 
-    assert isinstance(selector_instance, config_flow_module.selector.SelectSelector)
+    assert isinstance(
+        selector_instance, config_flow_module.selector.SelectSelector
+    )
 
 
 def test_normalize_options_casts_numeric_strings() -> None:
@@ -212,7 +239,9 @@ def test_normalize_options_casts_numeric_strings() -> None:
     }
 
     normalize_options = cast(
-        Callable[[dict[str, object]], tuple[dict[str, object], dict[str, str]]],
+        "Callable["
+        "[dict[str, object]],"
+        " tuple[dict[str, object], dict[str, str]]]",
         getattr(config_flow_module, "_normalize_options"),
     )
     data, errors = normalize_options(user_input)
@@ -226,7 +255,9 @@ def test_normalize_options_strips_empty_string() -> None:
     user_input: dict[str, object] = {CONF_SVG_WIDTH: "   "}
 
     normalize_options = cast(
-        Callable[[dict[str, object]], tuple[dict[str, object], dict[str, str]]],
+        "Callable["
+        "[dict[str, object]],"
+        " tuple[dict[str, object], dict[str, str]]]",
         getattr(config_flow_module, "_normalize_options"),
     )
     data, errors = normalize_options(user_input)
@@ -239,7 +270,9 @@ def test_normalize_options_invalid_type() -> None:
     user_input: dict[str, object] = {CONF_SVG_HEIGHT: {"bad": 1}}
 
     normalize_options = cast(
-        Callable[[dict[str, object]], tuple[dict[str, object], dict[str, str]]],
+        "Callable["
+        "[dict[str, object]],"
+        " tuple[dict[str, object], dict[str, str]]]",
         getattr(config_flow_module, "_normalize_options"),
     )
     _data, errors = normalize_options(user_input)
@@ -253,7 +286,7 @@ def test_prepare_entry_data_strips_trailing_slash() -> None:
     user_input[CONF_URL] = "https://unifi.local/"
 
     prepare_entry_data = cast(
-        Callable[[dict[str, object]], dict[str, object]],
+        "Callable[[dict[str, object]], dict[str, object]]",
         getattr(config_flow_module, "_prepare_entry_data"),
     )
     data = prepare_entry_data(user_input)
@@ -267,7 +300,7 @@ def test_build_options_schema_returns_schema(monkeypatch) -> None:
 
     monkeypatch.setattr(config_flow_module, "_options_schema_fields", _fields)
     build_options_schema = cast(
-        Callable[[dict[str, object]], config_flow_module.vol.Schema],
+        "Callable[[dict[str, object]], config_flow_module.vol.Schema]",
         getattr(config_flow_module, "_build_options_schema"),
     )
     schema = build_options_schema({})
@@ -279,7 +312,9 @@ def test_step_user_rejects_empty_username(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         return None
 
-    monkeypatch.setattr(config_flow_module, "validate_unifi_credentials", _validate)
+    monkeypatch.setattr(
+        config_flow_module, "validate_unifi_credentials", _validate
+    )
     bad_input = _base_input()
     bad_input[CONF_USERNAME] = "   "
     result = _run(_make_flow().async_step_user(bad_input))
@@ -292,7 +327,9 @@ def test_step_user_rejects_empty_password(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         return None
 
-    monkeypatch.setattr(config_flow_module, "validate_unifi_credentials", _validate)
+    monkeypatch.setattr(
+        config_flow_module, "validate_unifi_credentials", _validate
+    )
     bad_input = _base_input()
     bad_input[CONF_PASSWORD] = ""
     result = _run(_make_flow().async_step_user(bad_input))
@@ -305,7 +342,9 @@ def test_step_user_rejects_empty_site(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         return None
 
-    monkeypatch.setattr(config_flow_module, "validate_unifi_credentials", _validate)
+    monkeypatch.setattr(
+        config_flow_module, "validate_unifi_credentials", _validate
+    )
     bad_input = _base_input()
     bad_input[CONF_SITE] = ""
     result = _run(_make_flow().async_step_user(bad_input))
@@ -318,7 +357,9 @@ def test_step_user_rejects_invalid_port(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         return None
 
-    monkeypatch.setattr(config_flow_module, "validate_unifi_credentials", _validate)
+    monkeypatch.setattr(
+        config_flow_module, "validate_unifi_credentials", _validate
+    )
     bad_input = _base_input()
     bad_input[CONF_URL] = "https://unifi.local:99999"
     result = _run(_make_flow().async_step_user(bad_input))
@@ -331,7 +372,9 @@ def test_step_user_strips_url_whitespace(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         return None
 
-    monkeypatch.setattr(config_flow_module, "validate_unifi_credentials", _validate)
+    monkeypatch.setattr(
+        config_flow_module, "validate_unifi_credentials", _validate
+    )
     input_data = _base_input()
     input_data[CONF_URL] = "  https://unifi.local/  "
     result = _run(_make_flow().async_step_user(input_data))
@@ -344,7 +387,9 @@ def test_step_user_rejects_empty_url(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         return None
 
-    monkeypatch.setattr(config_flow_module, "validate_unifi_credentials", _validate)
+    monkeypatch.setattr(
+        config_flow_module, "validate_unifi_credentials", _validate
+    )
     bad_input = _base_input()
     bad_input[CONF_URL] = ""
     result = _run(_make_flow().async_step_user(bad_input))
@@ -378,12 +423,12 @@ def test_options_flow_passes_wan_fields():
 
 def test_options_schema_includes_wan_fields() -> None:
     options_schema_fields = cast(
-        Callable[[dict[str, object]], dict[str, object]],
+        "Callable[[dict[str, object]], dict[str, object]]",
         getattr(config_flow_module, "_options_schema_fields"),
     )
     fields = options_schema_fields({})
 
-    field_names = {getattr(marker, "schema", None) for marker in fields.keys()}
+    field_names = {getattr(marker, "schema", None) for marker in fields}
     assert CONF_SHOW_WAN in field_names
     assert CONF_WAN_LABEL in field_names
     assert CONF_WAN_SPEED in field_names
@@ -394,19 +439,23 @@ def test_options_schema_includes_wan_fields() -> None:
 
 def test_text_selector_returns_instance() -> None:
     text_selector = cast(
-        Callable[[], config_flow_module.selector.TextSelector],
+        "Callable[[], config_flow_module.selector.TextSelector]",
         getattr(config_flow_module, "_text_selector"),
     )
     selector_instance = text_selector()
 
-    assert isinstance(selector_instance, config_flow_module.selector.TextSelector)
+    assert isinstance(
+        selector_instance, config_flow_module.selector.TextSelector
+    )
 
 
 def test_wan2_disabled_selector_returns_instance() -> None:
     wan2_disabled_selector = cast(
-        Callable[[], config_flow_module.selector.SelectSelector],
+        "Callable[[], config_flow_module.selector.SelectSelector]",
         getattr(config_flow_module, "_wan2_disabled_selector"),
     )
     selector_instance = wan2_disabled_selector()
 
-    assert isinstance(selector_instance, config_flow_module.selector.SelectSelector)
+    assert isinstance(
+        selector_instance, config_flow_module.selector.SelectSelector
+    )

@@ -1,8 +1,21 @@
 target-version = "py313"
-line-length = 100
+line-length = 79
 
 [lint]
-extend-select = ["C90"]
+extend-select = [
+    "B",    # flake8-bugbear
+    "C90",  # mccabe complexity
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "I",    # isort
+    "UP",   # pyupgrade
+    "W",    # pycodestyle warnings
+    "SIM",  # flake8-simplify
+    "TCH",  # flake8-type-checking
+]
+
+[lint.per-file-ignores]
+"tests/**" = ["B009", "B010"]
 
 [lint.mccabe]
 max-complexity = 10

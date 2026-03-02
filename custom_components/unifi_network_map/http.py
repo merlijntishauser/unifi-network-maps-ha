@@ -2,14 +2,12 @@ from __future__ import annotations
 
 import re
 from copy import deepcopy
-from typing import Mapping
+from typing import TYPE_CHECKING
 
 from aiohttp import web
-
+from homeassistant.components.http import HomeAssistantView
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
-from homeassistant.components.http import HomeAssistantView
-from homeassistant.core import HomeAssistant
 from unifi_topology import (
     Edge,
     SvgOptions,
@@ -21,11 +19,17 @@ from unifi_topology import (
 )
 
 from .const import DOMAIN, LOGGER
-from .coordinator import UniFiNetworkMapCoordinator
-from .data import UniFiNetworkMapData
 from .entity_cache import get_entity_cache
 from .payload_cache import compute_payload_hash, get_payload_cache
-from .renderer import RenderSettings
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from homeassistant.core import HomeAssistant
+
+    from .coordinator import UniFiNetworkMapCoordinator
+    from .data import UniFiNetworkMapData
+    from .renderer import RenderSettings
 
 _VIEWS_REGISTERED = "views_registered"
 _MAC_ATTRIBUTE_KEYS = ("mac_address", "mac")
@@ -40,11 +44,15 @@ def register_unifi_http_views(hass: HomeAssistant) -> None:
     data[_VIEWS_REGISTERED] = True
 
 
-def _get_coordinator(hass: HomeAssistant, entry_id: str) -> UniFiNetworkMapCoordinator | None:
+def _get_coordinator(
+    hass: HomeAssistant, entry_id: str
+) -> UniFiNetworkMapCoordinator | None:
     return hass.data.get(DOMAIN, {}).get(entry_id)
 
 
-def _get_data(coordinator: UniFiNetworkMapCoordinator | None) -> UniFiNetworkMapData | None:
+def _get_data(
+    coordinator: UniFiNetworkMapCoordinator | None,
+) -> UniFiNetworkMapData | None:
     if coordinator is None:
         return None
     return coordinator.data
@@ -67,7 +75,9 @@ class UniFiNetworkMapSvgView(HomeAssistantView):  # type: ignore[reportUntypedBa
                 _render_svg_with_theme, data, coordinator, svg_theme, icon_set
             )
             headers = {"X-Theme-Background": background}
-            return web.Response(text=themed_svg, content_type="image/svg+xml", headers=headers)
+            return web.Response(
+                text=themed_svg, content_type="image/svg+xml", headers=headers
+            )
         return web.Response(text=data.svg, content_type="image/svg+xml")
 
 
@@ -98,11 +108,15 @@ def _get_or_build_enriched_payload(
     return payload
 
 
-def resolve_client_entity_map(hass: HomeAssistant, client_macs: dict[str, str]) -> dict[str, str]:
+def resolve_client_entity_map(
+    hass: HomeAssistant, client_macs: dict[str, str]
+) -> dict[str, str]:
     return _resolve_entity_map(hass, client_macs)
 
 
-def resolve_device_entity_map(hass: HomeAssistant, device_macs: dict[str, str]) -> dict[str, str]:
+def resolve_device_entity_map(
+    hass: HomeAssistant, device_macs: dict[str, str]
+) -> dict[str, str]:
     return _resolve_entity_map(hass, device_macs)
 
 
@@ -128,12 +142,16 @@ def resolve_node_status_map(
         status_map[node_name] = {
             "entity_id": entity_id,
             "state": _normalize_tracker_state(state.state),
-            "last_changed": state.last_changed.isoformat() if state.last_changed else None,
+            "last_changed": state.last_changed.isoformat()
+            if state.last_changed
+            else None,
         }
     return status_map
 
 
-def build_enriched_payload(hass: HomeAssistant, payload: dict[str, object]) -> dict[str, object]:
+def build_enriched_payload(
+    hass: HomeAssistant, payload: dict[str, object]
+) -> dict[str, object]:
     """Add entity, status, and related entity data to a map payload."""
     client_macs = payload.get("client_macs", {})
     device_macs = payload.get("device_macs", {})
@@ -152,7 +170,9 @@ def build_enriched_payload(hass: HomeAssistant, payload: dict[str, object]) -> d
     return payload
 
 
-def _store_payload_field(payload: dict[str, object], key: str, value: object) -> None:
+def _store_payload_field(
+    payload: dict[str, object], key: str, value: object
+) -> None:
     if value:
         payload[key] = value
 
@@ -195,7 +215,9 @@ def resolve_related_entities(
     return result
 
 
-def _sort_related_entities(entities: list[RelatedEntity]) -> list[RelatedEntity]:
+def _sort_related_entities(
+    entities: list[RelatedEntity],
+) -> list[RelatedEntity]:
     """Sort related entities by domain priority and then by entity_id."""
     domain_priority = {
         "device_tracker": 0,
@@ -216,7 +238,9 @@ def _sort_related_entities(entities: list[RelatedEntity]) -> list[RelatedEntity]
     return sorted(entities, key=sort_key)
 
 
-def _build_mac_to_all_entities_index(hass: HomeAssistant) -> dict[str, list[str]]:
+def _build_mac_to_all_entities_index(
+    hass: HomeAssistant,
+) -> dict[str, list[str]]:
     """Build index mapping MAC addresses to ALL related entity IDs.
 
     This enhanced version finds all entities belonging to a device once we
@@ -232,7 +256,10 @@ def _build_mac_to_all_entities_index(hass: HomeAssistant) -> dict[str, list[str]
     cache = get_entity_cache(hass)
     cached = cache.mac_to_all_entities
     if cached is not None:
-        LOGGER.debug("http mac_index cache_hit=true type=all_entities count=%d", len(cached))
+        LOGGER.debug(
+            "http mac_index cache_hit=true type=all_entities count=%d",
+            len(cached),
+        )
         return cached
 
     entity_registry = er.async_get(hass)
@@ -244,23 +271,33 @@ def _build_mac_to_all_entities_index(hass: HomeAssistant) -> dict[str, list[str]
 
     # First, build a comprehensive device_id -> MAC map from device registry
     device_to_mac = _build_device_mac_map_from_registry(device_registry)
-    LOGGER.debug("http mac_index device_to_mac_registry=%d", len(device_to_mac))
+    LOGGER.debug(
+        "http mac_index device_to_mac_registry=%d", len(device_to_mac)
+    )
 
     # Supplement with MACs found from entity entries
-    device_to_mac_from_entities = _build_device_mac_map(hass, entries, device_registry)
+    device_to_mac_from_entities = _build_device_mac_map(
+        hass, entries, device_registry
+    )
     for device_id, mac in device_to_mac_from_entities.items():
         if device_id not in device_to_mac:
             device_to_mac[device_id] = mac
-    LOGGER.debug("http mac_index device_to_mac_combined=%d", len(device_to_mac))
+    LOGGER.debug(
+        "http mac_index device_to_mac_combined=%d", len(device_to_mac)
+    )
 
     # Group entities by device_id for device-based lookup
     device_to_entities = _build_device_entities_map(entries)
-    LOGGER.debug("http mac_index devices_with_entities=%d", len(device_to_entities))
+    LOGGER.debug(
+        "http mac_index devices_with_entities=%d", len(device_to_entities)
+    )
 
     # Add all entities for each device to its MAC
     _add_entities_by_device(device_to_mac, device_to_entities, mac_to_entities)
     # Also add entities directly (for those without device_id)
-    _add_entities_from_registry(entries, device_to_mac, hass, device_registry, mac_to_entities)
+    _add_entities_from_registry(
+        entries, device_to_mac, hass, device_registry, mac_to_entities
+    )
     _add_entities_from_states(hass, mac_to_entities)
 
     cache.mac_to_all_entities = mac_to_entities
@@ -276,7 +313,9 @@ def _build_mac_to_all_entities_index(hass: HomeAssistant) -> dict[str, list[str]
     for i, (mac, entities) in enumerate(mac_to_entities.items()):
         if i >= 3:
             break
-        LOGGER.debug("http mac_index sample mac=%s entities=%s", mac, entities[:5])
+        LOGGER.debug(
+            "http mac_index sample mac=%s entities=%s", mac, entities[:5]
+        )
     return mac_to_entities
 
 
@@ -296,7 +335,10 @@ def _build_device_mac_map_from_registry(
         return device_to_mac
     for device in devices.values():
         # Check if this is a UniFi device
-        is_unifi = any(len(ident) >= 2 and ident[0] == "unifi" for ident in device.identifiers)
+        is_unifi = any(
+            len(ident) >= 2 and ident[0] == "unifi"
+            for ident in device.identifiers
+        )
         if not is_unifi:
             continue
         # Try to extract MAC from identifiers
@@ -322,7 +364,9 @@ def _mac_from_device_entry(device: dr.DeviceEntry) -> str | None:
     return None
 
 
-def _build_device_entities_map(entries: list[er.RegistryEntry]) -> dict[str, list[str]]:
+def _build_device_entities_map(
+    entries: list[er.RegistryEntry],
+) -> dict[str, list[str]]:
     """Group entity_ids by device_id, excluding disabled entities."""
     device_to_entities: dict[str, list[str]] = {}
     for entry in entries:
@@ -399,7 +443,9 @@ def _resolve_entry_mac(
     return None
 
 
-def _add_entities_from_states(hass: HomeAssistant, mac_to_entities: dict[str, list[str]]) -> None:
+def _add_entities_from_states(
+    hass: HomeAssistant, mac_to_entities: dict[str, list[str]]
+) -> None:
     """Add entity_ids found via state-based MAC candidates."""
     for state in _iter_state_entries(hass):
         if not _is_state_mac_candidate(state):
@@ -410,13 +456,17 @@ def _add_entities_from_states(hass: HomeAssistant, mac_to_entities: dict[str, li
             _append_unique_entity(mac_to_entities, mac, entity_id)
 
 
-def _append_unique_entity(mac_to_entities: dict[str, list[str]], mac: str, entity_id: str) -> None:
+def _append_unique_entity(
+    mac_to_entities: dict[str, list[str]], mac: str, entity_id: str
+) -> None:
     entities = mac_to_entities.setdefault(mac, [])
     if entity_id not in entities:
         entities.append(entity_id)
 
 
-def _entity_state_details(hass: HomeAssistant, entity_id: str) -> RelatedEntity:
+def _entity_state_details(
+    hass: HomeAssistant, entity_id: str
+) -> RelatedEntity:
     """Get state details for an entity."""
     domain = entity_id.split(".", 1)[0] if entity_id else ""
     state = hass.states.get(entity_id)
@@ -427,7 +477,9 @@ def _entity_state_details(hass: HomeAssistant, entity_id: str) -> RelatedEntity:
         "entity_id": entity_id,
         "domain": domain,
         "state": state.state,
-        "last_changed": state.last_changed.isoformat() if state.last_changed else None,
+        "last_changed": state.last_changed.isoformat()
+        if state.last_changed
+        else None,
     }
 
     attrs = state.attributes or {}
@@ -450,7 +502,9 @@ def _normalize_tracker_state(state: str) -> str:
     return "unknown"
 
 
-def _resolve_entity_map(hass: HomeAssistant, macs: dict[str, str]) -> dict[str, str]:
+def _resolve_entity_map(
+    hass: HomeAssistant, macs: dict[str, str]
+) -> dict[str, str]:
     if not macs:
         return {}
     mac_to_entity = _build_mac_entity_index(hass)
@@ -470,7 +524,9 @@ def _build_mac_entity_index(hass: HomeAssistant) -> dict[str, str]:
     cache = get_entity_cache(hass)
     cached = cache.mac_to_entity
     if cached is not None:
-        LOGGER.debug("http mac_index cache_hit=true type=primary count=%d", len(cached))
+        LOGGER.debug(
+            "http mac_index cache_hit=true type=primary count=%d", len(cached)
+        )
         return cached
 
     entity_registry = er.async_get(hass)
@@ -480,14 +536,20 @@ def _build_mac_entity_index(hass: HomeAssistant) -> dict[str, str]:
     _add_state_macs(hass, mac_to_entity)
 
     cache.mac_to_entity = mac_to_entity
-    LOGGER.debug("http mac_index built type=primary count=%d", len(mac_to_entity))
+    LOGGER.debug(
+        "http mac_index built type=primary count=%d", len(mac_to_entity)
+    )
     return mac_to_entity
 
 
-def _iter_unifi_entity_entries(hass: HomeAssistant, entity_registry: er.EntityRegistry):
+def _iter_unifi_entity_entries(
+    hass: HomeAssistant, entity_registry: er.EntityRegistry
+):
     seen: set[str] = set()
     for config_entry in hass.config_entries.async_entries("unifi"):
-        for entry in er.async_entries_for_config_entry(entity_registry, config_entry.entry_id):
+        for entry in er.async_entries_for_config_entry(
+            entity_registry, config_entry.entry_id
+        ):
             if entry.entity_id in seen:
                 continue
             seen.add(entry.entity_id)
@@ -510,7 +572,10 @@ def get_unifi_entity_mac_stats(hass: HomeAssistant) -> dict[str, int]:
         scanned += 1
         if mac_from_entity_entry(hass, entry, device_registry):
             with_mac += 1
-    return {"unifi_entities_scanned": scanned, "unifi_entities_with_mac": with_mac}
+    return {
+        "unifi_entities_scanned": scanned,
+        "unifi_entities_with_mac": with_mac,
+    }
 
 
 def get_unifi_entity_macs(hass: HomeAssistant) -> set[str]:
@@ -537,7 +602,9 @@ def _add_registry_macs(
             mac_to_entity.setdefault(mac, entry.entity_id)
 
 
-def _add_state_macs(hass: HomeAssistant, mac_to_entity: dict[str, str]) -> None:
+def _add_state_macs(
+    hass: HomeAssistant, mac_to_entity: dict[str, str]
+) -> None:
     for state in _iter_state_entries(hass):
         if not _is_state_mac_candidate(state):
             continue
@@ -598,7 +665,9 @@ def _extract_mac_from_attributes(attributes: dict[str, object]) -> str | None:
 
 
 def mac_from_entity_entry(
-    hass: HomeAssistant, entry: er.RegistryEntry, device_registry: dr.DeviceRegistry
+    hass: HomeAssistant,
+    entry: er.RegistryEntry,
+    device_registry: dr.DeviceRegistry,
 ) -> str | None:
     return (
         _mac_from_unique_id(entry)
@@ -613,7 +682,9 @@ def _mac_from_unique_id(entry: er.RegistryEntry) -> str | None:
     return _extract_mac(entry.unique_id)
 
 
-def _mac_from_device(entry: er.RegistryEntry, device_registry: dr.DeviceRegistry) -> str | None:
+def _mac_from_device(
+    entry: er.RegistryEntry, device_registry: dr.DeviceRegistry
+) -> str | None:
     if not entry.device_id:
         return None
     device = device_registry.async_get(entry.device_id)
@@ -631,7 +702,9 @@ def _mac_from_device(entry: er.RegistryEntry, device_registry: dr.DeviceRegistry
     return None
 
 
-def _mac_from_state(hass: HomeAssistant, entry: er.RegistryEntry) -> str | None:
+def _mac_from_state(
+    hass: HomeAssistant, entry: er.RegistryEntry
+) -> str | None:
     state = hass.states.get(entry.entity_id)
     if not state:
         return None
@@ -657,7 +730,9 @@ def _extract_mac(value: str) -> str | None:
     match = re.search(r"[0-9A-Fa-f]{12}", value)
     if match:
         packed = match.group(0)
-        return _normalize_mac(":".join(packed[i : i + 2] for i in range(0, 12, 2)))
+        return _normalize_mac(
+            ":".join(packed[i : i + 2] for i in range(0, 12, 2))
+        )
     return None
 
 
@@ -681,7 +756,12 @@ def _render_svg_with_theme(
         return data.svg, background
     options = _svg_options_from_settings(coordinator.settings)
     svg = _render_svg_variant(
-        edges, node_types, options, theme, coordinator.settings.svg_isometric, data.wan_info
+        edges,
+        node_types,
+        options,
+        theme,
+        coordinator.settings.svg_isometric,
+        data.wan_info,
     )
     return svg, background
 
@@ -689,7 +769,10 @@ def _render_svg_with_theme(
 def _load_svg_theme(
     svg_theme: str | None, icon_set: str | None, settings: RenderSettings
 ) -> SvgTheme:
-    """Load SVG theme from request params, falling back to coordinator settings."""
+    """Load SVG theme from request params.
+
+    Falls back to coordinator settings.
+    """
     from dataclasses import replace
 
     theme_name = svg_theme or settings.svg_theme or "unifi"
@@ -708,7 +791,11 @@ def _should_render_svg(
 
 
 def _build_svg_edges(edges_payload: list[Mapping[str, object]]) -> list[Edge]:
-    return [_edge_from_payload(edge) for edge in edges_payload if _valid_edge_payload(edge)]
+    return [
+        _edge_from_payload(edge)
+        for edge in edges_payload
+        if _valid_edge_payload(edge)
+    ]
 
 
 def _svg_options_from_settings(settings: RenderSettings) -> SvgOptions:
@@ -725,9 +812,19 @@ def _render_svg_variant(
 ) -> str:
     if is_isometric:
         return render_svg_isometric(
-            edges, node_types=node_types, options=options, theme=theme, wan_info=wan_info
+            edges,
+            node_types=node_types,
+            options=options,
+            theme=theme,
+            wan_info=wan_info,
         )
-    return render_svg(edges, node_types=node_types, options=options, theme=theme, wan_info=wan_info)
+    return render_svg(
+        edges,
+        node_types=node_types,
+        options=options,
+        theme=theme,
+        wan_info=wan_info,
+    )
 
 
 def _valid_edge_payload(edge: object) -> bool:

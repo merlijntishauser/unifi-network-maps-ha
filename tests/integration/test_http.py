@@ -2,18 +2,30 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
-from typing import Callable, cast
+from typing import TYPE_CHECKING, cast
 
 import pytest
+from aiohttp import web
 
 from custom_components.unifi_network_map import http as http_module
-from aiohttp import web
 from custom_components.unifi_network_map.data import UniFiNetworkMapData
-from custom_components.unifi_network_map.renderer import RenderSettings
 from tests.helpers import build_settings
-from unifi_topology import Edge
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from unifi_topology import Edge
+
+    from custom_components.unifi_network_map.renderer import RenderSettings
+
+_THEME_FN = (
+    "Callable["
+    "[UniFiNetworkMapData, object,"
+    " str | None, str | None],"
+    " tuple[str, str]]"
+)
 
 
 @dataclass
@@ -57,13 +69,18 @@ class FakeBus:
     def __init__(self) -> None:
         self.listeners: dict[str, list[Callable[..., None]]] = {}
 
-    def async_listen(self, event_type: str, callback: Callable[..., None]) -> Callable[[], None]:
+    def async_listen(
+        self, event_type: str, callback: Callable[..., None]
+    ) -> Callable[[], None]:
         if event_type not in self.listeners:
             self.listeners[event_type] = []
         self.listeners[event_type].append(callback)
 
         def unsub() -> None:
-            if event_type in self.listeners and callback in self.listeners[event_type]:
+            if (
+                event_type in self.listeners
+                and callback in self.listeners[event_type]
+            ):
                 self.listeners[event_type].remove(callback)
 
         return unsub
@@ -119,7 +136,7 @@ def _run(coro):
 
 
 def test_resolve_node_status_map_filters_non_trackers() -> None:
-    now = datetime(2026, 1, 17, tzinfo=timezone.utc)
+    now = datetime(2026, 1, 17, tzinfo=UTC)
     hass = FakeHass(
         {
             "device_tracker.one": FakeState(
@@ -162,7 +179,7 @@ def test_register_unifi_http_views_registers_once() -> None:
     register(hass)
     register(hass)
 
-    data = cast(dict[str, object], hass.data["unifi_network_map"])
+    data = cast("dict[str, object]", hass.data["unifi_network_map"])
     assert data["views_registered"] is True
     assert len(hass.http.views) == 2
 
@@ -178,26 +195,37 @@ def test_svg_view_returns_404_when_missing_data() -> None:
         _run(view.get(request, "missing"))
 
 
-def test_svg_view_renders_theme_when_requested(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_svg_view_renders_theme_when_requested(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     settings = build_settings()
-    data = UniFiNetworkMapData(svg="<svg />", payload={"edges": [{"left": "a", "right": "b"}]})
+    data = UniFiNetworkMapData(
+        svg="<svg />", payload={"edges": [{"left": "a", "right": "b"}]}
+    )
     coordinator = FakeCoordinator(settings=settings)
     hass = FakeHassWithHttp({})
     hass.data["unifi_network_map"] = {"entry-1": coordinator}
     coordinator.data = data
 
     def _render_svg_with_theme(
-        _data: object, _coordinator: object, _svg_theme: str | None, _icon_set: str | None
+        _data: object,
+        _coordinator: object,
+        _svg_theme: str | None,
+        _icon_set: str | None,
     ) -> tuple[str, str]:
         return ("themed", "#1c1e21")
 
-    monkeypatch.setattr(http_module, "_render_svg_with_theme", _render_svg_with_theme)
+    monkeypatch.setattr(
+        http_module, "_render_svg_with_theme", _render_svg_with_theme
+    )
 
     def _response(**kwargs: object) -> SimpleNamespace:
         return SimpleNamespace(**kwargs)
 
     http_module.web.Response = _response
-    request = SimpleNamespace(app={"hass": hass}, query={"svg_theme": "unifi-dark"})
+    request = SimpleNamespace(
+        app={"hass": hass}, query={"svg_theme": "unifi-dark"}
+    )
 
     view = http_module.UniFiNetworkMapSvgView()
     response = _run(view.get(request, "entry-1"))
@@ -206,7 +234,9 @@ def test_svg_view_renders_theme_when_requested(monkeypatch: pytest.MonkeyPatch) 
     assert response.headers == {"X-Theme-Background": "#1c1e21"}
 
 
-def test_payload_view_returns_mapped_entities(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_payload_view_returns_mapped_entities(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     data = UniFiNetworkMapData(
         svg="<svg />",
         payload={"client_macs": {"One": "aa"}, "device_macs": {"Two": "bb"}},
@@ -232,10 +262,18 @@ def test_payload_view_returns_mapped_entities(monkeypatch: pytest.MonkeyPatch) -
         return {"One": {"state": "online"}}
 
     http_module.web.json_response = _json_response
-    monkeypatch.setattr(http_module, "resolve_client_entity_map", _resolve_client_entity_map)
-    monkeypatch.setattr(http_module, "resolve_device_entity_map", _resolve_device_entity_map)
-    monkeypatch.setattr(http_module, "resolve_node_entity_map", _resolve_node_entity_map)
-    monkeypatch.setattr(http_module, "resolve_node_status_map", _resolve_node_status_map)
+    monkeypatch.setattr(
+        http_module, "resolve_client_entity_map", _resolve_client_entity_map
+    )
+    monkeypatch.setattr(
+        http_module, "resolve_device_entity_map", _resolve_device_entity_map
+    )
+    monkeypatch.setattr(
+        http_module, "resolve_node_entity_map", _resolve_node_entity_map
+    )
+    monkeypatch.setattr(
+        http_module, "resolve_node_status_map", _resolve_node_status_map
+    )
     request = SimpleNamespace(app={"hass": hass})
 
     view = http_module.UniFiNetworkMapPayloadView()
@@ -247,7 +285,8 @@ def test_payload_view_returns_mapped_entities(monkeypatch: pytest.MonkeyPatch) -
 
 def test_normalize_tracker_state() -> None:
     normalize_tracker_state = cast(
-        Callable[[str], str], getattr(http_module, "_normalize_tracker_state")
+        "Callable[[str], str]",
+        getattr(http_module, "_normalize_tracker_state"),
     )
     assert normalize_tracker_state("home") == "online"
     assert normalize_tracker_state("not_home") == "offline"
@@ -255,7 +294,9 @@ def test_normalize_tracker_state() -> None:
 
 
 def test_extract_mac_parses_common_formats() -> None:
-    extract_mac = cast(Callable[[str], str | None], getattr(http_module, "_extract_mac"))
+    extract_mac = cast(
+        "Callable[[str], str | None]", getattr(http_module, "_extract_mac")
+    )
     assert extract_mac("AA:BB:CC:DD:EE:FF") == "aa:bb:cc:dd:ee:ff"
     assert extract_mac("aa-bb-cc-dd-ee-ff") == "aa:bb:cc:dd:ee:ff"
     assert extract_mac("aabbccddeeff") == "aa:bb:cc:dd:ee:ff"
@@ -264,10 +305,12 @@ def test_extract_mac_parses_common_formats() -> None:
 
 def test_edge_payload_validation_and_defaults() -> None:
     valid_edge_payload = cast(
-        Callable[[dict[str, object]], bool], getattr(http_module, "_valid_edge_payload")
+        "Callable[[dict[str, object]], bool]",
+        getattr(http_module, "_valid_edge_payload"),
     )
     edge_from_payload = cast(
-        Callable[[dict[str, object]], Edge], getattr(http_module, "_edge_from_payload")
+        "Callable[[dict[str, object]], Edge]",
+        getattr(http_module, "_edge_from_payload"),
     )
     assert valid_edge_payload({"left": "a", "right": "b"}) is True
     assert valid_edge_payload({"left": "a"}) is False
@@ -309,7 +352,10 @@ def test_render_svg_with_theme_paths(monkeypatch: pytest.MonkeyPatch) -> None:
             "node_types": {"a": "gateway", "b": "switch"},
         },
     )
-    coordinator = cast(http_module.UniFiNetworkMapCoordinator, FakeCoordinator(settings=settings))
+    coordinator = cast(
+        "http_module.UniFiNetworkMapCoordinator",
+        FakeCoordinator(settings=settings),
+    )
 
     def _render_svg(*_args: object, **_kwargs: object) -> str:
         return "rendered"
@@ -317,7 +363,7 @@ def test_render_svg_with_theme_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(http_module, "render_svg", _render_svg)
 
     render_svg_with_theme = cast(
-        Callable[[UniFiNetworkMapData, object, str | None, str | None], tuple[str, str]],
+        "_THEME_FN",
         getattr(http_module, "_render_svg_with_theme"),
     )
     svg, background = render_svg_with_theme(data, coordinator, "unifi", None)
@@ -328,11 +374,16 @@ def test_render_svg_with_theme_paths(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_render_svg_with_theme_returns_original_on_missing_edges() -> None:
     settings = build_settings(svg_isometric=True)
-    data = UniFiNetworkMapData(svg="<svg />", payload={"edges": [], "node_types": {}})
-    coordinator = cast(http_module.UniFiNetworkMapCoordinator, FakeCoordinator(settings=settings))
+    data = UniFiNetworkMapData(
+        svg="<svg />", payload={"edges": [], "node_types": {}}
+    )
+    coordinator = cast(
+        "http_module.UniFiNetworkMapCoordinator",
+        FakeCoordinator(settings=settings),
+    )
 
     render_svg_with_theme = cast(
-        Callable[[UniFiNetworkMapData, object, str | None, str | None], tuple[str, str]],
+        "_THEME_FN",
         getattr(http_module, "_render_svg_with_theme"),
     )
     svg, background = render_svg_with_theme(data, coordinator, "unifi", None)
@@ -347,11 +398,12 @@ def test_render_svg_with_theme_returns_original_on_invalid_edges() -> None:
         payload={"edges": [{"left": "a"}], "node_types": {"a": "gateway"}},
     )
     coordinator = cast(
-        http_module.UniFiNetworkMapCoordinator, FakeCoordinator(settings=build_settings())
+        "http_module.UniFiNetworkMapCoordinator",
+        FakeCoordinator(settings=build_settings()),
     )
 
     render_svg_with_theme = cast(
-        Callable[[UniFiNetworkMapData, object, str | None, str | None], tuple[str, str]],
+        "_THEME_FN",
         getattr(http_module, "_render_svg_with_theme"),
     )
     svg, background = render_svg_with_theme(data, coordinator, "unifi", None)
@@ -360,7 +412,9 @@ def test_render_svg_with_theme_returns_original_on_invalid_edges() -> None:
     assert background == "#f9fafa"
 
 
-def test_render_svg_with_theme_isometric_branch(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_render_svg_with_theme_isometric_branch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     settings = build_settings(svg_isometric=True)
     data = UniFiNetworkMapData(
         svg="<svg />",
@@ -369,15 +423,20 @@ def test_render_svg_with_theme_isometric_branch(monkeypatch: pytest.MonkeyPatch)
             "node_types": {"a": "gateway", "b": "switch"},
         },
     )
-    coordinator = cast(http_module.UniFiNetworkMapCoordinator, FakeCoordinator(settings=settings))
+    coordinator = cast(
+        "http_module.UniFiNetworkMapCoordinator",
+        FakeCoordinator(settings=settings),
+    )
 
     def _render_svg_isometric(*_args: object, **_kwargs: object) -> str:
         return "iso"
 
-    monkeypatch.setattr(http_module, "render_svg_isometric", _render_svg_isometric)
+    monkeypatch.setattr(
+        http_module, "render_svg_isometric", _render_svg_isometric
+    )
 
     render_svg_with_theme = cast(
-        Callable[[UniFiNetworkMapData, object, str | None, str | None], tuple[str, str]],
+        "_THEME_FN",
         getattr(http_module, "_render_svg_with_theme"),
     )
     svg, background = render_svg_with_theme(data, coordinator, "unifi", None)
@@ -387,7 +446,8 @@ def test_render_svg_with_theme_isometric_branch(monkeypatch: pytest.MonkeyPatch)
 
 
 def test_load_svg_theme_applies_icon_set_override() -> None:
-    """_load_svg_theme applies icon_set override when different from theme default."""
+    """_load_svg_theme applies icon_set override when
+    different from theme default."""
     from custom_components.unifi_network_map.renderer import RenderSettings
 
     settings = RenderSettings(
@@ -403,7 +463,7 @@ def test_load_svg_theme_applies_icon_set_override() -> None:
         icon_set="modern",
     )
     load_svg_theme = cast(
-        Callable[[str | None, str | None, RenderSettings], object],
+        "Callable[[str | None, str | None, RenderSettings], object]",
         getattr(http_module, "_load_svg_theme"),
     )
 
@@ -417,7 +477,9 @@ def test_load_svg_theme_applies_icon_set_override() -> None:
     assert hasattr(theme_default, "icon_set")
 
 
-def test_build_mac_entity_index_prefers_registry(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_build_mac_entity_index_prefers_registry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     hass = FakeHassWithHttp({})
     hass.config_entries = FakeConfigEntries([SimpleNamespace(entry_id="1")])
     entity_registry = FakeEntityRegistry(
@@ -444,11 +506,17 @@ def test_build_mac_entity_index_prefers_registry(monkeypatch: pytest.MonkeyPatch
     def _async_get_device_registry(_hass: object) -> FakeDeviceRegistry:
         return device_registry
 
-    def _entries_for_config_entry(_reg: object, _entry_id: str) -> list[FakeEntityEntry]:
+    def _entries_for_config_entry(
+        _reg: object, _entry_id: str
+    ) -> list[FakeEntityEntry]:
         return list(entity_registry.entities.values())
 
-    monkeypatch.setattr(http_module.er, "async_get", _async_get_entity_registry)
-    monkeypatch.setattr(http_module.dr, "async_get", _async_get_device_registry)
+    monkeypatch.setattr(
+        http_module.er, "async_get", _async_get_entity_registry
+    )
+    monkeypatch.setattr(
+        http_module.dr, "async_get", _async_get_device_registry
+    )
     monkeypatch.setattr(
         http_module.er,
         "async_entries_for_config_entry",
@@ -457,7 +525,7 @@ def test_build_mac_entity_index_prefers_registry(monkeypatch: pytest.MonkeyPatch
     )
 
     build_index = cast(
-        Callable[[FakeHassWithHttp], dict[str, str]],
+        "Callable[[FakeHassWithHttp], dict[str, str]]",
         getattr(http_module, "_build_mac_entity_index"),
     )
     index = build_index(hass)
@@ -467,7 +535,8 @@ def test_build_mac_entity_index_prefers_registry(monkeypatch: pytest.MonkeyPatch
 
 def test_is_state_mac_candidate_paths() -> None:
     is_state_mac_candidate = cast(
-        Callable[[object], bool], getattr(http_module, "_is_state_mac_candidate")
+        "Callable[[object], bool]",
+        getattr(http_module, "_is_state_mac_candidate"),
     )
     state_tracker = FakeState(
         entity_id="device_tracker.one",
@@ -495,7 +564,8 @@ def test_is_state_mac_candidate_paths() -> None:
 
 def test_is_state_mac_candidate_handles_non_dict_attributes() -> None:
     is_state_mac_candidate = cast(
-        Callable[[object], bool], getattr(http_module, "_is_state_mac_candidate")
+        "Callable[[object], bool]",
+        getattr(http_module, "_is_state_mac_candidate"),
     )
     state = SimpleNamespace(entity_id="sensor.one", attributes=["mac"])
 
@@ -511,14 +581,17 @@ def test_iter_state_entries_falls_back_to_all() -> None:
     hass.states = _States()
 
     iter_state_entries = cast(
-        Callable[[FakeHassWithHttp], list[object]], getattr(http_module, "_iter_state_entries")
+        "Callable[[FakeHassWithHttp], list[object]]",
+        getattr(http_module, "_iter_state_entries"),
     )
     entries = iter_state_entries(hass)
 
     assert len(entries) == 1
 
 
-def test_get_unifi_entity_mac_stats_counts(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_get_unifi_entity_mac_stats_counts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     hass = FakeHassWithHttp({})
     hass.config_entries = FakeConfigEntries([SimpleNamespace(entry_id="1")])
     entity_registry = FakeEntityRegistry(
@@ -543,11 +616,17 @@ def test_get_unifi_entity_mac_stats_counts(monkeypatch: pytest.MonkeyPatch) -> N
     def _async_get_device_registry(_hass: object) -> FakeDeviceRegistry:
         return device_registry
 
-    def _entries_for_config_entry(_reg: object, _entry_id: str) -> list[FakeEntityEntry]:
+    def _entries_for_config_entry(
+        _reg: object, _entry_id: str
+    ) -> list[FakeEntityEntry]:
         return list(entity_registry.entities.values())
 
-    monkeypatch.setattr(http_module.er, "async_get", _async_get_entity_registry)
-    monkeypatch.setattr(http_module.dr, "async_get", _async_get_device_registry)
+    monkeypatch.setattr(
+        http_module.er, "async_get", _async_get_entity_registry
+    )
+    monkeypatch.setattr(
+        http_module.dr, "async_get", _async_get_device_registry
+    )
     monkeypatch.setattr(
         http_module.er,
         "async_entries_for_config_entry",
@@ -579,20 +658,28 @@ def test_format_mac_handles_invalid(monkeypatch: pytest.MonkeyPatch) -> None:
         raise ValueError("bad")
 
     monkeypatch.setattr(http_module.dr, "format_mac", _raise_value_error)
-    format_mac = cast(Callable[[str], str | None], getattr(http_module, "_format_mac"))
+    format_mac = cast(
+        "Callable[[str], str | None]", getattr(http_module, "_format_mac")
+    )
 
     assert format_mac("bad") is None
 
 
-def test_format_mac_returns_none_when_formatter_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_format_mac_returns_none_when_formatter_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(http_module.dr, "format_mac", None)
-    format_mac = cast(Callable[[str], str | None], getattr(http_module, "_format_mac"))
+    format_mac = cast(
+        "Callable[[str], str | None]", getattr(http_module, "_format_mac")
+    )
 
     assert format_mac("AA:BB:CC:DD:EE:FF") is None
 
 
 def test_format_mac_returns_none_on_blank() -> None:
-    format_mac = cast(Callable[[str], str | None], getattr(http_module, "_format_mac"))
+    format_mac = cast(
+        "Callable[[str], str | None]", getattr(http_module, "_format_mac")
+    )
 
     assert format_mac("") is None
 
@@ -619,11 +706,17 @@ def test_get_unifi_entity_macs_and_normalize_mac_value(
     def _async_get_device_registry(_hass: object) -> FakeDeviceRegistry:
         return device_registry
 
-    def _entries_for_config_entry(_reg: object, _entry_id: str) -> list[FakeEntityEntry]:
+    def _entries_for_config_entry(
+        _reg: object, _entry_id: str
+    ) -> list[FakeEntityEntry]:
         return list(entity_registry.entities.values())
 
-    monkeypatch.setattr(http_module.er, "async_get", _async_get_entity_registry)
-    monkeypatch.setattr(http_module.dr, "async_get", _async_get_device_registry)
+    monkeypatch.setattr(
+        http_module.er, "async_get", _async_get_entity_registry
+    )
+    monkeypatch.setattr(
+        http_module.dr, "async_get", _async_get_device_registry
+    )
     monkeypatch.setattr(
         http_module.er,
         "async_entries_for_config_entry",
@@ -632,12 +725,15 @@ def test_get_unifi_entity_macs_and_normalize_mac_value(
     )
 
     assert "aa:bb:cc:dd:ee:ff" in http_module.get_unifi_entity_macs(hass)
-    assert http_module.normalize_mac_value("AA:BB:CC:DD:EE:FF") == "aa:bb:cc:dd:ee:ff"
+    assert (
+        http_module.normalize_mac_value("AA:BB:CC:DD:EE:FF")
+        == "aa:bb:cc:dd:ee:ff"
+    )
 
 
 def test_resolve_entity_map_returns_empty() -> None:
     resolve_entity_map = cast(
-        Callable[[FakeHassWithHttp, dict[str, str]], dict[str, str]],
+        "Callable[[FakeHassWithHttp, dict[str, str]], dict[str, str]]",
         getattr(http_module, "_resolve_entity_map"),
     )
 
@@ -646,7 +742,8 @@ def test_resolve_entity_map_returns_empty() -> None:
 
 def test_mac_from_state_entry_rejects_non_dict() -> None:
     mac_from_state_entry = cast(
-        Callable[[object], str | None], getattr(http_module, "_mac_from_state_entry")
+        "Callable[[object], str | None]",
+        getattr(http_module, "_mac_from_state_entry"),
     )
 
     assert mac_from_state_entry(SimpleNamespace(attributes=["mac"])) is None
@@ -654,19 +751,23 @@ def test_mac_from_state_entry_rejects_non_dict() -> None:
 
 def test_get_mac_attribute_value_none() -> None:
     get_mac_attribute_value = cast(
-        Callable[[dict[str, object]], str | None],
+        "Callable[[dict[str, object]], str | None]",
         getattr(http_module, "_get_mac_attribute_value"),
     )
 
     assert get_mac_attribute_value({"mac": ""}) is None
 
 
-def test_mac_from_device_prefers_connection(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_mac_from_device_prefers_connection(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     entry = FakeEntityEntry(entity_id="sensor.one", device_id="device-1")
-    device = FakeDevice(identifiers=set(), connections={("mac", "AA-BB-CC-DD-EE-FF")})
+    device = FakeDevice(
+        identifiers=set(), connections={("mac", "AA-BB-CC-DD-EE-FF")}
+    )
     device_registry = FakeDeviceRegistry({"device-1": device})
     mac_from_device = cast(
-        Callable[[object, FakeDeviceRegistry], str | None],
+        "Callable[[object, FakeDeviceRegistry], str | None]",
         getattr(http_module, "_mac_from_device"),
     )
 
@@ -678,24 +779,31 @@ def test_normalize_mac_uses_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
         return None
 
     monkeypatch.setattr(http_module, "_format_mac", _format_mac)
-    normalize_mac = cast(Callable[[str], str], getattr(http_module, "_normalize_mac"))
+    normalize_mac = cast(
+        "Callable[[str], str]", getattr(http_module, "_normalize_mac")
+    )
 
     assert normalize_mac(" AA:BB ") == "aa:bb"
 
 
 def test_extract_mac_returns_none_for_empty() -> None:
-    extract_mac = cast(Callable[[str], str | None], getattr(http_module, "_extract_mac"))
+    extract_mac = cast(
+        "Callable[[str], str | None]", getattr(http_module, "_extract_mac")
+    )
 
     assert extract_mac("") is None
 
 
 def test_is_entity_enabled_checks_disabled_by() -> None:
     is_entity_enabled = cast(
-        Callable[[FakeEntityEntry], bool], getattr(http_module, "_is_entity_enabled")
+        "Callable[[FakeEntityEntry], bool]",
+        getattr(http_module, "_is_entity_enabled"),
     )
 
     enabled_entry = FakeEntityEntry(entity_id="sensor.one", disabled_by=None)
-    disabled_entry = FakeEntityEntry(entity_id="sensor.two", disabled_by="user")
+    disabled_entry = FakeEntityEntry(
+        entity_id="sensor.two", disabled_by="user"
+    )
 
     assert is_entity_enabled(enabled_entry) is True
     assert is_entity_enabled(disabled_entry) is False
@@ -703,14 +811,20 @@ def test_is_entity_enabled_checks_disabled_by() -> None:
 
 def test_build_device_entities_map_excludes_disabled() -> None:
     build_device_entities_map = cast(
-        Callable[[list[FakeEntityEntry]], dict[str, list[str]]],
+        "Callable[[list[FakeEntityEntry]], dict[str, list[str]]]",
         getattr(http_module, "_build_device_entities_map"),
     )
 
     entries = [
-        FakeEntityEntry(entity_id="sensor.one", device_id="d1", disabled_by=None),
-        FakeEntityEntry(entity_id="sensor.two", device_id="d1", disabled_by="user"),
-        FakeEntityEntry(entity_id="sensor.three", device_id="d1", disabled_by=None),
+        FakeEntityEntry(
+            entity_id="sensor.one", device_id="d1", disabled_by=None
+        ),
+        FakeEntityEntry(
+            entity_id="sensor.two", device_id="d1", disabled_by="user"
+        ),
+        FakeEntityEntry(
+            entity_id="sensor.three", device_id="d1", disabled_by=None
+        ),
     ]
 
     result = build_device_entities_map(entries)

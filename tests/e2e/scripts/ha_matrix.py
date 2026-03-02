@@ -18,7 +18,9 @@ def load_config(path: Path) -> dict[str, Any]:
 def build_matrix(data: dict[str, Any]) -> dict[str, Any]:
     versions = data.get("versions", [])
     if not isinstance(versions, list) or not versions:
-        raise ValueError("Matrix config must include a non-empty 'versions' list")
+        raise ValueError(
+            "Matrix config must include a non-empty 'versions' list"
+        )
     matrix: list[dict[str, str]] = []
     for item in versions:
         if not isinstance(item, dict):
@@ -27,7 +29,9 @@ def build_matrix(data: dict[str, Any]) -> dict[str, Any]:
         image_tag = str(item.get("image_tag", ""))
         config_dir = str(item.get("config_dir", ""))
         if not name or not image_tag or not config_dir:
-            raise ValueError("Each version must include name, image_tag, and config_dir")
+            raise ValueError(
+                "Each version must include name, image_tag, and config_dir"
+            )
         matrix.append(
             {
                 "name": name,

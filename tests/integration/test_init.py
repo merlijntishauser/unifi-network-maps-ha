@@ -3,15 +3,20 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Coroutine, cast
+from typing import TYPE_CHECKING, cast
 
 import pytest
+from homeassistant.core import ServiceCall
+from homeassistant.exceptions import HomeAssistantError
 
 import custom_components.unifi_network_map as init_module
 from custom_components.unifi_network_map.const import DOMAIN
-from custom_components.unifi_network_map.coordinator import UniFiNetworkMapCoordinator
-from homeassistant.core import ServiceCall
-from homeassistant.exceptions import HomeAssistantError
+from custom_components.unifi_network_map.coordinator import (
+    UniFiNetworkMapCoordinator,
+)
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Coroutine
 
 
 @dataclass
@@ -20,7 +25,9 @@ class FakeEntry:
     data: dict[str, object]
     options: dict[str, object]
 
-    def add_update_listener(self, _callback: Callable[..., object]) -> Callable[[], None]:
+    def add_update_listener(
+        self, _callback: Callable[..., object]
+    ) -> Callable[[], None]:
         """Mock add_update_listener that returns a no-op removal function."""
         return lambda: None
 
@@ -33,7 +40,9 @@ class FakeServices:
     def __init__(self) -> None:
         self.registered = []
 
-    def async_register(self, domain: str, service: str, handler, schema=None) -> None:
+    def async_register(
+        self, domain: str, service: str, handler, schema=None
+    ) -> None:
         self.registered.append((domain, service, handler, schema))
 
 
@@ -66,7 +75,9 @@ class _FakeHttp:
         self.registered: list[dict[str, object]] = []
         self.static_calls: list[tuple[str, str, bool]] = []
 
-    def register_static_path(self, url_path: str, file_path: str, cache_headers: bool) -> None:
+    def register_static_path(
+        self, url_path: str, file_path: str, cache_headers: bool
+    ) -> None:
         self.static_calls.append((url_path, file_path, cache_headers))
 
     def async_register_static_paths(self, paths: list[object]):
@@ -82,10 +93,14 @@ class _FakeConfigEntries:
         self.forwarded: list[tuple[object, list[str]]] = []
         self.unloaded: list[tuple[object, list[str]]] = []
 
-    async def async_forward_entry_setups(self, entry: object, platforms: list[str]) -> None:
+    async def async_forward_entry_setups(
+        self, entry: object, platforms: list[str]
+    ) -> None:
         self.forwarded.append((entry, list(platforms)))
 
-    async def async_unload_platforms(self, entry: object, platforms: list[str]) -> bool:
+    async def async_unload_platforms(
+        self, entry: object, platforms: list[str]
+    ) -> bool:
         self.unloaded.append((entry, list(platforms)))
         return True
 
@@ -139,13 +154,15 @@ def test_async_setup_entry_stores_coordinator() -> None:
 
         result = asyncio.run(init_module.async_setup_entry(hass, entry))
     finally:
-        setattr(init_module, "UniFiNetworkMapCoordinator", original_coordinator)
+        setattr(
+            init_module, "UniFiNetworkMapCoordinator", original_coordinator
+        )
         setattr(init_module, "_register_runtime_services", original_runtime)
         setattr(init_module, "_forward_entry_setups", original_forward)
         setattr(init_module, "_log_api_endpoints", original_log)
 
     assert result is True
-    stored = cast(dict[str, object], hass.data[DOMAIN])
+    stored = cast("dict[str, object]", hass.data[DOMAIN])
     assert isinstance(stored[entry.entry_id], FakeCoordinator)
     assert called["runtime"] is True
     assert called["logged"] is True
@@ -160,7 +177,7 @@ def test_async_unload_entry_removes_coordinator() -> None:
     result = asyncio.run(init_module.async_unload_entry(hass, entry))
 
     assert result is True
-    stored = cast(dict[str, object], hass.data[DOMAIN])
+    stored = cast("dict[str, object]", hass.data[DOMAIN])
     assert "entry-1" not in stored
 
 
@@ -181,10 +198,14 @@ def test_register_runtime_services_calls_helpers() -> None:
     original_refresh = getattr(init_module, "_register_refresh_service")
 
     try:
-        setattr(init_module, "_register_frontend_assets", _register_frontend_assets)
-        setattr(init_module, "_register_refresh_service", _register_refresh_service)
+        setattr(
+            init_module, "_register_frontend_assets", _register_frontend_assets
+        )
+        setattr(
+            init_module, "_register_refresh_service", _register_refresh_service
+        )
         register_runtime_services = cast(
-            Callable[[FakeHass, Callable[[FakeHass], None]], None],
+            "Callable[[FakeHass, Callable[[FakeHass], None]], None]",
             getattr(init_module, "_register_runtime_services"),
         )
         register_runtime_services(hass, _register_views)
@@ -209,7 +230,7 @@ def test_register_websocket_api_calls_helper() -> None:
     try:
         ws_module.async_register_websocket_api = _async_register_websocket_api
         register_websocket = cast(
-            Callable[[FakeHass], None],
+            "Callable[[FakeHass], None]",
             getattr(init_module, "_register_websocket_api"),
         )
         register_websocket(hass)
@@ -230,7 +251,9 @@ def test_initialize_coordinator_triggers_refresh() -> None:
     coordinator.async_config_entry_first_refresh = _refresh
 
     initialize = cast(
-        Callable[[UniFiNetworkMapCoordinator], Coroutine[object, object, None]],
+        "Callable["
+        "[UniFiNetworkMapCoordinator],"
+        " Coroutine[object, object, None]]",
         getattr(init_module, "_initialize_coordinator"),
     )
     asyncio.run(initialize(coordinator))
@@ -240,7 +263,9 @@ def test_initialize_coordinator_triggers_refresh() -> None:
 
 def test_log_api_endpoints_logs(caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level("DEBUG")
-    log_api_endpoints = cast(Callable[[str], None], getattr(init_module, "_log_api_endpoints"))
+    log_api_endpoints = cast(
+        "Callable[[str], None]", getattr(init_module, "_log_api_endpoints")
+    )
 
     log_api_endpoints("entry-1")
 
@@ -253,7 +278,7 @@ def test_select_coordinators_filters_by_entry_id() -> None:
     hass.data[DOMAIN] = {"entry-1": coordinator, "other": object()}
 
     select_coordinators = cast(
-        Callable[[FakeHass, str | None], list[UniFiNetworkMapCoordinator]],
+        "Callable[[FakeHass, str | None], list[UniFiNetworkMapCoordinator]]",
         getattr(init_module, "_select_coordinators"),
     )
     selected = select_coordinators(hass, "entry-1")
@@ -264,7 +289,10 @@ def test_select_coordinators_filters_by_entry_id() -> None:
 def test_refresh_handler_raises_when_no_match() -> None:
     hass = FakeHass()
     build_refresh_handler = cast(
-        Callable[[FakeHass], Callable[[ServiceCall], Coroutine[object, object, None]]],
+        "Callable["
+        "[FakeHass],"
+        " Callable[[ServiceCall],"
+        " Coroutine[object, object, None]]]",
         getattr(init_module, "_build_refresh_handler"),
     )
     handler = build_refresh_handler(hass)
@@ -290,7 +318,10 @@ def test_refresh_handler_calls_matching_coordinator() -> None:
     hass.data[DOMAIN] = {"entry-1": coordinator}
 
     build_refresh_handler = cast(
-        Callable[[FakeHass], Callable[[ServiceCall], Coroutine[object, object, None]]],
+        "Callable["
+        "[FakeHass],"
+        " Callable[[ServiceCall],"
+        " Coroutine[object, object, None]]]",
         getattr(init_module, "_build_refresh_handler"),
     )
     handler = build_refresh_handler(hass)
@@ -305,19 +336,27 @@ def test_refresh_handler_calls_matching_coordinator() -> None:
 
 def test_make_static_path_config_uses_supported_signature() -> None:
     class StaticPathConfig:
-        def __init__(self, url_path: str, path: str, cache_headers: bool) -> None:
+        def __init__(
+            self, url_path: str, path: str, cache_headers: bool
+        ) -> None:
             self.url_path = url_path
             self.path = path
             self.cache_headers = cache_headers
 
     make_static_path_config = cast(
-        Callable[[type[object], str, Path], object],
+        "Callable[[type[object], str, Path], object]",
         getattr(init_module, "_make_static_path_config"),
     )
-    frontend_bundle_path = cast(Path, getattr(init_module, "_frontend_bundle_path")())
-    frontend_bundle_url = cast(str, getattr(init_module, "_frontend_bundle_url")())
+    frontend_bundle_path = cast(
+        "Path", getattr(init_module, "_frontend_bundle_path")()
+    )
+    frontend_bundle_url = cast(
+        "str", getattr(init_module, "_frontend_bundle_url")()
+    )
 
-    result = make_static_path_config(StaticPathConfig, frontend_bundle_url, frontend_bundle_path)
+    result = make_static_path_config(
+        StaticPathConfig, frontend_bundle_url, frontend_bundle_path
+    )
 
     assert result is not None
     assert result.url_path == frontend_bundle_url
@@ -326,10 +365,12 @@ def test_make_static_path_config_uses_supported_signature() -> None:
 def test_register_refresh_service_registers_once() -> None:
     hass = FakeHass()
     register_refresh_service = cast(
-        Callable[[FakeHass], None], getattr(init_module, "_register_refresh_service")
+        "Callable[[FakeHass], None]",
+        getattr(init_module, "_register_refresh_service"),
     )
     refresh_service_registered = cast(
-        Callable[[FakeHass], bool], getattr(init_module, "_refresh_service_registered")
+        "Callable[[FakeHass], bool]",
+        getattr(init_module, "_refresh_service_registered"),
     )
 
     register_refresh_service(hass)
@@ -342,7 +383,8 @@ def test_register_refresh_service_registers_once() -> None:
 def test_register_static_asset_uses_sync_http() -> None:
     hass = FakeHass()
     register_static_asset = cast(
-        Callable[[FakeHass, str, Path], None], getattr(init_module, "_register_static_asset")
+        "Callable[[FakeHass, str, Path], None]",
+        getattr(init_module, "_register_static_asset"),
     )
     js_path = Path(__file__)
     test_url = "/test/path.js"
@@ -371,7 +413,8 @@ def test_register_static_asset_schedules_async_paths() -> None:
     hass = FakeHass()
     hass.http = _AsyncOnlyHttp()
     register_static_asset = cast(
-        Callable[[FakeHass, str, Path], None], getattr(init_module, "_register_static_asset")
+        "Callable[[FakeHass, str, Path], None]",
+        getattr(init_module, "_register_static_asset"),
     )
     js_path = Path(__file__)
     test_url = "/test/path.js"
@@ -382,14 +425,17 @@ def test_register_static_asset_schedules_async_paths() -> None:
     assert hass.created_tasks
 
 
-def test_register_static_asset_warns_when_no_http_api(caplog: pytest.LogCaptureFixture) -> None:
+def test_register_static_asset_warns_when_no_http_api(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     class _NoHttpApi:
         pass
 
     hass = FakeHass()
     hass.http = _NoHttpApi()
     register_static_asset = cast(
-        Callable[[FakeHass, str, Path], None], getattr(init_module, "_register_static_asset")
+        "Callable[[FakeHass, str, Path], None]",
+        getattr(init_module, "_register_static_asset"),
     )
     test_url = "/test/path.js"
 
@@ -401,12 +447,14 @@ def test_register_static_asset_warns_when_no_http_api(caplog: pytest.LogCaptureF
 
 def test_make_config_from_signature_maps_args() -> None:
     make_config_from_signature = cast(
-        Callable[[Callable[..., object], str, str], object | None],
+        "Callable[[Callable[..., object], str, str], object | None]",
         getattr(init_module, "_make_config_from_signature"),
     )
 
     class StaticPathConfig:
-        def __init__(self, url: str, filepath: str, cache_control: bool) -> None:
+        def __init__(
+            self, url: str, filepath: str, cache_control: bool
+        ) -> None:
             self.url_path = url
             self.path = filepath
             self.cache_headers = cache_control
@@ -421,7 +469,7 @@ def test_make_config_from_signature_maps_args() -> None:
 
 def test_make_static_path_config_returns_none_when_all_fail() -> None:
     make_static_path_config = cast(
-        Callable[[Callable[..., object], str, Path], object | None],
+        "Callable[[Callable[..., object], str, Path], object | None]",
         getattr(init_module, "_make_static_path_config"),
     )
 
@@ -429,14 +477,16 @@ def test_make_static_path_config_returns_none_when_all_fail() -> None:
         def __init__(self) -> None:
             raise TypeError("no args supported")
 
-    result = make_static_path_config(StaticPathConfig, "/test/url", Path(__file__))
+    result = make_static_path_config(
+        StaticPathConfig, "/test/url", Path(__file__)
+    )
 
     assert result is None
 
 
 def test_make_config_from_signature_handles_invalid_callable() -> None:
     make_config_from_signature = cast(
-        Callable[[Callable[..., object], str, str], object | None],
+        "Callable[[Callable[..., object], str, str], object | None]",
         getattr(init_module, "_make_config_from_signature"),
     )
 
@@ -447,7 +497,7 @@ def test_make_config_from_signature_handles_invalid_callable() -> None:
 
 def test_as_resource_list_rejects_non_dict() -> None:
     as_resource_list = cast(
-        Callable[[object], list[dict[str, object]] | None],
+        "Callable[[object], list[dict[str, object]] | None]",
         getattr(init_module, "_as_resource_list"),
     )
 
@@ -457,7 +507,9 @@ def test_as_resource_list_rejects_non_dict() -> None:
 
 def test_maybe_await_list_handles_coroutine() -> None:
     maybe_await_list = cast(
-        Callable[[object], Coroutine[object, object, list[dict[str, object]] | None]],
+        "Callable[[object],"
+        " Coroutine[object, object,"
+        " list[dict[str, object]] | None]]",
         getattr(init_module, "_maybe_await_list"),
     )
 
@@ -471,7 +523,9 @@ def test_maybe_await_list_handles_coroutine() -> None:
 
 def test_maybe_await_list_handles_sync_value() -> None:
     maybe_await_list = cast(
-        Callable[[object], Coroutine[object, object, list[dict[str, object]] | None]],
+        "Callable[[object],"
+        " Coroutine[object, object,"
+        " list[dict[str, object]] | None]]",
         getattr(init_module, "_maybe_await_list"),
     )
 
@@ -486,7 +540,7 @@ def test_select_coordinators_without_entry_id() -> None:
     hass.data[DOMAIN] = {"entry-1": coordinator, "other": object()}
 
     select_coordinators = cast(
-        Callable[[FakeHass, str | None], list[UniFiNetworkMapCoordinator]],
+        "Callable[[FakeHass, str | None], list[UniFiNetworkMapCoordinator]]",
         getattr(init_module, "_select_coordinators"),
     )
     selected = select_coordinators(hass, None)
@@ -499,7 +553,7 @@ def test_forward_entry_setups_calls_config_entries() -> None:
     entry = _build_entry("entry-1")
 
     forward_entry_setups = cast(
-        Callable[[FakeHass, FakeEntry], Coroutine[object, object, None]],
+        "Callable[[FakeHass, FakeEntry], Coroutine[object, object, None]]",
         getattr(init_module, "_forward_entry_setups"),
     )
     asyncio.run(forward_entry_setups(hass, entry))

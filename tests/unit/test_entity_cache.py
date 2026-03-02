@@ -4,11 +4,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from types import SimpleNamespace
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock, patch
 
 from custom_components.unifi_network_map import entity_cache
 from custom_components.unifi_network_map.const import DOMAIN
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 @dataclass
@@ -65,13 +68,18 @@ class FakeBus:
     def __init__(self) -> None:
         self.listeners: dict[str, list[Callable[..., None]]] = {}
 
-    def async_listen(self, event_type: str, callback: Callable[..., None]) -> Callable[[], None]:
+    def async_listen(
+        self, event_type: str, callback: Callable[..., None]
+    ) -> Callable[[], None]:
         if event_type not in self.listeners:
             self.listeners[event_type] = []
         self.listeners[event_type].append(callback)
 
         def unsub() -> None:
-            if event_type in self.listeners and callback in self.listeners[event_type]:
+            if (
+                event_type in self.listeners
+                and callback in self.listeners[event_type]
+            ):
                 self.listeners[event_type].remove(callback)
 
         return unsub
@@ -92,7 +100,9 @@ class FakeHass:
 def test_entity_registry_cache_stores_and_retrieves_indices() -> None:
     cache = entity_cache.EntityRegistryCache()
     cache.mac_to_entity = {"aa:bb:cc:dd:ee:ff": "device_tracker.test"}
-    cache.mac_to_all_entities = {"aa:bb:cc:dd:ee:ff": ["device_tracker.test", "sensor.test"]}
+    cache.mac_to_all_entities = {
+        "aa:bb:cc:dd:ee:ff": ["device_tracker.test", "sensor.test"]
+    }
 
     assert cache.mac_to_entity == {"aa:bb:cc:dd:ee:ff": "device_tracker.test"}
     assert cache.mac_to_all_entities == {
@@ -199,7 +209,9 @@ def test_entity_registry_event_invalidates_cache_for_unifi_entity() -> None:
     cache = entity_cache.EntityRegistryCache()
     cache.mac_to_entity = {"test": "value"}
 
-    with patch.object(entity_cache.er, "async_get", return_value=entity_registry):
+    with patch.object(
+        entity_cache.er, "async_get", return_value=entity_registry
+    ):
         entity_cache._subscribe_to_registry_events(hass, cache)
         hass.bus.fire(
             "entity_registry_updated",
@@ -212,14 +224,23 @@ def test_entity_registry_event_invalidates_cache_for_unifi_entity() -> None:
 def test_entity_registry_event_ignores_non_unifi_entity() -> None:
     hass = FakeHass()
     entity_registry = FakeEntityRegistry(
-        {"sensor.other": FakeEntityEntry("sensor.other", platform="other_platform")}
+        {
+            "sensor.other": FakeEntityEntry(
+                "sensor.other", platform="other_platform"
+            )
+        }
     )
     cache = entity_cache.EntityRegistryCache()
     cache.mac_to_entity = {"test": "value"}
 
-    with patch.object(entity_cache.er, "async_get", return_value=entity_registry):
+    with patch.object(
+        entity_cache.er, "async_get", return_value=entity_registry
+    ):
         entity_cache._subscribe_to_registry_events(hass, cache)
-        hass.bus.fire("entity_registry_updated", {"action": "create", "entity_id": "sensor.other"})
+        hass.bus.fire(
+            "entity_registry_updated",
+            {"action": "create", "entity_id": "sensor.other"},
+        )
 
     assert cache.mac_to_entity == {"test": "value"}
 
@@ -229,16 +250,23 @@ def test_device_registry_event_invalidates_cache_for_unifi_device() -> None:
     device_registry = FakeDeviceRegistry(
         {
             "dev1": FakeDevice(
-                identifiers={("unifi", "mac")}, connections=set(), config_entries=set()
+                identifiers={("unifi", "mac")},
+                connections=set(),
+                config_entries=set(),
             )
         }
     )
     cache = entity_cache.EntityRegistryCache()
     cache.mac_to_entity = {"test": "value"}
 
-    with patch.object(entity_cache.dr, "async_get", return_value=device_registry):
+    with patch.object(
+        entity_cache.dr, "async_get", return_value=device_registry
+    ):
         entity_cache._subscribe_to_registry_events(hass, cache)
-        hass.bus.fire("device_registry_updated", {"action": "create", "device_id": "dev1"})
+        hass.bus.fire(
+            "device_registry_updated",
+            {"action": "create", "device_id": "dev1"},
+        )
 
     assert cache.mac_to_entity is None
 
@@ -246,14 +274,25 @@ def test_device_registry_event_invalidates_cache_for_unifi_device() -> None:
 def test_device_registry_event_ignores_non_unifi_device() -> None:
     hass = FakeHass()
     device_registry = FakeDeviceRegistry(
-        {"dev1": FakeDevice(identifiers={("other", "id")}, connections=set(), config_entries=set())}
+        {
+            "dev1": FakeDevice(
+                identifiers={("other", "id")},
+                connections=set(),
+                config_entries=set(),
+            )
+        }
     )
     cache = entity_cache.EntityRegistryCache()
     cache.mac_to_entity = {"test": "value"}
 
-    with patch.object(entity_cache.dr, "async_get", return_value=device_registry):
+    with patch.object(
+        entity_cache.dr, "async_get", return_value=device_registry
+    ):
         entity_cache._subscribe_to_registry_events(hass, cache)
-        hass.bus.fire("device_registry_updated", {"action": "create", "device_id": "dev1"})
+        hass.bus.fire(
+            "device_registry_updated",
+            {"action": "create", "device_id": "dev1"},
+        )
 
     assert cache.mac_to_entity == {"test": "value"}
 
@@ -270,7 +309,9 @@ def test_is_unifi_relevant_event_returns_true_for_missing_entity() -> None:
     hass = FakeHass()
     entity_registry = FakeEntityRegistry({})
 
-    with patch.object(entity_cache.er, "async_get", return_value=entity_registry):
+    with patch.object(
+        entity_cache.er, "async_get", return_value=entity_registry
+    ):
         result = entity_cache._is_unifi_relevant_event(hass, "missing.entity")
 
     assert result is True
@@ -278,12 +319,20 @@ def test_is_unifi_relevant_event_returns_true_for_missing_entity() -> None:
 
 def test_is_unifi_relevant_event_returns_true_for_unifi_config_entry() -> None:
     hass = FakeHass()
-    hass.config_entries = FakeConfigEntries([FakeConfigEntry("entry1", "unifi")])
+    hass.config_entries = FakeConfigEntries(
+        [FakeConfigEntry("entry1", "unifi")]
+    )
     entity_registry = FakeEntityRegistry(
-        {"sensor.test": FakeEntityEntry("sensor.test", config_entry_id="entry1")}
+        {
+            "sensor.test": FakeEntityEntry(
+                "sensor.test", config_entry_id="entry1"
+            )
+        }
     )
 
-    with patch.object(entity_cache.er, "async_get", return_value=entity_registry):
+    with patch.object(
+        entity_cache.er, "async_get", return_value=entity_registry
+    ):
         result = entity_cache._is_unifi_relevant_event(hass, "sensor.test")
 
     assert result is True
@@ -297,21 +346,33 @@ def test_is_unifi_relevant_device_returns_true_for_empty_device_id() -> None:
     assert result is True
 
 
-def test_is_unifi_relevant_device_returns_true_for_unifi_config_entry() -> None:
+def test_is_unifi_relevant_device_returns_true_for_unifi_config_entry() -> (
+    None
+):
     hass = FakeHass()
-    hass.config_entries = FakeConfigEntries([FakeConfigEntry("entry1", "unifi")])
+    hass.config_entries = FakeConfigEntries(
+        [FakeConfigEntry("entry1", "unifi")]
+    )
     device_registry = FakeDeviceRegistry(
-        {"dev1": FakeDevice(identifiers=set(), connections=set(), config_entries={"entry1"})}
+        {
+            "dev1": FakeDevice(
+                identifiers=set(), connections=set(), config_entries={"entry1"}
+            )
+        }
     )
 
-    with patch.object(entity_cache.dr, "async_get", return_value=device_registry):
+    with patch.object(
+        entity_cache.dr, "async_get", return_value=device_registry
+    ):
         result = entity_cache._is_unifi_relevant_device(hass, "dev1")
 
     assert result is True
 
 
 def test_get_entity_registry_event_uses_constant_if_available() -> None:
-    with patch.object(entity_cache.er, "EVENT_ENTITY_REGISTRY_UPDATED", "custom_event"):
+    with patch.object(
+        entity_cache.er, "EVENT_ENTITY_REGISTRY_UPDATED", "custom_event"
+    ):
         result = entity_cache._get_entity_registry_event()
 
     assert result == "custom_event"
@@ -325,7 +386,9 @@ def test_get_entity_registry_event_uses_fallback() -> None:
 
 
 def test_get_device_registry_event_uses_constant_if_available() -> None:
-    with patch.object(entity_cache.dr, "EVENT_DEVICE_REGISTRY_UPDATED", "custom_device_event"):
+    with patch.object(
+        entity_cache.dr, "EVENT_DEVICE_REGISTRY_UPDATED", "custom_device_event"
+    ):
         result = entity_cache._get_device_registry_event()
 
     assert result == "custom_device_event"

@@ -6,15 +6,16 @@ The cache is automatically invalidated when the underlying data changes.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import hashlib
 import json
-from typing import Any
-
-from homeassistant.core import HomeAssistant
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any
 
 from .const import DOMAIN, LOGGER
 from .utils import monotonic_seconds
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
 
 _CACHE_KEY = "payload_cache"
 
@@ -57,12 +58,16 @@ class PayloadCache:
         if cached is None:
             return None
         if cached.source_hash != source_hash:
-            LOGGER.debug("payload_cache miss entry_id=%s reason=hash_changed", entry_id)
+            LOGGER.debug(
+                "payload_cache miss entry_id=%s reason=hash_changed", entry_id
+            )
             return None
         age = monotonic_seconds() - cached.cached_at
         if age > self._ttl_seconds:
             LOGGER.debug(
-                "payload_cache miss entry_id=%s reason=ttl_expired age=%.1fs ttl=%.1fs",
+                "payload_cache miss entry_id=%s"
+                " reason=ttl_expired"
+                " age=%.1fs ttl=%.1fs",
                 entry_id,
                 age,
                 self._ttl_seconds,
@@ -71,7 +76,9 @@ class PayloadCache:
         LOGGER.debug("payload_cache hit entry_id=%s age=%.1fs", entry_id, age)
         return cached.payload
 
-    def set(self, entry_id: str, payload: dict[str, Any], source_hash: str) -> None:
+    def set(
+        self, entry_id: str, payload: dict[str, Any], source_hash: str
+    ) -> None:
         """Store an enriched payload in the cache."""
         self._entries[entry_id] = CachedPayload(
             payload=payload,
@@ -112,7 +119,9 @@ def set_payload_cache_ttl(hass: HomeAssistant, ttl_seconds: float) -> None:
     LOGGER.debug("payload_cache ttl_configured ttl=%.1fs", ttl_seconds)
 
 
-def invalidate_payload_cache(hass: HomeAssistant, entry_id: str | None = None) -> None:
+def invalidate_payload_cache(
+    hass: HomeAssistant, entry_id: str | None = None
+) -> None:
     """Invalidate the payload cache.
 
     If entry_id is provided, only that entry is invalidated.
@@ -159,5 +168,7 @@ def compute_payload_hash(payload: dict[str, Any] | None) -> str:
         "ap_client_counts": payload.get("ap_client_counts", {}),
         "device_details": payload.get("device_details", {}),
     }
-    encoded = json.dumps(snapshot, sort_keys=True, separators=(",", ":"), default=str)
+    encoded = json.dumps(
+        snapshot, sort_keys=True, separators=(",", ":"), default=str
+    )
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()

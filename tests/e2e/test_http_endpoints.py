@@ -101,7 +101,8 @@ class TestPayloadEndpoint:
         # Check for expected structure based on the integration
         # The payload should contain topology information
         assert "devices" in data or "nodes" in data or len(data) > 0, (
-            f"Payload appears empty or missing expected keys: {list(data.keys())}"
+            "Payload appears empty or missing"
+            f" expected keys: {list(data.keys())}"
         )
 
     def test_payload_contains_mock_devices(
@@ -142,7 +143,9 @@ class TestPayloadEndpoint:
         ha_client: httpx.Client,
     ) -> None:
         """Verify invalid entry ID returns 404."""
-        response = ha_client.get("/api/unifi_network_map/invalid_entry_id/payload")
+        response = ha_client.get(
+            "/api/unifi_network_map/invalid_entry_id/payload"
+        )
         assert response.status_code == 404
 
 
@@ -159,7 +162,9 @@ class TestConfigEntryManagement:
         response.raise_for_status()
 
         entries = response.json()
-        our_entries = [e for e in entries if e.get("domain") == "unifi_network_map"]
+        our_entries = [
+            e for e in entries if e.get("domain") == "unifi_network_map"
+        ]
 
         assert len(our_entries) > 0
         assert any(e["entry_id"] == entry_id for e in our_entries)

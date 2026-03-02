@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
 from custom_components.unifi_network_map.http import (
@@ -149,7 +149,7 @@ class TestEntityStateDetails:
     def test_includes_state_value(self) -> None:
         state = MagicMock()
         state.state = "on"
-        state.last_changed = datetime(2024, 1, 15, tzinfo=timezone.utc)
+        state.last_changed = datetime(2024, 1, 15, tzinfo=UTC)
         state.attributes = {}
         hass = MagicMock()
         hass.states.get.return_value = state
@@ -214,18 +214,28 @@ class TestAppendUniqueEntity:
 
     def test_adds_new_entity(self) -> None:
         mac_to_entities: dict[str, list[str]] = {}
-        _append_unique_entity(mac_to_entities, "aa:bb:cc:dd:ee:ff", "sensor.test")
+        _append_unique_entity(
+            mac_to_entities, "aa:bb:cc:dd:ee:ff", "sensor.test"
+        )
         assert mac_to_entities["aa:bb:cc:dd:ee:ff"] == ["sensor.test"]
 
     def test_does_not_duplicate(self) -> None:
-        mac_to_entities: dict[str, list[str]] = {"aa:bb:cc:dd:ee:ff": ["sensor.test"]}
-        _append_unique_entity(mac_to_entities, "aa:bb:cc:dd:ee:ff", "sensor.test")
+        mac_to_entities: dict[str, list[str]] = {
+            "aa:bb:cc:dd:ee:ff": ["sensor.test"]
+        }
+        _append_unique_entity(
+            mac_to_entities, "aa:bb:cc:dd:ee:ff", "sensor.test"
+        )
         assert len(mac_to_entities["aa:bb:cc:dd:ee:ff"]) == 1
 
     def test_adds_multiple_entities(self) -> None:
         mac_to_entities: dict[str, list[str]] = {}
-        _append_unique_entity(mac_to_entities, "aa:bb:cc:dd:ee:ff", "sensor.test1")
-        _append_unique_entity(mac_to_entities, "aa:bb:cc:dd:ee:ff", "sensor.test2")
+        _append_unique_entity(
+            mac_to_entities, "aa:bb:cc:dd:ee:ff", "sensor.test1"
+        )
+        _append_unique_entity(
+            mac_to_entities, "aa:bb:cc:dd:ee:ff", "sensor.test2"
+        )
         assert len(mac_to_entities["aa:bb:cc:dd:ee:ff"]) == 2
 
 
@@ -359,7 +369,10 @@ class TestGetMacAttributeValue:
         assert result == "aa:bb:cc:dd:ee:ff"
 
     def test_prefers_mac_address(self) -> None:
-        attrs = {"mac_address": "11:22:33:44:55:66", "mac": "aa:bb:cc:dd:ee:ff"}
+        attrs = {
+            "mac_address": "11:22:33:44:55:66",
+            "mac": "aa:bb:cc:dd:ee:ff",
+        }
         result = _get_mac_attribute_value(attrs)
         # Should return first found key
         assert result is not None
@@ -516,7 +529,9 @@ class TestAddEntitiesByDevice:
         device_to_entities = {"device1": ["sensor.temp", "sensor.humidity"]}
         mac_to_entities: dict[str, list[str]] = {}
 
-        _add_entities_by_device(device_to_mac, device_to_entities, mac_to_entities)
+        _add_entities_by_device(
+            device_to_mac, device_to_entities, mac_to_entities
+        )
 
         assert "aa:bb:cc:dd:ee:ff" in mac_to_entities
         assert len(mac_to_entities["aa:bb:cc:dd:ee:ff"]) == 2
@@ -526,7 +541,9 @@ class TestAddEntitiesByDevice:
         device_to_entities = {"device2": ["sensor.temp"]}  # Unknown device
         mac_to_entities: dict[str, list[str]] = {}
 
-        _add_entities_by_device(device_to_mac, device_to_entities, mac_to_entities)
+        _add_entities_by_device(
+            device_to_mac, device_to_entities, mac_to_entities
+        )
 
         assert len(mac_to_entities) == 0
 
@@ -618,7 +635,7 @@ class TestResolveNodeStatusMap:
         hass = MagicMock()
         state = MagicMock()
         state.state = "home"
-        state.last_changed = datetime(2024, 1, 15, tzinfo=timezone.utc)
+        state.last_changed = datetime(2024, 1, 15, tzinfo=UTC)
         hass.states.get.return_value = state
 
         node_entities = {"my_phone": "device_tracker.my_phone"}

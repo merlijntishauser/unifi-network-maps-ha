@@ -9,8 +9,9 @@ import shutil
 import subprocess
 import tempfile
 import time
+from collections.abc import Callable, Generator
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Generator, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 import bcrypt
 import httpx
@@ -31,13 +32,17 @@ SKIP_BROWSER_IN_CI: pytest.MarkDecorator = pytest.mark.skipif(
 )
 
 E2E_DIR = Path(__file__).parent
-HA_CONFIG_DIR = Path(os.environ.get("HA_CONFIG_DIR", E2E_DIR / "ha-config-2026.1.2"))
+HA_CONFIG_DIR = Path(
+    os.environ.get("HA_CONFIG_DIR", E2E_DIR / "ha-config-2026.1.2")
+)
 HA_STORAGE_DIR = HA_CONFIG_DIR / ".storage"
 STORAGE_TEMPLATE_DIR = E2E_DIR / "ha-config-template" / ".storage"
 
 # Ensure CUSTOM_COMPONENTS_DIR is set for docker-compose
 if "CUSTOM_COMPONENTS_DIR" not in os.environ:
-    os.environ["CUSTOM_COMPONENTS_DIR"] = str(E2E_DIR.parent.parent / "custom_components")
+    os.environ["CUSTOM_COMPONENTS_DIR"] = str(
+        E2E_DIR.parent.parent / "custom_components"
+    )
 
 HA_URL = os.environ.get("HA_URL", "http://localhost:28123")
 HA_USERNAME = os.environ.get("HA_USERNAME", "admin")
@@ -50,7 +55,7 @@ F = TypeVar("F", bound=Callable[..., Any])
 
 def typed_fixture(*args: Any, **kwargs: Any) -> Callable[[F], F]:
     """Provide a typed wrapper around pytest.fixture for pyright."""
-    return cast(Callable[[F], F], pytest.fixture(*args, **kwargs))
+    return cast("Callable[[F], F]", pytest.fixture(*args, **kwargs))
 
 
 def _env_flag(name: str) -> bool:
@@ -60,7 +65,8 @@ def _env_flag(name: str) -> bool:
 
 def _reset_ha_storage(storage_dir: Path) -> None:
     """Reset HA storage to clean state before tests."""
-    # Completely clear storage dir to avoid stale files from different HA versions
+    # Completely clear storage dir to avoid stale files
+    # from different HA versions
     if storage_dir.exists():
         shutil.rmtree(storage_dir)
     storage_dir.mkdir(parents=True, exist_ok=True)
@@ -182,7 +188,8 @@ def _make_tree_readable(src: Path) -> None:
 
 
 def _ensure_auth_provider_credentials(storage_dir: Path) -> None:
-    """Ensure HA has the expected username/password in auth provider storage."""
+    """Ensure HA has the expected username/password
+    in auth provider storage."""
     storage_dir.mkdir(parents=True, exist_ok=True)
     auth_provider_path = storage_dir / "auth_provider.homeassistant"
     if not auth_provider_path.exists():
@@ -199,7 +206,9 @@ def _ensure_auth_provider_credentials(storage_dir: Path) -> None:
     if not isinstance(users, list):
         raise RuntimeError("Invalid auth provider storage format")
 
-    password_hash = bcrypt.hashpw(HA_PASSWORD.encode(), bcrypt.gensalt(rounds=12)).decode()
+    password_hash = bcrypt.hashpw(
+        HA_PASSWORD.encode(), bcrypt.gensalt(rounds=12)
+    ).decode()
     encoded = base64.b64encode(password_hash.encode()).decode()
 
     updated = False
@@ -242,13 +251,17 @@ def _compose_run(
 def _copy_blueprints(config_dir: Path) -> None:
     """Copy integration blueprints to HA config directory."""
     custom_components = Path(os.environ.get("CUSTOM_COMPONENTS_DIR", ""))
-    source_blueprints = custom_components / "unifi_network_map" / "blueprints" / "automation"
+    source_blueprints = (
+        custom_components / "unifi_network_map" / "blueprints" / "automation"
+    )
 
     if not source_blueprints.exists():
         print(f"Blueprint source not found: {source_blueprints}")
         return
 
-    target_blueprints = config_dir / "blueprints" / "automation" / "unifi_network_map"
+    target_blueprints = (
+        config_dir / "blueprints" / "automation" / "unifi_network_map"
+    )
     target_blueprints.mkdir(parents=True, exist_ok=True)
 
     # Copy each blueprint file (overwrite any existing symlinks)
@@ -262,7 +275,7 @@ def _copy_blueprints(config_dir: Path) -> None:
 
 
 @typed_fixture(scope="session")
-def docker_services() -> Generator[None, None, None]:
+def docker_services() -> Generator[None]:
     """Start and stop Docker Compose stack for the test session."""
     compose_file = E2E_DIR / "docker-compose.yml"
     reuse_stack = _env_flag("E2E_REUSE")
@@ -283,7 +296,8 @@ def docker_services() -> Generator[None, None, None]:
     # Debug: show resolved docker-compose config
     print("\n=== Docker compose environment ===")
     print(f"HA_CONFIG_DIR={os.environ.get('HA_CONFIG_DIR', 'not set')}")
-    print(f"CUSTOM_COMPONENTS_DIR={os.environ.get('CUSTOM_COMPONENTS_DIR', 'not set')}")
+    cc_dir = os.environ.get("CUSTOM_COMPONENTS_DIR", "not set")
+    print(f"CUSTOM_COMPONENTS_DIR={cc_dir}")
 
     # Verify paths exist
     custom_components = Path(os.environ.get("CUSTOM_COMPONENTS_DIR", ""))
@@ -291,22 +305,33 @@ def docker_services() -> Generator[None, None, None]:
         print(f"custom_components path exists: {custom_components}")
         integration_dir = custom_components / "unifi_network_map"
         if integration_dir.exists():
-            print(f"Integration dir contents: {list(integration_dir.iterdir())[:10]}")
+            contents = list(integration_dir.iterdir())[:10]
+            print(f"Integration dir contents: {contents}")
             manifest_path = integration_dir / "manifest.json"
             if manifest_path.exists():
-                print(f"manifest.json found: {manifest_path.read_text()[:200]}")
+                print(
+                    f"manifest.json found: {manifest_path.read_text()[:200]}"
+                )
         else:
-            print(f"WARNING: Integration dir does not exist: {integration_dir}")
+            print(
+                f"WARNING: Integration dir does not exist: {integration_dir}"
+            )
     else:
-        print(f"WARNING: custom_components path does not exist: {custom_components}")
+        print(
+            "WARNING: custom_components path"
+            f" does not exist: {custom_components}"
+        )
 
     # Start services
     if reuse_stack:
         result = _compose_run(
-            compose_file, ["up", "-d", "--wait", "--pull", "always", "mock-unifi"]
+            compose_file,
+            ["up", "-d", "--wait", "--pull", "always", "mock-unifi"],
         )
         if result.returncode != 0:
-            print(f"Docker compose up failed:\n{result.stdout}\n{result.stderr}")
+            print(
+                f"Docker compose up failed:\n{result.stdout}\n{result.stderr}"
+            )
             raise RuntimeError(f"Docker compose up failed: {result.stderr}")
         result = _compose_run(
             compose_file,
@@ -321,12 +346,16 @@ def docker_services() -> Generator[None, None, None]:
             ],
         )
         if result.returncode != 0:
-            print(f"Docker compose up failed:\n{result.stdout}\n{result.stderr}")
+            print(
+                f"Docker compose up failed:\n{result.stdout}\n{result.stderr}"
+            )
             raise RuntimeError(f"Docker compose up failed: {result.stderr}")
     else:
         result = _compose_run(compose_file, ["up", "-d", "--build", "--wait"])
         if result.returncode != 0:
-            print(f"Docker compose up failed:\n{result.stdout}\n{result.stderr}")
+            print(
+                f"Docker compose up failed:\n{result.stdout}\n{result.stderr}"
+            )
             raise RuntimeError(f"Docker compose up failed: {result.stderr}")
 
     # Wait for HA to be fully ready
@@ -395,7 +424,10 @@ def _wait_for_integration_loaded(timeout: int = 90) -> None:
                 handlers = response.json()
                 last_handlers = handlers
                 if "unifi_network_map" in handlers:
-                    print(f"Integration loaded successfully after {time.time() - start:.1f}s")
+                    elapsed = time.time() - start
+                    print(
+                        f"Integration loaded successfully after {elapsed:.1f}s"
+                    )
                     return
         except httpx.RequestError:
             pass
@@ -493,7 +525,9 @@ def _log_ha_version(client: httpx.Client, token: str) -> None:
         version = data.get("version")
         if version:
             image_tag = os.environ.get("HA_IMAGE_TAG", "unknown")
-            print(f"Home Assistant version: {version} (image tag: {image_tag})")
+            print(
+                f"Home Assistant version: {version} (image tag: {image_tag})"
+            )
             _write_version_file(version, image_tag)
     except httpx.RequestError as exc:
         print(f"HA config version request error: {exc}")
@@ -576,7 +610,9 @@ def _start_login_flow(client: httpx.Client, redirect_uri: str) -> str:
     raise RuntimeError(f"Unable to start login flow. {last_error}")
 
 
-def _submit_login_flow(client: httpx.Client, flow_id: str) -> dict[str, object]:
+def _submit_login_flow(
+    client: httpx.Client, flow_id: str
+) -> dict[str, object]:
     """Submit credentials for a login flow, with fallbacks."""
     payloads: list[dict[str, object]] = [
         {
@@ -604,7 +640,9 @@ def _submit_login_flow(client: httpx.Client, flow_id: str) -> dict[str, object]:
         data = response.json()
         if "result" not in data:
             last_error = RuntimeError(
-                f"Unexpected login flow response: {data}. Check HA_USERNAME/HA_PASSWORD."
+                "Unexpected login flow response:"
+                f" {data}."
+                " Check HA_USERNAME/HA_PASSWORD."
             )
             continue
         return data
@@ -612,7 +650,7 @@ def _submit_login_flow(client: httpx.Client, flow_id: str) -> dict[str, object]:
 
 
 @typed_fixture
-def ha_client(ha_auth_token: str) -> Generator[httpx.Client, None, None]:
+def ha_client(ha_auth_token: str) -> Generator[httpx.Client]:
     """Create an authenticated HTTP client for Home Assistant API."""
     with httpx.Client(
         base_url=HA_URL,
@@ -625,7 +663,7 @@ def ha_client(ha_auth_token: str) -> Generator[httpx.Client, None, None]:
 @typed_fixture
 async def ha_async_client(
     ha_auth_token: str,
-) -> AsyncGenerator[httpx.AsyncClient, None]:
+) -> AsyncGenerator[httpx.AsyncClient]:
     """Create an authenticated async HTTP client for Home Assistant API."""
     async with httpx.AsyncClient(
         base_url=HA_URL,
@@ -654,7 +692,9 @@ def mock_unifi_credentials() -> dict[str, str]:
 
 
 @typed_fixture(autouse=True)
-def cleanup_config_entries(ha_client: httpx.Client) -> Generator[None, None, None]:
+def cleanup_config_entries(
+    ha_client: httpx.Client,
+) -> Generator[None]:
     """Clean up any config entries created during tests."""
     yield
 
@@ -666,7 +706,9 @@ def cleanup_config_entries(ha_client: httpx.Client) -> Generator[None, None, Non
     entries = response.json()
     for entry in entries:
         if entry.get("domain") == "unifi_network_map":
-            ha_client.delete(f"/api/config/config_entries/entry/{entry['entry_id']}")
+            ha_client.delete(
+                f"/api/config/config_entries/entry/{entry['entry_id']}"
+            )
 
 
 @typed_fixture(scope="session")
@@ -693,9 +735,13 @@ def _configure_browser_args(base_args: list[str]) -> list[str]:
     return _dedupe_args(args)
 
 
-def browser_type_launch_args(browser_type_launch_args: dict[str, Any]) -> dict[str, Any]:
+def browser_type_launch_args(
+    browser_type_launch_args: dict[str, Any],
+) -> dict[str, Any]:
     """Configure browser launch args for local speed or CI stability."""
-    args = _configure_browser_args(list(browser_type_launch_args.get("args", [])))
+    args = _configure_browser_args(
+        list(browser_type_launch_args.get("args", []))
+    )
     return {
         **browser_type_launch_args,
         "args": args,
@@ -703,7 +749,9 @@ def browser_type_launch_args(browser_type_launch_args: dict[str, Any]) -> dict[s
 
 
 @typed_fixture
-def browser_context_args(browser_context_args: dict[str, Any]) -> dict[str, Any]:
+def browser_context_args(
+    browser_context_args: dict[str, Any],
+) -> dict[str, Any]:
     """Configure browser context for E2E tests."""
     return {
         **browser_context_args,
@@ -768,13 +816,17 @@ def authenticated_page(
         headers={"Authorization": f"Bearer {access_token}"},
     )
     if response.status != 200:
-        raise RuntimeError(f"Failed to authenticate in browser (status {response.status})")
+        raise RuntimeError(
+            f"Failed to authenticate in browser (status {response.status})"
+        )
 
     return page
 
 
 @typed_fixture
-def entry_id(ha_client: httpx.Client, mock_unifi_credentials: dict[str, str]) -> str:
+def entry_id(
+    ha_client: httpx.Client, mock_unifi_credentials: dict[str, str]
+) -> str:
     """Create a config entry and return its ID."""
     # Initialize config flow
     response = ha_client.post(
@@ -783,7 +835,9 @@ def entry_id(ha_client: httpx.Client, mock_unifi_credentials: dict[str, str]) ->
     )
     if response.status_code != 200:
         raise RuntimeError(
-            f"Failed to initialize config flow: {response.status_code} - {response.text}"
+            "Failed to initialize config flow:"
+            f" {response.status_code}"
+            f" - {response.text}"
         )
     flow_id = response.json()["flow_id"]
 
@@ -794,7 +848,9 @@ def entry_id(ha_client: httpx.Client, mock_unifi_credentials: dict[str, str]) ->
     )
     if response.status_code != 200:
         raise RuntimeError(
-            f"Failed to submit config flow: {response.status_code} - {response.text}"
+            "Failed to submit config flow:"
+            f" {response.status_code}"
+            f" - {response.text}"
         )
     result = response.json()
 
@@ -811,7 +867,8 @@ def entry_id(ha_client: httpx.Client, mock_unifi_credentials: dict[str, str]) ->
     if options_flow_response.status_code == 200:
         options_flow_id = options_flow_response.json().get("flow_id")
         if options_flow_id:
-            # Provide all required options fields (matching _options_schema_fields)
+            # Provide all required options fields
+            # (matching _options_schema_fields)
             options_result = ha_client.post(
                 f"/api/config/config_entries/options/flow/{options_flow_id}",
                 json={
@@ -824,11 +881,15 @@ def entry_id(ha_client: httpx.Client, mock_unifi_credentials: dict[str, str]) ->
                     "use_cache": False,
                 },
             )
-            # Options update triggers _async_options_updated which refreshes automatically
-            # But if entry is in error state, listener may not fire - force a reload
+            # Options update triggers _async_options_updated
+            # which refreshes automatically.
+            # But if entry is in error state, listener
+            # may not fire - force a reload
             if options_result.status_code == 200:
                 # Reload the config entry to ensure options are applied
-                ha_client.post(f"/api/config/config_entries/entry/{entry_id}/reload")
+                ha_client.post(
+                    f"/api/config/config_entries/entry/{entry_id}/reload"
+                )
                 time.sleep(3)  # Allow time for reload to complete
 
     return entry_id

@@ -6,7 +6,6 @@ import os
 from typing import TYPE_CHECKING
 
 import pytest
-
 from conftest import SKIP_BROWSER_IN_CI
 
 if TYPE_CHECKING:
@@ -19,12 +18,13 @@ pytestmark = pytest.mark.usefixtures("docker_services")
 
 
 def test_integration_appears_in_add_dialog(
-    ha_client: "httpx.Client",
+    ha_client: httpx.Client,
 ) -> None:
     """Test that the integration is registered and available for config flows.
 
     This verifies the integration is properly registered via the API.
-    The API check is more reliable than UI interaction which can be flaky in CI.
+    The API check is more reliable than UI interaction
+    which can be flaky in CI.
     """
     # Verify via API that integration is in flow handlers
     response = ha_client.get("/api/config/config_entries/flow_handlers")
@@ -40,7 +40,8 @@ def test_integration_appears_in_add_dialog(
         json={"handler": "unifi_network_map"},
     )
     assert response.status_code == 200, (
-        f"Failed to start config flow: {response.status_code} - {response.text}"
+        "Failed to start config flow:"
+        f" {response.status_code} - {response.text}"
     )
     flow_data = response.json()
     assert "flow_id" in flow_data, f"No flow_id in response: {flow_data}"
@@ -54,7 +55,8 @@ def test_integration_entry_visible_on_integrations_page(
     authenticated_page: Page,
     entry_id: str,
 ) -> None:
-    """Test that a configured integration entry appears on the integrations page."""
+    """Test that a configured integration entry
+    appears on the integrations page."""
     page = authenticated_page
 
     # Navigate to the integration page
@@ -69,4 +71,6 @@ def test_integration_entry_visible_on_integrations_page(
     integration_card = page.locator("text=/unifi network map/i").first
     integration_card.wait_for(state="visible", timeout=30000)
 
-    assert integration_card.is_visible(), "Integration entry should appear on integrations page"
+    assert integration_card.is_visible(), (
+        "Integration entry should appear on integrations page"
+    )

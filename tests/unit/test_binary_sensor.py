@@ -9,7 +9,9 @@ from custom_components.unifi_network_map.binary_sensor import (
     _normalize_name,
     _parse_tracked_clients,
 )
-from custom_components.unifi_network_map.coordinator import UniFiNetworkMapCoordinator
+from custom_components.unifi_network_map.coordinator import (
+    UniFiNetworkMapCoordinator,
+)
 from custom_components.unifi_network_map.data import UniFiNetworkMapData
 from tests.helpers import build_entry
 
@@ -386,7 +388,9 @@ def test_device_uses_current_details_from_coordinator() -> None:
         "node_types": {"Office Switch": "switch"},
         "device_details": {"Office Switch": {"ip": "192.168.1.99"}},
     }
-    coordinator.data = UniFiNetworkMapData(svg="<svg />", payload=updated_payload)
+    coordinator.data = UniFiNetworkMapData(
+        svg="<svg />", payload=updated_payload
+    )
 
     # Should use new IP from coordinator
     assert sensor.extra_state_attributes["ip"] == "192.168.1.99"
@@ -458,7 +462,9 @@ def test_parse_tracked_clients_skips_invalid() -> None:
         entry_id="test",
         title="Test",
         data={},
-        options={"tracked_clients": "aa:bb:cc:dd:ee:ff\ninvalid\n11:22:33:44:55:66"},
+        options={
+            "tracked_clients": "aa:bb:cc:dd:ee:ff\ninvalid\n11:22:33:44:55:66"
+        },
     )
     result = _parse_tracked_clients(entry)
     assert result == ["aa:bb:cc:dd:ee:ff", "11:22:33:44:55:66"]

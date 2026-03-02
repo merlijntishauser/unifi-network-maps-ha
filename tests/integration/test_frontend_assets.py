@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Callable, cast
-
-import pytest
+from typing import TYPE_CHECKING, cast
 
 import custom_components.unifi_network_map as unifi_network_map
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    import pytest
 
 
 class _FakeHttp:
@@ -57,7 +60,9 @@ def test_register_frontend_assets_with_async_static_paths() -> None:
     hass.data["unifi_network_map"] = {}
     register = getattr(unifi_network_map, "_register_frontend_assets")
     register(hass)
-    assert hass.http.registered, "Expected static path registration to be called"
+    assert hass.http.registered, (
+        "Expected static path registration to be called"
+    )
     entry = hass.http.registered[0]
     assert entry["path"] == "/unifi-network-map/unifi-network-map.js"
     assert isinstance(entry["file_path"], str)
@@ -71,29 +76,40 @@ def test_register_frontend_assets_warns_when_bundle_missing(
     hass.data["unifi_network_map"] = {}
     missing_path = tmp_path / "missing.js"
     monkeypatch_frontend_path = cast(
-        Callable[[], Path], getattr(unifi_network_map, "_frontend_bundle_path")
+        "Callable[[], Path]",
+        getattr(unifi_network_map, "_frontend_bundle_path"),
     )
 
     def _fake_frontend_bundle_path() -> Path:
         return missing_path
 
     caplog.set_level("WARNING")
-    setattr(unifi_network_map, "_frontend_bundle_path", _fake_frontend_bundle_path)
+    setattr(
+        unifi_network_map, "_frontend_bundle_path", _fake_frontend_bundle_path
+    )
     try:
         register = getattr(unifi_network_map, "_register_frontend_assets")
         register(hass)
     finally:
-        setattr(unifi_network_map, "_frontend_bundle_path", monkeypatch_frontend_path)
+        setattr(
+            unifi_network_map,
+            "_frontend_bundle_path",
+            monkeypatch_frontend_path,
+        )
 
     assert "frontend_bundle_missing" in caplog.text
-    assert not hass.data.get("unifi_network_map", {}).get("frontend_registered")
+    assert not hass.data.get("unifi_network_map", {}).get(
+        "frontend_registered"
+    )
 
 
 def test_build_static_path_configs_falls_back_to_dict(tmp_path: Path) -> None:
     js_path = tmp_path / "card.js"
     js_path.write_text("test")
 
-    original_make_config = getattr(unifi_network_map, "_make_static_path_config")
+    original_make_config = getattr(
+        unifi_network_map, "_make_static_path_config"
+    )
 
     def _make_config(*_args: object, **_kwargs: object) -> object | None:
         return None
@@ -101,13 +117,15 @@ def test_build_static_path_configs_falls_back_to_dict(tmp_path: Path) -> None:
     setattr(unifi_network_map, "_make_static_path_config", _make_config)
     try:
         build_configs = cast(
-            Callable[[str, Path], list[object]],
+            "Callable[[str, Path], list[object]]",
             getattr(unifi_network_map, "_build_static_path_configs"),
         )
         test_url = "/test/path.js"
         configs = build_configs(test_url, js_path)
     finally:
-        setattr(unifi_network_map, "_make_static_path_config", original_make_config)
+        setattr(
+            unifi_network_map, "_make_static_path_config", original_make_config
+        )
 
     assert isinstance(configs[0], dict)
     assert configs[0]["path"] == test_url
