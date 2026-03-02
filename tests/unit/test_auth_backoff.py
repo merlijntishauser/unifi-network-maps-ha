@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import pytest
 from homeassistant.core import HomeAssistant
@@ -24,16 +24,12 @@ class FakeEntry:
     data: dict[str, object]
     options: dict[str, object]
     entry_id: str = "test_entry_id"
-    _reauth_calls: list[dict[str, object]] = None  # type: ignore[assignment]
-
-    def __post_init__(self) -> None:
-        if self._reauth_calls is None:
-            self._reauth_calls = []
+    reauth_calls: list[dict[str, object]] = field(default_factory=list)
 
     def async_start_reauth(
         self, hass: object, *, data: object = None, **_kw: object
     ) -> None:
-        self._reauth_calls.append({"data": data})
+        self.reauth_calls.append({"data": data})
 
 
 class FakeClient:
@@ -158,8 +154,8 @@ def test_invalid_auth_triggers_reauth(
     with pytest.raises(UpdateFailed):
         asyncio.run(coordinator.async_fetch_for_testing())
 
-    assert len(entry._reauth_calls) == 1
-    assert entry._reauth_calls[0]["data"] == entry.data
+    assert len(entry.reauth_calls) == 1
+    assert entry.reauth_calls[0]["data"] == entry.data
 
 
 def test_connect_error_does_not_trigger_reauth(
@@ -182,7 +178,7 @@ def test_connect_error_does_not_trigger_reauth(
     with pytest.raises(UpdateFailed):
         asyncio.run(coordinator.async_fetch_for_testing())
 
-    assert len(entry._reauth_calls) == 0
+    assert len(entry.reauth_calls) == 0
 
 
 def test_rate_limit_triggers_backoff(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -92,7 +92,7 @@ class _FakeConfigEntries:
     def __init__(self) -> None:
         self.forwarded: list[tuple[object, list[str]]] = []
         self.unloaded: list[tuple[object, list[str]]] = []
-        self._entries: list[FakeEntry] = []
+        self.entries: list[FakeEntry] = []
 
     async def async_forward_entry_setups(
         self, entry: object, platforms: list[str]
@@ -106,7 +106,7 @@ class _FakeConfigEntries:
         return True
 
     def async_entries(self, domain: str) -> list[FakeEntry]:
-        return [e for e in self._entries if True]
+        return [e for e in self.entries if True]
 
 
 def _build_entry(entry_id: str) -> FakeEntry:
@@ -283,7 +283,7 @@ def test_select_coordinators_filters_by_entry_id() -> None:
     other_entry = _build_entry("other")
     other_entry.runtime_data = object()
 
-    hass.config_entries._entries = [entry, other_entry]
+    hass.config_entries.entries = [entry, other_entry]
 
     select_coordinators = cast(
         "Callable[[FakeHass, str | None], list[UniFiNetworkMapCoordinator]]",
@@ -296,7 +296,7 @@ def test_select_coordinators_filters_by_entry_id() -> None:
 
 def test_refresh_handler_raises_when_no_match() -> None:
     hass = FakeHass()
-    hass.config_entries._entries = []
+    hass.config_entries.entries = []
     build_refresh_handler = cast(
         "Callable["
         "[FakeHass],"
@@ -325,7 +325,7 @@ def test_refresh_handler_calls_matching_coordinator() -> None:
 
     coordinator.async_request_refresh = _refresh
     entry.runtime_data = coordinator
-    hass.config_entries._entries = [entry]
+    hass.config_entries.entries = [entry]
 
     build_refresh_handler = cast(
         "Callable["
@@ -553,7 +553,7 @@ def test_select_coordinators_without_entry_id() -> None:
     other_entry = _build_entry("other")
     other_entry.runtime_data = object()
 
-    hass.config_entries._entries = [entry, other_entry]
+    hass.config_entries.entries = [entry, other_entry]
 
     select_coordinators = cast(
         "Callable[[FakeHass, str | None], list[UniFiNetworkMapCoordinator]]",

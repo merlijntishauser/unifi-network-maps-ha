@@ -20,13 +20,6 @@ if TYPE_CHECKING:
 
     from custom_components.unifi_network_map.renderer import RenderSettings
 
-_THEME_FN = (
-    "Callable["
-    "[UniFiNetworkMapData, object,"
-    " str | None, str | None],"
-    " tuple[str, str]]"
-)
-
 
 @dataclass
 class FakeState:
@@ -59,14 +52,14 @@ class FakeHttp:
 
 class FakeConfigEntries:
     def __init__(self, entries: list[object]) -> None:
-        self._entries = entries
-        self._entries_by_id: dict[str, object] = {}
+        self.entries = entries
+        self.entries_by_id: dict[str, object] = {}
 
     def async_entries(self, _domain: str) -> list[object]:
-        return self._entries
+        return self.entries
 
     def async_get_entry(self, entry_id: str) -> object | None:
-        return self._entries_by_id.get(entry_id)
+        return self.entries_by_id.get(entry_id)
 
 
 class FakeBus:
@@ -210,7 +203,7 @@ def test_svg_view_renders_theme_when_requested(
     coordinator.data = data
     fake_entry = SimpleNamespace(runtime_data=coordinator)
     hass = FakeHassWithHttp({})
-    hass.config_entries._entries_by_id["entry-1"] = fake_entry
+    hass.config_entries.entries_by_id["entry-1"] = fake_entry
 
     def _render_svg_with_theme(
         _data: object,
@@ -250,7 +243,7 @@ def test_payload_view_returns_mapped_entities(
     coordinator.data = data
     fake_entry = SimpleNamespace(runtime_data=coordinator)
     hass = FakeHassWithHttp({})
-    hass.config_entries._entries_by_id["entry-1"] = fake_entry
+    hass.config_entries.entries_by_id["entry-1"] = fake_entry
 
     def _json_response(payload: object) -> SimpleNamespace:
         return SimpleNamespace(status=200, body=bytes(str(payload), "utf-8"))
@@ -369,7 +362,10 @@ def test_render_svg_with_theme_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(http_module, "render_svg", _render_svg)
 
     render_svg_with_theme = cast(
-        "_THEME_FN",
+        "Callable["
+        "[UniFiNetworkMapData, object,"
+        " str | None, str | None],"
+        " tuple[str, str]]",
         getattr(http_module, "_render_svg_with_theme"),
     )
     svg, background = render_svg_with_theme(data, coordinator, "unifi", None)
@@ -389,7 +385,10 @@ def test_render_svg_with_theme_returns_original_on_missing_edges() -> None:
     )
 
     render_svg_with_theme = cast(
-        "_THEME_FN",
+        "Callable["
+        "[UniFiNetworkMapData, object,"
+        " str | None, str | None],"
+        " tuple[str, str]]",
         getattr(http_module, "_render_svg_with_theme"),
     )
     svg, background = render_svg_with_theme(data, coordinator, "unifi", None)
@@ -409,7 +408,10 @@ def test_render_svg_with_theme_returns_original_on_invalid_edges() -> None:
     )
 
     render_svg_with_theme = cast(
-        "_THEME_FN",
+        "Callable["
+        "[UniFiNetworkMapData, object,"
+        " str | None, str | None],"
+        " tuple[str, str]]",
         getattr(http_module, "_render_svg_with_theme"),
     )
     svg, background = render_svg_with_theme(data, coordinator, "unifi", None)
@@ -442,7 +444,10 @@ def test_render_svg_with_theme_isometric_branch(
     )
 
     render_svg_with_theme = cast(
-        "_THEME_FN",
+        "Callable["
+        "[UniFiNetworkMapData, object,"
+        " str | None, str | None],"
+        " tuple[str, str]]",
         getattr(http_module, "_render_svg_with_theme"),
     )
     svg, background = render_svg_with_theme(data, coordinator, "unifi", None)
