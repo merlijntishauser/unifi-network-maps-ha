@@ -10,6 +10,21 @@
           "password": "Adgangskode"
         }
       },
+      "reconfigure": {
+        "title": "Omkonfigurér forbindelse",
+        "description": "Opdatér dine UniFi controller-forbindelsesoplysninger.",
+        "data": {
+          "url": "Controller-URL",
+          "username": "Brugernavn",
+          "password": "Adgangskode",
+          "site": "Site",
+          "verify_ssl": "Bekræft SSL"
+        },
+        "data_description": {
+          "url": "Inkludér protokollen (http eller https) og port om nødvendigt.",
+          "verify_ssl": "UniFi-controllere bruger selvsignerede certifikater som standard, hvilket vil fejle verifikation. Aktivér kun hvis du har installeret et betroet certifikat."
+        }
+      },
       "user": {
         "title": "Opret forbindelse til UniFi",
         "description": "Indtast oplysningerne for din UniFi-controller.",
@@ -53,11 +68,16 @@
     },
     "error": {
       "invalid_url": "Indtast en gyldig controller-URL inklusive http eller https.",
-      "url_has_credentials": "Medtag ikke brugernavn eller adgangskode i URL'en. Brug de separate felter nedenfor."
+      "url_has_credentials": "Medtag ikke brugernavn eller adgangskode i URL'en. Brug de separate felter nedenfor.",
+      "empty_credential": "Brugernavn, adgangskode og site kan ikke være tomme.",
+      "invalid_port": "URL'en indeholder et ugyldigt portnummer. Porte skal være mellem 1 og 65535.",
+      "invalid_auth": "Ugyldigt brugernavn eller adgangskode.",
+      "cannot_connect": "Kan ikke oprette forbindelse til UniFi-controlleren."
     },
     "abort": {
       "already_configured": "Denne controller og dette site er allerede konfigureret.",
-      "reauth_successful": "Godkendelse igen lykkedes."
+      "reauth_successful": "Godkendelse igen lykkedes.",
+      "reconfigure_successful": "Omkonfiguration gennemført."
     }
   },
   "options": {
@@ -111,6 +131,16 @@
     },
     "error": {
       "expected_int": "Indtast et helt antal pixels, eller lad feltet stå tomt."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Status"
+      },
+      "vlan_clients": {
+        "name": "{vlan_name} klienter"
+      }
     }
   }
 }

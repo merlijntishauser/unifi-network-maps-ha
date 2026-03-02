@@ -10,6 +10,21 @@
           "password": "Password"
         }
       },
+      "reconfigure": {
+        "title": "Reconfigure connection",
+        "description": "Update your UniFi controller connection details.",
+        "data": {
+          "url": "Controller URL",
+          "username": "Username",
+          "password": "Password",
+          "site": "Site",
+          "verify_ssl": "Verify SSL"
+        },
+        "data_description": {
+          "url": "Include the scheme (http or https) and port if needed.",
+          "verify_ssl": "UniFi controllers use self-signed certificates by default, which will fail verification. Only enable if you have installed a trusted certificate."
+        }
+      },
       "user": {
         "title": "Connect to UniFi",
         "description": "Enter your UniFi controller details.",
@@ -53,11 +68,16 @@
     },
     "error": {
       "invalid_url": "Enter a valid controller URL including http or https.",
-      "url_has_credentials": "Do not include username or password in the URL. Use the separate fields below."
+      "url_has_credentials": "Do not include username or password in the URL. Use the separate fields below.",
+      "empty_credential": "Username, password, and site cannot be empty.",
+      "invalid_port": "The URL contains an invalid port number. Ports must be between 1 and 65535.",
+      "invalid_auth": "Invalid username or password.",
+      "cannot_connect": "Cannot connect to the UniFi controller."
     },
     "abort": {
       "already_configured": "This controller and site are already configured.",
-      "reauth_successful": "Re-authentication successful."
+      "reauth_successful": "Re-authentication successful.",
+      "reconfigure_successful": "Reconfiguration successful."
     }
   },
   "options": {
@@ -111,6 +131,16 @@
     },
     "error": {
       "expected_int": "Enter a whole number of pixels or leave the field blank."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Status"
+      },
+      "vlan_clients": {
+        "name": "{vlan_name} clients"
+      }
     }
   }
 }

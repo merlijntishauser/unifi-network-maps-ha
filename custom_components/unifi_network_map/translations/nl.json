@@ -10,6 +10,21 @@
           "password": "Wachtwoord"
         }
       },
+      "reconfigure": {
+        "title": "Verbinding herconfigureren",
+        "description": "Werk de verbindingsgegevens van je UniFi-controller bij.",
+        "data": {
+          "url": "Controller-URL",
+          "username": "Gebruikersnaam",
+          "password": "Wachtwoord",
+          "site": "Site",
+          "verify_ssl": "SSL verifiëren"
+        },
+        "data_description": {
+          "url": "Vermeld het schema (http of https) en de poort indien nodig.",
+          "verify_ssl": "UniFi-controllers gebruiken standaard zelfondertekende certificaten, die de verificatie niet doorstaan. Schakel dit alleen in als je een vertrouwd certificaat hebt geïnstalleerd."
+        }
+      },
       "user": {
         "title": "Verbinden met UniFi",
         "description": "Voer je UniFi-controllergegevens in.",
@@ -55,11 +70,14 @@
       "invalid_url": "Voer een geldige controller-URL in inclusief http of https.",
       "url_has_credentials": "Voeg geen gebruikersnaam of wachtwoord toe aan de URL. Gebruik de aparte velden hieronder.",
       "invalid_port": "De URL bevat een ongeldig poortnummer. Poorten moeten tussen 1 en 65535 liggen.",
-      "empty_credential": "Gebruikersnaam, wachtwoord en site mogen niet leeg zijn."
+      "empty_credential": "Gebruikersnaam, wachtwoord en site mogen niet leeg zijn.",
+      "invalid_auth": "Ongeldige gebruikersnaam of wachtwoord.",
+      "cannot_connect": "Kan geen verbinding maken met de UniFi-controller."
     },
     "abort": {
       "already_configured": "Deze controller en site zijn al geconfigureerd.",
-      "reauth_successful": "Herauthenticatie geslaagd."
+      "reauth_successful": "Herauthenticatie geslaagd.",
+      "reconfigure_successful": "Herconfiguratie geslaagd."
     }
   },
   "options": {
@@ -113,6 +131,16 @@
     },
     "error": {
       "expected_int": "Voer een geheel aantal pixels in of laat het veld leeg."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Status"
+      },
+      "vlan_clients": {
+        "name": "{vlan_name} clients"
+      }
     }
   }
 }

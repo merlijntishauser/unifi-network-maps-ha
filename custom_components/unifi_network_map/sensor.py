@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, PAYLOAD_SCHEMA_VERSION
@@ -100,8 +101,8 @@ class UniFiNetworkMapSensor(  # type: ignore[reportUntypedBaseClass]
     """Status sensor for the UniFi Network Map integration."""
 
     _attr_has_entity_name = True
-    _attr_name = "Status"
-    _attr_icon = "mdi:graph"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_translation_key = "status"
 
     def __init__(
         self, coordinator: UniFiNetworkMapCoordinator, entry: ConfigEntry
@@ -159,8 +160,9 @@ class UniFiVlanClientsSensor(  # type: ignore[reportUntypedBaseClass]
     """Sensor showing client count per VLAN."""
 
     _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_icon = "mdi:lan"
+    _attr_translation_key = "vlan_clients"
 
     def __init__(
         self,
@@ -176,7 +178,9 @@ class UniFiVlanClientsSensor(  # type: ignore[reportUntypedBaseClass]
         self._vlan_name = vlan_name
 
         self._attr_unique_id = f"{entry.entry_id}_vlan_{vlan_id}_clients"
-        self._attr_name = f"{vlan_name} Clients"
+        self._attr_translation_placeholders = {
+            "vlan_name": vlan_name,
+        }
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
         )

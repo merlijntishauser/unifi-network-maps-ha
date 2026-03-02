@@ -8,7 +8,9 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
 )
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import CONF_TRACKED_CLIENTS, DOMAIN, UNIFI_MODEL_NAMES
@@ -102,9 +104,51 @@ async def async_setup_entry(
     """Set up device and client presence binary sensors."""
     coordinator = entry.runtime_data
 
+    _migrate_device_unique_ids(hass, entry, coordinator)
+
     tracker = _EntityTracker(coordinator, entry, async_add_entities)
     tracker.add_new_entities()
     tracker.register_listener()
+
+
+def _migrate_device_unique_ids(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    coordinator: UniFiNetworkMapCoordinator,
+) -> None:
+    """Migrate device sensors from name-based to MAC-based unique IDs."""
+    if not coordinator.data or not coordinator.data.payload:
+        return
+
+    payload = coordinator.data.payload
+    device_details = payload.get("device_details", {})
+    node_types = payload.get("node_types", {})
+
+    registry = er.async_get(hass)
+    if registry is None:
+        return
+
+    for name, device_type in node_types.items():
+        if device_type not in DEVICE_TYPES_TO_TRACK:
+            continue
+        details = device_details.get(name, {})
+        mac = details.get("mac", "")
+        if not mac or not isinstance(mac, str):
+            continue
+
+        old_suffix = _normalize_name(name)
+        new_suffix = mac.lower().replace(":", "")
+        if old_suffix == new_suffix:
+            continue
+
+        old_uid = f"{entry.entry_id}_device_{old_suffix}"
+        new_uid = f"{entry.entry_id}_device_{new_suffix}"
+
+        if registry.async_get_entity_id("binary_sensor", DOMAIN, old_uid):
+            registry.async_update_entity(
+                registry.async_get_entity_id("binary_sensor", DOMAIN, old_uid),
+                new_unique_id=new_uid,
+            )
 
 
 def _create_device_presence_entities(
@@ -142,6 +186,7 @@ class UniFiDevicePresenceSensor(  # type: ignore[reportUntypedBaseClass]
     """Binary sensor for UniFi network device presence."""
 
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_has_entity_name = True
 
     def __init__(
@@ -159,8 +204,8 @@ class UniFiDevicePresenceSensor(  # type: ignore[reportUntypedBaseClass]
         self._device_type = device_type
         self._initial_details = device_details
 
-        normalized_name = _normalize_name(device_name)
-        self._attr_unique_id = f"{entry.entry_id}_device_{normalized_name}"
+        device_id = _device_unique_suffix(device_name, device_details)
+        self._attr_unique_id = f"{entry.entry_id}_device_{device_id}"
         self._attr_name = device_name
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
@@ -227,6 +272,17 @@ def _normalize_name(name: str) -> str:
     normalized = normalized.replace("-", "_")
     normalized = normalized.replace(".", "_")
     return normalized
+
+
+def _device_unique_suffix(
+    device_name: str,
+    device_details: dict[str, Any],
+) -> str:
+    """Return MAC-based suffix, falling back to normalized name."""
+    mac = device_details.get("mac", "")
+    if mac and isinstance(mac, str):
+        return mac.lower().replace(":", "")
+    return _normalize_name(device_name)
 
 
 def _create_client_presence_entities(

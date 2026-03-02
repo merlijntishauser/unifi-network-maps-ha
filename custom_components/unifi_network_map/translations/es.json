@@ -10,6 +10,21 @@
           "password": "Contraseña"
         }
       },
+      "reconfigure": {
+        "title": "Reconfigurar conexión",
+        "description": "Actualiza los datos de conexión de tu controlador UniFi.",
+        "data": {
+          "url": "URL del controlador",
+          "username": "Usuario",
+          "password": "Contraseña",
+          "site": "Sitio",
+          "verify_ssl": "Verificar SSL"
+        },
+        "data_description": {
+          "url": "Incluye el esquema (http o https) y el puerto si es necesario.",
+          "verify_ssl": "Los controladores UniFi usan certificados autofirmados por defecto, lo que fallará en la verificación. Solo activa si has instalado un certificado de confianza."
+        }
+      },
       "user": {
         "title": "Conectar a UniFi",
         "description": "Introduce los detalles de tu controlador UniFi.",
@@ -55,11 +70,14 @@
       "invalid_url": "Introduce una URL de controlador válida que incluya http o https.",
       "url_has_credentials": "No incluyas usuario ni contraseña en la URL. Usa los campos separados de abajo.",
       "invalid_port": "La URL contiene un número de puerto inválido. Los puertos deben estar entre 1 y 65535.",
-      "empty_credential": "El nombre de usuario, contraseña y sitio no pueden estar vacíos."
+      "empty_credential": "El nombre de usuario, contraseña y sitio no pueden estar vacíos.",
+      "invalid_auth": "Usuario o contraseña inválidos.",
+      "cannot_connect": "No se puede conectar al controlador UniFi."
     },
     "abort": {
       "already_configured": "Este controlador y sitio ya están configurados.",
-      "reauth_successful": "Reautenticación exitosa."
+      "reauth_successful": "Reautenticación exitosa.",
+      "reconfigure_successful": "Reconfiguración exitosa."
     }
   },
   "options": {
@@ -113,6 +131,16 @@
     },
     "error": {
       "expected_int": "Introduce un número entero de píxeles o deja el campo en blanco."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Estado"
+      },
+      "vlan_clients": {
+        "name": "{vlan_name} clientes"
+      }
     }
   }
 }

@@ -10,6 +10,21 @@
           "password": "Lykilorð"
         }
       },
+      "reconfigure": {
+        "title": "Endurstilla tengingu",
+        "description": "Uppfærðu tengingarupplýsingar UniFi-stýringarinnar.",
+        "data": {
+          "url": "Vefslóð stýringar",
+          "username": "Notandanafn",
+          "password": "Lykilorð",
+          "site": "Svæði",
+          "verify_ssl": "Staðfesta SSL"
+        },
+        "data_description": {
+          "url": "Tilgreindu samskiptareglur (http eða https) og gátt ef þarf.",
+          "verify_ssl": "UniFi-stýringar nota sjálfundirrituð vottorð sjálfgefið, sem munu ekki standast staðfestingu. Virkjaðu aðeins ef þú hefur sett upp traust vottorð."
+        }
+      },
       "user": {
         "title": "Tengjast UniFi",
         "description": "Sláðu inn upplýsingar um UniFi-stýribúnaðinn.",
@@ -53,11 +68,16 @@
     },
     "error": {
       "invalid_url": "Sláðu inn gilda URL stýribúnaðar ásamt http eða https.",
-      "url_has_credentials": "Ekki setja notandanafn eða lykilorð í URL-ið. Notaðu aðskilda reitina hér að neðan."
+      "url_has_credentials": "Ekki setja notandanafn eða lykilorð í URL-ið. Notaðu aðskilda reitina hér að neðan.",
+      "empty_credential": "Notandanafn, lykilorð og svæði mega ekki vera tóm.",
+      "invalid_port": "Vefslóð inniheldur ógilt gáttanúmer. Gáttir verða að vera á milli 1 og 65535.",
+      "invalid_auth": "Ógilt notandanafn eða lykilorð.",
+      "cannot_connect": "Ekki næst samband við UniFi-stjórnanda."
     },
     "abort": {
       "already_configured": "Þessi stýribúnaður og svæði eru þegar stillt.",
-      "reauth_successful": "Endurauðkenning tókst."
+      "reauth_successful": "Endurauðkenning tókst.",
+      "reconfigure_successful": "Endurstilling tókst."
     }
   },
   "options": {
@@ -111,6 +131,16 @@
     },
     "error": {
       "expected_int": "Sláðu inn heiltölu í pixlum eða skildu reitinn eftir auðan."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Staða"
+      },
+      "vlan_clients": {
+        "name": "{vlan_name} biðlarar"
+      }
     }
   }
 }

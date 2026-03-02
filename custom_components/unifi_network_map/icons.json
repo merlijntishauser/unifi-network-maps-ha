@@ -1,0 +1,12 @@
+{
+  "entity": {
+    "sensor": {
+      "status": {
+        "default": "mdi:graph"
+      },
+      "vlan_clients": {
+        "default": "mdi:lan"
+      }
+    }
+  }
+}

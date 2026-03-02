@@ -10,6 +10,21 @@
           "password": "Passord"
         }
       },
+      "reconfigure": {
+        "title": "Rekonfigurer tilkobling",
+        "description": "Oppdater tilkoblingsdetaljene for UniFi-kontrolleren din.",
+        "data": {
+          "url": "Kontroller-URL",
+          "username": "Brukernavn",
+          "password": "Passord",
+          "site": "Nettsted",
+          "verify_ssl": "Bekreft SSL"
+        },
+        "data_description": {
+          "url": "Inkluder protokollen (http eller https) og port om nødvendig.",
+          "verify_ssl": "UniFi-kontrollere bruker selvsignerte sertifikater som standard, noe som vil feile ved verifisering. Aktiver kun hvis du har installert et klarert sertifikat."
+        }
+      },
       "user": {
         "title": "Koble til UniFi",
         "description": "Oppgi tilkoblingsdetaljene for UniFi-kontrolleren.",
@@ -53,11 +68,16 @@
     },
     "error": {
       "invalid_url": "Oppgi en gyldig kontroller-URL inkludert http eller https.",
-      "url_has_credentials": "Ikke inkluder brukernavn eller passord i URL-en. Bruk de separate feltene nedenfor."
+      "url_has_credentials": "Ikke inkluder brukernavn eller passord i URL-en. Bruk de separate feltene nedenfor.",
+      "empty_credential": "Brukernavn, passord og nettsted kan ikke være tomme.",
+      "invalid_port": "URL-en inneholder et ugyldig portnummer. Porter må være mellom 1 og 65535.",
+      "invalid_auth": "Ugyldig brukernavn eller passord.",
+      "cannot_connect": "Kan ikke koble til UniFi-kontrolleren."
     },
     "abort": {
       "already_configured": "Denne kontrolleren og dette nettstedet er allerede konfigurert.",
-      "reauth_successful": "Autentisering på nytt var vellykket."
+      "reauth_successful": "Autentisering på nytt var vellykket.",
+      "reconfigure_successful": "Rekonfigurering vellykket."
     }
   },
   "options": {
@@ -111,6 +131,16 @@
     },
     "error": {
       "expected_int": "Oppgi et heltall i piksler eller la feltet sta tomt."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Status"
+      },
+      "vlan_clients": {
+        "name": "{vlan_name} klienter"
+      }
     }
   }
 }

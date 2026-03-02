@@ -77,6 +77,26 @@ def _make_reauth_flow(entry_data=None):
     return flow
 
 
+def _make_reconfigure_flow(entry_data=None):
+    flow = config_flow_module.UniFiNetworkMapConfigFlow()
+    flow.hass = FakeHass()
+
+    reconfigure_entry = FakeEntry()
+    reconfigure_entry.data = entry_data or _base_input()
+
+    flow._get_reconfigure_entry = lambda: reconfigure_entry
+
+    def _update_reload_abort(
+        entry, *, data=None, unique_id=None, title=None, **_kw
+    ):
+        if data is not None:
+            entry.data = data
+        return {"type": "abort", "reason": "reconfigure_successful"}
+
+    flow.async_update_reload_and_abort = _update_reload_abort
+    return flow
+
+
 def _base_input() -> dict[str, object]:
     return {
         CONF_URL: "https://unifi.local/",
@@ -546,3 +566,79 @@ def test_reauth_confirm_cannot_connect(monkeypatch):
 
     assert result["type"] == "form"
     assert result["errors"]["base"] == "cannot_connect"
+
+
+def test_reconfigure_shows_form_with_current_values():
+    flow = _make_reconfigure_flow()
+    result = _run(flow.async_step_reconfigure(None))
+
+    assert result["type"] == "form"
+    assert result["step_id"] == "reconfigure"
+
+
+def test_reconfigure_success(monkeypatch):
+    def _validate(*_args: object, **_kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(
+        config_flow_module,
+        "validate_unifi_credentials",
+        _validate,
+    )
+    flow = _make_reconfigure_flow()
+    new_input = _base_input()
+    new_input[CONF_URL] = "https://new-controller.local"
+    result = _run(flow.async_step_reconfigure(new_input))
+
+    assert result["type"] == "abort"
+    assert result["reason"] == "reconfigure_successful"
+
+
+def test_reconfigure_invalid_auth(monkeypatch):
+    def _validate(*_args: object, **_kwargs: object) -> None:
+        raise InvalidAuth("bad auth")
+
+    monkeypatch.setattr(
+        config_flow_module,
+        "validate_unifi_credentials",
+        _validate,
+    )
+    flow = _make_reconfigure_flow()
+    result = _run(flow.async_step_reconfigure(_base_input()))
+
+    assert result["type"] == "form"
+    assert result["errors"]["base"] == "invalid_auth"
+
+
+def test_reconfigure_cannot_connect(monkeypatch):
+    def _validate(*_args: object, **_kwargs: object) -> None:
+        raise CannotConnect("no route")
+
+    monkeypatch.setattr(
+        config_flow_module,
+        "validate_unifi_credentials",
+        _validate,
+    )
+    flow = _make_reconfigure_flow()
+    result = _run(flow.async_step_reconfigure(_base_input()))
+
+    assert result["type"] == "form"
+    assert result["errors"]["base"] == "cannot_connect"
+
+
+def test_reconfigure_invalid_url(monkeypatch):
+    def _validate(*_args: object, **_kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(
+        config_flow_module,
+        "validate_unifi_credentials",
+        _validate,
+    )
+    flow = _make_reconfigure_flow()
+    bad_input = _base_input()
+    bad_input[CONF_URL] = "not-a-url"
+    result = _run(flow.async_step_reconfigure(bad_input))
+
+    assert result["type"] == "form"
+    assert result["errors"]["base"] == "invalid_url"

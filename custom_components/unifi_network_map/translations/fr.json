@@ -10,6 +10,21 @@
           "password": "Mot de passe"
         }
       },
+      "reconfigure": {
+        "title": "Reconfigurer la connexion",
+        "description": "Mettez à jour les détails de connexion de votre contrôleur UniFi.",
+        "data": {
+          "url": "URL du contrôleur",
+          "username": "Nom d'utilisateur",
+          "password": "Mot de passe",
+          "site": "Site",
+          "verify_ssl": "Vérifier SSL"
+        },
+        "data_description": {
+          "url": "Incluez le schéma (http ou https) et le port si nécessaire.",
+          "verify_ssl": "Les contrôleurs UniFi utilisent des certificats auto-signés par défaut, ce qui échouera à la vérification. N'activez que si vous avez installé un certificat de confiance."
+        }
+      },
       "user": {
         "title": "Connexion à UniFi",
         "description": "Saisissez les informations de votre contrôleur UniFi.",
@@ -55,11 +70,14 @@
       "invalid_url": "Saisissez une URL de contrôleur valide incluant http ou https.",
       "url_has_credentials": "N'incluez pas le nom d'utilisateur ou le mot de passe dans l'URL. Utilisez les champs séparés ci-dessous.",
       "invalid_port": "L'URL contient un numéro de port invalide. Les ports doivent être compris entre 1 et 65535.",
-      "empty_credential": "Le nom d'utilisateur, le mot de passe et le site ne peuvent pas être vides."
+      "empty_credential": "Le nom d'utilisateur, le mot de passe et le site ne peuvent pas être vides.",
+      "invalid_auth": "Nom d'utilisateur ou mot de passe invalide.",
+      "cannot_connect": "Impossible de se connecter au contrôleur UniFi."
     },
     "abort": {
       "already_configured": "Ce contrôleur et ce site sont déjà configurés.",
-      "reauth_successful": "Réauthentification réussie."
+      "reauth_successful": "Réauthentification réussie.",
+      "reconfigure_successful": "Reconfiguration réussie."
     }
   },
   "options": {
@@ -113,6 +131,16 @@
     },
     "error": {
       "expected_int": "Saisissez un nombre entier de pixels ou laissez le champ vide."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Statut"
+      },
+      "vlan_clients": {
+        "name": "{vlan_name} clients"
+      }
     }
   }
 }

@@ -1,8 +1,14 @@
 from __future__ import annotations
 
+from homeassistant.exceptions import HomeAssistantError
 
-class UniFiNetworkMapError(Exception):
+from .const import DOMAIN
+
+
+class UniFiNetworkMapError(HomeAssistantError):  # type: ignore[reportUntypedBaseClass]
     """Base exception for UniFi Network Map errors."""
+
+    translation_domain = DOMAIN
 
 
 class InvalidUrl(UniFiNetworkMapError):

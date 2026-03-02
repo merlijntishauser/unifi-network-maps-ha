@@ -364,6 +364,21 @@ def test_unique_id_format() -> None:
     assert sensor.unique_id == f"{entry.entry_id}_device_office_switch"
 
 
+def test_unique_id_uses_mac_when_available() -> None:
+    coordinator = _build_coordinator_with_payload({})
+    entry = build_entry()
+
+    sensor = UniFiDevicePresenceSensor(
+        coordinator=coordinator,
+        entry=entry,
+        device_name="Office Switch",
+        device_type="switch",
+        device_details={"mac": "AA:BB:CC:DD:EE:FF"},
+    )
+
+    assert sensor.unique_id == f"{entry.entry_id}_device_aabbccddeeff"
+
+
 def test_device_uses_current_details_from_coordinator() -> None:
     initial_payload = {
         "node_types": {"Office Switch": "switch"},

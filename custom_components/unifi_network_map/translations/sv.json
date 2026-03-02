@@ -10,6 +10,21 @@
           "password": "Lösenord"
         }
       },
+      "reconfigure": {
+        "title": "Omkonfigurera anslutning",
+        "description": "Uppdatera anslutningsuppgifterna för din UniFi-kontroller.",
+        "data": {
+          "url": "Kontroller-URL",
+          "username": "Användarnamn",
+          "password": "Lösenord",
+          "site": "Plats",
+          "verify_ssl": "Verifiera SSL"
+        },
+        "data_description": {
+          "url": "Inkludera protokollet (http eller https) och port vid behov.",
+          "verify_ssl": "UniFi-kontroller använder självsignerade certifikat som standard, vilket inte godkänns vid verifiering. Aktivera endast om du har installerat ett betrott certifikat."
+        }
+      },
       "user": {
         "title": "Anslut till UniFi",
         "description": "Ange dina UniFi-kontrolleruppgifter.",
@@ -53,11 +68,16 @@
     },
     "error": {
       "invalid_url": "Ange en giltig kontroller-URL inklusive http eller https.",
-      "url_has_credentials": "Inkludera inte användarnamn eller lösenord i URL:en. Använd de separata fälten nedan."
+      "url_has_credentials": "Inkludera inte användarnamn eller lösenord i URL:en. Använd de separata fälten nedan.",
+      "empty_credential": "Användarnamn, lösenord och plats får inte vara tomma.",
+      "invalid_port": "URL:en innehåller ett ogiltigt portnummer. Portar måste vara mellan 1 och 65535.",
+      "invalid_auth": "Ogiltigt användarnamn eller lösenord.",
+      "cannot_connect": "Kan inte ansluta till UniFi-kontrollern."
     },
     "abort": {
       "already_configured": "Denna kontroller och plats är redan konfigurerade.",
-      "reauth_successful": "Omautentisering lyckades."
+      "reauth_successful": "Omautentisering lyckades.",
+      "reconfigure_successful": "Omkonfiguration lyckades."
     }
   },
   "options": {
@@ -111,6 +131,16 @@
     },
     "error": {
       "expected_int": "Ange ett heltal i pixlar eller lämna fältet tomt."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Status"
+      },
+      "vlan_clients": {
+        "name": "{vlan_name} klienter"
+      }
     }
   }
 }

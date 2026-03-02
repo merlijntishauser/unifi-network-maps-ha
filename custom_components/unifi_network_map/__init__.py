@@ -121,6 +121,21 @@ async def async_unload_entry(
     return unload_ok
 
 
+async def async_migrate_entry(
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+) -> bool:
+    """Migrate config entry to a new version."""
+    LOGGER.debug(
+        "init migrating entry version=%s.%s",
+        config_entry.version,
+        config_entry.minor_version,
+    )
+    # No migrations needed yet (VERSION=1, MINOR_VERSION=1).
+    # Future migrations go here.
+    return True
+
+
 def _suppress_unifi_api_info_logs(hass: HomeAssistant) -> None:
     global _unifi_api_info_filter_added
     if _unifi_api_info_filter_added or getattr(

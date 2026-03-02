@@ -67,6 +67,9 @@ def _create_homeassistant_modules() -> dict[str, Any]:
         "homeassistant.helpers.entity_registry": _create_module(
             "homeassistant.helpers.entity_registry"
         ),
+        "homeassistant.helpers.entity": _create_module(
+            "homeassistant.helpers.entity"
+        ),
         "homeassistant.helpers.entity_platform": _create_module(
             "homeassistant.helpers.entity_platform"
         ),
@@ -156,6 +159,7 @@ def _register_core_stubs(modules: dict[str, Any]) -> None:
 
 def _register_helpers_stubs(modules: dict[str, Any]) -> None:
     helpers_update = modules["homeassistant.helpers.update_coordinator"]
+    helpers_entity = modules["homeassistant.helpers.entity"]
     exceptions = modules["homeassistant.exceptions"]
 
     class CoordinatorEntity:  # minimal stub for imports
@@ -177,9 +181,14 @@ def _register_helpers_stubs(modules: dict[str, Any]) -> None:
     class UpdateFailed(Exception):
         pass
 
+    class EntityCategory:  # minimal stub for imports
+        CONFIG = "config"
+        DIAGNOSTIC = "diagnostic"
+
     helpers_update.DataUpdateCoordinator = DataUpdateCoordinator
     helpers_update.UpdateFailed = UpdateFailed
     helpers_update.CoordinatorEntity = CoordinatorEntity
+    helpers_entity.EntityCategory = EntityCategory
     exceptions.HomeAssistantError = Exception
 
 

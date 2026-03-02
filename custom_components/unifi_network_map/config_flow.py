@@ -75,6 +75,7 @@ class UniFiNetworkMapConfigFlow(  # type: ignore[reportUntypedBaseClass,reportGe
     config_entries.ConfigFlow, domain=DOMAIN
 ):
     VERSION = 1
+    MINOR_VERSION = 1
 
     async def async_step_reauth(self, entry_data: Mapping[str, Any]):
         """Handle reauth when credentials become invalid."""
@@ -108,6 +109,32 @@ class UniFiNetworkMapConfigFlow(  # type: ignore[reportUntypedBaseClass,reportGe
                     vol.Required(CONF_PASSWORD): str,
                 }
             ),
+            errors=errors,
+        )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ):
+        """Handle reconfiguration of credentials."""
+        errors: dict[str, str] = {}
+        reconfigure_entry = self._get_reconfigure_entry()
+
+        if user_input is not None:
+            data, error = await self._validate_user_input(user_input)
+            if error:
+                errors["base"] = error
+            else:
+                return self.async_update_reload_and_abort(
+                    reconfigure_entry,
+                    data=data,
+                    unique_id=_build_unique_id(data),
+                    title=_build_entry_title(data),
+                )
+
+        current = reconfigure_entry.data
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=_build_reconfigure_schema(current),
             errors=errors,
         )
 
@@ -218,6 +245,29 @@ def _build_schema() -> vol.Schema:
             vol.Required(CONF_PASSWORD): str,
             vol.Required(CONF_SITE, default=DEFAULT_SITE): str,
             vol.Optional(CONF_VERIFY_SSL, default=DEFAULT_VERIFY_SSL): bool,
+        }
+    )
+
+
+def _build_reconfigure_schema(
+    current: Mapping[str, Any],
+) -> vol.Schema:
+    return vol.Schema(
+        {
+            vol.Required(CONF_URL, default=current.get(CONF_URL, "")): str,
+            vol.Required(
+                CONF_USERNAME,
+                default=current.get(CONF_USERNAME, ""),
+            ): str,
+            vol.Required(CONF_PASSWORD): str,
+            vol.Required(
+                CONF_SITE,
+                default=current.get(CONF_SITE, DEFAULT_SITE),
+            ): str,
+            vol.Optional(
+                CONF_VERIFY_SSL,
+                default=current.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL),
+            ): bool,
         }
     )
 

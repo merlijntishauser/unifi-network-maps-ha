@@ -10,6 +10,21 @@
           "password": "Passwort"
         }
       },
+      "reconfigure": {
+        "title": "Verbindung neu konfigurieren",
+        "description": "Aktualisieren Sie die Verbindungsdaten Ihres UniFi-Controllers.",
+        "data": {
+          "url": "Controller-URL",
+          "username": "Benutzername",
+          "password": "Passwort",
+          "site": "Site",
+          "verify_ssl": "SSL verifizieren"
+        },
+        "data_description": {
+          "url": "Schema (http oder https) und Port angeben, falls erforderlich.",
+          "verify_ssl": "UniFi-Controller verwenden standardmäßig selbstsignierte Zertifikate, die die Verifizierung nicht bestehen. Nur aktivieren, wenn ein vertrauenswürdiges Zertifikat installiert ist."
+        }
+      },
       "user": {
         "title": "Mit UniFi verbinden",
         "description": "Gib die Daten deines UniFi-Controllers ein.",
@@ -55,11 +70,14 @@
       "invalid_url": "Gib eine gültige Controller-URL inklusive http oder https ein.",
       "url_has_credentials": "Füge keinen Benutzernamen oder kein Passwort in die URL ein. Verwende die separaten Felder unten.",
       "invalid_port": "Die URL enthält eine ungültige Portnummer. Ports müssen zwischen 1 und 65535 liegen.",
-      "empty_credential": "Benutzername, Passwort und Site dürfen nicht leer sein."
+      "empty_credential": "Benutzername, Passwort und Site dürfen nicht leer sein.",
+      "invalid_auth": "Ungültiger Benutzername oder Passwort.",
+      "cannot_connect": "Verbindung zum UniFi-Controller nicht möglich."
     },
     "abort": {
       "already_configured": "Dieser Controller und diese Site sind bereits konfiguriert.",
-      "reauth_successful": "Erneute Authentifizierung erfolgreich."
+      "reauth_successful": "Erneute Authentifizierung erfolgreich.",
+      "reconfigure_successful": "Neukonfiguration erfolgreich."
     }
   },
   "options": {
@@ -113,6 +131,16 @@
     },
     "error": {
       "expected_int": "Gib eine ganze Anzahl von Pixeln ein oder lasse das Feld leer."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Status"
+      },
+      "vlan_clients": {
+        "name": "{vlan_name} Clients"
+      }
     }
   }
 }

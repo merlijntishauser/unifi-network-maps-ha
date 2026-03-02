@@ -10,6 +10,21 @@
           "password": "Salasana"
         }
       },
+      "reconfigure": {
+        "title": "Muokkaa yhteyttä",
+        "description": "Päivitä UniFi-ohjaimen yhteystiedot.",
+        "data": {
+          "url": "Ohjaimen URL",
+          "username": "Käyttäjänimi",
+          "password": "Salasana",
+          "site": "Sivusto",
+          "verify_ssl": "Vahvista SSL"
+        },
+        "data_description": {
+          "url": "Sisällytä protokolla (http tai https) ja portti tarvittaessa.",
+          "verify_ssl": "UniFi-ohjaimet käyttävät oletuksena itseallekirjoitettuja varmenteita, jotka eivät läpäise vahvistusta. Ota käyttöön vain jos olet asentanut luotetun varmenteen."
+        }
+      },
       "user": {
         "title": "Yhdistä UniFi-ohjaimeen",
         "description": "Syötä UniFi-ohjaimen tiedot.",
@@ -53,11 +68,16 @@
     },
     "error": {
       "invalid_url": "Syötä kelvollinen ohjaimen URL, joka sisältää http tai https.",
-      "url_has_credentials": "Älä sisällytä käyttäjänimeä tai salasanaa URL-osoitteeseen. Käytä erillisiä kenttiä alla."
+      "url_has_credentials": "Älä sisällytä käyttäjänimeä tai salasanaa URL-osoitteeseen. Käytä erillisiä kenttiä alla.",
+      "empty_credential": "Käyttäjänimi, salasana ja sivusto eivät saa olla tyhjiä.",
+      "invalid_port": "URL sisältää virheellisen porttinumeron. Porttien on oltava välillä 1–65535.",
+      "invalid_auth": "Virheellinen käyttäjänimi tai salasana.",
+      "cannot_connect": "UniFi-ohjaimeen ei saada yhteyttä."
     },
     "abort": {
       "already_configured": "Tämä ohjain ja sivusto on jo määritetty.",
-      "reauth_successful": "Uudelleentodennus onnistui."
+      "reauth_successful": "Uudelleentodennus onnistui.",
+      "reconfigure_successful": "Uudelleenmääritys onnistui."
     }
   },
   "options": {
@@ -111,6 +131,16 @@
     },
     "error": {
       "expected_int": "Syötä kokonaisluku pikseleinä tai jätä kenttä tyhjäksi."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Tila"
+      },
+      "vlan_clients": {
+        "name": "{vlan_name} asiakkaat"
+      }
     }
   }
 }
