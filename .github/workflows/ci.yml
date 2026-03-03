@@ -19,9 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-python@v6
-      - uses: actions/checkout@v6
         with:
           python-version: "3.13"
+      - uses: actions/checkout@v6
       - name: Install dependencies
         run: make install-dev
       - name: Run unit tests
@@ -32,9 +32,9 @@ jobs:
     needs: pytest-unit
     steps:
       - uses: actions/setup-python@v6
-      - uses: actions/checkout@v6
         with:
           python-version: "3.13"
+      - uses: actions/checkout@v6
       - name: Install dependencies
         run: make install-dev
       - name: Run integration tests
@@ -45,9 +45,9 @@ jobs:
     needs: pytest-integration
     steps:
       - uses: actions/setup-python@v6
-      - uses: actions/checkout@v6
         with:
           python-version: "3.13"
+      - uses: actions/checkout@v6
       - name: Install dependencies
         run: make install-dev
       - name: Run contract tests
@@ -57,9 +57,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-python@v6
-      - uses: actions/checkout@v6
         with:
           python-version: "3.13"
+      - uses: actions/checkout@v6
       - name: Install dependencies
         run: make install-dev
       - name: Run pyright
@@ -69,9 +69,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-python@v6
-      - uses: actions/checkout@v6
         with:
           python-version: "3.13"
+      - uses: actions/checkout@v6
       - name: Install dependencies
         run: make install-dev
       - name: Ruff format check
