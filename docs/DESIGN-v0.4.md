@@ -4,16 +4,17 @@
 > network segment awareness with filtering, edge coloring, segment grouping,
 > a dedicated panel tab, and switchable topology modes.
 
-*Created: 2026-02-08*
+*Created: 2026-02-08 | Updated: 2026-03-03*
 
 ---
 
 ## Table of Contents
 
+0. [Foundation Work Completed](#0-foundation-work-completed)
 1. [Scope](#1-scope)
 2. [Design Decisions](#2-design-decisions)
 3. [Feature Toggles](#3-feature-toggles)
-4. [Upstream Library Changes](#4-upstream-library-changes-unifi-network-maps)
+4. [Upstream Library Changes](#4-upstream-library-changes-unifi-topology)
 5. [HA Backend Changes](#5-ha-backend-changes)
 6. [Frontend Changes](#6-frontend-changes)
 7. [VLAN Legend Bar (6.1)](#7-vlan-legend-bar-61)
@@ -25,6 +26,59 @@
 13. [Testing Strategy](#13-testing-strategy)
 14. [Migration & Rollout](#14-migration--rollout)
 15. [Documentation Updates](#15-documentation-updates)
+
+---
+
+## 0. Foundation Work Completed
+
+Several workstreams were completed before starting Phase 6 feature development.
+This section documents what is already done as of the v0.4 baseline.
+
+### 0.1 Library Rename: unifi-topology
+
+The upstream rendering library was renamed from `unifi-network-maps` to
+`unifi-topology` and refactored so it contains no Home Assistant-specific code.
+The integration imports from `unifi_topology` throughout. Current version: **1.0.4**.
+
+All Section 4 changes in this document describe planned additions to
+`unifi-topology` for Phase 6 feature support. The library's existing rendering
+API (SVG generation, topology data structures, device/client models) is stable
+and already integrated.
+
+### 0.2 Gold Quality Scale
+
+All Gold-tier easy-win items from the HA Integration Quality Scale are complete:
+
+| Item | Implementation |
+|------|----------------|
+| `reconfiguration-flow` | `async_step_reconfigure` in `config_flow.py` |
+| `entity-category` | `EntityCategory.DIAGNOSTIC` on status sensors |
+| `entity-device-class` | `BinarySensorDeviceClass.CONNECTIVITY` on binary sensors |
+| `entity-translations` | Translation keys for all entity names |
+| `icon-translations` | Translation keys for entity icons |
+| `exception-translations` | `HomeAssistantError` with translation keys |
+| MAC-based unique IDs | Device sensors use MAC addresses; migration handles existing entries |
+| Config entry versioning | `MINOR_VERSION` + `async_migrate_entry` |
+
+### 0.3 Code Style Alignment
+
+Code is aligned with HA Core conventions:
+
+- Line length: 79 characters (was 100)
+- Ruff rules: B, E, F, I, UP, W, SIM, TCH (expanded from C90 only)
+- Pyright: strict mode with all unknown-type rules enabled
+- Imports: isort-sorted, `TYPE_CHECKING` blocks for type-only imports
+- All production code has explicit type annotations
+
+### 0.4 Test Infrastructure
+
+Tests were rewritten using `pytest-homeassistant-custom-component`:
+
+- **521 tests** across unit, integration, and contract suites
+- **96.81% coverage** with 95% minimum enforced in CI
+- All tests use real HA fixtures (`hass: HomeAssistant`, device/entity registries)
+- All external API calls mocked at the `unifi_topology` library boundary
+- `asyncio_mode = auto` throughout; no `asyncio.run()` in tests
 
 ---
 
@@ -42,7 +96,7 @@ All five sub-sections from the roadmap are in scope for v0.4:
 
 Changes span three repositories:
 
-- **unifi-network-maps** (upstream library) -- layout and SVG generation
+- **unifi-topology** (upstream library) -- layout and SVG generation
 - **unifi-network-maps-ha** (this repo, backend) -- integration options, renderer, HTTP views
 - **unifi-network-maps-ha** (this repo, frontend) -- card UI, editor, interactions
 
@@ -120,9 +174,10 @@ renders physical-only with no switcher -- identical to v0.3.x.
 
 ---
 
-## 4. Upstream Library Changes (unifi-network-maps)
+## 4. Upstream Library Changes (unifi-topology)
 
-Three additive changes. No breaking modifications to existing APIs.
+Three additive changes to `unifi-topology`. No breaking modifications to
+existing APIs.
 
 ### 4.1 VLAN-Based Grouping Mode
 
@@ -658,7 +713,7 @@ New keys in `translations/*.json` for the options flow:
 
 ## 13. Testing Strategy
 
-### 13.1 Upstream Library (unifi-network-maps)
+### 13.1 Upstream Library (unifi-topology)
 
 - Unit tests for `layout_mode="vlan"` layout computation.
 - Unit tests for `render_dual()` producing two valid SVGs.

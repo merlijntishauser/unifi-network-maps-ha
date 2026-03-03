@@ -56,14 +56,14 @@ Visual clustering of devices by network segment:
 - Optional visual boundaries around network segments
 - Subnet-based grouping (192.168.1.x grouped together)
 - Drag-to-collapse network segments for cleaner overview
-- **Upstream**: [x] Layout engine support for logical grouping ([#19](https://github.com/merlijntishauser/unifi-network-maps/issues/19) - Done in v1.5.0)
+- **Upstream**: [x] Layout engine support for logical grouping ([#19](https://github.com/merlijntishauser/unifi-network-maps/issues/19) - Done in unifi-topology)
 
 ### 6.3 Edge VLAN Coloring
 Extend VLAN colors from nodes to connections:
 - Color edges based on the VLAN of the traffic/connection
 - Cross-VLAN connections shown with gradient or distinct style
 - Highlight inter-VLAN routing paths
-- **Upstream**: [x] Edge metadata with VLAN info ([#20](https://github.com/merlijntishauser/unifi-network-maps/issues/20) - Done in v1.5.0)
+- **Upstream**: [x] Edge metadata with VLAN info ([#20](https://github.com/merlijntishauser/unifi-network-maps/issues/20) - Done in unifi-topology)
 
 ### 6.4 VLAN Details Panel
 Dedicated panel view for network segments:
@@ -235,7 +235,7 @@ Must meet **Silver tier** minimum on the [Integration Quality Scale](https://dev
 ### 11.2 Code Architecture Changes
 
 **API Library Separation:**
-- [x] `unifi-network-maps` stable on PyPI (v1.6.x)
+- [x] `unifi-topology` stable on PyPI (v1.0.4, renamed from `unifi-network-maps`)
 - [x] Library has no HA-specific code
 - [x] Topology rendering in library, integration wraps it
 
@@ -303,19 +303,28 @@ If core inclusion is rejected or too complex, enhance HACS presence:
 
 ## Upstream Library Improvements
 
-Features requiring changes to `unifi-network-maps` library.
+Features requiring changes to `unifi-topology` library (formerly
+`unifi-network-maps`; renamed and refactored, now at v1.0.4).
 
-**GitHub Issues:**
+**Completed (carried over from unifi-network-maps):**
 
 | Issue | Feature | Status |
 |-------|---------|--------|
-| [#19](https://github.com/merlijntishauser/unifi-network-maps/issues/19) | Network segment layout support | **Done in v1.5.0** |
-| [#20](https://github.com/merlijntishauser/unifi-network-maps/issues/20) | Edge metadata with VLAN info | **Done in v1.5.0** |
-| [#21](https://github.com/merlijntishauser/unifi-network-maps/issues/21) | Topology diff API | **Done in v1.5.0** |
-| [#22](https://github.com/merlijntishauser/unifi-network-maps/issues/22) | SVG theme system (UniFi colors) | **Done in v1.5.0** |
-| [#23](https://github.com/merlijntishauser/unifi-network-maps/issues/23) | Enhanced isometric icons | **Done in v1.5.0** |
-| [#24](https://github.com/merlijntishauser/unifi-network-maps/issues/24) | Connection quality data | **Done in v1.5.0** |
-| [#32](https://github.com/merlijntishauser/unifi-network-maps/issues/32) | Port label contrast on dark themes | **Done in v1.5.2** |
+| [#19](https://github.com/merlijntishauser/unifi-network-maps/issues/19) | Network segment layout support | **Done** |
+| [#20](https://github.com/merlijntishauser/unifi-network-maps/issues/20) | Edge metadata with VLAN info | **Done** |
+| [#21](https://github.com/merlijntishauser/unifi-network-maps/issues/21) | Topology diff API | **Done** |
+| [#22](https://github.com/merlijntishauser/unifi-network-maps/issues/22) | SVG theme system (UniFi colors) | **Done** |
+| [#23](https://github.com/merlijntishauser/unifi-network-maps/issues/23) | Enhanced isometric icons | **Done** |
+| [#24](https://github.com/merlijntishauser/unifi-network-maps/issues/24) | Connection quality data | **Done** |
+| [#32](https://github.com/merlijntishauser/unifi-network-maps/issues/32) | Port label contrast on dark themes | **Done** |
+
+**Planned for v0.4 (see DESIGN-v0.4.md Section 4):**
+
+| Feature | Status |
+|---------|--------|
+| VLAN-based grouping layout mode (`layout_mode="vlan"`) | Planned |
+| Dual SVG rendering (`render_dual()`) | Planned |
+| Edge VLAN metadata in `Edge` dataclass (`vlans`, `active_vlans`, `is_trunk`) | Planned |
 
 ---
 
@@ -370,7 +379,7 @@ Priority areas for contribution:
 
 ---
 
-*Last updated: 2026-03-02*
+*Last updated: 2026-03-03*
 
 ## Version History
 
@@ -378,8 +387,8 @@ Priority areas for contribution:
 |---------|-------|--------|
 | 0.1.x | Core functionality, stability | Complete |
 | 0.2.x | Network health entities, blueprints | Complete |
-| 0.3.x | Library upgrade, theme support, WAN visualization | Current |
-| 0.4.x | Network segment visualization | Next |
+| 0.3.x | Library upgrade, theme support, WAN visualization | Complete |
+| 0.4.x | HA Core readiness + network segment visualization | Current |
 | 0.5.x | Reliability, UX refinements | Planned |
 | 0.6.x | Advanced features | Future |
 | 1.0.x | Home Assistant core inclusion | Long-term |
