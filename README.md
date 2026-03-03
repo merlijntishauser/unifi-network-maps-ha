@@ -41,33 +41,56 @@ both are installed: clicking a device in the map opens its HA entity directly.
 
 ## Before You Start
 
-You need Home Assistant 2024.12 or newer and access to a UniFi Network controller, either UniFi OS on a Dream Machine or a self-hosted controller. The integration connects directly to your controller's API, so cloud-only Ubiquiti accounts will not work.
+You need Home Assistant 2024.12 or newer and a UniFi Network controller — either UniFi OS on a Dream Machine or a self-hosted controller. The integration connects directly to your controller's API, so cloud-only Ubiquiti accounts will not work.
 
-**Creating a local UniFi account**: Open your UniFi Network application and navigate to Settings, then Admins & Users (on older versions this may be under System, then Users). Create a new local user with at least read-only access to the Network application. This account will be used by Home Assistant to fetch your network topology.
+**Create a local UniFi account** (required — do not use your Ubiquiti cloud account):
 
-For the best experience, install the official Home Assistant UniFi integration first. This integration uses it to enrich the network map with entity data, showing you which Home Assistant entities correspond to which network devices and clients.
+1. Open the UniFi Network application and go to **Settings > Admins & Users** (on older firmware: **System > Users**).
+2. Click **Add Admin** and choose **Local Access Only**.
+3. Grant at least **Read Only** access to the Network application.
+4. Save the credentials — you will enter them during HA setup.
+
+**Recommended:** Install the official Home Assistant [UniFi integration](https://www.home-assistant.io/integrations/unifi/) first. This integration uses it to enrich the map with entity links, so clicking a device opens its HA entity directly.
 
 ---
 
 ## Installation
 
+### Via HACS (recommended)
+
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=merlijntishauser&repository=unifi-network-maps-ha)
 
-The integration is available through HACS (Home Assistant Community Store). Open HACS, go to Integrations, search for "UniFi Network Map", and install it. After installation, restart Home Assistant.
+1. Click the badge above, or open HACS, go to **Integrations**, and search for **UniFi Network Map**.
+2. Click **Download** and confirm.
+3. **Restart Home Assistant.**
 
-**Manual HACS installation**: If the integration is not yet listed in the default HACS repository, you can add it manually. In HACS, click the three-dot menu in the top right, select Custom repositories, and add `https://github.com/merlijntishauser/unifi-network-maps-ha` with category Integration. The integration will then appear in the HACS integration list.
+### Via HACS (custom repository)
 
-**Manual installation without HACS**: Download the latest release and copy the `custom_components/unifi_network_map` folder to your Home Assistant configuration directory under `custom_components`. Restart Home Assistant to load the integration.
+If the integration is not yet listed in HACS:
+
+1. In HACS, open the three-dot menu (top right) and select **Custom repositories**.
+2. Add `https://github.com/merlijntishauser/unifi-network-maps-ha` with category **Integration**.
+3. Search for **UniFi Network Map**, install it, and restart Home Assistant.
+
+### Manual installation
+
+1. Download the [latest release](https://github.com/merlijntishauser/unifi-network-maps-ha/releases/latest) from GitHub.
+2. Copy the `custom_components/unifi_network_map` folder into your HA configuration directory at `<config>/custom_components/unifi_network_map/`.
+3. **Restart Home Assistant.**
 
 ---
 
 ## Configuration
 
-After installation, add the integration through the Home Assistant UI. Go to Settings, then Devices & services, click Add Integration, and search for UniFi Network Map. Enter your controller URL (including the port, typically `https://192.168.1.1` for a Dream Machine), your local username and password, and the site name (usually "default").
+1. Go to **Settings > Devices & services** and click **Add Integration**.
+2. Search for **UniFi Network Map** and select it.
+3. Enter your controller URL including the port — for example `https://192.168.1.1` for a Dream Machine or `https://192.168.1.1:8443` for a self-hosted controller.
+4. Enter the local username and password you created above, and the site name (usually `default`).
+5. Click **Submit**. The integration will verify connectivity and create the entry.
 
-Note that UniFi controllers ship with self-signed SSL certificates. The integration disables SSL verification by default to accommodate this. If you have installed a trusted certificate on your controller, you can enable verification in the configuration.
+UniFi controllers ship with self-signed SSL certificates. SSL verification is disabled by default to handle this. If you have installed a trusted certificate on your controller, you can enable verification under the integration's options.
 
-Once configured, you can adjust display options through the integration's configuration panel. Choose whether to show port labels on connections, include client devices on the map, filter to show only UniFi devices, use an isometric 3D-style layout, or override the default SVG dimensions.
+Once configured, open the integration's options panel to adjust display settings: port labels, client visibility, UniFi-only filter, isometric layout, and SVG dimensions.
 
 ---
 
