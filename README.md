@@ -7,19 +7,35 @@
 
 A Home Assistant integration that visualizes your UniFi network topology as an interactive map. See how your devices connect, which clients are online, and understand your network structure at a glance.
 
-This integration complements the UniFi native dashboard rather than replacing it. While UniFi excels at live statistics, throughput graphs, and traffic analytics, this integration brings your network topology into Home Assistant where it can be displayed alongside your other smart home controls.
+![UniFi Network Map - light theme](screenshots/lovelace-card.png)
 
-![UniFi Network Map in Home Assistant](screenshots/lovelace-card.png)
+<!-- TODO: add screenshots/lovelace-card-dark-selected.png (dark theme, node selected, detail panel open) -->
 
 ---
 
 ## What You Get
 
-The integration creates an interactive SVG map of your network that updates in real-time via WebSocket. You can pan and zoom to explore the topology, click on devices to see their details, and filter by device type to focus on what matters. The map shows your gateway, switches, access points, and optionally all connected clients.
+- Interactive SVG topology map with pan, zoom, and touch gesture support
+- Real-time updates via WebSocket, with HTTP polling fallback
+- Device type filtering (gateway, switch, AP, clients)
+- Node selection with detail panel showing IP, MAC, model, and firmware
+- Entity linking to the official UniFi integration for click-through context
+- VLAN coloring on nodes and edges
+- Port utilization display with PoE power consumption
+- 6 SVG themes: unifi, unifi-dark, minimal, minimal-dark, classic, classic-dark
+- 2 icon sets: modern and isometric
+- Binary sensors for device and client presence
+- VLAN client-count sensors
+- 4 automation blueprints (device offline/online, AP overload, VLAN threshold)
 
-Each device on the map links to its corresponding Home Assistant entity when you have the official UniFi integration installed. This means you can see device status, click through to more details, and understand how your network devices relate to the rest of your smart home.
+### Works alongside the official UniFi integration
 
-The card supports four visual themes (dark, light, and two UniFi-inspired variants) and works well on both desktop and mobile with full touch gesture support for panning and zooming.
+The built-in `unifi` integration handles device tracking, presence detection,
+and switch control. This integration adds network topology visualization --
+it shows how your devices connect to each other, which clients are on which
+AP or switch port, and how your network is structured. They share the same
+UniFi controller but serve different purposes. Entity linking works best when
+both are installed: clicking a device in the map opens its HA entity directly.
 
 ---
 
