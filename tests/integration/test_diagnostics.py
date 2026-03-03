@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING
 
 from custom_components.unifi_network_map import diagnostics
@@ -38,20 +37,18 @@ def _normalize_mac_value(value: str) -> str:
     return value.strip().lower()
 
 
-def test_diagnostics_without_coordinator() -> None:
+async def test_diagnostics_without_coordinator() -> None:
     hass = FakeHass()
     entry = build_entry()
 
-    result = asyncio.run(
-        diagnostics.async_get_config_entry_diagnostics(hass, entry)
-    )
+    result = await diagnostics.async_get_config_entry_diagnostics(hass, entry)
 
     assert result["entry"]["entry_id"] == entry.entry_id
     assert result["coordinator"]["last_update_success"] is None
     assert result["map_summary"] is None
 
 
-def test_diagnostics_summary_with_payload(
+async def test_diagnostics_summary_with_payload(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     hass = FakeHass()
@@ -103,9 +100,7 @@ def test_diagnostics_summary_with_payload(
         _normalize_mac_value,
     )
 
-    result = asyncio.run(
-        diagnostics.async_get_config_entry_diagnostics(hass, entry)
-    )
+    result = await diagnostics.async_get_config_entry_diagnostics(hass, entry)
     summary = result["map_summary"]
 
     assert summary["node_count"] == 2

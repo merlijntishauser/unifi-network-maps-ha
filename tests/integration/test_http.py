@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from types import SimpleNamespace
@@ -107,10 +106,6 @@ class FakeEntityRegistry:
         self.entities = entries
 
 
-def _run(coro):
-    return asyncio.run(coro)
-
-
 def test_resolve_node_status_map_filters_non_trackers() -> None:
     now = datetime(2026, 1, 17, tzinfo=UTC)
     hass = FakeHass(
@@ -160,7 +155,7 @@ def test_register_unifi_http_views_registers_once() -> None:
     assert len(hass.http.views) == 2
 
 
-def test_svg_view_returns_404_when_missing_data() -> None:
+async def test_svg_view_returns_404_when_missing_data() -> None:
     hass = FakeHassWithHttp({})
     request = SimpleNamespace(app={"hass": hass}, query={})
     http_module.web.HTTPNotFound = type("HTTPNotFound", (Exception,), {})
@@ -168,10 +163,10 @@ def test_svg_view_returns_404_when_missing_data() -> None:
     view = http_module.UniFiNetworkMapSvgView()
 
     with pytest.raises(web.HTTPNotFound):
-        _run(view.get(request, "missing"))
+        await view.get(request, "missing")
 
 
-def test_svg_view_renders_theme_when_requested(
+async def test_svg_view_renders_theme_when_requested(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     settings = build_settings()
@@ -205,7 +200,7 @@ def test_svg_view_renders_theme_when_requested(
     )
 
     view = http_module.UniFiNetworkMapSvgView()
-    response = _run(view.get(request, "entry-1"))
+    response = await view.get(request, "entry-1")
 
     assert response.text == "themed"
     assert response.headers == {"X-Theme-Background": "#1c1e21"}
@@ -296,7 +291,7 @@ def test_edge_payload_validation_and_defaults() -> None:
     assert edge.channel is None
 
 
-def test_payload_view_returns_404_when_missing_data() -> None:
+async def test_payload_view_returns_404_when_missing_data() -> None:
     hass = FakeHassWithHttp({})
     http_module.web.HTTPNotFound = type("HTTPNotFound", (Exception,), {})
     request = SimpleNamespace(app={"hass": hass})
@@ -304,7 +299,7 @@ def test_payload_view_returns_404_when_missing_data() -> None:
     view = http_module.UniFiNetworkMapPayloadView()
 
     with pytest.raises(http_module.web.HTTPNotFound):
-        _run(view.get(request, "missing"))
+        await view.get(request, "missing")
 
 
 def test_render_svg_with_theme_paths(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import asyncio
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 import pytest
-from homeassistant.core import ServiceCall
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
 
 import custom_components.unifi_network_map as init_module
@@ -130,7 +129,7 @@ def _build_entry(entry_id: str) -> FakeEntry:
     )
 
 
-def test_async_setup_entry_stores_coordinator() -> None:
+async def test_async_setup_entry_stores_coordinator() -> None:
     hass = FakeHass()
     entry = _build_entry("entry-1")
 
@@ -164,7 +163,7 @@ def test_async_setup_entry_stores_coordinator() -> None:
         setattr(init_module, "_forward_entry_setups", _noop_forward)
         setattr(init_module, "_log_api_endpoints", _log)
 
-        result = asyncio.run(init_module.async_setup_entry(hass, entry))
+        result = await init_module.async_setup_entry(hass, entry)
     finally:
         setattr(
             init_module, "UniFiNetworkMapCoordinator", original_coordinator
@@ -179,16 +178,18 @@ def test_async_setup_entry_stores_coordinator() -> None:
     assert called["logged"] is True
 
 
-def test_async_unload_entry_unloads_platforms() -> None:
-    hass = FakeHass()
+async def test_async_unload_entry_unloads_platforms(
+    hass: HomeAssistant,
+) -> None:
+    fake_hass = FakeHass()
     entry = _build_entry("entry-1")
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
     entry.runtime_data = coordinator
 
-    result = asyncio.run(init_module.async_unload_entry(hass, entry))
+    result = await init_module.async_unload_entry(fake_hass, entry)
 
     assert result is True
-    assert hass.config_entries.unloaded
+    assert fake_hass.config_entries.unloaded
 
 
 def test_register_runtime_services_calls_helpers() -> None:
@@ -250,8 +251,9 @@ def test_register_websocket_api_calls_helper() -> None:
     assert called == {"websocket": True}
 
 
-def test_initialize_coordinator_triggers_refresh() -> None:
-    hass = FakeHass()
+async def test_initialize_coordinator_triggers_refresh(
+    hass: HomeAssistant,
+) -> None:
     coordinator = UniFiNetworkMapCoordinator(hass, _build_entry("entry-1"))
     coordinator.called = False
 
@@ -266,7 +268,7 @@ def test_initialize_coordinator_triggers_refresh() -> None:
         " Coroutine[object, object, None]]",
         getattr(init_module, "_initialize_coordinator"),
     )
-    asyncio.run(initialize(coordinator))
+    await initialize(coordinator)
 
     assert coordinator.called is True
 
@@ -282,8 +284,10 @@ def test_log_api_endpoints_logs(caplog: pytest.LogCaptureFixture) -> None:
     assert "/api/unifi_network_map/entry-1/svg" in caplog.text
 
 
-def test_select_coordinators_filters_by_entry_id() -> None:
-    hass = FakeHass()
+async def test_select_coordinators_filters_by_entry_id(
+    hass: HomeAssistant,
+) -> None:
+    fake_hass = FakeHass()
     entry = _build_entry("entry-1")
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
     entry.runtime_data = coordinator
@@ -291,13 +295,13 @@ def test_select_coordinators_filters_by_entry_id() -> None:
     other_entry = _build_entry("other")
     other_entry.runtime_data = object()
 
-    hass.config_entries.entries = [entry, other_entry]
+    fake_hass.config_entries.entries = [entry, other_entry]
 
     select_coordinators = cast(
         "Callable[[FakeHass, str | None], list[UniFiNetworkMapCoordinator]]",
         getattr(init_module, "_select_coordinators"),
     )
-    selected = select_coordinators(hass, "entry-1")
+    selected = select_coordinators(fake_hass, "entry-1")
 
     assert selected == [coordinator]
 
@@ -319,8 +323,10 @@ async def test_refresh_handler_raises_when_no_match() -> None:
         await handler(call)
 
 
-async def test_refresh_handler_calls_matching_coordinator() -> None:
-    hass = FakeHass()
+async def test_refresh_handler_calls_matching_coordinator(
+    hass: HomeAssistant,
+) -> None:
+    fake_hass = FakeHass()
     entry = _build_entry("entry-1")
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
     called: list[str] = []
@@ -330,7 +336,7 @@ async def test_refresh_handler_calls_matching_coordinator() -> None:
 
     coordinator.async_request_refresh = _refresh
     entry.runtime_data = coordinator
-    hass.config_entries.entries = [entry]
+    fake_hass.config_entries.entries = [entry]
 
     build_refresh_handler = cast(
         "Callable["
@@ -339,7 +345,7 @@ async def test_refresh_handler_calls_matching_coordinator() -> None:
         " Coroutine[object, object, None]]]",
         getattr(init_module, "_build_refresh_handler"),
     )
-    handler = build_refresh_handler(hass)
+    handler = build_refresh_handler(fake_hass)
 
     call = _make_service_call({"entry_id": "entry-1"})
     await handler(call)
@@ -518,7 +524,7 @@ def test_as_resource_list_rejects_non_dict() -> None:
     assert as_resource_list([1, 2]) is None
 
 
-def test_maybe_await_list_handles_coroutine() -> None:
+async def test_maybe_await_list_handles_coroutine() -> None:
     maybe_await_list = cast(
         "Callable[[object],"
         " Coroutine[object, object,"
@@ -529,12 +535,12 @@ def test_maybe_await_list_handles_coroutine() -> None:
     async def _result() -> list[dict[str, object]]:
         return [{"url": "demo"}]
 
-    result = asyncio.run(maybe_await_list(_result()))
+    result = await maybe_await_list(_result())
 
     assert result == [{"url": "demo"}]
 
 
-def test_maybe_await_list_handles_sync_value() -> None:
+async def test_maybe_await_list_handles_sync_value() -> None:
     maybe_await_list = cast(
         "Callable[[object],"
         " Coroutine[object, object,"
@@ -542,13 +548,15 @@ def test_maybe_await_list_handles_sync_value() -> None:
         getattr(init_module, "_maybe_await_list"),
     )
 
-    result = asyncio.run(maybe_await_list([{"url": "local"}]))
+    result = await maybe_await_list([{"url": "local"}])
 
     assert result == [{"url": "local"}]
 
 
-def test_select_coordinators_without_entry_id() -> None:
-    hass = FakeHass()
+async def test_select_coordinators_without_entry_id(
+    hass: HomeAssistant,
+) -> None:
+    fake_hass = FakeHass()
     entry = _build_entry("entry-1")
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
     entry.runtime_data = coordinator
@@ -556,18 +564,18 @@ def test_select_coordinators_without_entry_id() -> None:
     other_entry = _build_entry("other")
     other_entry.runtime_data = object()
 
-    hass.config_entries.entries = [entry, other_entry]
+    fake_hass.config_entries.entries = [entry, other_entry]
 
     select_coordinators = cast(
         "Callable[[FakeHass, str | None], list[UniFiNetworkMapCoordinator]]",
         getattr(init_module, "_select_coordinators"),
     )
-    selected = select_coordinators(hass, None)
+    selected = select_coordinators(fake_hass, None)
 
     assert selected == [coordinator]
 
 
-def test_forward_entry_setups_calls_config_entries() -> None:
+async def test_forward_entry_setups_calls_config_entries() -> None:
     hass = FakeHass()
     entry = _build_entry("entry-1")
 
@@ -575,6 +583,6 @@ def test_forward_entry_setups_calls_config_entries() -> None:
         "Callable[[FakeHass, FakeEntry], Coroutine[object, object, None]]",
         getattr(init_module, "_forward_entry_setups"),
     )
-    asyncio.run(forward_entry_setups(hass, entry))
+    await forward_entry_setups(hass, entry)
 
     assert hass.config_entries.forwarded

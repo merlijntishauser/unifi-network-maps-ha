@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING, cast
 
 from homeassistant.const import CONF_PASSWORD, CONF_URL, CONF_USERNAME
@@ -40,10 +39,6 @@ class FakeEntry:
     def __init__(self, options: dict[str, object] | None = None) -> None:
         self.options = options or {}
         self.entry_id = "test_entry_id"
-
-
-def _run(coro):
-    return asyncio.run(coro)
 
 
 def _make_flow():
@@ -107,47 +102,47 @@ def _base_input() -> dict[str, object]:
     }
 
 
-def test_step_user_creates_entry_on_success(monkeypatch):
+async def test_step_user_creates_entry_on_success(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         return None
 
     monkeypatch.setattr(
         config_flow_module, "validate_unifi_credentials", _validate
     )
-    result = _run(_make_flow().async_step_user(_base_input()))
+    result = await _make_flow().async_step_user(_base_input())
 
     assert result["type"] == "create_entry"
     assert result["title"] == "UniFi Network Map (default)"
     assert result["data"][CONF_URL] == "https://unifi.local"
 
 
-def test_step_user_reports_invalid_auth(monkeypatch):
+async def test_step_user_reports_invalid_auth(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         raise InvalidAuth("bad auth")
 
     monkeypatch.setattr(
         config_flow_module, "validate_unifi_credentials", _validate
     )
-    result = _run(_make_flow().async_step_user(_base_input()))
+    result = await _make_flow().async_step_user(_base_input())
 
     assert result["type"] == "form"
     assert result["errors"]["base"] == "invalid_auth"
 
 
-def test_step_user_reports_cannot_connect(monkeypatch):
+async def test_step_user_reports_cannot_connect(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         raise CannotConnect("no route")
 
     monkeypatch.setattr(
         config_flow_module, "validate_unifi_credentials", _validate
     )
-    result = _run(_make_flow().async_step_user(_base_input()))
+    result = await _make_flow().async_step_user(_base_input())
 
     assert result["type"] == "form"
     assert result["errors"]["base"] == "cannot_connect"
 
 
-def test_step_user_reports_invalid_url(monkeypatch):
+async def test_step_user_reports_invalid_url(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         return None
 
@@ -156,13 +151,13 @@ def test_step_user_reports_invalid_url(monkeypatch):
     )
     bad_input = _base_input()
     bad_input[CONF_URL] = "not-a-url"
-    result = _run(_make_flow().async_step_user(bad_input))
+    result = await _make_flow().async_step_user(bad_input)
 
     assert result["type"] == "form"
     assert result["errors"]["base"] == "invalid_url"
 
 
-def test_step_user_rejects_url_with_credentials(monkeypatch):
+async def test_step_user_rejects_url_with_credentials(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         return None
 
@@ -171,26 +166,26 @@ def test_step_user_rejects_url_with_credentials(monkeypatch):
     )
     bad_input = _base_input()
     bad_input[CONF_URL] = "https://user:pass@unifi.local/"
-    result = _run(_make_flow().async_step_user(bad_input))
+    result = await _make_flow().async_step_user(bad_input)
 
     assert result["type"] == "form"
     assert result["errors"]["base"] == "url_has_credentials"
 
 
-def test_options_flow_returns_form_without_input(monkeypatch):
+async def test_options_flow_returns_form_without_input(monkeypatch):
     flow = config_flow_module.UniFiNetworkMapOptionsFlow(FakeEntry())
 
     def _schema(_options):
         return config_flow_module.vol.Schema({})
 
     monkeypatch.setattr(config_flow_module, "_build_options_schema", _schema)
-    result = _run(flow.async_step_init())
+    result = await flow.async_step_init()
 
     assert result["type"] == "form"
     assert result["step_id"] == "init"
 
 
-def test_options_flow_filters_empty_svg_sizes():
+async def test_options_flow_filters_empty_svg_sizes():
     flow = config_flow_module.UniFiNetworkMapOptionsFlow(FakeEntry())
     user_input = {
         "include_ports": True,
@@ -198,14 +193,14 @@ def test_options_flow_filters_empty_svg_sizes():
         CONF_SVG_HEIGHT: None,
     }
 
-    result = _run(flow.async_step_init(user_input))
+    result = await flow.async_step_init(user_input)
 
     assert result["type"] == "create_entry"
     assert CONF_SVG_WIDTH not in result["data"]
     assert CONF_SVG_HEIGHT not in result["data"]
 
 
-def test_options_flow_reports_invalid_svg_size(monkeypatch):
+async def test_options_flow_reports_invalid_svg_size(monkeypatch):
     flow = config_flow_module.UniFiNetworkMapOptionsFlow(FakeEntry())
     user_input = {
         CONF_SVG_WIDTH: "abc",
@@ -215,7 +210,7 @@ def test_options_flow_reports_invalid_svg_size(monkeypatch):
         return config_flow_module.vol.Schema({})
 
     monkeypatch.setattr(config_flow_module, "_build_options_schema", _schema)
-    result = _run(flow.async_step_init(user_input))
+    result = await flow.async_step_init(user_input)
 
     assert result["type"] == "form"
     assert result["errors"][CONF_SVG_WIDTH] == "expected_int"
@@ -353,7 +348,7 @@ def test_build_options_schema_returns_schema(monkeypatch) -> None:
     assert isinstance(schema, config_flow_module.vol.Schema)
 
 
-def test_step_user_rejects_empty_username(monkeypatch):
+async def test_step_user_rejects_empty_username(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         return None
 
@@ -362,13 +357,13 @@ def test_step_user_rejects_empty_username(monkeypatch):
     )
     bad_input = _base_input()
     bad_input[CONF_USERNAME] = "   "
-    result = _run(_make_flow().async_step_user(bad_input))
+    result = await _make_flow().async_step_user(bad_input)
 
     assert result["type"] == "form"
     assert result["errors"]["base"] == "empty_credential"
 
 
-def test_step_user_rejects_empty_password(monkeypatch):
+async def test_step_user_rejects_empty_password(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         return None
 
@@ -377,13 +372,13 @@ def test_step_user_rejects_empty_password(monkeypatch):
     )
     bad_input = _base_input()
     bad_input[CONF_PASSWORD] = ""
-    result = _run(_make_flow().async_step_user(bad_input))
+    result = await _make_flow().async_step_user(bad_input)
 
     assert result["type"] == "form"
     assert result["errors"]["base"] == "empty_credential"
 
 
-def test_step_user_rejects_empty_site(monkeypatch):
+async def test_step_user_rejects_empty_site(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         return None
 
@@ -392,13 +387,13 @@ def test_step_user_rejects_empty_site(monkeypatch):
     )
     bad_input = _base_input()
     bad_input[CONF_SITE] = ""
-    result = _run(_make_flow().async_step_user(bad_input))
+    result = await _make_flow().async_step_user(bad_input)
 
     assert result["type"] == "form"
     assert result["errors"]["base"] == "empty_credential"
 
 
-def test_step_user_rejects_invalid_port(monkeypatch):
+async def test_step_user_rejects_invalid_port(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         return None
 
@@ -407,13 +402,13 @@ def test_step_user_rejects_invalid_port(monkeypatch):
     )
     bad_input = _base_input()
     bad_input[CONF_URL] = "https://unifi.local:99999"
-    result = _run(_make_flow().async_step_user(bad_input))
+    result = await _make_flow().async_step_user(bad_input)
 
     assert result["type"] == "form"
     assert result["errors"]["base"] == "invalid_port"
 
 
-def test_step_user_strips_url_whitespace(monkeypatch):
+async def test_step_user_strips_url_whitespace(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         return None
 
@@ -422,13 +417,13 @@ def test_step_user_strips_url_whitespace(monkeypatch):
     )
     input_data = _base_input()
     input_data[CONF_URL] = "  https://unifi.local/  "
-    result = _run(_make_flow().async_step_user(input_data))
+    result = await _make_flow().async_step_user(input_data)
 
     assert result["type"] == "create_entry"
     assert result["data"][CONF_URL] == "https://unifi.local"
 
 
-def test_step_user_rejects_empty_url(monkeypatch):
+async def test_step_user_rejects_empty_url(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         return None
 
@@ -437,13 +432,13 @@ def test_step_user_rejects_empty_url(monkeypatch):
     )
     bad_input = _base_input()
     bad_input[CONF_URL] = ""
-    result = _run(_make_flow().async_step_user(bad_input))
+    result = await _make_flow().async_step_user(bad_input)
 
     assert result["type"] == "form"
     assert result["errors"]["base"] == "invalid_url"
 
 
-def test_options_flow_passes_wan_fields():
+async def test_options_flow_passes_wan_fields():
     flow = config_flow_module.UniFiNetworkMapOptionsFlow(FakeEntry())
     user_input = {
         "include_ports": True,
@@ -455,7 +450,7 @@ def test_options_flow_passes_wan_fields():
         CONF_WAN2_DISABLED: "auto",
     }
 
-    result = _run(flow.async_step_init(user_input))
+    result = await flow.async_step_init(user_input)
 
     assert result["type"] == "create_entry"
     assert result["data"][CONF_SHOW_WAN] is True
@@ -506,15 +501,15 @@ def test_wan2_disabled_selector_returns_instance() -> None:
     )
 
 
-def test_reauth_shows_confirm_form():
+async def test_reauth_shows_confirm_form():
     flow = _make_reauth_flow()
-    result = _run(flow.async_step_reauth(entry_data=_base_input()))
+    result = await flow.async_step_reauth(entry_data=_base_input())
 
     assert result["type"] == "form"
     assert result["step_id"] == "reauth_confirm"
 
 
-def test_reauth_confirm_success(monkeypatch):
+async def test_reauth_confirm_success(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         return None
 
@@ -522,17 +517,15 @@ def test_reauth_confirm_success(monkeypatch):
         config_flow_module, "validate_unifi_credentials", _validate
     )
     flow = _make_reauth_flow()
-    result = _run(
-        flow.async_step_reauth_confirm(
-            {CONF_USERNAME: "newadmin", CONF_PASSWORD: "newsecret"}
-        )
+    result = await flow.async_step_reauth_confirm(
+        {CONF_USERNAME: "newadmin", CONF_PASSWORD: "newsecret"}
     )
 
     assert result["type"] == "abort"
     assert result["reason"] == "reauth_successful"
 
 
-def test_reauth_confirm_invalid_auth(monkeypatch):
+async def test_reauth_confirm_invalid_auth(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         raise InvalidAuth("bad auth")
 
@@ -540,17 +533,15 @@ def test_reauth_confirm_invalid_auth(monkeypatch):
         config_flow_module, "validate_unifi_credentials", _validate
     )
     flow = _make_reauth_flow()
-    result = _run(
-        flow.async_step_reauth_confirm(
-            {CONF_USERNAME: "wrong", CONF_PASSWORD: "wrong"}
-        )
+    result = await flow.async_step_reauth_confirm(
+        {CONF_USERNAME: "wrong", CONF_PASSWORD: "wrong"}
     )
 
     assert result["type"] == "form"
     assert result["errors"]["base"] == "invalid_auth"
 
 
-def test_reauth_confirm_cannot_connect(monkeypatch):
+async def test_reauth_confirm_cannot_connect(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         raise CannotConnect("no route")
 
@@ -558,25 +549,23 @@ def test_reauth_confirm_cannot_connect(monkeypatch):
         config_flow_module, "validate_unifi_credentials", _validate
     )
     flow = _make_reauth_flow()
-    result = _run(
-        flow.async_step_reauth_confirm(
-            {CONF_USERNAME: "admin", CONF_PASSWORD: "secret"}
-        )
+    result = await flow.async_step_reauth_confirm(
+        {CONF_USERNAME: "admin", CONF_PASSWORD: "secret"}
     )
 
     assert result["type"] == "form"
     assert result["errors"]["base"] == "cannot_connect"
 
 
-def test_reconfigure_shows_form_with_current_values():
+async def test_reconfigure_shows_form_with_current_values():
     flow = _make_reconfigure_flow()
-    result = _run(flow.async_step_reconfigure(None))
+    result = await flow.async_step_reconfigure(None)
 
     assert result["type"] == "form"
     assert result["step_id"] == "reconfigure"
 
 
-def test_reconfigure_success(monkeypatch):
+async def test_reconfigure_success(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         return None
 
@@ -588,13 +577,13 @@ def test_reconfigure_success(monkeypatch):
     flow = _make_reconfigure_flow()
     new_input = _base_input()
     new_input[CONF_URL] = "https://new-controller.local"
-    result = _run(flow.async_step_reconfigure(new_input))
+    result = await flow.async_step_reconfigure(new_input)
 
     assert result["type"] == "abort"
     assert result["reason"] == "reconfigure_successful"
 
 
-def test_reconfigure_invalid_auth(monkeypatch):
+async def test_reconfigure_invalid_auth(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         raise InvalidAuth("bad auth")
 
@@ -604,13 +593,13 @@ def test_reconfigure_invalid_auth(monkeypatch):
         _validate,
     )
     flow = _make_reconfigure_flow()
-    result = _run(flow.async_step_reconfigure(_base_input()))
+    result = await flow.async_step_reconfigure(_base_input())
 
     assert result["type"] == "form"
     assert result["errors"]["base"] == "invalid_auth"
 
 
-def test_reconfigure_cannot_connect(monkeypatch):
+async def test_reconfigure_cannot_connect(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         raise CannotConnect("no route")
 
@@ -620,13 +609,13 @@ def test_reconfigure_cannot_connect(monkeypatch):
         _validate,
     )
     flow = _make_reconfigure_flow()
-    result = _run(flow.async_step_reconfigure(_base_input()))
+    result = await flow.async_step_reconfigure(_base_input())
 
     assert result["type"] == "form"
     assert result["errors"]["base"] == "cannot_connect"
 
 
-def test_reconfigure_invalid_url(monkeypatch):
+async def test_reconfigure_invalid_url(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         return None
 
@@ -638,7 +627,7 @@ def test_reconfigure_invalid_url(monkeypatch):
     flow = _make_reconfigure_flow()
     bad_input = _base_input()
     bad_input[CONF_URL] = "not-a-url"
-    result = _run(flow.async_step_reconfigure(bad_input))
+    result = await flow.async_step_reconfigure(bad_input)
 
     assert result["type"] == "form"
     assert result["errors"]["base"] == "invalid_url"

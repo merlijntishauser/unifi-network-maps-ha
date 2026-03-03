@@ -46,7 +46,9 @@ def test_normalize_name_handles_mixed() -> None:
     assert _normalize_name("Office Switch-1.local") == "office_switch_1_local"
 
 
-async def test_device_presence_is_on_when_in_topology(hass: HomeAssistant) -> None:
+async def test_device_presence_is_on_when_in_topology(
+    hass: HomeAssistant,
+) -> None:
     payload = {
         "node_types": {"Office Switch": "switch"},
         "device_details": {"Office Switch": {"mac": "aa:bb:cc:dd:ee:ff"}},
@@ -86,7 +88,9 @@ async def test_device_presence_is_off_when_missing_from_topology(
     assert sensor.is_on is False
 
 
-async def test_device_presence_is_off_when_no_data(hass: HomeAssistant) -> None:
+async def test_device_presence_is_off_when_no_data(
+    hass: HomeAssistant,
+) -> None:
     entry = build_mock_entry()
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
     coordinator.data = None
@@ -167,7 +171,9 @@ async def test_model_name_uses_api_value_when_different_from_code(
     assert attrs["model_name"] == "UniFi Dream Machine Pro (Custom)"
 
 
-async def test_model_name_fallback_to_static_mapping(hass: HomeAssistant) -> None:
+async def test_model_name_fallback_to_static_mapping(
+    hass: HomeAssistant,
+) -> None:
     """When model_name equals model code, use static mapping."""
     payload = {
         "node_types": {"Gateway": "gateway"},
@@ -225,7 +231,9 @@ async def test_model_name_fallback_to_code_when_not_in_mapping(
     assert attrs["model_name"] == "UNKNOWN-MODEL-123"
 
 
-async def test_model_name_fallback_when_model_name_missing(hass: HomeAssistant) -> None:
+async def test_model_name_fallback_when_model_name_missing(
+    hass: HomeAssistant,
+) -> None:
     """When model_name is not provided, use static mapping."""
     payload = {
         "node_types": {"AP": "ap"},
@@ -253,7 +261,9 @@ async def test_model_name_fallback_when_model_name_missing(hass: HomeAssistant) 
     assert attrs["model_name"] == "UniFi U6 Long-Range"
 
 
-async def test_device_presence_attributes_omit_none_values(hass: HomeAssistant) -> None:
+async def test_device_presence_attributes_omit_none_values(
+    hass: HomeAssistant,
+) -> None:
     payload = {
         "node_types": {"Office Switch": "switch"},
         "device_details": {
@@ -282,7 +292,9 @@ async def test_device_presence_attributes_omit_none_values(hass: HomeAssistant) 
     assert "uplink_device" not in attrs
 
 
-async def test_ap_includes_clients_connected_attribute(hass: HomeAssistant) -> None:
+async def test_ap_includes_clients_connected_attribute(
+    hass: HomeAssistant,
+) -> None:
     payload = {
         "node_types": {"Living Room AP": "ap"},
         "device_details": {
@@ -309,7 +321,9 @@ async def test_ap_includes_clients_connected_attribute(hass: HomeAssistant) -> N
     assert attrs["clients_connected"] == 5
 
 
-async def test_ap_clients_connected_defaults_to_zero(hass: HomeAssistant) -> None:
+async def test_ap_clients_connected_defaults_to_zero(
+    hass: HomeAssistant,
+) -> None:
     payload = {
         "node_types": {"Living Room AP": "ap"},
         "device_details": {"Living Room AP": {"mac": "11:22:33:44:55:66"}},
@@ -330,7 +344,9 @@ async def test_ap_clients_connected_defaults_to_zero(hass: HomeAssistant) -> Non
     assert attrs["clients_connected"] == 0
 
 
-async def test_switch_does_not_include_clients_connected(hass: HomeAssistant) -> None:
+async def test_switch_does_not_include_clients_connected(
+    hass: HomeAssistant,
+) -> None:
     payload = {
         "node_types": {"Office Switch": "switch"},
         "device_details": {"Office Switch": {"mac": "aa:bb:cc:dd:ee:ff"}},
@@ -381,7 +397,9 @@ async def test_unique_id_uses_mac_when_available(hass: HomeAssistant) -> None:
     assert sensor.unique_id == f"{entry.entry_id}_device_aabbccddeeff"
 
 
-async def test_device_uses_current_details_from_coordinator(hass: HomeAssistant) -> None:
+async def test_device_uses_current_details_from_coordinator(
+    hass: HomeAssistant,
+) -> None:
     initial_payload = {
         "node_types": {"Office Switch": "switch"},
         "device_details": {"Office Switch": {"ip": "192.168.1.10"}},
@@ -479,7 +497,9 @@ def test_parse_tracked_clients_skips_invalid() -> None:
     assert result == ["aa:bb:cc:dd:ee:ff", "11:22:33:44:55:66"]
 
 
-async def test_client_presence_is_on_when_connected(hass: HomeAssistant) -> None:
+async def test_client_presence_is_on_when_connected(
+    hass: HomeAssistant,
+) -> None:
     payload = {
         "client_details": {
             "aa:bb:cc:dd:ee:ff": {
@@ -501,7 +521,9 @@ async def test_client_presence_is_on_when_connected(hass: HomeAssistant) -> None
     assert sensor.is_on is True
 
 
-async def test_client_presence_is_off_when_disconnected(hass: HomeAssistant) -> None:
+async def test_client_presence_is_off_when_disconnected(
+    hass: HomeAssistant,
+) -> None:
     payload = {"client_details": {}}
     coordinator = _build_coordinator(hass, payload)
     entry = build_mock_entry()
@@ -536,7 +558,9 @@ async def test_client_presence_name_from_details(hass: HomeAssistant) -> None:
     assert sensor.name == "Sonos Speaker"
 
 
-async def test_client_presence_name_fallback_to_mac(hass: HomeAssistant) -> None:
+async def test_client_presence_name_fallback_to_mac(
+    hass: HomeAssistant,
+) -> None:
     payload = {"client_details": {}}
     coordinator = _build_coordinator(hass, payload)
     entry = build_mock_entry()
@@ -583,7 +607,9 @@ async def test_client_presence_attributes(hass: HomeAssistant) -> None:
     assert attrs["connection_type"] == "wireless"
 
 
-async def test_client_presence_wired_connection_type(hass: HomeAssistant) -> None:
+async def test_client_presence_wired_connection_type(
+    hass: HomeAssistant,
+) -> None:
     payload = {
         "client_details": {
             "aa:bb:cc:dd:ee:ff": {
