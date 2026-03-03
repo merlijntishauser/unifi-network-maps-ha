@@ -318,7 +318,7 @@ Features requiring changes to `unifi-topology` library (formerly
 | [#24](https://github.com/merlijntishauser/unifi-network-maps/issues/24) | Connection quality data | **Done** |
 | [#32](https://github.com/merlijntishauser/unifi-network-maps/issues/32) | Port label contrast on dark themes | **Done** |
 
-**Planned for v0.4 (see DESIGN-v0.4.md Section 4):**
+**Planned for v0.5 (see DESIGN-v0.5.md Section 4):**
 
 | Feature | Status |
 |---------|--------|

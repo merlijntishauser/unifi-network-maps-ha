@@ -1,10 +1,10 @@
-# Design: Phase 6 -- Network Segment Visualization (v0.4)
+# Design: Phase 6 -- Network Segment Visualization (v0.5)
 
 > Transforms VLAN/network visualization from simple node coloring to rich
 > network segment awareness with filtering, edge coloring, segment grouping,
 > a dedicated panel tab, and switchable topology modes.
 
-*Created: 2026-02-08 | Updated: 2026-03-03*
+*Created: 2026-02-08 | Updated: 2026-03-03 (retargeted to v0.5)*
 
 ---
 
@@ -84,7 +84,7 @@ Tests were rewritten using `pytest-homeassistant-custom-component`:
 
 ## 1. Scope
 
-All five sub-sections from the roadmap are in scope for v0.4:
+All five sub-sections from the roadmap are in scope for v0.5:
 
 | Section | Feature | Summary |
 |---------|---------|---------|
@@ -133,11 +133,11 @@ Added to the HA options flow (`config_flow.py`). Stored in the config entry.
 | `enable_vlan_grouping` | `bool` | `false` | Temporary | Renders VLAN-grouped SVG alongside physical SVG |
 | `enable_topology_modes` | `bool` | `false` | Temporary | Serves dual SVGs via `/svg?mode=` query param |
 
-**Temporary** means these options exist during the v0.4.x cycle for safe
-rollout. In v0.5, a config entry migration removes them and makes dual
+**Temporary** means these options exist during the v0.5.x cycle for safe
+rollout. In v0.6, a config entry migration removes them and makes dual
 rendering always-on.
 
-When both toggles are off, the integration behaves identically to v0.3.x.
+When both toggles are off, the integration behaves identically to v0.4.x.
 
 ### 3.2 Frontend Toggles (Card Config, Lovelace Editor)
 
@@ -160,13 +160,13 @@ frontend toggles have no effect and the VLAN-related editor options are hidden.
 
 The topology mode switcher only appears when the backend provides dual SVGs
 (detected via a `topology_modes` field in the payload). When absent, the card
-renders physical-only with no switcher -- identical to v0.3.x.
+renders physical-only with no switcher -- identical to v0.4.x.
 
 ### 3.4 Toggle Interaction Matrix
 
 | Backend state | Frontend state | Result |
 |---------------|----------------|--------|
-| Toggles off | Any | v0.3.x behavior, VLAN editor options hidden |
+| Toggles off | Any | v0.4.x behavior, VLAN editor options hidden |
 | `enable_vlan_grouping` on | `show_segment_boundaries` on | VLAN lane layout with visible boundaries |
 | `enable_vlan_grouping` on | `show_segment_boundaries` off | VLAN lane layout, no boundaries drawn |
 | `enable_topology_modes` on | -- | Mode switcher appears (Physical/Logical/Hybrid) |
@@ -611,7 +611,7 @@ Styled consistently with the zoom/reset button group.
 
 Displays the standard physical topology SVG. No segment boundaries. VLAN
 edge coloring still applies if enabled. This is the default mode and
-matches v0.3.x behavior exactly.
+matches v0.4.x behavior exactly.
 
 ### 11.3 Logical Mode
 
@@ -751,19 +751,19 @@ New keys in `translations/*.json` for the options flow:
 
 ## 14. Migration & Rollout
 
-### 14.1 v0.4.0 Release
+### 14.1 v0.5.0 Release
 
 - Backend toggles default to `false`. Existing users see no change.
 - Frontend toggles default to `true` but have no effect until backend
   toggles are enabled.
 - Users opt-in to new features via integration options.
 
-### 14.2 v0.4.x Patch Releases
+### 14.2 v0.5.x Patch Releases
 
 - Bug fixes and polish based on user feedback.
 - Backend toggle defaults may change to `true` once stable.
 
-### 14.3 v0.5.0 Migration
+### 14.3 v0.6.0 Migration
 
 Config entry migration removes temporary backend toggles:
 
@@ -807,12 +807,12 @@ exist at two levels:
 - Added to `CardConfig` type in `types.ts` and rendered in the editor.
 - Require localization keys in all 10 locale files.
 
-**Current toggles (v0.4.x):**
+**Current toggles (v0.5.x):**
 
 | Toggle | Layer | Default | Lifespan |
 |--------|-------|---------|----------|
-| `enable_vlan_grouping` | Backend | `false` | Temporary (removed in v0.5) |
-| `enable_topology_modes` | Backend | `false` | Temporary (removed in v0.5) |
+| `enable_vlan_grouping` | Backend | `false` | Temporary (removed in v0.6) |
+| `enable_topology_modes` | Backend | `false` | Temporary (removed in v0.6) |
 | `show_vlan_legend` | Frontend | `true` | Permanent |
 | `show_vlan_edge_coloring` | Frontend | `true` | Permanent |
 | `show_segment_boundaries` | Frontend | `true` | Permanent |
