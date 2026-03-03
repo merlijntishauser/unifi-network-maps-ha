@@ -6,9 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.4.0] - 2026-03-03
+### Added
+- VPN tunnel support: VPN connections shown as edges in the topology map, with a visibility toggle in integration options
+- Reauthentication flow: when controller credentials expire, HA prompts to re-enter them without full reconfiguration
+- Reconfiguration flow: update controller URL or credentials without removing and re-adding the integration
+
 ### Changed
-- Switched dependency from unifi-network-maps to unifi-topology 1.0.2
-- Removed unifi-controller-api dependency (now provided by unifi-topology)
+- Switched from `unifi-network-maps` to `unifi-topology` 1.0.4; `unifi-controller-api` is no longer a separate dependency
+- Config entry migration: device sensors now use MAC-address-based unique IDs; existing entries migrate automatically
+- Entity metadata aligned to HA quality standards: entity categories (DIAGNOSTIC), device classes (CONNECTIVITY), translated entity names, icons, and exception messages
+- `PARALLEL_UPDATES = 1` on all entity platforms
+- Code aligned to HA Core conventions: 79-character line length, expanded ruff rule set, pyright strict mode
+- Test infrastructure rewritten with `pytest-homeassistant-custom-component`: 521 tests, 96.81% coverage enforced at 95%
 
 ## [0.3.5] - 2026-02-24
 ### Fixed
@@ -239,7 +250,8 @@ The upcoming 0.2 release will have some major new features.
 ## [0.1.0] - 2026-01-17
 - Initial public release.
 
-[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.3.5...HEAD
+[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.4.0
 [0.3.5]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.3.5
 [0.3.4]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.3.4
 [0.3.3]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.3.3
