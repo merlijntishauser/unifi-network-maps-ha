@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from homeassistant.core import HomeAssistant
+
 from custom_components.unifi_network_map.binary_sensor import (
     UniFiClientPresenceSensor,
     UniFiDevicePresenceSensor,
@@ -13,22 +15,15 @@ from custom_components.unifi_network_map.coordinator import (
     UniFiNetworkMapCoordinator,
 )
 from custom_components.unifi_network_map.data import UniFiNetworkMapData
-from tests.helpers import build_entry
+from tests.helpers import FakeEntry
+from tests.integration.conftest import build_mock_entry
 
 
-class FakeHass:
-    def __init__(self) -> None:
-        self.data: dict[str, object] = {}
-
-    async def async_add_executor_job(self, func, *args: object):
-        return func(*args)
-
-
-def _build_coordinator_with_payload(
+def _build_coordinator(
+    hass: HomeAssistant,
     payload: dict[str, Any],
 ) -> UniFiNetworkMapCoordinator:
-    hass = FakeHass()
-    entry = build_entry()
+    entry = build_mock_entry()
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
     coordinator.data = UniFiNetworkMapData(svg="<svg />", payload=payload)
     coordinator.last_exception = None
@@ -51,13 +46,13 @@ def test_normalize_name_handles_mixed() -> None:
     assert _normalize_name("Office Switch-1.local") == "office_switch_1_local"
 
 
-def test_device_presence_is_on_when_in_topology() -> None:
+async def test_device_presence_is_on_when_in_topology(hass: HomeAssistant) -> None:
     payload = {
         "node_types": {"Office Switch": "switch"},
         "device_details": {"Office Switch": {"mac": "aa:bb:cc:dd:ee:ff"}},
     }
-    coordinator = _build_coordinator_with_payload(payload)
-    entry = build_entry()
+    coordinator = _build_coordinator(hass, payload)
+    entry = build_mock_entry()
 
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
@@ -70,13 +65,15 @@ def test_device_presence_is_on_when_in_topology() -> None:
     assert sensor.is_on is True
 
 
-def test_device_presence_is_off_when_missing_from_topology() -> None:
+async def test_device_presence_is_off_when_missing_from_topology(
+    hass: HomeAssistant,
+) -> None:
     payload = {
         "node_types": {},
         "device_details": {},
     }
-    coordinator = _build_coordinator_with_payload(payload)
-    entry = build_entry()
+    coordinator = _build_coordinator(hass, payload)
+    entry = build_mock_entry()
 
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
@@ -89,9 +86,8 @@ def test_device_presence_is_off_when_missing_from_topology() -> None:
     assert sensor.is_on is False
 
 
-def test_device_presence_is_off_when_no_data() -> None:
-    hass = FakeHass()
-    entry = build_entry()
+async def test_device_presence_is_off_when_no_data(hass: HomeAssistant) -> None:
+    entry = build_mock_entry()
     coordinator = UniFiNetworkMapCoordinator(hass, entry)
     coordinator.data = None
 
@@ -106,7 +102,9 @@ def test_device_presence_is_off_when_no_data() -> None:
     assert sensor.is_on is False
 
 
-def test_device_presence_attributes_include_device_type() -> None:
+async def test_device_presence_attributes_include_device_type(
+    hass: HomeAssistant,
+) -> None:
     payload = {
         "node_types": {"Office Switch": "switch"},
         "device_details": {
@@ -119,8 +117,8 @@ def test_device_presence_attributes_include_device_type() -> None:
             }
         },
     }
-    coordinator = _build_coordinator_with_payload(payload)
-    entry = build_entry()
+    coordinator = _build_coordinator(hass, payload)
+    entry = build_mock_entry()
 
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
@@ -139,7 +137,9 @@ def test_device_presence_attributes_include_device_type() -> None:
     assert attrs["uplink_device"] == "Dream Machine"
 
 
-def test_model_name_uses_api_value_when_different_from_code() -> None:
+async def test_model_name_uses_api_value_when_different_from_code(
+    hass: HomeAssistant,
+) -> None:
     """When API provides a different model_name, use it."""
     payload = {
         "node_types": {"Gateway": "gateway"},
@@ -151,8 +151,8 @@ def test_model_name_uses_api_value_when_different_from_code() -> None:
             }
         },
     }
-    coordinator = _build_coordinator_with_payload(payload)
-    entry = build_entry()
+    coordinator = _build_coordinator(hass, payload)
+    entry = build_mock_entry()
 
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
@@ -167,7 +167,7 @@ def test_model_name_uses_api_value_when_different_from_code() -> None:
     assert attrs["model_name"] == "UniFi Dream Machine Pro (Custom)"
 
 
-def test_model_name_fallback_to_static_mapping() -> None:
+async def test_model_name_fallback_to_static_mapping(hass: HomeAssistant) -> None:
     """When model_name equals model code, use static mapping."""
     payload = {
         "node_types": {"Gateway": "gateway"},
@@ -179,8 +179,8 @@ def test_model_name_fallback_to_static_mapping() -> None:
             }
         },
     }
-    coordinator = _build_coordinator_with_payload(payload)
-    entry = build_entry()
+    coordinator = _build_coordinator(hass, payload)
+    entry = build_mock_entry()
 
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
@@ -195,7 +195,9 @@ def test_model_name_fallback_to_static_mapping() -> None:
     assert attrs["model_name"] == "UniFi Dream Machine Pro"
 
 
-def test_model_name_fallback_to_code_when_not_in_mapping() -> None:
+async def test_model_name_fallback_to_code_when_not_in_mapping(
+    hass: HomeAssistant,
+) -> None:
     """When model not in mapping, use model code as model_name."""
     payload = {
         "node_types": {"Device": "switch"},
@@ -207,8 +209,8 @@ def test_model_name_fallback_to_code_when_not_in_mapping() -> None:
             }
         },
     }
-    coordinator = _build_coordinator_with_payload(payload)
-    entry = build_entry()
+    coordinator = _build_coordinator(hass, payload)
+    entry = build_mock_entry()
 
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
@@ -223,7 +225,7 @@ def test_model_name_fallback_to_code_when_not_in_mapping() -> None:
     assert attrs["model_name"] == "UNKNOWN-MODEL-123"
 
 
-def test_model_name_fallback_when_model_name_missing() -> None:
+async def test_model_name_fallback_when_model_name_missing(hass: HomeAssistant) -> None:
     """When model_name is not provided, use static mapping."""
     payload = {
         "node_types": {"AP": "ap"},
@@ -235,8 +237,8 @@ def test_model_name_fallback_when_model_name_missing() -> None:
             }
         },
     }
-    coordinator = _build_coordinator_with_payload(payload)
-    entry = build_entry()
+    coordinator = _build_coordinator(hass, payload)
+    entry = build_mock_entry()
 
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
@@ -251,7 +253,7 @@ def test_model_name_fallback_when_model_name_missing() -> None:
     assert attrs["model_name"] == "UniFi U6 Long-Range"
 
 
-def test_device_presence_attributes_omit_none_values() -> None:
+async def test_device_presence_attributes_omit_none_values(hass: HomeAssistant) -> None:
     payload = {
         "node_types": {"Office Switch": "switch"},
         "device_details": {
@@ -263,8 +265,8 @@ def test_device_presence_attributes_omit_none_values() -> None:
             }
         },
     }
-    coordinator = _build_coordinator_with_payload(payload)
-    entry = build_entry()
+    coordinator = _build_coordinator(hass, payload)
+    entry = build_mock_entry()
 
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
@@ -280,7 +282,7 @@ def test_device_presence_attributes_omit_none_values() -> None:
     assert "uplink_device" not in attrs
 
 
-def test_ap_includes_clients_connected_attribute() -> None:
+async def test_ap_includes_clients_connected_attribute(hass: HomeAssistant) -> None:
     payload = {
         "node_types": {"Living Room AP": "ap"},
         "device_details": {
@@ -292,8 +294,8 @@ def test_ap_includes_clients_connected_attribute() -> None:
         },
         "ap_client_counts": {"Living Room AP": 5},
     }
-    coordinator = _build_coordinator_with_payload(payload)
-    entry = build_entry()
+    coordinator = _build_coordinator(hass, payload)
+    entry = build_mock_entry()
 
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
@@ -307,14 +309,14 @@ def test_ap_includes_clients_connected_attribute() -> None:
     assert attrs["clients_connected"] == 5
 
 
-def test_ap_clients_connected_defaults_to_zero() -> None:
+async def test_ap_clients_connected_defaults_to_zero(hass: HomeAssistant) -> None:
     payload = {
         "node_types": {"Living Room AP": "ap"},
         "device_details": {"Living Room AP": {"mac": "11:22:33:44:55:66"}},
         "ap_client_counts": {},
     }
-    coordinator = _build_coordinator_with_payload(payload)
-    entry = build_entry()
+    coordinator = _build_coordinator(hass, payload)
+    entry = build_mock_entry()
 
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
@@ -328,14 +330,14 @@ def test_ap_clients_connected_defaults_to_zero() -> None:
     assert attrs["clients_connected"] == 0
 
 
-def test_switch_does_not_include_clients_connected() -> None:
+async def test_switch_does_not_include_clients_connected(hass: HomeAssistant) -> None:
     payload = {
         "node_types": {"Office Switch": "switch"},
         "device_details": {"Office Switch": {"mac": "aa:bb:cc:dd:ee:ff"}},
         "ap_client_counts": {},
     }
-    coordinator = _build_coordinator_with_payload(payload)
-    entry = build_entry()
+    coordinator = _build_coordinator(hass, payload)
+    entry = build_mock_entry()
 
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
@@ -349,9 +351,9 @@ def test_switch_does_not_include_clients_connected() -> None:
     assert "clients_connected" not in attrs
 
 
-def test_unique_id_format() -> None:
-    coordinator = _build_coordinator_with_payload({})
-    entry = build_entry()
+async def test_unique_id_format(hass: HomeAssistant) -> None:
+    coordinator = _build_coordinator(hass, {})
+    entry = build_mock_entry()
 
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
@@ -364,9 +366,9 @@ def test_unique_id_format() -> None:
     assert sensor.unique_id == f"{entry.entry_id}_device_office_switch"
 
 
-def test_unique_id_uses_mac_when_available() -> None:
-    coordinator = _build_coordinator_with_payload({})
-    entry = build_entry()
+async def test_unique_id_uses_mac_when_available(hass: HomeAssistant) -> None:
+    coordinator = _build_coordinator(hass, {})
+    entry = build_mock_entry()
 
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
@@ -379,13 +381,13 @@ def test_unique_id_uses_mac_when_available() -> None:
     assert sensor.unique_id == f"{entry.entry_id}_device_aabbccddeeff"
 
 
-def test_device_uses_current_details_from_coordinator() -> None:
+async def test_device_uses_current_details_from_coordinator(hass: HomeAssistant) -> None:
     initial_payload = {
         "node_types": {"Office Switch": "switch"},
         "device_details": {"Office Switch": {"ip": "192.168.1.10"}},
     }
-    coordinator = _build_coordinator_with_payload(initial_payload)
-    entry = build_entry()
+    coordinator = _build_coordinator(hass, initial_payload)
+    entry = build_mock_entry()
 
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
@@ -439,15 +441,11 @@ def test_normalize_mac_empty() -> None:
 
 
 def test_parse_tracked_clients_empty() -> None:
-    from tests.helpers import FakeEntry
-
     entry = FakeEntry(entry_id="test", title="Test", data={}, options={})
     assert _parse_tracked_clients(entry) == []
 
 
 def test_parse_tracked_clients_single_mac() -> None:
-    from tests.helpers import FakeEntry
-
     entry = FakeEntry(
         entry_id="test",
         title="Test",
@@ -458,8 +456,6 @@ def test_parse_tracked_clients_single_mac() -> None:
 
 
 def test_parse_tracked_clients_multiple_macs() -> None:
-    from tests.helpers import FakeEntry
-
     entry = FakeEntry(
         entry_id="test",
         title="Test",
@@ -471,8 +467,6 @@ def test_parse_tracked_clients_multiple_macs() -> None:
 
 
 def test_parse_tracked_clients_skips_invalid() -> None:
-    from tests.helpers import FakeEntry
-
     entry = FakeEntry(
         entry_id="test",
         title="Test",
@@ -485,7 +479,7 @@ def test_parse_tracked_clients_skips_invalid() -> None:
     assert result == ["aa:bb:cc:dd:ee:ff", "11:22:33:44:55:66"]
 
 
-def test_client_presence_is_on_when_connected() -> None:
+async def test_client_presence_is_on_when_connected(hass: HomeAssistant) -> None:
     payload = {
         "client_details": {
             "aa:bb:cc:dd:ee:ff": {
@@ -495,8 +489,8 @@ def test_client_presence_is_on_when_connected() -> None:
             }
         },
     }
-    coordinator = _build_coordinator_with_payload(payload)
-    entry = build_entry()
+    coordinator = _build_coordinator(hass, payload)
+    entry = build_mock_entry()
 
     sensor = UniFiClientPresenceSensor(
         coordinator=coordinator,
@@ -507,10 +501,10 @@ def test_client_presence_is_on_when_connected() -> None:
     assert sensor.is_on is True
 
 
-def test_client_presence_is_off_when_disconnected() -> None:
+async def test_client_presence_is_off_when_disconnected(hass: HomeAssistant) -> None:
     payload = {"client_details": {}}
-    coordinator = _build_coordinator_with_payload(payload)
-    entry = build_entry()
+    coordinator = _build_coordinator(hass, payload)
+    entry = build_mock_entry()
 
     sensor = UniFiClientPresenceSensor(
         coordinator=coordinator,
@@ -521,7 +515,7 @@ def test_client_presence_is_off_when_disconnected() -> None:
     assert sensor.is_on is False
 
 
-def test_client_presence_name_from_details() -> None:
+async def test_client_presence_name_from_details(hass: HomeAssistant) -> None:
     payload = {
         "client_details": {
             "aa:bb:cc:dd:ee:ff": {
@@ -530,8 +524,8 @@ def test_client_presence_name_from_details() -> None:
             }
         },
     }
-    coordinator = _build_coordinator_with_payload(payload)
-    entry = build_entry()
+    coordinator = _build_coordinator(hass, payload)
+    entry = build_mock_entry()
 
     sensor = UniFiClientPresenceSensor(
         coordinator=coordinator,
@@ -542,10 +536,10 @@ def test_client_presence_name_from_details() -> None:
     assert sensor.name == "Sonos Speaker"
 
 
-def test_client_presence_name_fallback_to_mac() -> None:
+async def test_client_presence_name_fallback_to_mac(hass: HomeAssistant) -> None:
     payload = {"client_details": {}}
-    coordinator = _build_coordinator_with_payload(payload)
-    entry = build_entry()
+    coordinator = _build_coordinator(hass, payload)
+    entry = build_mock_entry()
 
     sensor = UniFiClientPresenceSensor(
         coordinator=coordinator,
@@ -556,7 +550,7 @@ def test_client_presence_name_fallback_to_mac() -> None:
     assert sensor.name == "aa:bb:cc:dd:ee:ff"
 
 
-def test_client_presence_attributes() -> None:
+async def test_client_presence_attributes(hass: HomeAssistant) -> None:
     payload = {
         "client_details": {
             "aa:bb:cc:dd:ee:ff": {
@@ -571,8 +565,8 @@ def test_client_presence_attributes() -> None:
         },
         "device_macs": {"Living Room AP": "11:22:33:44:55:66"},
     }
-    coordinator = _build_coordinator_with_payload(payload)
-    entry = build_entry()
+    coordinator = _build_coordinator(hass, payload)
+    entry = build_mock_entry()
 
     sensor = UniFiClientPresenceSensor(
         coordinator=coordinator,
@@ -589,7 +583,7 @@ def test_client_presence_attributes() -> None:
     assert attrs["connection_type"] == "wireless"
 
 
-def test_client_presence_wired_connection_type() -> None:
+async def test_client_presence_wired_connection_type(hass: HomeAssistant) -> None:
     payload = {
         "client_details": {
             "aa:bb:cc:dd:ee:ff": {
@@ -599,8 +593,8 @@ def test_client_presence_wired_connection_type() -> None:
             }
         },
     }
-    coordinator = _build_coordinator_with_payload(payload)
-    entry = build_entry()
+    coordinator = _build_coordinator(hass, payload)
+    entry = build_mock_entry()
 
     sensor = UniFiClientPresenceSensor(
         coordinator=coordinator,
@@ -612,9 +606,9 @@ def test_client_presence_wired_connection_type() -> None:
     assert attrs["connection_type"] == "wired"
 
 
-def test_client_presence_unique_id_format() -> None:
-    coordinator = _build_coordinator_with_payload({})
-    entry = build_entry()
+async def test_client_presence_unique_id_format(hass: HomeAssistant) -> None:
+    coordinator = _build_coordinator(hass, {})
+    entry = build_mock_entry()
 
     sensor = UniFiClientPresenceSensor(
         coordinator=coordinator,
