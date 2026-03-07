@@ -246,7 +246,7 @@ var _createHooksMap = function _createHooksMap2() {
 function createDOMPurify() {
   let window2 = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : getGlobal();
   const DOMPurify = (root) => createDOMPurify(root);
-  DOMPurify.version = "3.3.1";
+  DOMPurify.version = "3.3.2";
   DOMPurify.removed = [];
   if (!window2 || !window2.document || window2.document.nodeType !== NODE_TYPE.document || !window2.Element) {
     DOMPurify.isSupported = false;
@@ -447,7 +447,7 @@ function createDOMPurify() {
     }
     if (USE_PROFILES) {
       ALLOWED_TAGS = addToSet({}, text);
-      ALLOWED_ATTR = [];
+      ALLOWED_ATTR = create(null);
       if (USE_PROFILES.html === true) {
         addToSet(ALLOWED_TAGS, html$1);
         addToSet(ALLOWED_ATTR, html);
@@ -467,6 +467,12 @@ function createDOMPurify() {
         addToSet(ALLOWED_ATTR, mathMl);
         addToSet(ALLOWED_ATTR, xml);
       }
+    }
+    if (!objectHasOwnProperty(cfg, "ADD_TAGS")) {
+      EXTRA_ELEMENT_HANDLING.tagCheck = null;
+    }
+    if (!objectHasOwnProperty(cfg, "ADD_ATTR")) {
+      EXTRA_ELEMENT_HANDLING.attributeCheck = null;
     }
     if (cfg.ADD_TAGS) {
       if (typeof cfg.ADD_TAGS === "function") {
@@ -746,6 +752,9 @@ function createDOMPurify() {
     return false;
   };
   const _isValidAttribute = function _isValidAttribute2(lcTag, lcName, value) {
+    if (FORBID_ATTR[lcName]) {
+      return false;
+    }
     if (SANITIZE_DOM && (lcName === "id" || lcName === "name") && (value in document2 || value in formElement)) {
       return false;
     }
@@ -812,7 +821,7 @@ function createDOMPurify() {
         _removeAttribute(name, currentNode);
         value = SANITIZE_NAMED_PROPS_PREFIX + value;
       }
-      if (SAFE_FOR_XML && regExpTest(/((--!?|])>)|<\/(style|title|textarea)/i, value)) {
+      if (SAFE_FOR_XML && regExpTest(/((--!?|])>)|<\/(style|script|title|xmp|textarea|noscript|iframe|noembed|noframes)/i, value)) {
         _removeAttribute(name, currentNode);
         continue;
       }
@@ -8024,5 +8033,5 @@ console.info(`unifi-network-map card loaded v${CARD_VERSION}`);
 /*! Bundled license information:
 
 dompurify/dist/purify.es.mjs:
-  (*! @license DOMPurify 3.3.1 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/3.3.1/LICENSE *)
+  (*! @license DOMPurify 3.3.2 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/3.3.2/LICENSE *)
 */
