@@ -14,7 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reconfiguration flow: update controller URL or credentials without removing and re-adding the integration
 
 ### Changed
-- Switched from `unifi-network-maps` to `unifi-topology` 1.0.4; `unifi-controller-api` is no longer a separate dependency
+- Model name resolution now uses upstream `lookup_model_name()` from `unifi-topology`, covering firmware platform codes and store SKUs in addition to the built-in fallback table
+- Bumped `unifi-topology` from 1.0.4 to 1.3.2
+- Switched from `unifi-network-maps` to `unifi-topology`; `unifi-controller-api` is no longer a separate dependency
 - Config entry migration: device sensors now use MAC-address-based unique IDs; existing entries migrate automatically
 - Entity metadata aligned to HA quality standards: entity categories (DIAGNOSTIC), device classes (CONNECTIVITY), translated entity names, icons, and exception messages
 - `PARALLEL_UPDATES = 1` on all entity platforms

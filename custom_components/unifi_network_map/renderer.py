@@ -22,12 +22,13 @@ from unifi_topology import (
     fetch_devices,
     fetch_networks,
     group_devices_by_type,
+    lookup_model_name,
     normalize_devices,
     render_svg,
     render_svg_isometric,
 )
 
-from .const import LOGGER, PAYLOAD_SCHEMA_VERSION
+from .const import LOGGER, PAYLOAD_SCHEMA_VERSION, UNIFI_MODEL_NAMES
 from .data import UniFiNetworkMapData
 from .errors import UniFiNetworkMapError
 
@@ -716,6 +717,28 @@ def _build_ap_client_counts(
     return ap_counts
 
 
+def _resolve_model_name(
+    model_code: str | None,
+    api_name: str | None,
+) -> str | None:
+    """Resolve a friendly model name from multiple sources.
+
+    Resolution order:
+    1. API-provided model_name (if it differs from the raw code)
+    2. lookup_model_name() from unifi-topology
+    3. Hardcoded UNIFI_MODEL_NAMES fallback
+    4. Raw model code
+    """
+    if not model_code:
+        return None
+    if api_name and api_name != model_code:
+        return api_name
+    upstream_name = lookup_model_name(model_code)
+    if upstream_name:
+        return upstream_name
+    return UNIFI_MODEL_NAMES.get(model_code, model_code)
+
+
 def _build_device_details(devices: list[Device]) -> dict[str, dict[str, Any]]:
     """Build detailed device info for entity attributes.
 
@@ -731,7 +754,7 @@ def _build_device_details(devices: list[Device]) -> dict[str, dict[str, Any]]:
             "mac": device.mac.strip().lower() if device.mac else None,
             "ip": device.ip.strip() if device.ip else None,
             "model": device.model,
-            "model_name": device.model_name,
+            "model_name": _resolve_model_name(device.model, device.model_name),
             "uplink_device": uplink_name,
         }
     return details

@@ -13,7 +13,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CONF_TRACKED_CLIENTS, DOMAIN, UNIFI_MODEL_NAMES
+from .const import CONF_TRACKED_CLIENTS, DOMAIN
 from .data import UniFiNetworkMapData
 
 PARALLEL_UPDATES = 1
@@ -233,13 +233,7 @@ class UniFiDevicePresenceSensor(  # type: ignore[reportUntypedBaseClass]
             attrs["ip"] = details["ip"]
         if details.get("model"):
             attrs["model"] = details["model"]
-            # Use model_name from API, fallback to
-            # static mapping, then model code
-            model_name = details.get("model_name")
-            model_code = details["model"]
-            if not model_name or model_name == model_code:
-                model_name = UNIFI_MODEL_NAMES.get(model_code, model_code)
-            attrs["model_name"] = model_name
+            attrs["model_name"] = details.get("model_name") or details["model"]
         if details.get("uplink_device"):
             attrs["uplink_device"] = details["uplink_device"]
 

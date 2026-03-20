@@ -171,17 +171,17 @@ async def test_model_name_uses_api_value_when_different_from_code(
     assert attrs["model_name"] == "UniFi Dream Machine Pro (Custom)"
 
 
-async def test_model_name_fallback_to_static_mapping(
+async def test_model_name_uses_resolved_name_from_payload(
     hass: HomeAssistant,
 ) -> None:
-    """When model_name equals model code, use static mapping."""
+    """Sensor uses the pre-resolved model_name from the renderer."""
     payload = {
         "node_types": {"Gateway": "gateway"},
         "device_details": {
             "Gateway": {
                 "mac": "aa:bb:cc:dd:ee:ff",
                 "model": "UDMPRO",
-                "model_name": "UDMPRO",  # Same as model code
+                "model_name": "Dream Machine Pro",
             }
         },
     }
@@ -198,7 +198,7 @@ async def test_model_name_fallback_to_static_mapping(
 
     attrs = sensor.extra_state_attributes
     assert attrs["model"] == "UDMPRO"
-    assert attrs["model_name"] == "UniFi Dream Machine Pro"
+    assert attrs["model_name"] == "Dream Machine Pro"
 
 
 async def test_model_name_fallback_to_code_when_not_in_mapping(
@@ -231,10 +231,10 @@ async def test_model_name_fallback_to_code_when_not_in_mapping(
     assert attrs["model_name"] == "UNKNOWN-MODEL-123"
 
 
-async def test_model_name_fallback_when_model_name_missing(
+async def test_model_name_fallback_to_model_code_when_missing(
     hass: HomeAssistant,
 ) -> None:
-    """When model_name is not provided, use static mapping."""
+    """When model_name is absent, fall back to model code."""
     payload = {
         "node_types": {"AP": "ap"},
         "device_details": {
@@ -258,7 +258,7 @@ async def test_model_name_fallback_when_model_name_missing(
 
     attrs = sensor.extra_state_attributes
     assert attrs["model"] == "U6-LR"
-    assert attrs["model_name"] == "UniFi U6 Long-Range"
+    assert attrs["model_name"] == "U6-LR"
 
 
 async def test_device_presence_attributes_omit_none_values(

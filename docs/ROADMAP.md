@@ -80,17 +80,41 @@ Different visualization modes for different needs:
 
 ---
 
-## Phase 7: Connection Quality & Change Detection (v0.4.x)
+## Phase 7: Device Health & Connection Quality (v0.4.x)
 
-Focus: Leverage remaining `unifi-network-maps` v1.5.0 features for network monitoring.
+Focus: Leverage `unifi-topology` 1.3.2 device stats and connection quality APIs for network health monitoring.
 
-### 7.1 Connection Quality ([#33](https://github.com/merlijntishauser/unifi-network-maps-ha/issues/33))
+### 7.1 Device Health Sensors
+Expose per-device health metrics as HA sensor entities using `fetch_device_stats()`:
+- [ ] CPU utilization sensor (percentage)
+- [ ] Memory utilization sensor (percentage)
+- [ ] Temperature sensor (device class: temperature)
+- [ ] PoE budget sensor (total/used watts per switch)
+- [ ] Per-port PoE consumption attributes
+- [ ] Blueprint: Alert on high CPU/memory (> 90% sustained)
+- [ ] Blueprint: Alert on device temperature threshold
+- [ ] Blueprint: Alert on PoE budget nearing capacity
+
+### 7.2 Upstream Model Resolution
+Replace the hardcoded `UNIFI_MODEL_NAMES` dict in `const.py` with upstream `lookup_model_name()`:
+- [ ] Use `lookup_model_name()` for model name resolution (covers firmware platform codes and store SKUs)
+- [ ] Remove `UNIFI_MODEL_NAMES` fallback mapping (upstream covers all known models)
+- [ ] Show device model image from `lookup_model_url()` in detail panel
+- [ ] Link to Ubiquiti documentation via `lookup_model_docs()` in detail panel
+
+### 7.3 Device Specs in Detail Panel
+Enrich the device detail panel with physical specs from `lookup_model_specs()`:
+- [ ] Show form factor, rack height, dimensions
+- [ ] Show max power consumption
+- [ ] Show weight
+
+### 7.4 Connection Quality ([#33](https://github.com/merlijntishauser/unifi-network-maps-ha/issues/33))
 - [ ] Expose wireless signal/satisfaction as sensor attributes
 - [ ] Color-code wireless edges by quality (excellent/good/fair/poor)
 - [ ] Show connection quality in device detail panel
 - [ ] Blueprint: Alert on poor wireless quality (< -75 dBm or satisfaction < 50)
 
-### 7.2 Topology Diff API ([#32](https://github.com/merlijntishauser/unifi-network-maps-ha/issues/32))
+### 7.5 Topology Diff API ([#32](https://github.com/merlijntishauser/unifi-network-maps-ha/issues/32))
 - [ ] Store topology snapshots in HA storage
 - [ ] Fire `unifi_network_topology_change` events on changes
 - [ ] Binary sensor: "Topology changed since last poll"
@@ -183,6 +207,7 @@ Focus: Polish the user experience for daily use.
 - Per-device connection history (when did it last connect?)
 - Uptime tracking for network devices
 - Port utilization trends (which ports are most used?)
+- Historical device health metrics (CPU/memory/temp trends via HA statistics)
 
 ### 10.4 Multi-Site Support
 - View multiple UniFi sites in one card
@@ -235,7 +260,7 @@ Must meet **Silver tier** minimum on the [Integration Quality Scale](https://dev
 ### 11.2 Code Architecture Changes
 
 **API Library Separation:**
-- [x] `unifi-topology` stable on PyPI (v1.0.4, renamed from `unifi-network-maps`)
+- [x] `unifi-topology` stable on PyPI (v1.3.2, renamed from `unifi-network-maps`)
 - [x] Library has no HA-specific code
 - [x] Topology rendering in library, integration wraps it
 
@@ -304,7 +329,7 @@ If core inclusion is rejected or too complex, enhance HACS presence:
 ## Upstream Library Improvements
 
 Features requiring changes to `unifi-topology` library (formerly
-`unifi-network-maps`; renamed and refactored, now at v1.0.4).
+`unifi-network-maps`; renamed and refactored, now at v1.3.2).
 
 **Completed (carried over from unifi-network-maps):**
 
@@ -317,6 +342,18 @@ Features requiring changes to `unifi-topology` library (formerly
 | [#23](https://github.com/merlijntishauser/unifi-network-maps/issues/23) | Enhanced isometric icons | **Done** |
 | [#24](https://github.com/merlijntishauser/unifi-network-maps/issues/24) | Connection quality data | **Done** |
 | [#32](https://github.com/merlijntishauser/unifi-network-maps/issues/32) | Port label contrast on dark themes | **Done** |
+
+**New in unifi-topology 1.0.5 - 1.3.2 (available, not yet consumed):**
+
+| Feature | Version | Integration plan |
+|---------|---------|-----------------|
+| `fetch_device_stats()` - CPU, memory, temp, PoE | 1.2.0 | Phase 7.1: Device Health Sensors |
+| `lookup_model_name()` / `lookup_model_url()` | 1.2.2 | Phase 7.2: Replace hardcoded model name dict |
+| `lookup_model_docs()` / `lookup_firmware_changelog()` | 1.2.4 | Phase 7.2: Documentation links in detail panel |
+| `lookup_model_specs()` | 1.3.1 | Phase 7.3: Device specs in detail panel |
+| `invalidate_cache()` / `clear_client_cache()` | 1.1.1 | Phase 8.1: Cache invalidation after config changes |
+| Firewall zone/policy fetch (read-only) | 1.0.5 | Not planned (out of scope) |
+| `render_mermaid()` / `render_device_port_overview()` | 1.3.0 | Not planned (SVG is primary format) |
 
 **Planned for v0.5 (see DESIGN-v0.5.md Section 4):**
 
@@ -379,7 +416,7 @@ Priority areas for contribution:
 
 ---
 
-*Last updated: 2026-03-03*
+*Last updated: 2026-03-20*
 
 ## Version History
 

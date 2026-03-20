@@ -35,6 +35,7 @@ from custom_components.unifi_network_map.renderer import (
     _is_default_vlan_name,
     _network_name,
     _network_vlan_id,
+    _resolve_model_name,
     _select_edges,
 )
 
@@ -580,6 +581,40 @@ class TestBuildApClientCounts:
 
     def test_handles_empty_lists(self) -> None:
         assert _build_ap_client_counts([], []) == {}
+
+
+class TestResolveModelName:
+    """Tests for _resolve_model_name function."""
+
+    def test_returns_none_when_no_model_code(self) -> None:
+        assert _resolve_model_name(None, None) is None
+
+    def test_prefers_api_name_when_different_from_code(self) -> None:
+        result = _resolve_model_name("USW-24", "Switch 24")
+        assert result == "Switch 24"
+
+    def test_uses_upstream_lookup_when_api_name_matches_code(
+        self,
+    ) -> None:
+        result = _resolve_model_name("UDMPRO", "UDMPRO")
+        assert result == "Dream Machine Pro"
+
+    def test_uses_upstream_lookup_when_api_name_is_none(self) -> None:
+        result = _resolve_model_name("UDMPRO", None)
+        assert result == "Dream Machine Pro"
+
+    def test_falls_back_to_static_mapping(self) -> None:
+        # U6-LR is not in upstream lookup but is in UNIFI_MODEL_NAMES
+        result = _resolve_model_name("U6-LR", None)
+        assert result == "UniFi U6 Long-Range"
+
+    def test_falls_back_to_raw_code(self) -> None:
+        result = _resolve_model_name("UNKNOWN-XYZ", None)
+        assert result == "UNKNOWN-XYZ"
+
+    def test_falls_back_to_raw_code_when_api_matches(self) -> None:
+        result = _resolve_model_name("UNKNOWN-XYZ", "UNKNOWN-XYZ")
+        assert result == "UNKNOWN-XYZ"
 
 
 class TestBuildDeviceDetails:
