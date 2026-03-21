@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.4.0] - 2026-03-03
+## [0.4.0] - 2026-03-21
+This release is primarly focused on quality improvements and bug fixes.
+
 ### Added
 - VPN tunnel support: VPN connections shown as edges in the topology map, with a visibility toggle in integration options
 - Reauthentication flow: when controller credentials expire, HA prompts to re-enter them without full reconfiguration
