@@ -1,1 +1,1 @@
-unifi-topology==1.3.2
+unifi-topology==2.0.0
