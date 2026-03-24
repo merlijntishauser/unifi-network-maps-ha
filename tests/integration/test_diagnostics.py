@@ -15,12 +15,6 @@ class FakeHass:
         self.data: dict[str, object] = {}
 
 
-def _resolve_client_entity_map(
-    _hass: FakeHass, _macs: dict[str, str]
-) -> dict[str, str]:
-    return {"Client": "device_tracker.client"}
-
-
 def _entity_mac_stats(_hass: FakeHass) -> dict[str, int]:
     return {"unifi_entities_scanned": 2, "unifi_entities_with_mac": 2}
 
@@ -57,10 +51,20 @@ async def test_diagnostics_summary_with_payload(
         svg="<svg />",
         payload={
             "schema_version": "1.1",
-            "node_types": {"gw": "gateway", "sw": "switch"},
-            "edges": [{"left": "gw", "right": "sw"}],
-            "client_macs": {"Client": "AA:BB:CC:DD:EE:FF"},
-            "device_macs": {"Switch": "11:22:33:44:55:66"},
+            "node_types": {
+                "aa:bb:cc:dd:ee:ff": "gateway",
+                "11:22:33:44:55:66": "switch",
+            },
+            "node_names": {
+                "aa:bb:cc:dd:ee:ff": "gw",
+                "11:22:33:44:55:66": "sw",
+            },
+            "edges": [
+                {
+                    "left": "aa:bb:cc:dd:ee:ff",
+                    "right": "11:22:33:44:55:66",
+                }
+            ],
         },
     )
     coordinator = type(
@@ -74,11 +78,6 @@ async def test_diagnostics_summary_with_payload(
     )()
     entry.runtime_data = coordinator
 
-    monkeypatch.setattr(
-        diagnostics,
-        "resolve_client_entity_map",
-        _resolve_client_entity_map,
-    )
     monkeypatch.setattr(
         diagnostics,
         "get_unifi_entity_mac_stats",
@@ -105,9 +104,8 @@ async def test_diagnostics_summary_with_payload(
 
     assert summary["node_count"] == 2
     assert summary["edge_count"] == 1
-    assert summary["client_macs_count"] == 1
-    assert summary["linked_clients_count"] == 1
-    assert summary["device_macs_count"] == 1
-    assert summary["client_mac_overlap_count"] == 1
+    assert summary["device_count"] == 2
+    assert summary["client_count"] == 0
+    assert summary["mac_overlap_count"] == 1
     assert summary["state_mac_overlap_count"] == 1
     assert summary["payload_schema_version"] == "1.1"

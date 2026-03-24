@@ -50,8 +50,8 @@ async def test_device_presence_is_on_when_in_topology(
     hass: HomeAssistant,
 ) -> None:
     payload = {
-        "node_types": {"Office Switch": "switch"},
-        "device_details": {"Office Switch": {"mac": "aa:bb:cc:dd:ee:ff"}},
+        "node_types": {"aa:bb:cc:dd:ee:ff": "switch"},
+        "device_details": {"aa:bb:cc:dd:ee:ff": {"mac": "aa:bb:cc:dd:ee:ff"}},
     }
     coordinator = _build_coordinator(hass, payload)
     entry = build_mock_entry()
@@ -59,6 +59,7 @@ async def test_device_presence_is_on_when_in_topology(
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
         entry=entry,
+        device_mac="aa:bb:cc:dd:ee:ff",
         device_name="Office Switch",
         device_type="switch",
         device_details={"mac": "aa:bb:cc:dd:ee:ff"},
@@ -80,6 +81,7 @@ async def test_device_presence_is_off_when_missing_from_topology(
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
         entry=entry,
+        device_mac="aa:bb:cc:dd:ee:ff",
         device_name="Office Switch",
         device_type="switch",
         device_details={"mac": "aa:bb:cc:dd:ee:ff"},
@@ -98,6 +100,7 @@ async def test_device_presence_is_off_when_no_data(
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
         entry=entry,
+        device_mac="aa:bb:cc:dd:ee:ff",
         device_name="Office Switch",
         device_type="switch",
         device_details={"mac": "aa:bb:cc:dd:ee:ff"},
@@ -110,9 +113,9 @@ async def test_device_presence_attributes_include_device_type(
     hass: HomeAssistant,
 ) -> None:
     payload = {
-        "node_types": {"Office Switch": "switch"},
+        "node_types": {"aa:bb:cc:dd:ee:ff": "switch"},
         "device_details": {
-            "Office Switch": {
+            "aa:bb:cc:dd:ee:ff": {
                 "mac": "aa:bb:cc:dd:ee:ff",
                 "ip": "192.168.1.10",
                 "model": "USW-24-PoE",
@@ -127,9 +130,10 @@ async def test_device_presence_attributes_include_device_type(
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
         entry=entry,
+        device_mac="aa:bb:cc:dd:ee:ff",
         device_name="Office Switch",
         device_type="switch",
-        device_details=payload["device_details"]["Office Switch"],
+        device_details=payload["device_details"]["aa:bb:cc:dd:ee:ff"],
     )
 
     attrs = sensor.extra_state_attributes
@@ -146,9 +150,9 @@ async def test_model_name_uses_api_value_when_different_from_code(
 ) -> None:
     """When API provides a different model_name, use it."""
     payload = {
-        "node_types": {"Gateway": "gateway"},
+        "node_types": {"aa:bb:cc:dd:ee:ff": "gateway"},
         "device_details": {
-            "Gateway": {
+            "aa:bb:cc:dd:ee:ff": {
                 "mac": "aa:bb:cc:dd:ee:ff",
                 "model": "UDMPRO",
                 "model_name": "UniFi Dream Machine Pro (Custom)",
@@ -161,9 +165,10 @@ async def test_model_name_uses_api_value_when_different_from_code(
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
         entry=entry,
+        device_mac="aa:bb:cc:dd:ee:ff",
         device_name="Gateway",
         device_type="gateway",
-        device_details=payload["device_details"]["Gateway"],
+        device_details=payload["device_details"]["aa:bb:cc:dd:ee:ff"],
     )
 
     attrs = sensor.extra_state_attributes
@@ -176,9 +181,9 @@ async def test_model_name_uses_resolved_name_from_payload(
 ) -> None:
     """Sensor uses the pre-resolved model_name from the renderer."""
     payload = {
-        "node_types": {"Gateway": "gateway"},
+        "node_types": {"aa:bb:cc:dd:ee:ff": "gateway"},
         "device_details": {
-            "Gateway": {
+            "aa:bb:cc:dd:ee:ff": {
                 "mac": "aa:bb:cc:dd:ee:ff",
                 "model": "UDMPRO",
                 "model_name": "Dream Machine Pro",
@@ -191,9 +196,10 @@ async def test_model_name_uses_resolved_name_from_payload(
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
         entry=entry,
+        device_mac="aa:bb:cc:dd:ee:ff",
         device_name="Gateway",
         device_type="gateway",
-        device_details=payload["device_details"]["Gateway"],
+        device_details=payload["device_details"]["aa:bb:cc:dd:ee:ff"],
     )
 
     attrs = sensor.extra_state_attributes
@@ -206,9 +212,9 @@ async def test_model_name_fallback_to_code_when_not_in_mapping(
 ) -> None:
     """When model not in mapping, use model code as model_name."""
     payload = {
-        "node_types": {"Device": "switch"},
+        "node_types": {"aa:bb:cc:dd:ee:ff": "switch"},
         "device_details": {
-            "Device": {
+            "aa:bb:cc:dd:ee:ff": {
                 "mac": "aa:bb:cc:dd:ee:ff",
                 "model": "UNKNOWN-MODEL-123",
                 "model_name": "UNKNOWN-MODEL-123",
@@ -221,9 +227,10 @@ async def test_model_name_fallback_to_code_when_not_in_mapping(
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
         entry=entry,
+        device_mac="aa:bb:cc:dd:ee:ff",
         device_name="Device",
         device_type="switch",
-        device_details=payload["device_details"]["Device"],
+        device_details=payload["device_details"]["aa:bb:cc:dd:ee:ff"],
     )
 
     attrs = sensor.extra_state_attributes
@@ -236,9 +243,9 @@ async def test_model_name_fallback_to_model_code_when_missing(
 ) -> None:
     """When model_name is absent, fall back to model code."""
     payload = {
-        "node_types": {"AP": "ap"},
+        "node_types": {"aa:bb:cc:dd:ee:ff": "ap"},
         "device_details": {
-            "AP": {
+            "aa:bb:cc:dd:ee:ff": {
                 "mac": "aa:bb:cc:dd:ee:ff",
                 "model": "U6-LR",
                 # model_name not provided
@@ -251,9 +258,10 @@ async def test_model_name_fallback_to_model_code_when_missing(
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
         entry=entry,
+        device_mac="aa:bb:cc:dd:ee:ff",
         device_name="AP",
         device_type="ap",
-        device_details=payload["device_details"]["AP"],
+        device_details=payload["device_details"]["aa:bb:cc:dd:ee:ff"],
     )
 
     attrs = sensor.extra_state_attributes
@@ -265,9 +273,9 @@ async def test_device_presence_attributes_omit_none_values(
     hass: HomeAssistant,
 ) -> None:
     payload = {
-        "node_types": {"Office Switch": "switch"},
+        "node_types": {"aa:bb:cc:dd:ee:ff": "switch"},
         "device_details": {
-            "Office Switch": {
+            "aa:bb:cc:dd:ee:ff": {
                 "mac": "aa:bb:cc:dd:ee:ff",
                 "ip": None,
                 "model": None,
@@ -281,9 +289,10 @@ async def test_device_presence_attributes_omit_none_values(
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
         entry=entry,
+        device_mac="aa:bb:cc:dd:ee:ff",
         device_name="Office Switch",
         device_type="switch",
-        device_details=payload["device_details"]["Office Switch"],
+        device_details=payload["device_details"]["aa:bb:cc:dd:ee:ff"],
     )
 
     attrs = sensor.extra_state_attributes
@@ -296,15 +305,15 @@ async def test_ap_includes_clients_connected_attribute(
     hass: HomeAssistant,
 ) -> None:
     payload = {
-        "node_types": {"Living Room AP": "ap"},
+        "node_types": {"11:22:33:44:55:66": "ap"},
         "device_details": {
-            "Living Room AP": {
+            "11:22:33:44:55:66": {
                 "mac": "11:22:33:44:55:66",
                 "ip": "192.168.1.20",
                 "model": "U6-LR",
             }
         },
-        "ap_client_counts": {"Living Room AP": 5},
+        "ap_client_counts": {"11:22:33:44:55:66": 5},
     }
     coordinator = _build_coordinator(hass, payload)
     entry = build_mock_entry()
@@ -312,9 +321,10 @@ async def test_ap_includes_clients_connected_attribute(
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
         entry=entry,
+        device_mac="11:22:33:44:55:66",
         device_name="Living Room AP",
         device_type="ap",
-        device_details=payload["device_details"]["Living Room AP"],
+        device_details=payload["device_details"]["11:22:33:44:55:66"],
     )
 
     attrs = sensor.extra_state_attributes
@@ -325,8 +335,8 @@ async def test_ap_clients_connected_defaults_to_zero(
     hass: HomeAssistant,
 ) -> None:
     payload = {
-        "node_types": {"Living Room AP": "ap"},
-        "device_details": {"Living Room AP": {"mac": "11:22:33:44:55:66"}},
+        "node_types": {"11:22:33:44:55:66": "ap"},
+        "device_details": {"11:22:33:44:55:66": {"mac": "11:22:33:44:55:66"}},
         "ap_client_counts": {},
     }
     coordinator = _build_coordinator(hass, payload)
@@ -335,9 +345,10 @@ async def test_ap_clients_connected_defaults_to_zero(
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
         entry=entry,
+        device_mac="11:22:33:44:55:66",
         device_name="Living Room AP",
         device_type="ap",
-        device_details=payload["device_details"]["Living Room AP"],
+        device_details=payload["device_details"]["11:22:33:44:55:66"],
     )
 
     attrs = sensor.extra_state_attributes
@@ -348,8 +359,8 @@ async def test_switch_does_not_include_clients_connected(
     hass: HomeAssistant,
 ) -> None:
     payload = {
-        "node_types": {"Office Switch": "switch"},
-        "device_details": {"Office Switch": {"mac": "aa:bb:cc:dd:ee:ff"}},
+        "node_types": {"aa:bb:cc:dd:ee:ff": "switch"},
+        "device_details": {"aa:bb:cc:dd:ee:ff": {"mac": "aa:bb:cc:dd:ee:ff"}},
         "ap_client_counts": {},
     }
     coordinator = _build_coordinator(hass, payload)
@@ -358,9 +369,10 @@ async def test_switch_does_not_include_clients_connected(
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
         entry=entry,
+        device_mac="aa:bb:cc:dd:ee:ff",
         device_name="Office Switch",
         device_type="switch",
-        device_details=payload["device_details"]["Office Switch"],
+        device_details=payload["device_details"]["aa:bb:cc:dd:ee:ff"],
     )
 
     attrs = sensor.extra_state_attributes
@@ -374,21 +386,23 @@ async def test_unique_id_format(hass: HomeAssistant) -> None:
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
         entry=entry,
+        device_mac="aa:bb:cc:dd:ee:ff",
         device_name="Office Switch",
         device_type="switch",
         device_details={},
     )
 
-    assert sensor.unique_id == f"{entry.entry_id}_device_office_switch"
+    assert sensor.unique_id == f"{entry.entry_id}_device_aabbccddeeff"
 
 
-async def test_unique_id_uses_mac_when_available(hass: HomeAssistant) -> None:
+async def test_unique_id_uses_mac(hass: HomeAssistant) -> None:
     coordinator = _build_coordinator(hass, {})
     entry = build_mock_entry()
 
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
         entry=entry,
+        device_mac="AA:BB:CC:DD:EE:FF",
         device_name="Office Switch",
         device_type="switch",
         device_details={"mac": "AA:BB:CC:DD:EE:FF"},
@@ -401,8 +415,8 @@ async def test_device_uses_current_details_from_coordinator(
     hass: HomeAssistant,
 ) -> None:
     initial_payload = {
-        "node_types": {"Office Switch": "switch"},
-        "device_details": {"Office Switch": {"ip": "192.168.1.10"}},
+        "node_types": {"aa:bb:cc:dd:ee:ff": "switch"},
+        "device_details": {"aa:bb:cc:dd:ee:ff": {"ip": "192.168.1.10"}},
     }
     coordinator = _build_coordinator(hass, initial_payload)
     entry = build_mock_entry()
@@ -410,6 +424,7 @@ async def test_device_uses_current_details_from_coordinator(
     sensor = UniFiDevicePresenceSensor(
         coordinator=coordinator,
         entry=entry,
+        device_mac="aa:bb:cc:dd:ee:ff",
         device_name="Office Switch",
         device_type="switch",
         device_details={"ip": "192.168.1.10"},
@@ -420,8 +435,8 @@ async def test_device_uses_current_details_from_coordinator(
 
     # Simulate coordinator update with new IP
     updated_payload = {
-        "node_types": {"Office Switch": "switch"},
-        "device_details": {"Office Switch": {"ip": "192.168.1.99"}},
+        "node_types": {"aa:bb:cc:dd:ee:ff": "switch"},
+        "device_details": {"aa:bb:cc:dd:ee:ff": {"ip": "192.168.1.99"}},
     }
     coordinator.data = UniFiNetworkMapData(
         svg="<svg />", payload=updated_payload
@@ -587,7 +602,7 @@ async def test_client_presence_attributes(hass: HomeAssistant) -> None:
                 "connected_to_mac": "11:22:33:44:55:66",
             }
         },
-        "device_macs": {"Living Room AP": "11:22:33:44:55:66"},
+        "node_names": {"11:22:33:44:55:66": "Living Room AP"},
     }
     coordinator = _build_coordinator(hass, payload)
     entry = build_mock_entry()

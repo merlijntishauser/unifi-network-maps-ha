@@ -12,7 +12,7 @@ describe("entity-modal-state", () => {
 
   const defaultParams = {
     controller: createEntityModalController(),
-    nodeName: "TestDevice",
+    nodeId: "TestDevice",
     theme: "dark" as const,
     getNodeTypeIcon: (type: string) => `[${type}]`,
     formatLastChanged: (value: string | null | undefined) => value ?? "Unknown",
@@ -72,7 +72,7 @@ describe("entity-modal-state", () => {
         ...defaultParams,
         controller,
         payload,
-        nodeName: "Device1",
+        nodeId: "Device1",
       });
       const firstOverlay = controller.overlay;
 
@@ -81,7 +81,7 @@ describe("entity-modal-state", () => {
         ...defaultParams,
         controller,
         payload,
-        nodeName: "Device2",
+        nodeId: "Device2",
       });
 
       // First overlay should be removed

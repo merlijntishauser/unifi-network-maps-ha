@@ -13,14 +13,19 @@ function createPath(left: string, right: string): SVGPathElement {
   return path;
 }
 
+const MAC_A = "aa:bb:cc:dd:ee:01";
+const MAC_B = "11:22:33:44:55:66";
+const MAC_X = "cc:dd:ee:ff:00:01";
+const MAC_Y = "dd:ee:ff:00:11:22";
+
 describe("svg", () => {
   describe("annotateEdges", () => {
     it("adds data-edge attribute to matching paths", () => {
       const svg = createSvg();
-      const path = createPath("A", "B");
+      const path = createPath(MAC_A, MAC_B);
       svg.appendChild(path);
 
-      const edges: Edge[] = [{ left: "A", right: "B" }];
+      const edges: Edge[] = [{ left: MAC_A, right: MAC_B }];
       annotateEdges(svg, edges);
 
       expect(path.getAttribute("data-edge")).toBe("true");
@@ -28,24 +33,24 @@ describe("svg", () => {
 
     it("creates hitbox for edge paths", () => {
       const svg = createSvg();
-      const path = createPath("A", "B");
+      const path = createPath(MAC_A, MAC_B);
       svg.appendChild(path);
 
-      const edges: Edge[] = [{ left: "A", right: "B" }];
+      const edges: Edge[] = [{ left: MAC_A, right: MAC_B }];
       annotateEdges(svg, edges);
 
       const hitbox = svg.querySelector('path[data-edge-hitbox="true"]');
       expect(hitbox).not.toBeNull();
-      expect(hitbox?.getAttribute("data-edge-left")).toBe("A");
-      expect(hitbox?.getAttribute("data-edge-right")).toBe("B");
+      expect(hitbox?.getAttribute("data-edge-left")).toBe(MAC_A);
+      expect(hitbox?.getAttribute("data-edge-right")).toBe(MAC_B);
     });
 
     it("does not annotate paths without matching edges", () => {
       const svg = createSvg();
-      const path = createPath("A", "B");
+      const path = createPath(MAC_A, MAC_B);
       svg.appendChild(path);
 
-      const edges: Edge[] = [{ left: "X", right: "Y" }];
+      const edges: Edge[] = [{ left: MAC_X, right: MAC_Y }];
       annotateEdges(svg, edges);
 
       expect(path.getAttribute("data-edge")).toBeNull();
@@ -53,10 +58,10 @@ describe("svg", () => {
 
     it("matches edges regardless of left/right order", () => {
       const svg = createSvg();
-      const path = createPath("B", "A"); // Reversed
+      const path = createPath(MAC_B, MAC_A); // Reversed
       svg.appendChild(path);
 
-      const edges: Edge[] = [{ left: "A", right: "B" }];
+      const edges: Edge[] = [{ left: MAC_A, right: MAC_B }];
       annotateEdges(svg, edges);
 
       expect(path.getAttribute("data-edge")).toBe("true");
@@ -64,7 +69,7 @@ describe("svg", () => {
 
     it("checks for existing hitbox as next sibling", () => {
       const svg = createSvg();
-      const path = createPath("A", "B");
+      const path = createPath(MAC_A, MAC_B);
       // Pre-create a hitbox as the next sibling
       // Note: Don't set data-edge-left/right to avoid it being processed as an edge
       const existingHitbox = document.createElementNS("http://www.w3.org/2000/svg", "path");
@@ -73,7 +78,7 @@ describe("svg", () => {
       svg.appendChild(path);
       svg.appendChild(existingHitbox); // Append after path (making it next sibling)
 
-      const edges: Edge[] = [{ left: "A", right: "B" }];
+      const edges: Edge[] = [{ left: MAC_A, right: MAC_B }];
       annotateEdges(svg, edges);
 
       const hitboxes = svg.querySelectorAll('path[data-edge-hitbox="true"]');
@@ -84,10 +89,10 @@ describe("svg", () => {
     it("skips paths without left attribute", () => {
       const svg = createSvg();
       const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      path.setAttribute("data-edge-right", "B");
+      path.setAttribute("data-edge-right", MAC_B);
       svg.appendChild(path);
 
-      const edges: Edge[] = [{ left: "A", right: "B" }];
+      const edges: Edge[] = [{ left: MAC_A, right: MAC_B }];
       annotateEdges(svg, edges);
 
       expect(path.getAttribute("data-edge")).toBeNull();
@@ -95,7 +100,7 @@ describe("svg", () => {
 
     it("annotates edge labels", () => {
       const svg = createSvg();
-      const path = createPath("A", "B");
+      const path = createPath(MAC_A, MAC_B);
       const label = document.createElementNS("http://www.w3.org/2000/svg", "g");
       label.classList.add("edgeLabel");
       const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -107,17 +112,17 @@ describe("svg", () => {
       group.appendChild(label);
       svg.appendChild(group);
 
-      const edges: Edge[] = [{ left: "A", right: "B" }];
+      const edges: Edge[] = [{ left: MAC_A, right: MAC_B }];
       annotateEdges(svg, edges);
 
       // Label should have edge attributes copied from sibling path
-      expect(label.getAttribute("data-edge-left")).toBe("A");
-      expect(label.getAttribute("data-edge-right")).toBe("B");
+      expect(label.getAttribute("data-edge-left")).toBe(MAC_A);
+      expect(label.getAttribute("data-edge-right")).toBe(MAC_B);
     });
 
     it("annotates PoE icons", () => {
       const svg = createSvg();
-      const path = createPath("A", "B");
+      const path = createPath(MAC_A, MAC_B);
       const poeText = document.createElementNS("http://www.w3.org/2000/svg", "text");
       poeText.textContent = "⚡";
       // Put in same group
@@ -126,16 +131,16 @@ describe("svg", () => {
       group.appendChild(poeText);
       svg.appendChild(group);
 
-      const edges: Edge[] = [{ left: "A", right: "B" }];
+      const edges: Edge[] = [{ left: MAC_A, right: MAC_B }];
       annotateEdges(svg, edges);
 
-      expect(poeText.getAttribute("data-edge-left")).toBe("A");
-      expect(poeText.getAttribute("data-edge-right")).toBe("B");
+      expect(poeText.getAttribute("data-edge-left")).toBe(MAC_A);
+      expect(poeText.getAttribute("data-edge-right")).toBe(MAC_B);
     });
 
     it("annotates PoE bolt use elements", () => {
       const svg = createSvg();
-      const path = createPath("A", "B");
+      const path = createPath(MAC_A, MAC_B);
       const poeUse = document.createElementNS("http://www.w3.org/2000/svg", "use");
       poeUse.setAttribute("href", "#poe-bolt");
       const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -143,16 +148,16 @@ describe("svg", () => {
       group.appendChild(poeUse);
       svg.appendChild(group);
 
-      const edges: Edge[] = [{ left: "A", right: "B" }];
+      const edges: Edge[] = [{ left: MAC_A, right: MAC_B }];
       annotateEdges(svg, edges);
 
-      expect(poeUse.getAttribute("data-edge-left")).toBe("A");
-      expect(poeUse.getAttribute("data-edge-right")).toBe("B");
+      expect(poeUse.getAttribute("data-edge-left")).toBe(MAC_A);
+      expect(poeUse.getAttribute("data-edge-right")).toBe(MAC_B);
     });
 
     it("annotates iso-poe-bolt use elements", () => {
       const svg = createSvg();
-      const path = createPath("A", "B");
+      const path = createPath(MAC_A, MAC_B);
       const poeUse = document.createElementNS("http://www.w3.org/2000/svg", "use");
       poeUse.setAttribute("href", "#iso-poe-bolt");
       const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -160,16 +165,16 @@ describe("svg", () => {
       group.appendChild(poeUse);
       svg.appendChild(group);
 
-      const edges: Edge[] = [{ left: "A", right: "B" }];
+      const edges: Edge[] = [{ left: MAC_A, right: MAC_B }];
       annotateEdges(svg, edges);
 
-      expect(poeUse.getAttribute("data-edge-left")).toBe("A");
-      expect(poeUse.getAttribute("data-edge-right")).toBe("B");
+      expect(poeUse.getAttribute("data-edge-left")).toBe(MAC_A);
+      expect(poeUse.getAttribute("data-edge-right")).toBe(MAC_B);
     });
 
     it("handles PoE text with POE label", () => {
       const svg = createSvg();
-      const path = createPath("A", "B");
+      const path = createPath(MAC_A, MAC_B);
       const poeText = document.createElementNS("http://www.w3.org/2000/svg", "text");
       poeText.textContent = "poe";
       const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -177,15 +182,15 @@ describe("svg", () => {
       group.appendChild(poeText);
       svg.appendChild(group);
 
-      const edges: Edge[] = [{ left: "A", right: "B" }];
+      const edges: Edge[] = [{ left: MAC_A, right: MAC_B }];
       annotateEdges(svg, edges);
 
-      expect(poeText.getAttribute("data-edge-left")).toBe("A");
+      expect(poeText.getAttribute("data-edge-left")).toBe(MAC_A);
     });
 
     it("skips empty PoE text elements", () => {
       const svg = createSvg();
-      const path = createPath("A", "B");
+      const path = createPath(MAC_A, MAC_B);
       const emptyText = document.createElementNS("http://www.w3.org/2000/svg", "text");
       emptyText.textContent = "";
       const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -193,7 +198,7 @@ describe("svg", () => {
       group.appendChild(emptyText);
       svg.appendChild(group);
 
-      const edges: Edge[] = [{ left: "A", right: "B" }];
+      const edges: Edge[] = [{ left: MAC_A, right: MAC_B }];
       annotateEdges(svg, edges);
 
       // Empty text should not be annotated
@@ -202,7 +207,7 @@ describe("svg", () => {
 
     it("skips label already having data-edge-left", () => {
       const svg = createSvg();
-      const path = createPath("A", "B");
+      const path = createPath(MAC_A, MAC_B);
       const label = document.createElementNS("http://www.w3.org/2000/svg", "g");
       label.classList.add("edgeLabel");
       label.setAttribute("data-edge-left", "existing");
@@ -211,7 +216,7 @@ describe("svg", () => {
       group.appendChild(label);
       svg.appendChild(group);
 
-      const edges: Edge[] = [{ left: "A", right: "B" }];
+      const edges: Edge[] = [{ left: MAC_A, right: MAC_B }];
       annotateEdges(svg, edges);
 
       // Should keep existing attribute
@@ -220,7 +225,7 @@ describe("svg", () => {
 
     it("handles edgeLabel in same group as path", () => {
       const svg = createSvg();
-      const path = createPath("A", "B");
+      const path = createPath(MAC_A, MAC_B);
       // Put path and label in the same parent group
       const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
       group.appendChild(path);
@@ -229,18 +234,18 @@ describe("svg", () => {
       group.appendChild(label);
       svg.appendChild(group);
 
-      const edges: Edge[] = [{ left: "A", right: "B" }];
+      const edges: Edge[] = [{ left: MAC_A, right: MAC_B }];
       annotateEdges(svg, edges);
 
       // Label should be annotated since path is in the same group
-      expect(label.getAttribute("data-edge-left")).toBe("A");
-      expect(label.getAttribute("data-edge-right")).toBe("B");
+      expect(label.getAttribute("data-edge-left")).toBe(MAC_A);
+      expect(label.getAttribute("data-edge-right")).toBe(MAC_B);
     });
 
     it("handles label without matching path in group", () => {
       const svg = createSvg();
       // Path with different endpoints than the label expects
-      const path = createPath("X", "Y");
+      const path = createPath(MAC_X, MAC_Y);
       const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
       group.appendChild(path);
       const label = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -249,70 +254,70 @@ describe("svg", () => {
       group.appendChild(label);
       svg.appendChild(group);
 
-      const edges: Edge[] = [{ left: "X", right: "Y" }];
+      const edges: Edge[] = [{ left: MAC_X, right: MAC_Y }];
       annotateEdges(svg, edges);
 
       // Label won't get annotations since path has X-Y but label text references A-B
       // However, findEdgePathInGroup will still find the path in the same group
-      expect(label.getAttribute("data-edge-left")).toBe("X");
-      expect(label.getAttribute("data-edge-right")).toBe("Y");
+      expect(label.getAttribute("data-edge-left")).toBe(MAC_X);
+      expect(label.getAttribute("data-edge-right")).toBe(MAC_Y);
     });
   });
 
   describe("findEdgeFromTarget", () => {
     it("returns null for null target", () => {
-      const edges: Edge[] = [{ left: "A", right: "B" }];
+      const edges: Edge[] = [{ left: MAC_A, right: MAC_B }];
       const result = findEdgeFromTarget(null, edges);
       expect(result).toBeNull();
     });
 
     it("returns null when target is not an edge", () => {
       const div = document.createElement("div");
-      const edges: Edge[] = [{ left: "A", right: "B" }];
+      const edges: Edge[] = [{ left: MAC_A, right: MAC_B }];
       const result = findEdgeFromTarget(div, edges);
       expect(result).toBeNull();
     });
 
     it("finds edge from path with data-edge attribute", () => {
-      const path = createPath("A", "B");
+      const path = createPath(MAC_A, MAC_B);
       path.setAttribute("data-edge", "true");
 
       const edges: Edge[] = [
-        { left: "A", right: "B", speed: 1000 },
-        { left: "X", right: "Y" },
+        { left: MAC_A, right: MAC_B, speed: 1000 },
+        { left: MAC_X, right: MAC_Y },
       ];
       const result = findEdgeFromTarget(path, edges);
 
-      expect(result).toEqual({ left: "A", right: "B", speed: 1000 });
+      expect(result).toEqual({ left: MAC_A, right: MAC_B, speed: 1000 });
     });
 
     it("finds edge from hitbox path", () => {
-      const hitbox = createPath("A", "B");
+      const hitbox = createPath(MAC_A, MAC_B);
       hitbox.setAttribute("data-edge-hitbox", "true");
 
-      const edges: Edge[] = [{ left: "A", right: "B", poe: true }];
+      const edges: Edge[] = [{ left: MAC_A, right: MAC_B, poe: true }];
       const result = findEdgeFromTarget(hitbox, edges);
 
-      expect(result).toEqual({ left: "A", right: "B", poe: true });
+      expect(result).toEqual({ left: MAC_A, right: MAC_B, poe: true });
     });
 
     it("finds edge from child element", () => {
-      const path = createPath("A", "B");
+      const path = createPath(MAC_A, MAC_B);
       path.setAttribute("data-edge", "true");
       const child = document.createElementNS("http://www.w3.org/2000/svg", "text");
       path.appendChild(child);
 
-      const edges: Edge[] = [{ left: "A", right: "B" }];
+      const edges: Edge[] = [{ left: MAC_A, right: MAC_B }];
       const result = findEdgeFromTarget(child, edges);
 
-      expect(result).toEqual({ left: "A", right: "B" });
+      expect(result).toEqual({ left: MAC_A, right: MAC_B });
     });
 
     it("returns null when edge not in edges array", () => {
-      const path = createPath("A", "B");
+      const path = createPath(MAC_A, MAC_B);
       path.setAttribute("data-edge", "true");
 
-      const edges: Edge[] = [{ left: "X", right: "Y" }];
+      const edges: Edge[] = [{ left: MAC_X, right: MAC_Y }];
       const result = findEdgeFromTarget(path, edges);
 
       expect(result).toBeNull();
@@ -337,16 +342,16 @@ describe("svg", () => {
     };
 
     it("renders basic wired edge", () => {
-      const edge: Edge = { left: "A", right: "B", wireless: false };
+      const edge: Edge = { left: MAC_A, right: MAC_B, wireless: false };
       const result = renderEdgeTooltip(edge, mockGetIcon, mockLocalize);
 
-      expect(result).toContain("A ↔ B");
+      expect(result).toContain(`${MAC_A} ↔ ${MAC_B}`);
       expect(result).toContain("[edge-wired]");
       expect(result).toContain("edge_tooltip.wired");
     });
 
     it("renders wireless edge", () => {
-      const edge: Edge = { left: "A", right: "B", wireless: true };
+      const edge: Edge = { left: MAC_A, right: MAC_B, wireless: true };
       const result = renderEdgeTooltip(edge, mockGetIcon, mockLocalize);
 
       expect(result).toContain("[edge-wireless]");
@@ -354,7 +359,7 @@ describe("svg", () => {
     });
 
     it("renders edge with label", () => {
-      const edge: Edge = { left: "A", right: "B", label: "Port 1" };
+      const edge: Edge = { left: MAC_A, right: MAC_B, label: "Port 1" };
       const result = renderEdgeTooltip(edge, mockGetIcon, mockLocalize);
 
       expect(result).toContain("Port 1");
@@ -362,7 +367,7 @@ describe("svg", () => {
     });
 
     it("renders edge with PoE", () => {
-      const edge: Edge = { left: "A", right: "B", poe: true };
+      const edge: Edge = { left: MAC_A, right: MAC_B, poe: true };
       const result = renderEdgeTooltip(edge, mockGetIcon, mockLocalize);
 
       expect(result).toContain("[edge-poe]");
@@ -370,7 +375,7 @@ describe("svg", () => {
     });
 
     it("renders edge with speed in Mbps", () => {
-      const edge: Edge = { left: "A", right: "B", speed: 100 };
+      const edge: Edge = { left: MAC_A, right: MAC_B, speed: 100 };
       const result = renderEdgeTooltip(edge, mockGetIcon, mockLocalize);
 
       expect(result).toContain("[edge-speed]");
@@ -378,14 +383,14 @@ describe("svg", () => {
     });
 
     it("renders edge with speed in Gbps", () => {
-      const edge: Edge = { left: "A", right: "B", speed: 1000 };
+      const edge: Edge = { left: MAC_A, right: MAC_B, speed: 1000 };
       const result = renderEdgeTooltip(edge, mockGetIcon, mockLocalize);
 
       expect(result).toContain("edge_tooltip.speed_gbps");
     });
 
     it("renders edge with 2.4GHz channel", () => {
-      const edge: Edge = { left: "A", right: "B", channel: 6, wireless: true };
+      const edge: Edge = { left: MAC_A, right: MAC_B, channel: 6, wireless: true };
       const result = renderEdgeTooltip(edge, mockGetIcon, mockLocalize);
 
       expect(result).toContain("[edge-channel]");
@@ -393,21 +398,21 @@ describe("svg", () => {
     });
 
     it("renders edge with 5GHz channel", () => {
-      const edge: Edge = { left: "A", right: "B", channel: 36, wireless: true };
+      const edge: Edge = { left: MAC_A, right: MAC_B, channel: 36, wireless: true };
       const result = renderEdgeTooltip(edge, mockGetIcon, mockLocalize);
 
       expect(result).toContain("edge_tooltip.band_5");
     });
 
     it("renders edge with 6GHz channel", () => {
-      const edge: Edge = { left: "A", right: "B", channel: 200, wireless: true };
+      const edge: Edge = { left: MAC_A, right: MAC_B, channel: 200, wireless: true };
       const result = renderEdgeTooltip(edge, mockGetIcon, mockLocalize);
 
       expect(result).toContain("edge_tooltip.band_6");
     });
 
     it("escapes HTML in edge names", () => {
-      const edge: Edge = { left: "<script>", right: "B" };
+      const edge: Edge = { left: "<script>", right: MAC_B };
       const result = renderEdgeTooltip(edge, mockGetIcon, mockLocalize);
 
       expect(result).not.toContain("<script>");
@@ -416,8 +421,8 @@ describe("svg", () => {
 
     it("renders all attributes together", () => {
       const edge: Edge = {
-        left: "Switch",
-        right: "AP",
+        left: "11:22:33:44:55:66",
+        right: "22:33:44:55:66:77",
         wireless: false,
         label: "Port 8",
         poe: true,
@@ -425,7 +430,7 @@ describe("svg", () => {
       };
       const result = renderEdgeTooltip(edge, mockGetIcon, mockLocalize);
 
-      expect(result).toContain("Switch ↔ AP");
+      expect(result).toContain("11:22:33:44:55:66 ↔ 22:33:44:55:66:77");
       expect(result).toContain("Port 8");
       expect(result).toContain("edge_tooltip.poe");
       expect(result).toContain("edge_tooltip.speed_gbps");

@@ -12,7 +12,7 @@ export function createPortModalController(): PortModalController {
 
 export function openPortModal(params: {
   controller: PortModalController;
-  nodeName: string;
+  nodeId: string;
   payload: MapPayload | undefined;
   theme: IconTheme;
   getNodeTypeIcon: (nodeType: string) => string;
@@ -20,32 +20,24 @@ export function openPortModal(params: {
   onClose: () => void;
   onDeviceClick: (deviceName: string) => void;
 }): void {
-  const {
-    controller,
-    nodeName,
-    payload,
-    theme,
-    getNodeTypeIcon,
-    localize,
-    onClose,
-    onDeviceClick,
-  } = params;
+  const { controller, nodeId, payload, theme, getNodeTypeIcon, localize, onClose, onDeviceClick } =
+    params;
 
   if (!payload) return;
 
-  const nodeType = payload.node_types?.[nodeName] ?? "unknown";
-  const ports = extractPortsForDevice(nodeName, payload);
+  const nodeType = payload.node_types?.[nodeId] ?? "unknown";
+  const ports = extractPortsForDevice(nodeId, payload);
 
   if (ports.length === 0) {
     return;
   }
 
-  controller.state = { nodeName, nodeType, ports };
+  controller.state = { nodeId, nodeType, ports };
 
   const overlay = document.createElement("div");
   overlay.className = "port-modal-overlay";
   overlay.dataset.theme = theme;
-  overlay.innerHTML = renderPortModal(controller.state, theme, getNodeTypeIcon, localize);
+  overlay.innerHTML = renderPortModal(controller.state, payload, theme, getNodeTypeIcon, localize);
 
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) {
@@ -86,14 +78,14 @@ export function closePortModal(controller: PortModalController): void {
 
 type ConnectionInfo = { device: string; type: string; poe: boolean; speed: number | null };
 
-function buildConnectionMap(nodeName: string, payload: MapPayload): Map<number, ConnectionInfo> {
+function buildConnectionMap(nodeId: string, payload: MapPayload): Map<number, ConnectionInfo> {
   const edges = payload.edges ?? [];
   const nodeTypes = payload.node_types ?? {};
-  const connectedEdges = edges.filter((e) => e.left === nodeName || e.right === nodeName);
+  const connectedEdges = edges.filter((e) => e.left === nodeId || e.right === nodeId);
   const connectionMap = new Map<number, ConnectionInfo>();
 
   for (const edge of connectedEdges) {
-    const isLeft = edge.left === nodeName;
+    const isLeft = edge.left === nodeId;
     const connectedDevice = isLeft ? edge.right : edge.left;
     const connectedDeviceType = nodeTypes[connectedDevice] ?? "unknown";
     const portNum = extractPortNumber(edge.label, isLeft);
@@ -109,9 +101,9 @@ function buildConnectionMap(nodeName: string, payload: MapPayload): Map<number, 
   return connectionMap;
 }
 
-function extractPortsForDevice(nodeName: string, payload: MapPayload): PortInfo[] {
-  const devicePorts = payload.device_ports?.[nodeName] ?? [];
-  const connectionMap = buildConnectionMap(nodeName, payload);
+function extractPortsForDevice(nodeId: string, payload: MapPayload): PortInfo[] {
+  const devicePorts = payload.device_ports?.[nodeId] ?? [];
+  const connectionMap = buildConnectionMap(nodeId, payload);
 
   // Build port list from device_ports (includes all ports)
   if (devicePorts.length > 0) {
@@ -160,47 +152,17 @@ function extractPortNumber(label: string | null | undefined, isLeft: boolean): n
 
 function renderPortModal(
   state: PortModalState,
+  payload: MapPayload | undefined,
   theme: IconTheme,
   getNodeTypeIcon: (nodeType: string) => string,
   localize: (key: string, replacements?: Record<string, string | number>) => string,
 ): string {
-  const { nodeName, nodeType, ports } = state;
+  const { nodeId, nodeType, ports } = state;
+  const displayName = payload?.node_names?.[nodeId] ?? nodeId;
   const nodeIcon = getNodeTypeIcon(nodeType);
 
   const portRows = ports
-    .map((port) => {
-      const deviceIcon = port.connectedDeviceType ? getNodeTypeIcon(port.connectedDeviceType) : "";
-      const deviceName = port.connectedDevice ?? "Empty";
-      const isConnected = port.connectedDevice !== null;
-
-      // Build PoE badge with power if active
-      let poeBadge = "";
-      if (port.poeActive && port.poePower !== null && port.poePower > 0) {
-        poeBadge = `<span class="badge badge--poe">${formatPower(port.poePower)}</span>`;
-      } else if (port.poe) {
-        poeBadge = `<span class="badge badge--poe-inactive">${localize("panel.badge.poe")}</span>`;
-      }
-
-      return `
-        <div class="port-row ${isConnected ? "port-row--connected" : "port-row--empty"}">
-          <span class="port-row__number">${localize("port_modal.port", { port: port.port })}</span>
-          <div class="port-row__device">
-            ${
-              isConnected
-                ? `
-                  <span class="port-row__device-icon">${deviceIcon}</span>
-                  <a href="#" class="port-row__device-name" data-device-name="${escapeAttr(port.connectedDevice!)}">${escapeHtml(deviceName)}</a>
-                `
-                : `<span class="port-row__empty">${localize("port_modal.empty")}</span>`
-            }
-          </div>
-          <span class="port-row__badges">
-            ${poeBadge}
-            ${port.speed ? `<span class="badge badge--speed">${formatSpeed(port.speed)}</span>` : ""}
-          </span>
-        </div>
-      `;
-    })
+    .map((port) => renderPortRow(port, payload, getNodeTypeIcon, localize))
     .join("");
 
   return `
@@ -208,7 +170,7 @@ function renderPortModal(
       <div class="port-modal__header">
         <div class="port-modal__title">
           <span class="port-modal__icon">${nodeIcon}</span>
-          <span>${escapeHtml(nodeName)}</span>
+          <span>${escapeHtml(displayName)}</span>
         </div>
         <button type="button" class="port-modal__close">&times;</button>
       </div>
@@ -218,6 +180,53 @@ function renderPortModal(
           ${portRows || `<div class="port-modal__empty">${localize("port_modal.no_ports")}</div>`}
         </div>
       </div>
+    </div>
+  `;
+}
+
+function resolveConnectedDeviceName(port: PortInfo, payload: MapPayload | undefined): string {
+  if (!port.connectedDevice) return "Empty";
+  return payload?.node_names?.[port.connectedDevice] ?? port.connectedDevice;
+}
+
+function renderPoeBadge(port: PortInfo, localize: (key: string) => string): string {
+  if (port.poeActive && port.poePower !== null && port.poePower > 0) {
+    return `<span class="badge badge--poe">${formatPower(port.poePower)}</span>`;
+  }
+  if (port.poe) {
+    return `<span class="badge badge--poe-inactive">${localize("panel.badge.poe")}</span>`;
+  }
+  return "";
+}
+
+function renderPortRow(
+  port: PortInfo,
+  payload: MapPayload | undefined,
+  getNodeTypeIcon: (nodeType: string) => string,
+  localize: (key: string, replacements?: Record<string, string | number>) => string,
+): string {
+  const deviceIcon = port.connectedDeviceType ? getNodeTypeIcon(port.connectedDeviceType) : "";
+  const deviceName = resolveConnectedDeviceName(port, payload);
+  const isConnected = port.connectedDevice !== null;
+  const poeBadge = renderPoeBadge(port, localize);
+
+  return `
+    <div class="port-row ${isConnected ? "port-row--connected" : "port-row--empty"}">
+      <span class="port-row__number">${localize("port_modal.port", { port: port.port })}</span>
+      <div class="port-row__device">
+        ${
+          isConnected
+            ? `
+              <span class="port-row__device-icon">${deviceIcon}</span>
+              <a href="#" class="port-row__device-name" data-device-name="${escapeAttr(port.connectedDevice!)}">${escapeHtml(deviceName)}</a>
+            `
+            : `<span class="port-row__empty">${localize("port_modal.empty")}</span>`
+        }
+      </div>
+      <span class="port-row__badges">
+        ${poeBadge}
+        ${port.speed ? `<span class="badge badge--speed">${formatSpeed(port.speed)}</span>` : ""}
+      </span>
     </div>
   `;
 }

@@ -3,7 +3,7 @@ import type { MapPayload } from "../card/core/types";
 
 describe("context-menu", () => {
   const defaultOptions = {
-    nodeName: "TestNode",
+    nodeId: "aa:bb:cc:dd:ee:ff",
     theme: "dark" as const,
     getNodeTypeIcon: (type: string) => `[${type}]`,
     getIcon: () => "[icon]",
@@ -15,8 +15,8 @@ describe("context-menu", () => {
       const result = renderContextMenu(defaultOptions);
       expect(result).toContain('class="context-menu"');
       expect(result).toContain('data-theme="dark"');
-      expect(result).toContain('data-context-node="TestNode"');
-      expect(result).toContain("TestNode");
+      expect(result).toContain('data-context-node="aa:bb:cc:dd:ee:ff"');
+      expect(result).toContain("aa:bb:cc:dd:ee:ff");
     });
 
     it("includes node type in header", () => {
@@ -27,7 +27,7 @@ describe("context-menu", () => {
     it("renders with payload containing node type", () => {
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestNode: "switch" },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
       };
       const result = renderContextMenu({ ...defaultOptions, payload });
       expect(result).toContain("[switch]"); // Icon
@@ -37,9 +37,9 @@ describe("context-menu", () => {
     it("renders model name when available", () => {
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestNode: "switch" },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
         device_details: {
-          TestNode: { model_name: "USW-24-POE", model: "USW24P" },
+          "aa:bb:cc:dd:ee:ff": { model_name: "USW-24-POE", model: "USW24P" },
         },
       };
       const result = renderContextMenu({ ...defaultOptions, payload });
@@ -49,19 +49,18 @@ describe("context-menu", () => {
     it("renders details item when entity exists", () => {
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestNode: "switch" },
-        node_entities: { TestNode: "device_tracker.switch" },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        node_entities: { "aa:bb:cc:dd:ee:ff": "device_tracker.switch" },
       };
       const result = renderContextMenu({ ...defaultOptions, payload });
       expect(result).toContain('data-context-action="details"');
       expect(result).toContain("context_menu.view_details");
     });
 
-    it("renders copy MAC item when MAC exists", () => {
+    it("renders copy MAC item when node exists in payload", () => {
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestNode: "switch" },
-        device_macs: { TestNode: "aa:bb:cc:dd:ee:ff" },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
       };
       const result = renderContextMenu({ ...defaultOptions, payload });
       expect(result).toContain('data-context-action="copy-mac"');
@@ -71,9 +70,9 @@ describe("context-menu", () => {
     it("renders copy IP item when IP exists", () => {
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestNode: "client" },
+        node_types: { "aa:bb:cc:dd:ee:ff": "client" },
         related_entities: {
-          TestNode: [
+          "aa:bb:cc:dd:ee:ff": [
             {
               entity_id: "device_tracker.test",
               domain: "device_tracker",
@@ -91,7 +90,7 @@ describe("context-menu", () => {
     it("renders view ports item for switch", () => {
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestNode: "switch" },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
       };
       const result = renderContextMenu({ ...defaultOptions, payload });
       expect(result).toContain('data-context-action="view-ports"');
@@ -100,7 +99,7 @@ describe("context-menu", () => {
     it("renders view ports item for gateway", () => {
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestNode: "gateway" },
+        node_types: { "aa:bb:cc:dd:ee:ff": "gateway" },
       };
       const result = renderContextMenu({ ...defaultOptions, payload });
       expect(result).toContain('data-context-action="view-ports"');
@@ -109,7 +108,7 @@ describe("context-menu", () => {
     it("does not render view ports item for client", () => {
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestNode: "client" },
+        node_types: { "aa:bb:cc:dd:ee:ff": "client" },
       };
       const result = renderContextMenu({ ...defaultOptions, payload });
       expect(result).not.toContain('data-context-action="view-ports"');
@@ -118,8 +117,8 @@ describe("context-menu", () => {
     it("renders restart item for devices", () => {
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestNode: "switch" },
-        node_entities: { TestNode: "device_tracker.switch" },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        node_entities: { "aa:bb:cc:dd:ee:ff": "device_tracker.switch" },
       };
       const result = renderContextMenu({ ...defaultOptions, payload });
       expect(result).toContain('data-context-action="restart"');
@@ -128,7 +127,7 @@ describe("context-menu", () => {
     it("disables restart when no entity", () => {
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestNode: "switch" },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
       };
       const result = renderContextMenu({ ...defaultOptions, payload });
       expect(result).toContain('data-context-action="restart"');
@@ -138,7 +137,7 @@ describe("context-menu", () => {
     it("does not render restart for clients", () => {
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestNode: "client" },
+        node_types: { "aa:bb:cc:dd:ee:ff": "client" },
       };
       const result = renderContextMenu({ ...defaultOptions, payload });
       expect(result).not.toContain('data-context-action="restart"');
@@ -147,29 +146,30 @@ describe("context-menu", () => {
     it("renders divider when there are action items", () => {
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestNode: "switch" },
-        node_entities: { TestNode: "device_tracker.switch" },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        node_entities: { "aa:bb:cc:dd:ee:ff": "device_tracker.switch" },
       };
       const result = renderContextMenu({ ...defaultOptions, payload });
       expect(result).toContain('class="context-menu__divider"');
     });
 
-    it("uses client MAC when device MAC not available", () => {
+    it("renders display name from node_names", () => {
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestNode: "client" },
-        client_macs: { TestNode: "11:22:33:44:55:66" },
+        node_types: { "aa:bb:cc:dd:ee:ff": "client" },
+        node_names: { "aa:bb:cc:dd:ee:ff": "TestClient" },
       };
       const result = renderContextMenu({ ...defaultOptions, payload });
-      expect(result).toContain('data-mac="11:22:33:44:55:66"');
+      expect(result).toContain("TestClient");
     });
 
     it("escapes HTML in node name", () => {
-      const options = {
-        ...defaultOptions,
-        nodeName: "<script>alert(1)</script>",
+      const payload: MapPayload = {
+        edges: [],
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        node_names: { "aa:bb:cc:dd:ee:ff": "<script>alert(1)</script>" },
       };
-      const result = renderContextMenu(options);
+      const result = renderContextMenu({ ...defaultOptions, payload });
       expect(result).not.toContain("<script>");
       expect(result).toContain("&lt;script&gt;");
     });

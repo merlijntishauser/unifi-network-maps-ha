@@ -25,7 +25,7 @@ describe("context-menu-state", () => {
 
       openContextMenu({
         controller,
-        menu: { nodeName: "TestNode", x: 100, y: 200 },
+        menu: { nodeId: "TestNode", x: 100, y: 200 },
         renderMenu,
         onAction,
       });
@@ -42,12 +42,12 @@ describe("context-menu-state", () => {
 
       openContextMenu({
         controller,
-        menu: { nodeName: "TestNode", x: 100, y: 200 },
+        menu: { nodeId: "TestNode", x: 100, y: 200 },
         renderMenu,
         onAction,
       });
 
-      expect(controller.menu).toEqual({ nodeName: "TestNode", x: 100, y: 200 });
+      expect(controller.menu).toEqual({ nodeId: "TestNode", x: 100, y: 200 });
     });
 
     it("sets controller element reference", () => {
@@ -57,7 +57,7 @@ describe("context-menu-state", () => {
 
       openContextMenu({
         controller,
-        menu: { nodeName: "TestNode", x: 100, y: 200 },
+        menu: { nodeId: "TestNode", x: 100, y: 200 },
         renderMenu,
         onAction,
       });
@@ -73,7 +73,7 @@ describe("context-menu-state", () => {
 
       openContextMenu({
         controller,
-        menu: { nodeName: "TestNode", x: 150, y: 250 },
+        menu: { nodeId: "TestNode", x: 150, y: 250 },
         renderMenu,
         onAction,
       });
@@ -89,7 +89,7 @@ describe("context-menu-state", () => {
 
       openContextMenu({
         controller,
-        menu: { nodeName: "TestNode", x: 100, y: 200 },
+        menu: { nodeId: "TestNode", x: 100, y: 200 },
         renderMenu,
         onAction,
       });
@@ -105,7 +105,7 @@ describe("context-menu-state", () => {
 
       openContextMenu({
         controller,
-        menu: { nodeName: "MyDevice", x: 100, y: 200 },
+        menu: { nodeId: "MyDevice", x: 100, y: 200 },
         renderMenu,
         onAction,
       });
@@ -122,7 +122,7 @@ describe("context-menu-state", () => {
 
       openContextMenu({
         controller,
-        menu: { nodeName: "TestNode", x: 100, y: 200 },
+        menu: { nodeId: "TestNode", x: 100, y: 200 },
         renderMenu,
         onAction,
       });
@@ -141,7 +141,7 @@ describe("context-menu-state", () => {
 
       openContextMenu({
         controller,
-        menu: { nodeName: "TestNode", x: 100, y: 200 },
+        menu: { nodeId: "TestNode", x: 100, y: 200 },
         renderMenu,
         onAction,
       });
@@ -158,7 +158,7 @@ describe("context-menu-state", () => {
 
       openContextMenu({
         controller,
-        menu: { nodeName: "TestNode", x: 100, y: 200 },
+        menu: { nodeId: "TestNode", x: 100, y: 200 },
         renderMenu,
         onAction,
       });
@@ -175,7 +175,7 @@ describe("context-menu-state", () => {
 
       openContextMenu({
         controller,
-        menu: { nodeName: "TestNode", x: 100, y: 200 },
+        menu: { nodeId: "TestNode", x: 100, y: 200 },
         renderMenu,
         onAction,
       });
@@ -206,7 +206,7 @@ describe("context-menu-state", () => {
 
       openContextMenu({
         controller,
-        menu: { nodeName: "TestNode", x: 100, y: 200 },
+        menu: { nodeId: "TestNode", x: 100, y: 200 },
         renderMenu,
         onAction,
       });
@@ -232,7 +232,7 @@ describe("context-menu-state", () => {
 
       openContextMenu({
         controller,
-        menu: { nodeName: "TestNode", x: 100, y: 200 },
+        menu: { nodeId: "TestNode", x: 100, y: 200 },
         renderMenu,
         onAction,
       });
@@ -254,7 +254,7 @@ describe("context-menu-state", () => {
 
       openContextMenu({
         controller,
-        menu: { nodeName: "TestNode", x: 100, y: 200 },
+        menu: { nodeId: "TestNode", x: 100, y: 200 },
         renderMenu,
         onAction,
       });
@@ -272,7 +272,7 @@ describe("context-menu-state", () => {
 
       openContextMenu({
         controller,
-        menu: { nodeName: "TestNode", x: 100, y: 200 },
+        menu: { nodeId: "TestNode", x: 100, y: 200 },
         renderMenu,
         onAction,
       });
@@ -299,7 +299,7 @@ describe("context-menu-state", () => {
 
       openContextMenu({
         controller,
-        menu: { nodeName: "TestNode", x: 100, y: 200 },
+        menu: { nodeId: "TestNode", x: 100, y: 200 },
         renderMenu,
         onAction,
       });
@@ -318,7 +318,7 @@ describe("context-menu-state", () => {
 
       openContextMenu({
         controller,
-        menu: { nodeName: "TestNode", x: 100, y: 200 },
+        menu: { nodeId: "TestNode", x: 100, y: 200 },
         renderMenu,
         onAction,
       });

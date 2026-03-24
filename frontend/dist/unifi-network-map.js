@@ -1390,7 +1390,7 @@ function invalidateAnnotationCache(cache) {
 }
 
 // src/card/interaction/node.ts
-function resolveNodeName(event) {
+function resolveNodeId(event) {
   const path = event.composedPath();
   for (const item of path) {
     if (item instanceof Element) {
@@ -1763,9 +1763,9 @@ function renderEntityModal(context) {
   const data = buildEntityModalData(context);
   return renderEntityModalMarkup(data, context);
 }
-function renderEntityItem(entity, theme, nodeName) {
+function renderEntityItem(entity, theme, displayNodeName) {
   const domainIconMarkup = domainIcon(entity.domain, theme);
-  const displayName = getCompactDisplayName(entity, nodeName);
+  const displayName = getCompactDisplayName(entity, displayNodeName);
   const safeDisplayName = escapeHtml(displayName);
   const safeEntityId = escapeHtml(entity.entity_id);
   const compactEntityId = getCompactEntityId(entity.entity_id);
@@ -1944,20 +1944,21 @@ function getStateBadgeClass(state) {
   return "entity-modal__state-badge--default";
 }
 function buildEntityModalData(context) {
-  const nodeName = context.nodeName;
-  const mac = getNodeMac(context.payload, nodeName);
-  const model = getNodeModel(context.payload, nodeName);
-  const nodeType = getNodeType(context.payload, nodeName);
-  const status = context.payload?.node_status?.[nodeName];
-  const relatedEntities = context.payload?.related_entities?.[nodeName] ?? [];
+  const nodeId = context.nodeId;
+  const displayName = context.payload?.node_names?.[nodeId] ?? nodeId;
+  const mac = getNodeMac(context.payload, nodeId);
+  const model = getNodeModel(context.payload, nodeId);
+  const nodeType = getNodeType(context.payload, nodeId);
+  const status = context.payload?.node_status?.[nodeId];
+  const relatedEntities = context.payload?.related_entities?.[nodeId] ?? [];
   return {
-    safeName: escapeHtml(nodeName),
+    safeName: escapeHtml(displayName),
     nodeType,
     status,
     relatedEntities,
     typeIcon: context.getNodeTypeIcon(nodeType),
     infoRows: buildEntityInfoRows({ mac, model, status, nodeType, relatedEntities, context }),
-    entityItems: relatedEntities.map((entity) => renderEntityItem(entity, context.theme, nodeName)).join(""),
+    entityItems: relatedEntities.map((entity) => renderEntityItem(entity, context.theme, displayName)).join(""),
     theme: context.theme
   };
 }
@@ -1996,14 +1997,15 @@ function buildEntityInfoRows(input) {
   infoRows.push(renderDeviceTypeRow(nodeType, context));
   return infoRows;
 }
-function getNodeMac(payload, nodeName) {
-  return payload?.client_macs?.[nodeName] ?? payload?.device_macs?.[nodeName];
+function getNodeMac(payload, nodeId) {
+  if (!payload?.node_types?.[nodeId]) return void 0;
+  return nodeId;
 }
-function getNodeType(payload, nodeName) {
-  return payload?.node_types?.[nodeName] ?? "unknown";
+function getNodeType(payload, nodeId) {
+  return payload?.node_types?.[nodeId] ?? "unknown";
 }
-function getNodeModel(payload, nodeName) {
-  const details = payload?.device_details?.[nodeName];
+function getNodeModel(payload, nodeId) {
+  const details = payload?.device_details?.[nodeId];
   if (!details) return void 0;
   return details.model_name ?? details.model ?? void 0;
 }
@@ -2111,7 +2113,7 @@ function createEntityModalController() {
 function openEntityModal(params) {
   closeEntityModal(params.controller);
   const modalHtml = renderEntityModal({
-    nodeName: params.nodeName,
+    nodeId: params.nodeId,
     payload: params.payload,
     theme: params.theme,
     getNodeTypeIcon: params.getNodeTypeIcon,
@@ -2163,27 +2165,18 @@ function createPortModalController() {
   return { overlay: null, state: null };
 }
 function openPortModal(params) {
-  const {
-    controller,
-    nodeName,
-    payload,
-    theme,
-    getNodeTypeIcon,
-    localize,
-    onClose,
-    onDeviceClick
-  } = params;
+  const { controller, nodeId, payload, theme, getNodeTypeIcon, localize, onClose, onDeviceClick } = params;
   if (!payload) return;
-  const nodeType = payload.node_types?.[nodeName] ?? "unknown";
-  const ports = extractPortsForDevice(nodeName, payload);
+  const nodeType = payload.node_types?.[nodeId] ?? "unknown";
+  const ports = extractPortsForDevice(nodeId, payload);
   if (ports.length === 0) {
     return;
   }
-  controller.state = { nodeName, nodeType, ports };
+  controller.state = { nodeId, nodeType, ports };
   const overlay = document.createElement("div");
   overlay.className = "port-modal-overlay";
   overlay.dataset.theme = theme;
-  overlay.innerHTML = renderPortModal(controller.state, theme, getNodeTypeIcon, localize);
+  overlay.innerHTML = renderPortModal(controller.state, payload, theme, getNodeTypeIcon, localize);
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) {
       closePortModal(controller);
@@ -2216,13 +2209,13 @@ function closePortModal(controller) {
   }
   controller.state = null;
 }
-function buildConnectionMap(nodeName, payload) {
+function buildConnectionMap(nodeId, payload) {
   const edges = payload.edges ?? [];
   const nodeTypes = payload.node_types ?? {};
-  const connectedEdges = edges.filter((e) => e.left === nodeName || e.right === nodeName);
+  const connectedEdges = edges.filter((e) => e.left === nodeId || e.right === nodeId);
   const connectionMap = /* @__PURE__ */ new Map();
   for (const edge of connectedEdges) {
-    const isLeft = edge.left === nodeName;
+    const isLeft = edge.left === nodeId;
     const connectedDevice = isLeft ? edge.right : edge.left;
     const connectedDeviceType = nodeTypes[connectedDevice] ?? "unknown";
     const portNum = extractPortNumber(edge.label, isLeft);
@@ -2237,9 +2230,9 @@ function buildConnectionMap(nodeName, payload) {
   }
   return connectionMap;
 }
-function extractPortsForDevice(nodeName, payload) {
-  const devicePorts = payload.device_ports?.[nodeName] ?? [];
-  const connectionMap = buildConnectionMap(nodeName, payload);
+function extractPortsForDevice(nodeId, payload) {
+  const devicePorts = payload.device_ports?.[nodeId] ?? [];
+  const connectionMap = buildConnectionMap(nodeId, payload);
   if (devicePorts.length > 0) {
     return devicePorts.map((dp) => {
       const connection = connectionMap.get(dp.port);
@@ -2274,41 +2267,17 @@ function extractPortNumber(label, isLeft) {
   const match = side.match(/Port\s*(\d+)/i);
   return match ? parseInt(match[1], 10) : null;
 }
-function renderPortModal(state, theme, getNodeTypeIcon, localize) {
-  const { nodeName, nodeType, ports } = state;
+function renderPortModal(state, payload, theme, getNodeTypeIcon, localize) {
+  const { nodeId, nodeType, ports } = state;
+  const displayName = payload?.node_names?.[nodeId] ?? nodeId;
   const nodeIcon = getNodeTypeIcon(nodeType);
-  const portRows = ports.map((port) => {
-    const deviceIcon = port.connectedDeviceType ? getNodeTypeIcon(port.connectedDeviceType) : "";
-    const deviceName = port.connectedDevice ?? "Empty";
-    const isConnected = port.connectedDevice !== null;
-    let poeBadge = "";
-    if (port.poeActive && port.poePower !== null && port.poePower > 0) {
-      poeBadge = `<span class="badge badge--poe">${formatPower(port.poePower)}</span>`;
-    } else if (port.poe) {
-      poeBadge = `<span class="badge badge--poe-inactive">${localize("panel.badge.poe")}</span>`;
-    }
-    return `
-        <div class="port-row ${isConnected ? "port-row--connected" : "port-row--empty"}">
-          <span class="port-row__number">${localize("port_modal.port", { port: port.port })}</span>
-          <div class="port-row__device">
-            ${isConnected ? `
-                  <span class="port-row__device-icon">${deviceIcon}</span>
-                  <a href="#" class="port-row__device-name" data-device-name="${escapeAttr(port.connectedDevice)}">${escapeHtml2(deviceName)}</a>
-                ` : `<span class="port-row__empty">${localize("port_modal.empty")}</span>`}
-          </div>
-          <span class="port-row__badges">
-            ${poeBadge}
-            ${port.speed ? `<span class="badge badge--speed">${formatSpeed2(port.speed)}</span>` : ""}
-          </span>
-        </div>
-      `;
-  }).join("");
+  const portRows = ports.map((port) => renderPortRow(port, payload, getNodeTypeIcon, localize)).join("");
   return `
     <div class="port-modal">
       <div class="port-modal__header">
         <div class="port-modal__title">
           <span class="port-modal__icon">${nodeIcon}</span>
-          <span>${escapeHtml2(nodeName)}</span>
+          <span>${escapeHtml2(displayName)}</span>
         </div>
         <button type="button" class="port-modal__close">&times;</button>
       </div>
@@ -2318,6 +2287,40 @@ function renderPortModal(state, theme, getNodeTypeIcon, localize) {
           ${portRows || `<div class="port-modal__empty">${localize("port_modal.no_ports")}</div>`}
         </div>
       </div>
+    </div>
+  `;
+}
+function resolveConnectedDeviceName(port, payload) {
+  if (!port.connectedDevice) return "Empty";
+  return payload?.node_names?.[port.connectedDevice] ?? port.connectedDevice;
+}
+function renderPoeBadge(port, localize) {
+  if (port.poeActive && port.poePower !== null && port.poePower > 0) {
+    return `<span class="badge badge--poe">${formatPower(port.poePower)}</span>`;
+  }
+  if (port.poe) {
+    return `<span class="badge badge--poe-inactive">${localize("panel.badge.poe")}</span>`;
+  }
+  return "";
+}
+function renderPortRow(port, payload, getNodeTypeIcon, localize) {
+  const deviceIcon = port.connectedDeviceType ? getNodeTypeIcon(port.connectedDeviceType) : "";
+  const deviceName = resolveConnectedDeviceName(port, payload);
+  const isConnected = port.connectedDevice !== null;
+  const poeBadge = renderPoeBadge(port, localize);
+  return `
+    <div class="port-row ${isConnected ? "port-row--connected" : "port-row--empty"}">
+      <span class="port-row__number">${localize("port_modal.port", { port: port.port })}</span>
+      <div class="port-row__device">
+        ${isConnected ? `
+              <span class="port-row__device-icon">${deviceIcon}</span>
+              <a href="#" class="port-row__device-name" data-device-name="${escapeAttr(port.connectedDevice)}">${escapeHtml2(deviceName)}</a>
+            ` : `<span class="port-row__empty">${localize("port_modal.empty")}</span>`}
+      </div>
+      <span class="port-row__badges">
+        ${poeBadge}
+        ${port.speed ? `<span class="badge badge--speed">${formatSpeed2(port.speed)}</span>` : ""}
+      </span>
     </div>
   `;
 }
@@ -2442,7 +2445,7 @@ function renderMapOverview(context, helpers) {
   `;
 }
 function renderNodePanel(context, name, helpers) {
-  const safeName = helpers.escapeHtml(name);
+  const safeName = helpers.escapeHtml(getDisplayName(context.payload, name));
   if (!context.payload) {
     return `
       <div class="panel-header">
@@ -2509,7 +2512,8 @@ function renderOverviewTab(context, name, helpers) {
     new Map(neighbors.map((n) => [n.name, n])).values()
   );
   const sortedNeighbors = sortNeighborsByPort(uniqueNeighbors);
-  const neighborList = sortedNeighbors.length ? sortedNeighbors.map((n) => renderNeighborItem(n, helpers)).join("") : `<div class="panel-empty__text">${helpers.localize("panel.no_connections")}</div>`;
+  const nodeNames = context.payload?.node_names ?? {};
+  const neighborList = sortedNeighbors.length ? sortedNeighbors.map((n) => renderNeighborItem(n, nodeNames, helpers)).join("") : `<div class="panel-empty__text">${helpers.localize("panel.no_connections")}</div>`;
   const relatedEntitiesSection = renderRelatedEntitiesSection2(context, name, helpers);
   const vlanSection = renderVlanSection(context, name, helpers);
   const vpnSection = renderVpnTunnelsSection(context, name, helpers);
@@ -2535,7 +2539,7 @@ function sortNeighborsByPort(neighbors) {
     return (a.portNumber ?? 999) - (b.portNumber ?? 999);
   });
 }
-function renderNeighborItem(n, helpers) {
+function renderNeighborItem(n, nodeNames, helpers) {
   const badges = [];
   if (n.label) badges.push(`<span class="badge badge--port">${helpers.escapeHtml(n.label)}</span>`);
   if (n.poe)
@@ -2544,10 +2548,12 @@ function renderNeighborItem(n, helpers) {
     badges.push(
       `<span class="badge badge--wireless">${helpers.localize("panel.badge.wifi")}</span>`
     );
-  const safeName = helpers.escapeHtml(n.name);
+  const displayName = nodeNames[n.name] ?? n.name;
+  const safeDisplayName = helpers.escapeHtml(displayName);
+  const safeId = helpers.escapeHtml(n.name);
   return `
     <div class="neighbor-item neighbor-item--compact">
-      <a href="#" class="neighbor-item__name neighbor-item__name--link" data-navigate-device="${safeName}">${safeName}</a>
+      <a href="#" class="neighbor-item__name neighbor-item__name--link" data-navigate-device="${safeId}">${safeDisplayName}</a>
       <span class="neighbor-item__badges">${badges.join("")}</span>
     </div>
   `;
@@ -2610,11 +2616,8 @@ function renderVpnTunnelsSection(context, name, helpers) {
 }
 function getNodeVpnTunnels(name, payload) {
   if (!payload?.vpn_tunnels) return [];
-  const deviceMac = payload.device_macs?.[name]?.toLowerCase();
-  if (!deviceMac) return payload.vpn_tunnels;
-  return payload.vpn_tunnels.filter(
-    (t) => !t.gateway_mac || t.gateway_mac.toLowerCase() === deviceMac
-  );
+  const mac = name.toLowerCase();
+  return payload.vpn_tunnels.filter((t) => !t.gateway_mac || t.gateway_mac.toLowerCase() === mac);
 }
 function renderRelatedEntitiesSection2(context, name, helpers) {
   const relatedEntities = context.payload?.related_entities?.[name] ?? [];
@@ -2899,6 +2902,7 @@ function getActionsTabData(context, name, helpers) {
     safeMac: mac ? helpers.escapeHtml(mac) : "",
     safeIp: ip ? helpers.escapeHtml(ip) : "",
     safeName: helpers.escapeHtml(name)
+    // name is a MAC, used as node identifier
   };
 }
 function buildActionItems(data, helpers) {
@@ -2958,11 +2962,15 @@ function pushIf2(items, value) {
     items.push(value);
   }
 }
+function getDisplayName(payload, nodeId) {
+  return payload?.node_names?.[nodeId] ?? nodeId;
+}
 function getNodeType2(payload, name) {
   return payload?.node_types?.[name] ?? "unknown";
 }
 function getNodeMac2(payload, name) {
-  return payload?.client_macs?.[name] ?? payload?.device_macs?.[name] ?? null;
+  if (!payload?.node_types?.[name]) return null;
+  return name;
 }
 function getNodeIp(payload, name) {
   return getNodeIpFromPayload(payload, name);
@@ -3101,13 +3109,15 @@ function isContextMenuAction(action) {
   return action === "details" || action === "copy-mac" || action === "copy-ip" || action === "restart" || action === "view-ports";
 }
 function buildContextMenuData(options) {
-  const nodeType = getNodeType3(options.payload, options.nodeName);
-  const mac = getNodeMac3(options.payload, options.nodeName);
-  const entityId = getNodeEntityId2(options.payload, options.nodeName);
-  const ip = getNodeIp2(options.payload, options.nodeName);
-  const model = getNodeModel3(options.payload, options.nodeName);
+  const nodeId = options.nodeId;
+  const displayName = options.payload?.node_names?.[nodeId] ?? nodeId;
+  const nodeType = getNodeType3(options.payload, nodeId);
+  const mac = getNodeMac3(options.payload, nodeId);
+  const entityId = getNodeEntityId2(options.payload, nodeId);
+  const ip = getNodeIp2(options.payload, nodeId);
+  const model = getNodeModel3(options.payload, nodeId);
   return {
-    safeName: escapeHtml(options.nodeName),
+    safeName: escapeHtml(displayName),
     nodeType,
     typeIcon: options.getNodeTypeIcon(nodeType),
     mac,
@@ -3190,20 +3200,21 @@ function pushIf3(items, value) {
     items.push(value);
   }
 }
-function getNodeType3(payload, nodeName) {
-  return payload?.node_types?.[nodeName] ?? "unknown";
+function getNodeType3(payload, nodeId) {
+  return payload?.node_types?.[nodeId] ?? "unknown";
 }
-function getNodeMac3(payload, nodeName) {
-  return payload?.client_macs?.[nodeName] ?? payload?.device_macs?.[nodeName] ?? null;
+function getNodeMac3(payload, nodeId) {
+  if (!payload?.node_types?.[nodeId]) return null;
+  return nodeId;
 }
-function getNodeEntityId2(payload, nodeName) {
-  return payload?.node_entities?.[nodeName] ?? payload?.client_entities?.[nodeName] ?? payload?.device_entities?.[nodeName] ?? null;
+function getNodeEntityId2(payload, nodeId) {
+  return payload?.node_entities?.[nodeId] ?? payload?.client_entities?.[nodeId] ?? payload?.device_entities?.[nodeId] ?? null;
 }
-function getNodeIp2(payload, nodeName) {
-  return getNodeIpFromPayload(payload, nodeName);
+function getNodeIp2(payload, nodeId) {
+  return getNodeIpFromPayload(payload, nodeId);
 }
-function getNodeModel3(payload, nodeName) {
-  const details = payload?.device_details?.[nodeName];
+function getNodeModel3(payload, nodeId) {
+  const details = payload?.device_details?.[nodeId];
   if (!details) return null;
   return details.model_name ?? details.model ?? null;
 }
@@ -4639,7 +4650,7 @@ function createContextMenuController() {
 }
 function openContextMenu(params) {
   const container = document.createElement("div");
-  container.innerHTML = params.renderMenu(params.menu.nodeName);
+  container.innerHTML = params.renderMenu(params.menu.nodeId);
   const menuEl = container.firstElementChild;
   if (!menuEl) {
     return;
@@ -4651,7 +4662,7 @@ function openContextMenu(params) {
   wireContextMenuEvents(
     menuEl,
     () => closeContextMenu(params.controller),
-    (action, mac, ip) => params.onAction(action, params.menu.nodeName, mac, ip)
+    (action, mac, ip) => params.onAction(action, params.menu.nodeId, mac, ip)
   );
 }
 function closeContextMenu(controller) {
@@ -4741,7 +4752,7 @@ function handleMapClick(params) {
   if (params.panMoved) {
     return null;
   }
-  const label = params.resolveNodeName(params.event) ?? params.state.hoveredNode;
+  const label = params.resolveNodeId(params.event) ?? params.state.hoveredNode;
   if (!label) {
     return null;
   }
@@ -4892,7 +4903,7 @@ function handleHover(event, options, handlers, callbacks, tooltip) {
     return;
   }
   callbacks.onHoverEdge(null);
-  const label = handlers.resolveNodeName(event);
+  const label = handlers.resolveNodeId(event);
   if (!label) {
     callbacks.onHoverNode(null);
     hideTooltip(tooltip);
@@ -4935,7 +4946,7 @@ function onClick(event, state, handlers, callbacks, tooltip) {
   if (state.panMoved) {
     return;
   }
-  let label = handlers.resolveNodeName(event);
+  let label = handlers.resolveNodeId(event);
   if (!label) {
     const viewport = event.currentTarget || event.target?.closest(".unifi-network-map__viewport");
     const svg3 = viewport?.querySelector("svg");
@@ -4950,7 +4961,7 @@ function onClick(event, state, handlers, callbacks, tooltip) {
   hideTooltip(tooltip);
 }
 function onContextMenu(event, state, handlers, callbacks) {
-  let nodeName = handlers.resolveNodeName(event);
+  let nodeName = handlers.resolveNodeId(event);
   if (!nodeName) {
     const viewport = event.currentTarget || event.target?.closest(".unifi-network-map__viewport");
     const svg3 = viewport?.querySelector("svg");
@@ -5106,7 +5117,7 @@ function createDefaultViewportState() {
 }
 function createDefaultViewportHandlers(edges, getIcon, localize) {
   return {
-    resolveNodeName: (event) => resolveNodeName(event),
+    resolveNodeId: (event) => resolveNodeId(event),
     findEdge: (target) => edges ? findEdgeFromTarget(target, edges) : null,
     renderEdgeTooltip: (edge) => renderEdgeTooltip(edge, getIcon, localize)
   };
@@ -7350,14 +7361,14 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   _applyFilters(svg3) {
     const nodeTypes = this._payload?.node_types ?? {};
     const hiddenNodes = /* @__PURE__ */ new Set();
-    for (const [nodeName, nodeType] of Object.entries(nodeTypes)) {
+    for (const [nodeId, nodeType] of Object.entries(nodeTypes)) {
       const normalized = normalizeDeviceType(nodeType);
       const visible = this._filterState[normalized];
-      const element = findNodeElement(svg3, nodeName);
+      const element = findNodeElement(svg3, nodeId);
       if (element) {
         element.classList.toggle("node--filtered", !visible);
         if (!visible) {
-          hiddenNodes.add(nodeName);
+          hiddenNodes.add(nodeId);
         }
       }
     }
@@ -7417,9 +7428,9 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     const button = target.closest('[data-action="view-ports"]');
     if (!button) return false;
     event.preventDefault();
-    const nodeName = button.getAttribute("data-node-name");
-    if (nodeName) {
-      this._showPortModal(nodeName);
+    const nodeId = button.getAttribute("data-node-name");
+    if (nodeId) {
+      this._showPortModal(nodeId);
     }
     return true;
   }
@@ -7481,10 +7492,10 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     }
     return true;
   }
-  _showEntityModal(nodeName) {
+  _showEntityModal(nodeId) {
     openEntityModal({
       controller: this._entityModal,
-      nodeName,
+      nodeId,
       payload: this._payload,
       theme: this._config?.theme ?? "dark",
       getNodeTypeIcon: (nodeType) => this._getNodeTypeIcon(nodeType),
@@ -7515,13 +7526,13 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     openContextMenu({
       controller: this._contextMenu,
       menu: this._contextMenu.menu,
-      renderMenu: (nodeName) => this._renderContextMenu(nodeName),
-      onAction: (action, nodeName, mac, ip) => this._handleContextMenuAction(action, nodeName, mac, ip)
+      renderMenu: (nodeId) => this._renderContextMenu(nodeId),
+      onAction: (action, nodeId, mac, ip) => this._handleContextMenuAction(action, nodeId, mac, ip)
     });
   }
-  _renderContextMenu(nodeName) {
+  _renderContextMenu(nodeId) {
     return renderContextMenu({
-      nodeName,
+      nodeId,
       payload: this._payload,
       theme: this._config?.theme ?? "dark",
       getNodeTypeIcon: (nodeType) => this._getNodeTypeIcon(nodeType),
@@ -7529,11 +7540,11 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       localize: this._localize
     });
   }
-  _handleContextMenuAction(action, nodeName, mac, ip) {
+  _handleContextMenuAction(action, nodeId, mac, ip) {
     switch (action) {
       case "details":
         this._removeContextMenu();
-        this._showEntityModal(nodeName);
+        this._showEntityModal(nodeId);
         break;
       case "copy-mac":
         if (mac) {
@@ -7552,21 +7563,21 @@ var UnifiNetworkMapCard = class extends HTMLElement {
         this._removeContextMenu();
         break;
       case "restart":
-        this._handleRestartDevice(nodeName);
+        this._handleRestartDevice(nodeId);
         this._removeContextMenu();
         break;
       case "view-ports":
         this._removeContextMenu();
-        this._showPortModal(nodeName);
+        this._showPortModal(nodeId);
         break;
       default:
         this._removeContextMenu();
     }
   }
-  _showPortModal(nodeName) {
+  _showPortModal(nodeId) {
     openPortModal({
       controller: this._portModal,
-      nodeName,
+      nodeId,
       payload: this._payload,
       theme: this._config?.theme ?? "dark",
       getNodeTypeIcon: (nodeType) => this._getNodeTypeIcon(nodeType),
@@ -7597,8 +7608,8 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   _showCopyFeedback(message) {
     showToast(message, "success");
   }
-  _handleRestartDevice(nodeName) {
-    const entityId = this._payload?.node_entities?.[nodeName] ?? this._payload?.device_entities?.[nodeName];
+  _handleRestartDevice(nodeId) {
+    const entityId = this._payload?.node_entities?.[nodeId] ?? this._payload?.device_entities?.[nodeId];
     if (!entityId) {
       this._showActionError(this._localize("toast.no_entity"));
       return;
@@ -7661,19 +7672,19 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   }
   _viewportCallbacks() {
     return {
-      onNodeSelected: (nodeName) => {
-        selectNode(this._selection, nodeName);
+      onNodeSelected: (nodeId) => {
+        selectNode(this._selection, nodeId);
         this._updateSelectionOnly();
       },
       onHoverEdge: (edge) => {
         setHoveredEdge(this._selection, edge);
       },
-      onHoverNode: (nodeName) => {
-        setHoveredNode(this._selection, nodeName);
+      onHoverNode: (nodeId) => {
+        setHoveredNode(this._selection, nodeId);
       },
-      onOpenContextMenu: (x, y, nodeName) => {
+      onOpenContextMenu: (x, y, nodeId) => {
         this._removeContextMenu();
-        this._contextMenu.menu = { nodeName, x, y };
+        this._contextMenu.menu = { nodeId, x, y };
         this._showContextMenu();
       },
       onUpdateTransform: (transform) => {
@@ -7722,7 +7733,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       state: this._selection,
       panMoved: this._viewportState.panMoved,
       isControlTarget: (target) => this._isControlTarget(target),
-      resolveNodeName: (evt) => resolveNodeName(evt)
+      resolveNodeId: (evt) => resolveNodeId(evt)
     });
     if (!selected) {
       return;
@@ -7730,14 +7741,14 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._hideTooltip(tooltip);
     this._render();
   }
-  _resolveNodeName(event) {
-    return resolveNodeName(event);
+  _resolveNodeId(event) {
+    return resolveNodeId(event);
   }
   _inferNodeName(target) {
     return inferNodeName(target);
   }
-  _findNodeElement(svg3, nodeName) {
-    return findNodeElement(svg3, nodeName);
+  _findNodeElement(svg3, nodeId) {
+    return findNodeElement(svg3, nodeId);
   }
   _highlightSelectedNode(svg3) {
     highlightSelectedNode(svg3, this._selection.selectedNode);

@@ -5,7 +5,7 @@ from datetime import timedelta
 
 DOMAIN = "unifi_network_map"
 PLATFORMS = ["sensor", "binary_sensor"]
-PAYLOAD_SCHEMA_VERSION = "1.5"
+PAYLOAD_SCHEMA_VERSION = "2.0"
 
 SERVICE_REFRESH = "refresh"
 ATTR_ENTRY_ID = "entry_id"

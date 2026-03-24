@@ -15,11 +15,11 @@ export function createContextMenuController(): ContextMenuController {
 export function openContextMenu(params: {
   controller: ContextMenuController;
   menu: ContextMenuState;
-  renderMenu: (nodeName: string) => string;
-  onAction: (action: string, nodeName: string, mac: string | null, ip: string | null) => void;
+  renderMenu: (nodeId: string) => string;
+  onAction: (action: string, nodeId: string, mac: string | null, ip: string | null) => void;
 }): void {
   const container = document.createElement("div");
-  container.innerHTML = params.renderMenu(params.menu.nodeName);
+  container.innerHTML = params.renderMenu(params.menu.nodeId);
   const menuEl = container.firstElementChild as ContextMenuElement | null;
   if (!menuEl) {
     return;
@@ -33,7 +33,7 @@ export function openContextMenu(params: {
   wireContextMenuEvents(
     menuEl,
     () => closeContextMenu(params.controller),
-    (action, mac, ip) => params.onAction(action, params.menu.nodeName, mac, ip),
+    (action, mac, ip) => params.onAction(action, params.menu.nodeId, mac, ip),
   );
 }
 

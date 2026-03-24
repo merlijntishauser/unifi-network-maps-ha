@@ -31,7 +31,7 @@ export function handleMapClick(params: {
   state: SelectionState;
   panMoved: boolean;
   isControlTarget: (target: Element | null) => boolean;
-  resolveNodeName: (event: MouseEvent) => string | null;
+  resolveNodeId: (event: MouseEvent) => string | null;
 }): string | null {
   if (params.isControlTarget(params.event.target as Element | null)) {
     return null;
@@ -40,7 +40,7 @@ export function handleMapClick(params: {
     return null;
   }
 
-  const label = params.resolveNodeName(params.event) ?? params.state.hoveredNode;
+  const label = params.resolveNodeId(params.event) ?? params.state.hoveredNode;
   if (!label) {
     return null;
   }

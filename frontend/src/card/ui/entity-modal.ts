@@ -3,7 +3,7 @@ import { domainIcon } from "./icons";
 import type { MapPayload, RelatedEntity, NodeStatus } from "../core/types";
 
 export type EntityModalContext = {
-  nodeName: string;
+  nodeId: string;
   payload?: MapPayload;
   theme: "dark" | "light" | "unifi" | "unifi-dark";
   getNodeTypeIcon: (nodeType: string) => string;
@@ -19,10 +19,10 @@ export function renderEntityModal(context: EntityModalContext): string {
 function renderEntityItem(
   entity: RelatedEntity,
   theme: "dark" | "light" | "unifi" | "unifi-dark",
-  nodeName: string,
+  displayNodeName: string,
 ): string {
   const domainIconMarkup = domainIcon(entity.domain, theme);
-  const displayName = getCompactDisplayName(entity, nodeName);
+  const displayName = getCompactDisplayName(entity, displayNodeName);
   const safeDisplayName = escapeHtml(displayName);
   const safeEntityId = escapeHtml(entity.entity_id);
   const compactEntityId = getCompactEntityId(entity.entity_id);
@@ -268,21 +268,22 @@ type EntityModalData = {
 };
 
 function buildEntityModalData(context: EntityModalContext): EntityModalData {
-  const nodeName = context.nodeName;
-  const mac = getNodeMac(context.payload, nodeName);
-  const model = getNodeModel(context.payload, nodeName);
-  const nodeType = getNodeType(context.payload, nodeName);
-  const status = context.payload?.node_status?.[nodeName];
-  const relatedEntities = context.payload?.related_entities?.[nodeName] ?? [];
+  const nodeId = context.nodeId;
+  const displayName = context.payload?.node_names?.[nodeId] ?? nodeId;
+  const mac = getNodeMac(context.payload, nodeId);
+  const model = getNodeModel(context.payload, nodeId);
+  const nodeType = getNodeType(context.payload, nodeId);
+  const status = context.payload?.node_status?.[nodeId];
+  const relatedEntities = context.payload?.related_entities?.[nodeId] ?? [];
   return {
-    safeName: escapeHtml(nodeName),
+    safeName: escapeHtml(displayName),
     nodeType,
     status,
     relatedEntities,
     typeIcon: context.getNodeTypeIcon(nodeType),
     infoRows: buildEntityInfoRows({ mac, model, status, nodeType, relatedEntities, context }),
     entityItems: relatedEntities
-      .map((entity) => renderEntityItem(entity, context.theme, nodeName))
+      .map((entity) => renderEntityItem(entity, context.theme, displayName))
       .join(""),
     theme: context.theme,
   };
@@ -325,16 +326,17 @@ function buildEntityInfoRows(input: InfoRowsContext): string[] {
   return infoRows;
 }
 
-function getNodeMac(payload: MapPayload | undefined, nodeName: string): string | undefined {
-  return payload?.client_macs?.[nodeName] ?? payload?.device_macs?.[nodeName];
+function getNodeMac(payload: MapPayload | undefined, nodeId: string): string | undefined {
+  if (!payload?.node_types?.[nodeId]) return undefined;
+  return nodeId;
 }
 
-function getNodeType(payload: MapPayload | undefined, nodeName: string): string {
-  return payload?.node_types?.[nodeName] ?? "unknown";
+function getNodeType(payload: MapPayload | undefined, nodeId: string): string {
+  return payload?.node_types?.[nodeId] ?? "unknown";
 }
 
-function getNodeModel(payload: MapPayload | undefined, nodeName: string): string | undefined {
-  const details = payload?.device_details?.[nodeName];
+function getNodeModel(payload: MapPayload | undefined, nodeId: string): string | undefined {
+  const details = payload?.device_details?.[nodeId];
   if (!details) return undefined;
   // Prefer model_name (friendly name) over model code
   return details.model_name ?? details.model ?? undefined;

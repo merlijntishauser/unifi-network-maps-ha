@@ -2,7 +2,7 @@ import type { Edge, Point, ViewBox, ViewTransform } from "../core/types";
 import type { IconName } from "../ui/icons";
 import { findEdgeFromTarget, renderEdgeTooltip } from "../data/svg";
 import type { LocalizeFunc } from "../shared/localize";
-import { resolveNodeName } from "./node";
+import { resolveNodeId } from "./node";
 
 export type ViewportState = {
   viewTransform: ViewTransform;
@@ -23,7 +23,7 @@ export type ViewportOptions = {
 };
 
 export type ViewportHandlers = {
-  resolveNodeName: (event: MouseEvent | PointerEvent) => string | null;
+  resolveNodeId: (event: MouseEvent | PointerEvent) => string | null;
   findEdge: (target: Element | null) => Edge | null;
   renderEdgeTooltip: (edge: Edge) => string;
 };
@@ -243,7 +243,7 @@ function handleHover(
   }
 
   callbacks.onHoverEdge(null);
-  const label = handlers.resolveNodeName(event);
+  const label = handlers.resolveNodeId(event);
   if (!label) {
     callbacks.onHoverNode(null);
     hideTooltip(tooltip);
@@ -313,7 +313,7 @@ export function onClick(
   }
 
   // First try normal resolution via composedPath
-  let label = handlers.resolveNodeName(event);
+  let label = handlers.resolveNodeId(event);
 
   // If that fails (e.g., due to shadow DOM or slotted content issues),
   // manually find the SVG element at the click coordinates
@@ -341,7 +341,7 @@ function onContextMenu(
   callbacks: ViewportCallbacks,
 ): void {
   // First try normal resolution via composedPath
-  let nodeName = handlers.resolveNodeName(event);
+  let nodeName = handlers.resolveNodeId(event);
 
   // If that fails, manually find the SVG element at the click coordinates
   if (!nodeName) {
@@ -557,7 +557,7 @@ export function createDefaultViewportHandlers(
   localize: LocalizeFunc,
 ): ViewportHandlers {
   return {
-    resolveNodeName: (event) => resolveNodeName(event),
+    resolveNodeId: (event) => resolveNodeId(event),
     findEdge: (target) => (edges ? findEdgeFromTarget(target, edges) : null),
     renderEdgeTooltip: (edge) => renderEdgeTooltip(edge, getIcon, localize),
   };

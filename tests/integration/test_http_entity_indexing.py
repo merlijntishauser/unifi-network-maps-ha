@@ -280,12 +280,11 @@ async def test_resolve_related_entities_returns_empty_for_unknown_mac(
 
     result = resolve_related_entities(
         hass,
-        client_macs={"Ghost": unknown_mac},
-        device_macs={},
+        node_macs={unknown_mac},
     )
 
-    # The node should not appear in the result at all.
-    assert "Ghost" not in result
+    # The MAC should not appear in the result at all.
+    assert unknown_mac not in result
 
 
 # ------------------------------------------------------------------

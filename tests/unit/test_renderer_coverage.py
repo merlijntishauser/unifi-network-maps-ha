@@ -122,7 +122,7 @@ def test_build_client_ip_index_skips_no_ip() -> None:
 
 
 def test_build_client_ip_index_includes_valid_client() -> None:
-    """Clients with both name and ip are indexed."""
+    """Clients with both mac and ip are indexed by MAC."""
     clients = [
         {
             "name": "Phone",
@@ -131,7 +131,7 @@ def test_build_client_ip_index_includes_valid_client() -> None:
         },
     ]
     result = _build_client_ip_index(clients)
-    assert result["Phone"] == "192.168.1.10"
+    assert result["aa:bb:cc:dd:ee:ff"] == "192.168.1.10"
 
 
 # -- _build_node_vlan_index ---------------------------------------------------
@@ -147,12 +147,12 @@ def test_build_node_vlan_index_skips_unnamed_client() -> None:
 
 
 def test_build_node_vlan_index_maps_named_client() -> None:
-    """A named client with a VLAN shows up in the index."""
+    """A client with a MAC and VLAN shows up in the index keyed by MAC."""
     clients = [
         {"name": "Laptop", "mac": "11:22:33:44:55:66", "vlan": 42},
     ]
     result = _build_node_vlan_index(clients, [])
-    assert result["Laptop"] == 42
+    assert result["11:22:33:44:55:66"] == 42
 
 
 # -- _build_vlan_info_from_clients --------------------------------------------

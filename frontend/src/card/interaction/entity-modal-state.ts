@@ -11,7 +11,7 @@ export function createEntityModalController(): EntityModalController {
 
 export function openEntityModal(params: {
   controller: EntityModalController;
-  nodeName: string;
+  nodeId: string;
   payload?: MapPayload;
   theme: "dark" | "light" | "unifi" | "unifi-dark";
   getNodeTypeIcon: (nodeType: string) => string;
@@ -22,7 +22,7 @@ export function openEntityModal(params: {
   closeEntityModal(params.controller);
 
   const modalHtml = renderEntityModal({
-    nodeName: params.nodeName,
+    nodeId: params.nodeId,
     payload: params.payload,
     theme: params.theme,
     getNodeTypeIcon: params.getNodeTypeIcon,

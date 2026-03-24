@@ -121,22 +121,21 @@ def _migrate_device_unique_ids(
         return
 
     payload = coordinator.data.payload
-    device_details = payload.get("device_details", {})
     node_types = payload.get("node_types", {})
+    node_names = payload.get("node_names", {})
 
     registry = er.async_get(hass)
     if registry is None:
         return
 
-    for name, device_type in node_types.items():
+    for mac, device_type in node_types.items():
         if device_type not in DEVICE_TYPES_TO_TRACK:
             continue
-        details = device_details.get(name, {})
-        mac = details.get("mac", "")
-        if not mac or not isinstance(mac, str):
+        display_name = node_names.get(mac, "")
+        if not display_name:
             continue
 
-        old_suffix = _normalize_name(name)
+        old_suffix = _normalize_name(display_name)
         new_suffix = mac.lower().replace(":", "")
         if old_suffix == new_suffix:
             continue
@@ -161,18 +160,21 @@ def _create_device_presence_entities(
 
     payload = coordinator.data.payload
     node_types = payload.get("node_types", {})
+    node_names = payload.get("node_names", {})
     device_details = payload.get("device_details", {})
 
     entities: list[UniFiDevicePresenceSensor] = []
-    for name, device_type in node_types.items():
+    for mac, device_type in node_types.items():
         if device_type not in DEVICE_TYPES_TO_TRACK:
             continue
-        details = device_details.get(name, {})
+        details = device_details.get(mac, {})
+        display_name = node_names.get(mac, mac)
         entities.append(
             UniFiDevicePresenceSensor(
                 coordinator=coordinator,
                 entry=entry,
-                device_name=name,
+                device_mac=mac,
+                device_name=display_name,
                 device_type=device_type,
                 device_details=details,
             )
@@ -193,6 +195,7 @@ class UniFiDevicePresenceSensor(  # type: ignore[reportUntypedBaseClass]
         self,
         coordinator: UniFiNetworkMapCoordinator,
         entry: ConfigEntry,
+        device_mac: str,
         device_name: str,
         device_type: str,
         device_details: dict[str, Any],
@@ -200,12 +203,13 @@ class UniFiDevicePresenceSensor(  # type: ignore[reportUntypedBaseClass]
         """Initialize the device presence sensor."""
         super().__init__(coordinator)
         self._entry = entry
+        self._device_mac = device_mac
         self._device_name = device_name
         self._device_type = device_type
         self._initial_details = device_details
 
-        device_id = _device_unique_suffix(device_name, device_details)
-        self._attr_unique_id = f"{entry.entry_id}_device_{device_id}"
+        mac_suffix = device_mac.lower().replace(":", "")
+        self._attr_unique_id = f"{entry.entry_id}_device_{mac_suffix}"
         self._attr_name = device_name
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
@@ -217,7 +221,7 @@ class UniFiDevicePresenceSensor(  # type: ignore[reportUntypedBaseClass]
         if not self.coordinator.data or not self.coordinator.data.payload:
             return False
         node_types = self.coordinator.data.payload.get("node_types", {})
-        return self._device_name in node_types
+        return self._device_mac in node_types
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -239,7 +243,7 @@ class UniFiDevicePresenceSensor(  # type: ignore[reportUntypedBaseClass]
 
         if self._device_type == "ap":
             ap_counts = self._get_ap_client_counts()
-            attrs["clients_connected"] = ap_counts.get(self._device_name, 0)
+            attrs["clients_connected"] = ap_counts.get(self._device_mac, 0)
 
         return attrs
 
@@ -250,7 +254,7 @@ class UniFiDevicePresenceSensor(  # type: ignore[reportUntypedBaseClass]
         device_details = self.coordinator.data.payload.get(
             "device_details", {}
         )
-        return device_details.get(self._device_name, self._initial_details)
+        return device_details.get(self._device_mac, self._initial_details)
 
     def _get_ap_client_counts(self) -> dict[str, int]:
         """Get AP client counts from coordinator data."""
@@ -266,17 +270,6 @@ def _normalize_name(name: str) -> str:
     normalized = normalized.replace("-", "_")
     normalized = normalized.replace(".", "_")
     return normalized
-
-
-def _device_unique_suffix(
-    device_name: str,
-    device_details: dict[str, Any],
-) -> str:
-    """Return MAC-based suffix, falling back to normalized name."""
-    mac = device_details.get("mac", "")
-    if mac and isinstance(mac, str):
-        return mac.lower().replace(":", "")
-    return _normalize_name(device_name)
 
 
 def _create_client_presence_entities(
@@ -409,8 +402,5 @@ class UniFiClientPresenceSensor(  # type: ignore[reportUntypedBaseClass]
         """Resolve a device MAC to its name."""
         if not self.coordinator.data or not self.coordinator.data.payload:
             return None
-        device_macs = self.coordinator.data.payload.get("device_macs", {})
-        for name, device_mac in device_macs.items():
-            if device_mac.lower() == mac.lower():
-                return name
-        return None
+        node_names = self.coordinator.data.payload.get("node_names", {})
+        return node_names.get(mac.lower())

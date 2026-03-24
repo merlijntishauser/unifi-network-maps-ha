@@ -7,8 +7,13 @@ describe("unifi-network-map card panel", () => {
   it("renders overview without status section when status is missing", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     const card = element as unknown as { _svgContent?: string; _payload?: unknown };
-    card._svgContent = makeSvg("Gateway");
-    card._payload = { edges: [], node_types: { Gateway: "gateway" }, node_status: {} };
+    card._svgContent = makeSvg("aa:bb:cc:dd:ee:01");
+    card._payload = {
+      edges: [],
+      node_types: { "aa:bb:cc:dd:ee:01": "gateway" },
+      node_names: { "aa:bb:cc:dd:ee:01": "Gateway" },
+      node_status: {},
+    };
     element.setConfig({ svg_url: "/map.svg" });
     expect(element.innerHTML).not.toContain("Live Status");
   });
@@ -53,13 +58,14 @@ describe("unifi-network-map card panel", () => {
       _payload?: unknown;
       _selection?: { selectedNode?: string };
     };
-    card._svgContent = makeSvg("Gateway");
+    card._svgContent = makeSvg("aa:bb:cc:dd:ee:01");
     card._payload = {
       edges: [],
-      node_types: { Gateway: "gateway" },
-      node_status: { Gateway: { entity_id: "sensor.gateway", state: "offline" } },
+      node_types: { "aa:bb:cc:dd:ee:01": "gateway" },
+      node_names: { "aa:bb:cc:dd:ee:01": "Gateway" },
+      node_status: { "aa:bb:cc:dd:ee:01": { entity_id: "sensor.gateway", state: "offline" } },
     };
-    card._selection = { selectedNode: "Gateway" };
+    card._selection = { selectedNode: "aa:bb:cc:dd:ee:01" };
     element.setConfig({ svg_url: "/map.svg" });
     expect(element.innerHTML).toContain("Offline");
   });
@@ -74,15 +80,15 @@ describe("unifi-network-map card panel", () => {
       _activeTab?: string;
       _onPanelClick: (event: MouseEvent) => void;
     };
-    card._svgContent = makeSvg("Gateway");
+    card._svgContent = makeSvg("aa:bb:cc:dd:ee:01");
     card._payload = {
       ...samplePayload(),
-      node_entities: { Gateway: "sensor.gateway" },
+      node_entities: { "aa:bb:cc:dd:ee:01": "sensor.gateway" },
       related_entities: {
-        Gateway: [{ entity_id: "sensor.gateway", domain: "sensor", state: "on" }],
+        "aa:bb:cc:dd:ee:01": [{ entity_id: "sensor.gateway", domain: "sensor", state: "on" }],
       },
     };
-    card._selection = { selectedNode: "Gateway" };
+    card._selection = { selectedNode: "aa:bb:cc:dd:ee:01" };
     card._activeTab = "actions";
     element.setConfig({ svg_url: "/map.svg" });
 
@@ -126,8 +132,8 @@ describe("unifi-network-map card panel", () => {
       _onPanelClick: (event: MouseEvent) => void;
     };
     card._payload = samplePayload();
-    card._svgContent = makeSvg("Node A");
-    card._selection = { selectedNode: "Node A" };
+    card._svgContent = makeSvg("aa:bb:cc:dd:ee:01");
+    card._selection = { selectedNode: "aa:bb:cc:dd:ee:01" };
     card._activeTab = "actions";
     element.setConfig({ svg_url: "/map.svg" });
     const copyButton = element.querySelector('[data-action="copy"]') as HTMLElement;
@@ -145,11 +151,12 @@ describe("unifi-network-map card panel", () => {
   it("renders overview status section when status data exists", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     const card = element as unknown as { _svgContent?: string; _payload?: unknown };
-    card._svgContent = makeSvg("Gateway");
+    card._svgContent = makeSvg("aa:bb:cc:dd:ee:01");
     card._payload = {
       edges: [],
-      node_types: { Gateway: "gateway" },
-      node_status: { Gateway: { entity_id: "sensor.gateway", state: "online" } },
+      node_types: { "aa:bb:cc:dd:ee:01": "gateway" },
+      node_names: { "aa:bb:cc:dd:ee:01": "Gateway" },
+      node_status: { "aa:bb:cc:dd:ee:01": { entity_id: "sensor.gateway", state: "online" } },
     };
     element.setConfig({ svg_url: "/map.svg" });
     expect(element.innerHTML).toContain("Live Status");
@@ -158,10 +165,11 @@ describe("unifi-network-map card panel", () => {
   it("renders overview device breakdown including client subtypes", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     const card = element as unknown as { _svgContent?: string; _payload?: unknown };
-    card._svgContent = makeSvg("Unknown");
+    card._svgContent = makeSvg("33:44:55:66:77:88");
     card._payload = {
       edges: [],
-      node_types: { Unknown: "printer" },
+      node_types: { "33:44:55:66:77:88": "printer" },
+      node_names: { "33:44:55:66:77:88": "Unknown" },
       node_status: {},
     };
     element.setConfig({ svg_url: "/map.svg" });
@@ -176,9 +184,9 @@ describe("unifi-network-map card panel", () => {
       _selection?: { selectedNode?: string };
       _onPanelClick: (event: MouseEvent) => void;
     };
-    card._svgContent = makeSvg("Gateway");
+    card._svgContent = makeSvg("aa:bb:cc:dd:ee:01");
     card._payload = samplePayload();
-    card._selection = { selectedNode: "Gateway" };
+    card._selection = { selectedNode: "aa:bb:cc:dd:ee:01" };
     element.setConfig({ svg_url: "/map.svg" });
     const backButton = element.querySelector('[data-action="back"]') as HTMLElement;
     card._onPanelClick({
@@ -197,9 +205,13 @@ describe("unifi-network-map card panel", () => {
       _selection?: { selectedNode?: string };
       _activeTab?: string;
     };
-    card._svgContent = makeSvg("Node A");
-    card._payload = { edges: [], node_types: { "Node A": "client" } };
-    card._selection = { selectedNode: "Node A" };
+    card._svgContent = makeSvg("aa:bb:cc:dd:ee:ff");
+    card._payload = {
+      edges: [],
+      node_types: { "aa:bb:cc:dd:ee:ff": "client" },
+      node_names: { "aa:bb:cc:dd:ee:ff": "Node A" },
+    };
+    card._selection = { selectedNode: "aa:bb:cc:dd:ee:ff" };
     card._activeTab = "actions";
     element.setConfig({ svg_url: "/map.svg" });
     expect(element.innerHTML).toContain("No Home Assistant entity linked");
@@ -213,9 +225,13 @@ describe("unifi-network-map card panel", () => {
       _selection?: { selectedNode?: string };
       _activeTab?: string;
     };
-    card._svgContent = makeSvg("Gateway");
-    card._payload = { edges: [], node_types: { Gateway: "gateway" } };
-    card._selection = { selectedNode: "Gateway" };
+    card._svgContent = makeSvg("aa:bb:cc:dd:ee:01");
+    card._payload = {
+      edges: [],
+      node_types: { "aa:bb:cc:dd:ee:01": "gateway" },
+      node_names: { "aa:bb:cc:dd:ee:01": "Gateway" },
+    };
+    card._selection = { selectedNode: "aa:bb:cc:dd:ee:01" };
     card._activeTab = "overview";
     element.setConfig({ svg_url: "/map.svg" });
     expect(element.innerHTML).toContain("No connections");
@@ -229,13 +245,22 @@ describe("unifi-network-map card panel", () => {
       _selection?: { selectedNode?: string };
       _activeTab?: string;
     };
-    card._svgContent = makeSvg("Gateway");
+    card._svgContent = makeSvg("aa:bb:cc:dd:ee:01");
     card._payload = {
-      edges: [{ left: "Gateway", right: "AP", label: "Port 1", wireless: true, poe: true }],
-      node_types: { Gateway: "gateway", AP: "ap" },
+      edges: [
+        {
+          left: "aa:bb:cc:dd:ee:01",
+          right: "22:33:44:55:66:77",
+          label: "Port 1",
+          wireless: true,
+          poe: true,
+        },
+      ],
+      node_types: { "aa:bb:cc:dd:ee:01": "gateway", "22:33:44:55:66:77": "ap" },
+      node_names: { "aa:bb:cc:dd:ee:01": "Gateway", "22:33:44:55:66:77": "AP" },
       node_status: {},
     };
-    card._selection = { selectedNode: "Gateway" };
+    card._selection = { selectedNode: "aa:bb:cc:dd:ee:01" };
     card._activeTab = "overview";
     element.setConfig({ svg_url: "/map.svg" });
     expect(element.innerHTML).toContain("WiFi");
@@ -250,7 +275,7 @@ describe("unifi-network-map card panel", () => {
       _activeTab: "overview" | "stats" | "actions" | "other";
     };
     card._activeTab = "other";
-    expect(card._renderTabContent("Node A")).toBe("");
+    expect(card._renderTabContent("aa:bb:cc:dd:ee:ff")).toBe("");
   });
 
   it("renders node panel fallback when payload is missing", () => {
@@ -259,8 +284,8 @@ describe("unifi-network-map card panel", () => {
       _svgContent?: string;
       _selection?: { selectedNode?: string };
     };
-    card._svgContent = makeSvg("Node A");
-    card._selection = { selectedNode: "Node A" };
+    card._svgContent = makeSvg("aa:bb:cc:dd:ee:ff");
+    card._selection = { selectedNode: "aa:bb:cc:dd:ee:ff" };
     element.setConfig({ svg_url: "/map.svg" });
     expect(element.innerHTML).toContain("No data available");
   });
@@ -273,20 +298,27 @@ describe("unifi-network-map card panel", () => {
       _selection?: { selectedNode?: string };
       _activeTab?: string;
     };
-    card._svgContent = makeSvg("Gateway");
+    card._svgContent = makeSvg("aa:bb:cc:dd:ee:01");
     card._payload = {
-      edges: [{ left: "Gateway", right: "Switch", wireless: false, poe: true }],
-      node_types: { Gateway: "gateway" },
+      edges: [
+        {
+          left: "aa:bb:cc:dd:ee:01",
+          right: "11:22:33:44:55:66",
+          wireless: false,
+          poe: true,
+        },
+      ],
+      node_types: { "aa:bb:cc:dd:ee:01": "gateway" },
+      node_names: { "aa:bb:cc:dd:ee:01": "Gateway" },
       node_status: {
-        Gateway: {
+        "aa:bb:cc:dd:ee:01": {
           entity_id: "sensor.gateway",
           state: "online",
           last_changed: new Date().toISOString(),
         },
       },
-      device_macs: { Gateway: "aa:bb:cc:dd:ee:ff" },
     };
-    card._selection = { selectedNode: "Gateway" };
+    card._selection = { selectedNode: "aa:bb:cc:dd:ee:01" };
     card._activeTab = "stats";
     element.setConfig({ svg_url: "/map.svg" });
     expect(element.innerHTML).toContain("Live Status");
@@ -301,14 +333,14 @@ describe("unifi-network-map card panel", () => {
       _selection?: { selectedNode?: string };
       _activeTab?: string;
     };
-    card._svgContent = makeSvg("Gateway");
+    card._svgContent = makeSvg("aa:bb:cc:dd:ee:01");
     card._payload = {
       edges: [],
-      node_types: { Gateway: "gateway" },
+      node_types: { "aa:bb:cc:dd:ee:01": "gateway" },
+      node_names: { "aa:bb:cc:dd:ee:01": "Gateway" },
       node_status: {},
-      device_macs: { Gateway: "aa:bb:cc:dd:ee:ff" },
     };
-    card._selection = { selectedNode: "Gateway" };
+    card._selection = { selectedNode: "aa:bb:cc:dd:ee:01" };
     card._activeTab = "stats";
     element.setConfig({ svg_url: "/map.svg" });
     expect(element.innerHTML).not.toContain("Live Status</div>");
@@ -316,7 +348,7 @@ describe("unifi-network-map card panel", () => {
 
   it("selects a node on click and shows panel details", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    (element as unknown as { _svgContent?: string })._svgContent = makeSvg("Node A");
+    (element as unknown as { _svgContent?: string })._svgContent = makeSvg("aa:bb:cc:dd:ee:01");
     (element as unknown as { _payload?: unknown })._payload = samplePayload();
     element.setConfig({ svg_url: "/map.svg" });
     const tooltip = element.querySelector(".unifi-network-map__tooltip") as HTMLElement;
@@ -333,7 +365,7 @@ describe("unifi-network-map card panel", () => {
       } as unknown as MouseEvent,
       tooltip,
     );
-    expect(element.innerHTML).toContain("Node A");
+    expect(element.innerHTML).toContain("Gateway");
   });
 
   it("returns node type icons for common types", () => {
@@ -355,9 +387,9 @@ describe("unifi-network-map card panel", () => {
       _activeTab?: string;
       _onPanelClick: (event: MouseEvent) => void;
     };
-    card._svgContent = makeSvg("Gateway");
+    card._svgContent = makeSvg("aa:bb:cc:dd:ee:01");
     card._payload = samplePayload();
-    card._selection = { selectedNode: "Gateway" };
+    card._selection = { selectedNode: "aa:bb:cc:dd:ee:01" };
     card._activeTab = "overview";
     element.setConfig({ svg_url: "/map.svg" });
     const statsTab = element.querySelector('[data-tab="stats"]') as HTMLElement;
@@ -375,21 +407,21 @@ describe("unifi-network-map card panel", () => {
       _payload?: unknown;
       _selection?: { selectedNode?: string };
       _activeTab?: string;
-      _showEntityModal: (nodeName: string) => void;
+      _showEntityModal: (nodeId: string) => void;
     };
-    card._svgContent = makeSvg("Gateway");
+    card._svgContent = makeSvg("aa:bb:cc:dd:ee:01");
     card._payload = {
       ...samplePayload(),
-      node_entities: { Gateway: "sensor.gateway" },
+      node_entities: { "aa:bb:cc:dd:ee:01": "sensor.gateway" },
       related_entities: {
-        Gateway: [{ entity_id: "sensor.gateway", domain: "sensor", state: "on" }],
+        "aa:bb:cc:dd:ee:01": [{ entity_id: "sensor.gateway", domain: "sensor", state: "on" }],
       },
     };
-    card._selection = { selectedNode: "Gateway" };
+    card._selection = { selectedNode: "aa:bb:cc:dd:ee:01" };
     card._activeTab = "actions";
     element.setConfig({ svg_url: "/map.svg" });
 
-    card._showEntityModal("Gateway");
+    card._showEntityModal("aa:bb:cc:dd:ee:01");
     expect(document.querySelector(".entity-modal-overlay")).not.toBeNull();
 
     element.hass = { auth: { data: { access_token: "token" } } };

@@ -23,7 +23,7 @@ import {
   inferNodeName,
   markNodeSelected,
   removeSvgTitles,
-  resolveNodeName,
+  resolveNodeId,
 } from "../interaction/node";
 import {
   closeEntityModal,
@@ -1015,15 +1015,15 @@ export class UnifiNetworkMapCard extends HTMLElement {
     const nodeTypes = this._payload?.node_types ?? {};
     const hiddenNodes = new Set<string>();
 
-    for (const [nodeName, nodeType] of Object.entries(nodeTypes)) {
+    for (const [nodeId, nodeType] of Object.entries(nodeTypes)) {
       const normalized = normalizeDeviceType(nodeType);
       const visible = this._filterState[normalized];
-      const element = findNodeElement(svg, nodeName);
+      const element = findNodeElement(svg, nodeId);
 
       if (element) {
         element.classList.toggle("node--filtered", !visible);
         if (!visible) {
-          hiddenNodes.add(nodeName);
+          hiddenNodes.add(nodeId);
         }
       }
     }
@@ -1100,9 +1100,9 @@ export class UnifiNetworkMapCard extends HTMLElement {
     if (!button) return false;
 
     event.preventDefault();
-    const nodeName = button.getAttribute("data-node-name");
-    if (nodeName) {
-      this._showPortModal(nodeName);
+    const nodeId = button.getAttribute("data-node-name");
+    if (nodeId) {
+      this._showPortModal(nodeId);
     }
     return true;
   }
@@ -1175,10 +1175,10 @@ export class UnifiNetworkMapCard extends HTMLElement {
     return true;
   }
 
-  private _showEntityModal(nodeName: string): void {
+  private _showEntityModal(nodeId: string): void {
     openEntityModal({
       controller: this._entityModal,
-      nodeName,
+      nodeId,
       payload: this._payload,
       theme: this._config?.theme ?? "dark",
       getNodeTypeIcon: (nodeType: string) => this._getNodeTypeIcon(nodeType),
@@ -1213,15 +1213,14 @@ export class UnifiNetworkMapCard extends HTMLElement {
     openContextMenu({
       controller: this._contextMenu,
       menu: this._contextMenu.menu,
-      renderMenu: (nodeName) => this._renderContextMenu(nodeName),
-      onAction: (action, nodeName, mac, ip) =>
-        this._handleContextMenuAction(action, nodeName, mac, ip),
+      renderMenu: (nodeId) => this._renderContextMenu(nodeId),
+      onAction: (action, nodeId, mac, ip) => this._handleContextMenuAction(action, nodeId, mac, ip),
     });
   }
 
-  private _renderContextMenu(nodeName: string): string {
+  private _renderContextMenu(nodeId: string): string {
     return renderContextMenu({
-      nodeName,
+      nodeId,
       payload: this._payload,
       theme: this._config?.theme ?? "dark",
       getNodeTypeIcon: (nodeType: string) => this._getNodeTypeIcon(nodeType),
@@ -1232,14 +1231,14 @@ export class UnifiNetworkMapCard extends HTMLElement {
 
   private _handleContextMenuAction(
     action: string,
-    nodeName: string,
+    nodeId: string,
     mac: string | null,
     ip: string | null,
   ): void {
     switch (action) {
       case "details":
         this._removeContextMenu();
-        this._showEntityModal(nodeName);
+        this._showEntityModal(nodeId);
         break;
 
       case "copy-mac":
@@ -1260,13 +1259,13 @@ export class UnifiNetworkMapCard extends HTMLElement {
         break;
 
       case "restart":
-        this._handleRestartDevice(nodeName);
+        this._handleRestartDevice(nodeId);
         this._removeContextMenu();
         break;
 
       case "view-ports":
         this._removeContextMenu();
-        this._showPortModal(nodeName);
+        this._showPortModal(nodeId);
         break;
 
       default:
@@ -1274,10 +1273,10 @@ export class UnifiNetworkMapCard extends HTMLElement {
     }
   }
 
-  private _showPortModal(nodeName: string): void {
+  private _showPortModal(nodeId: string): void {
     openPortModal({
       controller: this._portModal,
-      nodeName,
+      nodeId,
       payload: this._payload,
       theme: this._config?.theme ?? "dark",
       getNodeTypeIcon: (nodeType: string) => this._getNodeTypeIcon(nodeType),
@@ -1312,9 +1311,9 @@ export class UnifiNetworkMapCard extends HTMLElement {
     showToast(message, "success");
   }
 
-  private _handleRestartDevice(nodeName: string): void {
+  private _handleRestartDevice(nodeId: string): void {
     const entityId =
-      this._payload?.node_entities?.[nodeName] ?? this._payload?.device_entities?.[nodeName];
+      this._payload?.node_entities?.[nodeId] ?? this._payload?.device_entities?.[nodeId];
 
     if (!entityId) {
       this._showActionError(this._localize("toast.no_entity"));
@@ -1386,19 +1385,19 @@ export class UnifiNetworkMapCard extends HTMLElement {
 
   private _viewportCallbacks() {
     return {
-      onNodeSelected: (nodeName: string) => {
-        selectNode(this._selection, nodeName);
+      onNodeSelected: (nodeId: string) => {
+        selectNode(this._selection, nodeId);
         this._updateSelectionOnly();
       },
       onHoverEdge: (edge: Edge | null) => {
         setHoveredEdge(this._selection, edge);
       },
-      onHoverNode: (nodeName: string | null) => {
-        setHoveredNode(this._selection, nodeName);
+      onHoverNode: (nodeId: string | null) => {
+        setHoveredNode(this._selection, nodeId);
       },
-      onOpenContextMenu: (x: number, y: number, nodeName: string) => {
+      onOpenContextMenu: (x: number, y: number, nodeId: string) => {
         this._removeContextMenu();
-        this._contextMenu.menu = { nodeName, x, y };
+        this._contextMenu.menu = { nodeId, x, y };
         this._showContextMenu();
       },
       onUpdateTransform: (transform: { x: number; y: number; scale: number }) => {
@@ -1455,7 +1454,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
       state: this._selection,
       panMoved: this._viewportState.panMoved,
       isControlTarget: (target) => this._isControlTarget(target),
-      resolveNodeName: (evt) => resolveNodeName(evt),
+      resolveNodeId: (evt) => resolveNodeId(evt),
     });
     if (!selected) {
       return;
@@ -1464,16 +1463,16 @@ export class UnifiNetworkMapCard extends HTMLElement {
     this._render();
   }
 
-  private _resolveNodeName(event: MouseEvent | PointerEvent): string | null {
-    return resolveNodeName(event);
+  private _resolveNodeId(event: MouseEvent | PointerEvent): string | null {
+    return resolveNodeId(event);
   }
 
   private _inferNodeName(target: Element | null): string | null {
     return inferNodeName(target);
   }
 
-  private _findNodeElement(svg: SVGElement, nodeName: string): Element | null {
-    return findNodeElement(svg, nodeName);
+  private _findNodeElement(svg: SVGElement, nodeId: string): Element | null {
+    return findNodeElement(svg, nodeId);
   }
 
   private _highlightSelectedNode(svg: SVGElement) {

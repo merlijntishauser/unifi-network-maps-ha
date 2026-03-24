@@ -118,7 +118,7 @@ export type RelatedEntity = {
 };
 
 export type ContextMenuState = {
-  nodeName: string;
+  nodeId: string;
   x: number;
   y: number;
 };
@@ -143,7 +143,7 @@ export type DevicePort = {
 };
 
 export type PortModalState = {
-  nodeName: string;
+  nodeId: string;
   nodeType: string;
   ports: PortInfo[];
 };
@@ -175,13 +175,12 @@ export type MapPayload = {
   schema_version?: string;
   edges: Edge[];
   node_types: Record<string, string>;
+  node_names?: Record<string, string>;
   gateways?: string[];
   client_entities?: Record<string, string>;
   device_entities?: Record<string, string>;
   node_entities?: Record<string, string>;
   node_status?: Record<string, NodeStatus>;
-  client_macs?: Record<string, string>;
-  device_macs?: Record<string, string>;
   client_ips?: Record<string, string>;
   device_ips?: Record<string, string>;
   related_entities?: Record<string, RelatedEntity[]>;

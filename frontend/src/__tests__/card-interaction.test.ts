@@ -6,7 +6,7 @@ describe("unifi-network-map card interaction", () => {
 
   it("resolves node name from text element in event path", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as { _resolveNodeName: (event: MouseEvent) => string | null };
+    const card = element as unknown as { _resolveNodeId: (event: MouseEvent) => string | null };
     const text = document.createElement("text");
     text.textContent = "Path Text";
     const event = {
@@ -14,7 +14,7 @@ describe("unifi-network-map card interaction", () => {
       clientX: 0,
       clientY: 0,
     } as unknown as MouseEvent;
-    expect(card._resolveNodeName(event)).toBe("Path Text");
+    expect(card._resolveNodeId(event)).toBe("Path Text");
   });
 
   it("infers node name from group text", () => {
@@ -95,9 +95,9 @@ describe("unifi-network-map editor", () => {
     };
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     const node = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    node.setAttribute("data-node-id", "Node A");
+    node.setAttribute("data-node-id", "aa:bb:cc:dd:ee:ff");
     svg.appendChild(node);
-    card._selection = { selectedNode: "Node A" };
+    card._selection = { selectedNode: "aa:bb:cc:dd:ee:ff" };
     card._highlightSelectedNode(svg);
     expect(node.getAttribute("data-selected")).toBe("true");
   });
@@ -110,7 +110,7 @@ describe("unifi-network-map editor", () => {
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     const tooltip = document.createElement("div");
     const node = document.createElement("div");
-    node.setAttribute("data-node-id", "Hover Node");
+    node.setAttribute("data-node-id", "aa:bb:cc:dd:ee:ff");
     card._onPointerMove(
       {
         composedPath: () => [node],
@@ -121,7 +121,7 @@ describe("unifi-network-map editor", () => {
       tooltip,
     );
     expect(tooltip.hidden).toBe(false);
-    expect(tooltip.textContent).toBe("Hover Node");
+    expect(tooltip.textContent).toBe("aa:bb:cc:dd:ee:ff");
   });
 
   it("keeps tooltip hidden when hover target has no label", () => {
@@ -145,9 +145,9 @@ describe("unifi-network-map editor", () => {
 
   it("falls back to inferNodeName when resolve path has no match", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as { _resolveNodeName: (event: MouseEvent) => string | null };
+    const card = element as unknown as { _resolveNodeId: (event: MouseEvent) => string | null };
     const target = document.createElement("div");
-    target.setAttribute("data-node-id", "Fallback Node");
+    target.setAttribute("data-node-id", "aa:bb:cc:dd:ee:ff");
     const originalElementFromPoint = document.elementFromPoint;
     document.elementFromPoint = () => target;
     const event = {
@@ -155,7 +155,7 @@ describe("unifi-network-map editor", () => {
       clientX: 0,
       clientY: 0,
     } as unknown as MouseEvent;
-    expect(card._resolveNodeName(event)).toBe("Fallback Node");
+    expect(card._resolveNodeId(event)).toBe("aa:bb:cc:dd:ee:ff");
     document.elementFromPoint = originalElementFromPoint;
   });
 
@@ -297,7 +297,7 @@ describe("unifi-network-map editor", () => {
 
   it("resolves node name from title element in event path", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as { _resolveNodeName: (event: MouseEvent) => string | null };
+    const card = element as unknown as { _resolveNodeId: (event: MouseEvent) => string | null };
     const title = document.createElement("title");
     title.textContent = "Title Path";
     const event = {
@@ -305,7 +305,7 @@ describe("unifi-network-map editor", () => {
       clientX: 0,
       clientY: 0,
     } as unknown as MouseEvent;
-    expect(card._resolveNodeName(event)).toBe("Title Path");
+    expect(card._resolveNodeId(event)).toBe("Title Path");
   });
 
   it("returns null when infer node name has no matches", () => {
@@ -426,8 +426,8 @@ describe("unifi-network-map editor", () => {
       _svgContent?: string;
       _selection?: { selectedNode?: string };
     };
-    card._svgContent = makeSvg("Gateway");
-    card._selection = { selectedNode: "Gateway" };
+    card._svgContent = makeSvg("aa:bb:cc:dd:ee:01");
+    card._selection = { selectedNode: "aa:bb:cc:dd:ee:01" };
     element.setConfig({ svg_url: "/map.svg" });
     const zoomIn = element.querySelector('[data-action="zoom-in"]') as HTMLButtonElement;
     const zoomOut = element.querySelector('[data-action="zoom-out"]') as HTMLButtonElement;
@@ -438,7 +438,7 @@ describe("unifi-network-map editor", () => {
     reset.click();
     expect(svg.getAttribute("viewBox")).toBe("0 0 100 100");
     // Reset only resets view, not selection
-    expect(card._selection?.selectedNode).toBe("Gateway");
+    expect(card._selection?.selectedNode).toBe("aa:bb:cc:dd:ee:01");
   });
 
   it("updates pan state on pointer move", () => {
@@ -496,7 +496,7 @@ describe("unifi-network-map editor", () => {
 
   it("resolves node name from title element in svg", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as { _resolveNodeName: (event: MouseEvent) => string | null };
+    const card = element as unknown as { _resolveNodeId: (event: MouseEvent) => string | null };
     const title = document.createElement("title");
     title.textContent = "Core Switch";
     const group = document.createElement("g");
@@ -506,7 +506,7 @@ describe("unifi-network-map editor", () => {
       clientX: 0,
       clientY: 0,
     } as unknown as MouseEvent;
-    expect(card._resolveNodeName(event)).toBe("Core Switch");
+    expect(card._resolveNodeId(event)).toBe("Core Switch");
   });
 });
 

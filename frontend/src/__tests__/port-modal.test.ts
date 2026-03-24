@@ -8,7 +8,7 @@ describe("port-modal", () => {
 
   const defaultParams = {
     controller: createPortModalController(),
-    nodeName: "Switch1",
+    nodeId: "11:22:33:44:55:66",
     theme: "dark" as const,
     getNodeTypeIcon: (type: string) => `[${type}]`,
     localize: (key: string, replacements?: Record<string, string | number>) => {
@@ -43,7 +43,7 @@ describe("port-modal", () => {
       const controller = createPortModalController();
       const payload: MapPayload = {
         edges: [],
-        node_types: { Switch1: "switch" },
+        node_types: { "11:22:33:44:55:66": "switch" },
       };
       openPortModal({
         ...defaultParams,
@@ -57,9 +57,9 @@ describe("port-modal", () => {
       const controller = createPortModalController();
       const payload: MapPayload = {
         edges: [],
-        node_types: { Switch1: "switch" },
+        node_types: { "11:22:33:44:55:66": "switch" },
         device_ports: {
-          Switch1: [
+          "11:22:33:44:55:66": [
             {
               port: 1,
               name: "Port 1",
@@ -93,8 +93,17 @@ describe("port-modal", () => {
     it("creates modal with ports from edges when device_ports not available", () => {
       const controller = createPortModalController();
       const payload: MapPayload = {
-        edges: [{ left: "Switch1", right: "Client1", label: "Port 1", poe: true, speed: 1000 }],
-        node_types: { Switch1: "switch", Client1: "client" },
+        edges: [
+          {
+            left: "11:22:33:44:55:66",
+            right: "aa:bb:cc:11:22:33",
+            label: "Port 1",
+            poe: true,
+            speed: 1000,
+          },
+        ],
+        node_types: { "11:22:33:44:55:66": "switch", "aa:bb:cc:11:22:33": "client" },
+        node_names: { "aa:bb:cc:11:22:33": "Client1" },
       };
       openPortModal({
         ...defaultParams,
@@ -105,14 +114,14 @@ describe("port-modal", () => {
       expect(controller.overlay).not.toBeNull();
       expect(controller.state?.ports.length).toBe(1);
       expect(controller.state?.ports[0].port).toBe(1);
-      expect(controller.state?.ports[0].connectedDevice).toBe("Client1");
+      expect(controller.state?.ports[0].connectedDevice).toBe("aa:bb:cc:11:22:33");
     });
 
     it("sets theme on overlay", () => {
       const controller = createPortModalController();
       const payload: MapPayload = {
-        edges: [{ left: "Switch1", right: "AP1", label: "Port 8" }],
-        node_types: { Switch1: "switch", AP1: "ap" },
+        edges: [{ left: "11:22:33:44:55:66", right: "22:33:44:55:66:77", label: "Port 8" }],
+        node_types: { "11:22:33:44:55:66": "switch", "22:33:44:55:66:77": "ap" },
       };
       openPortModal({
         ...defaultParams,
@@ -127,13 +136,14 @@ describe("port-modal", () => {
     it("renders node name in header", () => {
       const controller = createPortModalController();
       const payload: MapPayload = {
-        edges: [{ left: "MySwitch", right: "Device", label: "Port 1" }],
-        node_types: { MySwitch: "switch", Device: "client" },
+        edges: [{ left: "dd:ee:ff:00:11:22", right: "cc:dd:ee:ff:00:11", label: "Port 1" }],
+        node_types: { "dd:ee:ff:00:11:22": "switch", "cc:dd:ee:ff:00:11": "client" },
+        node_names: { "dd:ee:ff:00:11:22": "MySwitch", "cc:dd:ee:ff:00:11": "Device" },
       };
       openPortModal({
         ...defaultParams,
         controller,
-        nodeName: "MySwitch",
+        nodeId: "dd:ee:ff:00:11:22",
         payload,
       });
 
@@ -143,8 +153,8 @@ describe("port-modal", () => {
     it("renders node type icon", () => {
       const controller = createPortModalController();
       const payload: MapPayload = {
-        edges: [{ left: "Switch1", right: "Device", label: "Port 1" }],
-        node_types: { Switch1: "gateway", Device: "client" },
+        edges: [{ left: "11:22:33:44:55:66", right: "cc:dd:ee:ff:00:11", label: "Port 1" }],
+        node_types: { "11:22:33:44:55:66": "gateway", "cc:dd:ee:ff:00:11": "client" },
       };
       openPortModal({
         ...defaultParams,
@@ -158,8 +168,9 @@ describe("port-modal", () => {
     it("renders connected device info", () => {
       const controller = createPortModalController();
       const payload: MapPayload = {
-        edges: [{ left: "Switch1", right: "AccessPoint", label: "Port 24" }],
-        node_types: { Switch1: "switch", AccessPoint: "ap" },
+        edges: [{ left: "11:22:33:44:55:66", right: "22:33:44:55:66:77", label: "Port 24" }],
+        node_types: { "11:22:33:44:55:66": "switch", "22:33:44:55:66:77": "ap" },
+        node_names: { "22:33:44:55:66:77": "AccessPoint" },
       };
       openPortModal({
         ...defaultParams,
@@ -169,16 +180,16 @@ describe("port-modal", () => {
 
       expect(controller.overlay?.innerHTML).toContain("AccessPoint");
       expect(controller.overlay?.innerHTML).toContain("[ap]");
-      expect(controller.overlay?.innerHTML).toContain('data-device-name="AccessPoint"');
+      expect(controller.overlay?.innerHTML).toContain('data-device-name="22:33:44:55:66:77"');
     });
 
     it("renders PoE badge with power", () => {
       const controller = createPortModalController();
       const payload: MapPayload = {
         edges: [],
-        node_types: { Switch1: "switch" },
+        node_types: { "11:22:33:44:55:66": "switch" },
         device_ports: {
-          Switch1: [
+          "11:22:33:44:55:66": [
             {
               port: 1,
               name: "Port 1",
@@ -203,9 +214,9 @@ describe("port-modal", () => {
       const controller = createPortModalController();
       const payload: MapPayload = {
         edges: [],
-        node_types: { Switch1: "switch" },
+        node_types: { "11:22:33:44:55:66": "switch" },
         device_ports: {
-          Switch1: [
+          "11:22:33:44:55:66": [
             {
               port: 1,
               name: "Port 1",
@@ -230,9 +241,9 @@ describe("port-modal", () => {
       const controller = createPortModalController();
       const payload: MapPayload = {
         edges: [],
-        node_types: { Switch1: "switch" },
+        node_types: { "11:22:33:44:55:66": "switch" },
         device_ports: {
-          Switch1: [
+          "11:22:33:44:55:66": [
             {
               port: 1,
               name: "Port 1",
@@ -257,9 +268,9 @@ describe("port-modal", () => {
       const controller = createPortModalController();
       const payload: MapPayload = {
         edges: [],
-        node_types: { Switch1: "switch" },
+        node_types: { "11:22:33:44:55:66": "switch" },
         device_ports: {
-          Switch1: [
+          "11:22:33:44:55:66": [
             {
               port: 1,
               name: "Port 1",
@@ -284,9 +295,9 @@ describe("port-modal", () => {
       const controller = createPortModalController();
       const payload: MapPayload = {
         edges: [],
-        node_types: { Switch1: "switch" },
+        node_types: { "11:22:33:44:55:66": "switch" },
         device_ports: {
-          Switch1: [
+          "11:22:33:44:55:66": [
             {
               port: 1,
               name: "Port 1",
@@ -311,9 +322,9 @@ describe("port-modal", () => {
       const controller = createPortModalController();
       const payload: MapPayload = {
         edges: [],
-        node_types: { Switch1: "switch" },
+        node_types: { "11:22:33:44:55:66": "switch" },
         device_ports: {
-          Switch1: [
+          "11:22:33:44:55:66": [
             {
               port: 1,
               name: "Port 1",
@@ -339,8 +350,8 @@ describe("port-modal", () => {
       const controller = createPortModalController();
       const onClose = jest.fn();
       const payload: MapPayload = {
-        edges: [{ left: "Switch1", right: "Device", label: "Port 1" }],
-        node_types: { Switch1: "switch", Device: "client" },
+        edges: [{ left: "11:22:33:44:55:66", right: "cc:dd:ee:ff:00:11", label: "Port 1" }],
+        node_types: { "11:22:33:44:55:66": "switch", "cc:dd:ee:ff:00:11": "client" },
       };
       openPortModal({
         ...defaultParams,
@@ -359,8 +370,8 @@ describe("port-modal", () => {
       const controller = createPortModalController();
       const onClose = jest.fn();
       const payload: MapPayload = {
-        edges: [{ left: "Switch1", right: "Device", label: "Port 1" }],
-        node_types: { Switch1: "switch", Device: "client" },
+        edges: [{ left: "11:22:33:44:55:66", right: "cc:dd:ee:ff:00:11", label: "Port 1" }],
+        node_types: { "11:22:33:44:55:66": "switch", "cc:dd:ee:ff:00:11": "client" },
       };
       openPortModal({
         ...defaultParams,
@@ -379,8 +390,9 @@ describe("port-modal", () => {
       const controller = createPortModalController();
       const onDeviceClick = jest.fn();
       const payload: MapPayload = {
-        edges: [{ left: "Switch1", right: "AccessPoint", label: "Port 8" }],
-        node_types: { Switch1: "switch", AccessPoint: "ap" },
+        edges: [{ left: "11:22:33:44:55:66", right: "22:33:44:55:66:77", label: "Port 8" }],
+        node_types: { "11:22:33:44:55:66": "switch", "22:33:44:55:66:77": "ap" },
+        node_names: { "22:33:44:55:66:77": "AccessPoint" },
       };
       openPortModal({
         ...defaultParams,
@@ -389,17 +401,25 @@ describe("port-modal", () => {
         onDeviceClick,
       });
 
-      const deviceLink = controller.overlay?.querySelector('[data-device-name="AccessPoint"]');
+      const deviceLink = controller.overlay?.querySelector(
+        '[data-device-name="22:33:44:55:66:77"]',
+      );
       deviceLink?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
-      expect(onDeviceClick).toHaveBeenCalledWith("AccessPoint");
+      expect(onDeviceClick).toHaveBeenCalledWith("22:33:44:55:66:77");
     });
 
     it("handles edge label with <-> separator", () => {
       const controller = createPortModalController();
       const payload: MapPayload = {
-        edges: [{ left: "Switch1", right: "Switch2", label: "Port 24 <-> Port 1" }],
-        node_types: { Switch1: "switch", Switch2: "switch" },
+        edges: [
+          {
+            left: "11:22:33:44:55:66",
+            right: "ee:ff:00:11:22:33",
+            label: "Port 24 <-> Port 1",
+          },
+        ],
+        node_types: { "11:22:33:44:55:66": "switch", "ee:ff:00:11:22:33": "switch" },
       };
       openPortModal({
         ...defaultParams,
@@ -414,8 +434,14 @@ describe("port-modal", () => {
     it("handles edges where device is on right side", () => {
       const controller = createPortModalController();
       const payload: MapPayload = {
-        edges: [{ left: "Gateway", right: "Switch1", label: "Port 1 <-> Port 24" }],
-        node_types: { Gateway: "gateway", Switch1: "switch" },
+        edges: [
+          {
+            left: "aa:bb:cc:dd:ee:01",
+            right: "11:22:33:44:55:66",
+            label: "Port 1 <-> Port 24",
+          },
+        ],
+        node_types: { "aa:bb:cc:dd:ee:01": "gateway", "11:22:33:44:55:66": "switch" },
       };
       openPortModal({
         ...defaultParams,
@@ -424,16 +450,16 @@ describe("port-modal", () => {
       });
 
       expect(controller.state?.ports.length).toBe(1);
-      expect(controller.state?.ports[0].port).toBe(24); // Right side port for Switch1
-      expect(controller.state?.ports[0].connectedDevice).toBe("Gateway");
+      expect(controller.state?.ports[0].port).toBe(24); // Right side port for 11:22:33:44:55:66
+      expect(controller.state?.ports[0].connectedDevice).toBe("aa:bb:cc:dd:ee:01");
     });
 
     it("escapes HTML in device names", () => {
       const controller = createPortModalController();
       const badName = "Test<b>Bold</b>";
       const payload: MapPayload = {
-        edges: [{ left: "Switch1", right: badName, label: "Port 1" }],
-        node_types: { Switch1: "switch", [badName]: "client" },
+        edges: [{ left: "11:22:33:44:55:66", right: badName, label: "Port 1" }],
+        node_types: { "11:22:33:44:55:66": "switch", [badName]: "client" },
       };
       openPortModal({
         ...defaultParams,
@@ -453,8 +479,8 @@ describe("port-modal", () => {
     it("removes overlay from DOM", () => {
       const controller = createPortModalController();
       const payload: MapPayload = {
-        edges: [{ left: "Switch1", right: "Device", label: "Port 1" }],
-        node_types: { Switch1: "switch", Device: "client" },
+        edges: [{ left: "11:22:33:44:55:66", right: "cc:dd:ee:ff:00:11", label: "Port 1" }],
+        node_types: { "11:22:33:44:55:66": "switch", "cc:dd:ee:ff:00:11": "client" },
       };
       openPortModal({
         ...defaultParams,
@@ -472,8 +498,8 @@ describe("port-modal", () => {
     it("clears controller state", () => {
       const controller = createPortModalController();
       const payload: MapPayload = {
-        edges: [{ left: "Switch1", right: "Device", label: "Port 1" }],
-        node_types: { Switch1: "switch", Device: "client" },
+        edges: [{ left: "11:22:33:44:55:66", right: "cc:dd:ee:ff:00:11", label: "Port 1" }],
+        node_types: { "11:22:33:44:55:66": "switch", "cc:dd:ee:ff:00:11": "client" },
       };
       openPortModal({
         ...defaultParams,

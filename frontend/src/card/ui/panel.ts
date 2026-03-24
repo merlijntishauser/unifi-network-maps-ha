@@ -66,7 +66,7 @@ function renderMapOverview(context: PanelContext, helpers: PanelHelpers): string
 }
 
 function renderNodePanel(context: PanelContext, name: string, helpers: PanelHelpers): string {
-  const safeName = helpers.escapeHtml(name);
+  const safeName = helpers.escapeHtml(getDisplayName(context.payload, name));
   if (!context.payload) {
     return `
       <div class="panel-header">
@@ -146,8 +146,9 @@ function renderOverviewTab(context: PanelContext, name: string, helpers: PanelHe
   // Sort by port number (ascending), wireless connections last
   const sortedNeighbors = sortNeighborsByPort(uniqueNeighbors);
 
+  const nodeNames = context.payload?.node_names ?? {};
   const neighborList = sortedNeighbors.length
-    ? sortedNeighbors.map((n) => renderNeighborItem(n, helpers)).join("")
+    ? sortedNeighbors.map((n) => renderNeighborItem(n, nodeNames, helpers)).join("")
     : `<div class="panel-empty__text">${helpers.localize("panel.no_connections")}</div>`;
 
   const relatedEntitiesSection = renderRelatedEntitiesSection(context, name, helpers);
@@ -181,7 +182,11 @@ function sortNeighborsByPort(neighbors: Neighbor[]): Neighbor[] {
   });
 }
 
-function renderNeighborItem(n: Neighbor, helpers: PanelHelpers): string {
+function renderNeighborItem(
+  n: Neighbor,
+  nodeNames: Record<string, string>,
+  helpers: PanelHelpers,
+): string {
   const badges: string[] = [];
   if (n.label) badges.push(`<span class="badge badge--port">${helpers.escapeHtml(n.label)}</span>`);
   if (n.poe)
@@ -191,10 +196,12 @@ function renderNeighborItem(n: Neighbor, helpers: PanelHelpers): string {
       `<span class="badge badge--wireless">${helpers.localize("panel.badge.wifi")}</span>`,
     );
 
-  const safeName = helpers.escapeHtml(n.name);
+  const displayName = nodeNames[n.name] ?? n.name;
+  const safeDisplayName = helpers.escapeHtml(displayName);
+  const safeId = helpers.escapeHtml(n.name);
   return `
     <div class="neighbor-item neighbor-item--compact">
-      <a href="#" class="neighbor-item__name neighbor-item__name--link" data-navigate-device="${safeName}">${safeName}</a>
+      <a href="#" class="neighbor-item__name neighbor-item__name--link" data-navigate-device="${safeId}">${safeDisplayName}</a>
       <span class="neighbor-item__badges">${badges.join("")}</span>
     </div>
   `;
@@ -276,11 +283,8 @@ function renderVpnTunnelsSection(
 
 function getNodeVpnTunnels(name: string, payload?: MapPayload): VpnTunnel[] {
   if (!payload?.vpn_tunnels) return [];
-  const deviceMac = payload.device_macs?.[name]?.toLowerCase();
-  if (!deviceMac) return payload.vpn_tunnels;
-  return payload.vpn_tunnels.filter(
-    (t) => !t.gateway_mac || t.gateway_mac.toLowerCase() === deviceMac,
-  );
+  const mac = name.toLowerCase();
+  return payload.vpn_tunnels.filter((t) => !t.gateway_mac || t.gateway_mac.toLowerCase() === mac);
 }
 
 function renderRelatedEntitiesSection(
@@ -665,7 +669,7 @@ function getActionsTabData(
     safeEntityId: entityId ? helpers.escapeHtml(entityId) : "",
     safeMac: mac ? helpers.escapeHtml(mac) : "",
     safeIp: ip ? helpers.escapeHtml(ip) : "",
-    safeName: helpers.escapeHtml(name),
+    safeName: helpers.escapeHtml(name), // name is a MAC, used as node identifier
   };
 }
 
@@ -736,12 +740,17 @@ function pushIf(items: string[], value: string | null): void {
   }
 }
 
+function getDisplayName(payload: PanelContext["payload"], nodeId: string): string {
+  return payload?.node_names?.[nodeId] ?? nodeId;
+}
+
 function getNodeType(payload: PanelContext["payload"], name: string): string {
   return payload?.node_types?.[name] ?? "unknown";
 }
 
 function getNodeMac(payload: PanelContext["payload"], name: string): string | null {
-  return payload?.client_macs?.[name] ?? payload?.device_macs?.[name] ?? null;
+  if (!payload?.node_types?.[name]) return null;
+  return name;
 }
 
 function getNodeIp(payload: PanelContext["payload"], name: string): string | null {

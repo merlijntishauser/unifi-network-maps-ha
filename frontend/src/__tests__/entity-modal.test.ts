@@ -3,7 +3,7 @@ import type { MapPayload, RelatedEntity } from "../card/core/types";
 
 describe("entity-modal", () => {
   const defaultContext = {
-    nodeName: "TestDevice",
+    nodeId: "aa:bb:cc:dd:ee:ff",
     theme: "dark" as const,
     getNodeTypeIcon: (type: string) => `[${type}]`,
     formatLastChanged: (value: string | null | undefined) => value ?? "Unknown",
@@ -20,7 +20,7 @@ describe("entity-modal", () => {
       const result = renderEntityModal(defaultContext);
       expect(result).toContain('class="entity-modal-overlay"');
       expect(result).toContain('class="entity-modal"');
-      expect(result).toContain("TestDevice");
+      expect(result).toContain("aa:bb:cc:dd:ee:ff");
     });
 
     it("renders with dark theme", () => {
@@ -41,7 +41,7 @@ describe("entity-modal", () => {
     it("renders device type icon", () => {
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       expect(result).toContain("[switch]");
@@ -50,29 +50,28 @@ describe("entity-modal", () => {
     it("renders MAC address when available", () => {
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        device_macs: { TestDevice: "aa:bb:cc:dd:ee:ff" },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        // MAC address is the node ID itself, no separate device_macs needed
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       expect(result).toContain("aa:bb:cc:dd:ee:ff");
       expect(result).toContain("entity_modal.mac");
     });
 
-    it("renders client MAC when device MAC not available", () => {
+    it("renders MAC address for client nodes", () => {
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "client" },
-        client_macs: { TestDevice: "11:22:33:44:55:66" },
+        node_types: { "aa:bb:cc:dd:ee:ff": "client" },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
-      expect(result).toContain("11:22:33:44:55:66");
+      expect(result).toContain("aa:bb:cc:dd:ee:ff");
     });
 
     it("renders model when available", () => {
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        device_details: { TestDevice: { model_name: "USW-24-POE" } },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        device_details: { "aa:bb:cc:dd:ee:ff": { model_name: "USW-24-POE" } },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       expect(result).toContain("USW-24-POE");
@@ -82,8 +81,8 @@ describe("entity-modal", () => {
     it("prefers model_name over model code", () => {
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        device_details: { TestDevice: { model_name: "Friendly Name", model: "CODE123" } },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        device_details: { "aa:bb:cc:dd:ee:ff": { model_name: "Friendly Name", model: "CODE123" } },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       expect(result).toContain("Friendly Name");
@@ -93,9 +92,9 @@ describe("entity-modal", () => {
     it("renders IP address when available", () => {
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "client" },
+        node_types: { "aa:bb:cc:dd:ee:ff": "client" },
         related_entities: {
-          TestDevice: [
+          "aa:bb:cc:dd:ee:ff": [
             {
               entity_id: "device_tracker.test",
               domain: "device_tracker",
@@ -113,9 +112,13 @@ describe("entity-modal", () => {
     it("renders status when available", () => {
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
         node_status: {
-          TestDevice: { entity_id: "device_tracker.test", state: "online", last_changed: null },
+          "aa:bb:cc:dd:ee:ff": {
+            entity_id: "device_tracker.test",
+            state: "online",
+            last_changed: null,
+          },
         },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
@@ -125,9 +128,13 @@ describe("entity-modal", () => {
     it("renders offline status", () => {
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
         node_status: {
-          TestDevice: { entity_id: "device_tracker.test", state: "offline", last_changed: null },
+          "aa:bb:cc:dd:ee:ff": {
+            entity_id: "device_tracker.test",
+            state: "offline",
+            last_changed: null,
+          },
         },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
@@ -137,9 +144,13 @@ describe("entity-modal", () => {
     it("renders unknown status", () => {
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
         node_status: {
-          TestDevice: { entity_id: "device_tracker.test", state: "unknown", last_changed: null },
+          "aa:bb:cc:dd:ee:ff": {
+            entity_id: "device_tracker.test",
+            state: "unknown",
+            last_changed: null,
+          },
         },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
@@ -149,9 +160,9 @@ describe("entity-modal", () => {
     it("renders last changed when available", () => {
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
         node_status: {
-          TestDevice: {
+          "aa:bb:cc:dd:ee:ff": {
             entity_id: "device_tracker.test",
             state: "online",
             last_changed: "2024-01-15T10:30:00Z",
@@ -166,7 +177,7 @@ describe("entity-modal", () => {
     it("renders device type", () => {
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "ap" },
+        node_types: { "aa:bb:cc:dd:ee:ff": "ap" },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       expect(result).toContain("entity_modal.device_type");
@@ -195,8 +206,8 @@ describe("entity-modal", () => {
       ];
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        related_entities: { TestDevice: entities },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        related_entities: { "aa:bb:cc:dd:ee:ff": entities },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       expect(result).toContain("entity_modal.related_entities_count (2)");
@@ -210,8 +221,8 @@ describe("entity-modal", () => {
       ];
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        related_entities: { TestDevice: entities },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        related_entities: { "aa:bb:cc:dd:ee:ff": entities },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       expect(result).toContain("On");
@@ -224,8 +235,8 @@ describe("entity-modal", () => {
       ];
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        related_entities: { TestDevice: entities },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        related_entities: { "aa:bb:cc:dd:ee:ff": entities },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       expect(result).toContain("Off");
@@ -238,8 +249,8 @@ describe("entity-modal", () => {
       ];
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "client" },
-        related_entities: { TestDevice: entities },
+        node_types: { "aa:bb:cc:dd:ee:ff": "client" },
+        related_entities: { "aa:bb:cc:dd:ee:ff": entities },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       expect(result).toContain("Home");
@@ -252,8 +263,8 @@ describe("entity-modal", () => {
       ];
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "client" },
-        related_entities: { TestDevice: entities },
+        node_types: { "aa:bb:cc:dd:ee:ff": "client" },
+        related_entities: { "aa:bb:cc:dd:ee:ff": entities },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       expect(result).toContain("Not_home");
@@ -266,8 +277,8 @@ describe("entity-modal", () => {
       ];
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        related_entities: { TestDevice: entities },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        related_entities: { "aa:bb:cc:dd:ee:ff": entities },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       expect(result).toContain("Unavailable");
@@ -279,8 +290,8 @@ describe("entity-modal", () => {
       ];
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        related_entities: { TestDevice: entities },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        related_entities: { "aa:bb:cc:dd:ee:ff": entities },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       expect(result).toContain("25.5°C");
@@ -292,8 +303,8 @@ describe("entity-modal", () => {
       ];
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        related_entities: { TestDevice: entities },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        related_entities: { "aa:bb:cc:dd:ee:ff": entities },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       expect(result).toContain("150 W");
@@ -305,8 +316,8 @@ describe("entity-modal", () => {
       ];
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        related_entities: { TestDevice: entities },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        related_entities: { "aa:bb:cc:dd:ee:ff": entities },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       expect(result).toContain("75%");
@@ -318,8 +329,8 @@ describe("entity-modal", () => {
       ];
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        related_entities: { TestDevice: entities },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        related_entities: { "aa:bb:cc:dd:ee:ff": entities },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       expect(result).toContain("1.5M");
@@ -331,8 +342,8 @@ describe("entity-modal", () => {
       ];
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        related_entities: { TestDevice: entities },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        related_entities: { "aa:bb:cc:dd:ee:ff": entities },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       // Long states should be truncated with ellipsis
@@ -345,8 +356,8 @@ describe("entity-modal", () => {
       ];
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        related_entities: { TestDevice: entities },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        related_entities: { "aa:bb:cc:dd:ee:ff": entities },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       // Button entities should display em-dash
@@ -359,8 +370,8 @@ describe("entity-modal", () => {
       ];
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        related_entities: { TestDevice: entities },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        related_entities: { "aa:bb:cc:dd:ee:ff": entities },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       // Update entity with off state - note: "off" is in SIMPLE_STATES so gets formatted as "Off"
@@ -373,20 +384,20 @@ describe("entity-modal", () => {
           entity_id: "sensor.test",
           domain: "sensor",
           state: "on",
-          friendly_name: "TestDevice Temperature",
+          friendly_name: "aa:bb:cc:dd:ee:ff Temperature",
         },
       ];
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        related_entities: { TestDevice: entities },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        related_entities: { "aa:bb:cc:dd:ee:ff": entities },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       expect(result).toContain("Temperature");
     });
 
     it("escapes HTML in node name", () => {
-      const context = { ...defaultContext, nodeName: "<script>alert(1)</script>" };
+      const context = { ...defaultContext, nodeId: "<script>alert(1)</script>" };
       const result = renderEntityModal(context);
       expect(result).not.toContain("<script>");
       expect(result).toContain("&lt;script&gt;");
@@ -398,8 +409,8 @@ describe("entity-modal", () => {
       ];
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        related_entities: { TestDevice: entities },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        related_entities: { "aa:bb:cc:dd:ee:ff": entities },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       expect(result).toContain('data-modal-entity-id="sensor.test"');
@@ -411,8 +422,8 @@ describe("entity-modal", () => {
       ];
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        related_entities: { TestDevice: entities },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        related_entities: { "aa:bb:cc:dd:ee:ff": entities },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       expect(result).toContain("binary.test");
@@ -424,8 +435,8 @@ describe("entity-modal", () => {
       ];
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        related_entities: { TestDevice: entities },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        related_entities: { "aa:bb:cc:dd:ee:ff": entities },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       // MAC should be truncated with ellipsis
@@ -439,8 +450,8 @@ describe("entity-modal", () => {
       ];
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        related_entities: { TestDevice: entities },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        related_entities: { "aa:bb:cc:dd:ee:ff": entities },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       expect(result).toContain("Just now");
@@ -453,8 +464,8 @@ describe("entity-modal", () => {
       ];
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        related_entities: { TestDevice: entities },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        related_entities: { "aa:bb:cc:dd:ee:ff": entities },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       expect(result).toContain("5m ago");
@@ -467,8 +478,8 @@ describe("entity-modal", () => {
       ];
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        related_entities: { TestDevice: entities },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        related_entities: { "aa:bb:cc:dd:ee:ff": entities },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       expect(result).toContain("2h ago");
@@ -481,8 +492,8 @@ describe("entity-modal", () => {
       ];
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        related_entities: { TestDevice: entities },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        related_entities: { "aa:bb:cc:dd:ee:ff": entities },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       expect(result).toContain("3d ago");
@@ -495,8 +506,8 @@ describe("entity-modal", () => {
       ];
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        related_entities: { TestDevice: entities },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        related_entities: { "aa:bb:cc:dd:ee:ff": entities },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       // Should show a date format, not relative time
@@ -509,8 +520,8 @@ describe("entity-modal", () => {
       ];
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        related_entities: { TestDevice: entities },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        related_entities: { "aa:bb:cc:dd:ee:ff": entities },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       // Button entities should show em-dash
@@ -523,8 +534,8 @@ describe("entity-modal", () => {
       ];
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        related_entities: { TestDevice: entities },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        related_entities: { "aa:bb:cc:dd:ee:ff": entities },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       // Note: "on" is in SIMPLE_STATES so gets formatted as "On"
@@ -537,8 +548,8 @@ describe("entity-modal", () => {
       ];
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        related_entities: { TestDevice: entities },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        related_entities: { "aa:bb:cc:dd:ee:ff": entities },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       expect(result).toContain("2.5B");
@@ -550,8 +561,8 @@ describe("entity-modal", () => {
       ];
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        related_entities: { TestDevice: entities },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        related_entities: { "aa:bb:cc:dd:ee:ff": entities },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       // Numbers below 1M are displayed as-is (formatLargeNumber only called for >= 1M)
@@ -564,13 +575,13 @@ describe("entity-modal", () => {
           entity_id: "sensor.test",
           domain: "sensor",
           state: "on",
-          friendly_name: "TestDevice_Temperature",
+          friendly_name: "aa:bb:cc:dd:ee:ff_Temperature",
         },
       ];
       const payload: MapPayload = {
         edges: [],
-        node_types: { TestDevice: "switch" },
-        related_entities: { TestDevice: entities },
+        node_types: { "aa:bb:cc:dd:ee:ff": "switch" },
+        related_entities: { "aa:bb:cc:dd:ee:ff": entities },
       };
       const result = renderEntityModal({ ...defaultContext, payload });
       expect(result).toContain("Temperature");

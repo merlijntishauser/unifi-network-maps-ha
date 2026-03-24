@@ -14,6 +14,7 @@ from unifi_topology import (
     WanInfo,
     build_client_edges,
     build_device_index,
+    build_node_names,
     build_node_type_map,
     build_topology,
     extract_vpn_tunnels,
@@ -115,15 +116,24 @@ def _render_map(
         client_mode=settings.client_scope,
         only_unifi=settings.only_unifi,
     )
+    node_names = build_node_names(
+        devices,
+        clients,
+        client_mode=settings.client_scope,
+        only_unifi=settings.only_unifi,
+    )
     wan_info = _extract_wan_info(devices, settings)
     vpn_tunnels = _extract_vpn_info(devices, settings)
-    svg = _render_svg(edges, node_types, settings, wan_info, vpn_tunnels)
+    svg = _render_svg(
+        edges, node_types, settings, wan_info, vpn_tunnels, node_names
+    )
     # Always fetch clients for stats (wireless counts per AP)
     all_clients = _load_all_clients(config, settings)
     networks = _load_networks(config, settings)
     payload = _build_payload(
         edges,
         node_types,
+        node_names,
         gateways,
         clients,
         devices,
@@ -183,6 +193,7 @@ def _build_client_edges(
     devices: list[Device],
     clients: list[ClientData],
     settings: RenderSettings,
+    node_names: dict[str, str] | None = None,
 ) -> list[Edge]:
     device_index = build_device_index(devices)
     return build_client_edges(
@@ -191,6 +202,7 @@ def _build_client_edges(
         include_ports=settings.include_ports,
         client_mode=settings.client_scope,
         only_unifi=settings.only_unifi,
+        node_names=node_names,
     )
 
 
@@ -261,6 +273,7 @@ def _render_svg(
     settings: RenderSettings,
     wan_info: WanInfo | None = None,
     vpn_tunnels: list[VpnTunnel] | None = None,
+    node_names: dict[str, str] | None = None,
 ) -> str:
     LOGGER.debug(
         "renderer svg_render_started"
@@ -278,6 +291,7 @@ def _render_svg(
         return render_svg_isometric(
             edges,
             node_types=node_types,
+            node_names=node_names,
             options=options,
             theme=theme,
             wan_info=wan_info,
@@ -286,6 +300,7 @@ def _render_svg(
     return render_svg(
         edges,
         node_types=node_types,
+        node_names=node_names,
         options=options,
         theme=theme,
         wan_info=wan_info,
@@ -368,12 +383,12 @@ def _query_wan_info(
 def _find_gateway_device(devices: list[Device]) -> Device | None:
     """Find the first gateway device by type grouping."""
     groups = group_devices_by_type(devices)
-    gateway_names = groups.get("gateway", [])
-    if not gateway_names:
+    gateway_macs = groups.get("gateway", [])
+    if not gateway_macs:
         return None
-    gateway_name = gateway_names[0]
+    gateway_mac = gateway_macs[0]
     for device in devices:
-        if device.name == gateway_name:
+        if device.mac and device.mac.strip().lower() == gateway_mac:
             return device
     return None
 
@@ -415,6 +430,7 @@ def _build_vpn_tunnel_list(
 def _build_payload(
     edges: list[Edge],
     node_types: dict[str, str],
+    node_names: dict[str, str],
     gateways: list[str],
     clients: list[ClientData] | None,
     devices: list[Device],
@@ -426,9 +442,8 @@ def _build_payload(
         "schema_version": PAYLOAD_SCHEMA_VERSION,
         "edges": [_edge_to_dict(edge) for edge in edges],
         "node_types": node_types,
+        "node_names": node_names,
         "gateways": gateways,
-        "client_macs": _build_client_mac_index(clients),
-        "device_macs": _build_device_mac_index(devices),
         "client_ips": _build_client_ip_index(clients),
         "device_ips": _build_device_ip_index(devices),
         "node_vlans": _build_node_vlan_index(clients, networks),
@@ -453,47 +468,24 @@ def _edge_to_dict(edge: Edge) -> dict[str, Any]:
     }
 
 
-def _build_client_mac_index(
-    clients: list[ClientData] | None,
-) -> dict[str, str]:
-    if not clients:
-        return {}
-    client_macs: dict[str, str] = {}
-    for client in clients:
-        name = _client_display_name(client)
-        mac = _client_mac(client)
-        if not name or not mac:
-            continue
-        client_macs[name] = mac.strip().lower()
-    return client_macs
-
-
-def _build_device_mac_index(devices: list[Device]) -> dict[str, str]:
-    device_macs: dict[str, str] = {}
-    for device in devices:
-        if device.name and device.mac:
-            device_macs[device.name] = device.mac.strip().lower()
-    return device_macs
-
-
 def _build_client_ip_index(clients: list[ClientData] | None) -> dict[str, str]:
     if not clients:
         return {}
     client_ips: dict[str, str] = {}
     for client in clients:
-        name = _client_display_name(client)
+        mac = _client_mac(client)
         ip = _client_ip(client)
-        if not name or not ip:
+        if not mac or not ip:
             continue
-        client_ips[name] = ip.strip()
+        client_ips[mac.strip().lower()] = ip.strip()
     return client_ips
 
 
 def _build_device_ip_index(devices: list[Device]) -> dict[str, str]:
     device_ips: dict[str, str] = {}
     for device in devices:
-        if device.name and device.ip:
-            device_ips[device.name] = device.ip.strip()
+        if device.mac and device.ip:
+            device_ips[device.mac.strip().lower()] = device.ip.strip()
     return device_ips
 
 
@@ -555,19 +547,19 @@ def _client_network_name(client: ClientData) -> str | None:
 def _build_node_vlan_index(
     clients: list[ClientData] | None, networks: list[Mapping[str, Any]]
 ) -> dict[str, int | None]:
-    """Map node names to their VLAN IDs."""
+    """Map node MACs to their VLAN IDs."""
     if not clients:
         return {}
     network_name_map = _build_network_name_map(networks)
     node_vlans: dict[str, int | None] = {}
     for client in clients:
-        name = _client_display_name(client)
-        if not name:
+        mac = _client_mac(client)
+        if not mac:
             continue
         vlan = _client_vlan(client)
         if vlan is None:
             vlan = _client_vlan_from_network_name(client, network_name_map)
-        node_vlans[name] = vlan
+        node_vlans[mac.strip().lower()] = vlan
     return node_vlans
 
 
@@ -693,26 +685,24 @@ def _build_ap_client_counts(
 ) -> dict[str, int]:
     """Build wireless client counts per access point.
 
-    Returns a dict mapping AP name to the number of
+    Returns a dict mapping AP MAC to the number of
     wireless clients connected to it.
     """
-    # Build MAC to device name mapping for APs
-    ap_mac_to_name: dict[str, str] = {}
+    known_device_macs: set[str] = set()
     for device in devices:
-        if device.mac and device.name:
-            ap_mac_to_name[device.mac.strip().lower()] = device.name
+        if device.mac:
+            known_device_macs.add(device.mac.strip().lower())
 
-    # Count wireless clients per AP
     ap_counts: dict[str, int] = {}
     for client in clients:
-        # Check if client is wireless (has ap_mac field)
         ap_mac = _client_field(client, "ap_mac")
         if not ap_mac or not isinstance(ap_mac, str):
             continue
         ap_mac_normalized = ap_mac.strip().lower()
-        ap_name = ap_mac_to_name.get(ap_mac_normalized)
-        if ap_name:
-            ap_counts[ap_name] = ap_counts.get(ap_name, 0) + 1
+        if ap_mac_normalized in known_device_macs:
+            ap_counts[ap_mac_normalized] = (
+                ap_counts.get(ap_mac_normalized, 0) + 1
+            )
 
     return ap_counts
 
@@ -742,20 +732,25 @@ def _resolve_model_name(
 def _build_device_details(devices: list[Device]) -> dict[str, dict[str, Any]]:
     """Build detailed device info for entity attributes.
 
-    Returns a dict mapping device name to details
+    Returns a dict mapping device MAC to details
     including mac, ip, model, and uplink.
     """
     details: dict[str, dict[str, Any]] = {}
     for device in devices:
-        if not device.name:
+        if not device.mac:
             continue
-        uplink_name = device.uplink.name if device.uplink else None
-        details[device.name] = {
-            "mac": device.mac.strip().lower() if device.mac else None,
+        mac = device.mac.strip().lower()
+        uplink_mac = (
+            device.uplink.mac.strip().lower()
+            if device.uplink and device.uplink.mac
+            else None
+        )
+        details[mac] = {
+            "mac": mac,
             "ip": device.ip.strip() if device.ip else None,
             "model": device.model,
             "model_name": _resolve_model_name(device.model, device.model_name),
-            "uplink_device": uplink_name,
+            "uplink_device": uplink_mac,
         }
     return details
 
@@ -765,12 +760,12 @@ def _build_device_ports(
 ) -> dict[str, list[dict[str, Any]]]:
     """Build port information for each device.
 
-    Returns a dict mapping device name to list of port details including
+    Returns a dict mapping device MAC to list of port details including
     port number, name, speed, PoE status, and power consumption.
     """
     result: dict[str, list[dict[str, Any]]] = {}
     for device in devices:
-        if not device.name or not device.port_table:
+        if not device.mac or not device.port_table:
             continue
         ports: list[dict[str, Any]] = []
         for port in device.port_table:
@@ -790,7 +785,7 @@ def _build_device_ports(
         if ports:
             # Sort by port number
             ports.sort(key=lambda p: p["port"])
-            result[device.name] = ports
+            result[device.mac.strip().lower()] = ports
     return result
 
 

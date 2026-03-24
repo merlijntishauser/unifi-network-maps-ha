@@ -3,7 +3,7 @@ import type { MapPayload } from "../core/types";
 import { getNodeIpFromPayload } from "../shared/node-utils";
 
 export type ContextMenuRenderOptions = {
-  nodeName: string;
+  nodeId: string;
   payload?: MapPayload;
   theme: "dark" | "light" | "unifi" | "unifi-dark";
   getNodeTypeIcon: (nodeType: string) => string;
@@ -81,13 +81,15 @@ type ContextMenuData = {
 };
 
 function buildContextMenuData(options: ContextMenuRenderOptions): ContextMenuData {
-  const nodeType = getNodeType(options.payload, options.nodeName);
-  const mac = getNodeMac(options.payload, options.nodeName);
-  const entityId = getNodeEntityId(options.payload, options.nodeName);
-  const ip = getNodeIp(options.payload, options.nodeName);
-  const model = getNodeModel(options.payload, options.nodeName);
+  const nodeId = options.nodeId;
+  const displayName = options.payload?.node_names?.[nodeId] ?? nodeId;
+  const nodeType = getNodeType(options.payload, nodeId);
+  const mac = getNodeMac(options.payload, nodeId);
+  const entityId = getNodeEntityId(options.payload, nodeId);
+  const ip = getNodeIp(options.payload, nodeId);
+  const model = getNodeModel(options.payload, nodeId);
   return {
-    safeName: escapeHtml(options.nodeName),
+    safeName: escapeHtml(displayName),
     nodeType,
     typeIcon: options.getNodeTypeIcon(nodeType),
     mac,
@@ -187,29 +189,30 @@ function pushIf(items: string[], value: string | null): void {
   }
 }
 
-function getNodeType(payload: MapPayload | undefined, nodeName: string): string {
-  return payload?.node_types?.[nodeName] ?? "unknown";
+function getNodeType(payload: MapPayload | undefined, nodeId: string): string {
+  return payload?.node_types?.[nodeId] ?? "unknown";
 }
 
-function getNodeMac(payload: MapPayload | undefined, nodeName: string): string | null {
-  return payload?.client_macs?.[nodeName] ?? payload?.device_macs?.[nodeName] ?? null;
+function getNodeMac(payload: MapPayload | undefined, nodeId: string): string | null {
+  if (!payload?.node_types?.[nodeId]) return null;
+  return nodeId;
 }
 
-function getNodeEntityId(payload: MapPayload | undefined, nodeName: string): string | null {
+function getNodeEntityId(payload: MapPayload | undefined, nodeId: string): string | null {
   return (
-    payload?.node_entities?.[nodeName] ??
-    payload?.client_entities?.[nodeName] ??
-    payload?.device_entities?.[nodeName] ??
+    payload?.node_entities?.[nodeId] ??
+    payload?.client_entities?.[nodeId] ??
+    payload?.device_entities?.[nodeId] ??
     null
   );
 }
 
-function getNodeIp(payload: MapPayload | undefined, nodeName: string): string | null {
-  return getNodeIpFromPayload(payload, nodeName);
+function getNodeIp(payload: MapPayload | undefined, nodeId: string): string | null {
+  return getNodeIpFromPayload(payload, nodeId);
 }
 
-function getNodeModel(payload: MapPayload | undefined, nodeName: string): string | null {
-  const details = payload?.device_details?.[nodeName];
+function getNodeModel(payload: MapPayload | undefined, nodeId: string): string | null {
+  const details = payload?.device_details?.[nodeId];
   if (!details) return null;
   // Prefer model_name (friendly name) over model code
   return details.model_name ?? details.model ?? null;

@@ -12,7 +12,6 @@ from .http import (
     get_unifi_entity_mac_stats,
     get_unifi_entity_macs,
     normalize_mac_value,
-    resolve_client_entity_map,
 )
 
 if TYPE_CHECKING:
@@ -72,6 +71,18 @@ def _calculate_data_age(dt: datetime | None) -> float | None:
     return (now - dt).total_seconds()
 
 
+def _extract_payload_macs(node_types: dict[str, str]) -> set[str]:
+    return {normalize_mac_value(mac) for mac in node_types if mac.strip()}
+
+
+def _count_device_types(
+    node_types: dict[str, str],
+) -> tuple[int, int]:
+    device_types = frozenset({"gateway", "switch", "ap"})
+    device_count = sum(1 for t in node_types.values() if t in device_types)
+    return device_count, len(node_types) - device_count
+
+
 def _summarize_map_data(
     hass: HomeAssistant, data: UniFiNetworkMapData | None
 ) -> dict[str, Any] | None:
@@ -80,52 +91,41 @@ def _summarize_map_data(
     payload = data.payload or {}
     node_types = payload.get("node_types") or {}
     edges = payload.get("edges") or []
-    client_macs = payload.get("client_macs") or {}
-    device_macs = payload.get("device_macs") or {}
     ap_client_counts = payload.get("ap_client_counts") or {}
-    client_entities = resolve_client_entity_map(hass, client_macs)
-    entity_stats = get_unifi_entity_mac_stats(hass)
-    payload_mac_set = _normalize_mac_values(
-        client_macs
-    ) | _normalize_mac_values(device_macs)
+    payload_mac_set = _extract_payload_macs(node_types)
     entity_mac_set = get_unifi_entity_macs(hass)
-    overlap = payload_mac_set & entity_mac_set
     state_mac_set = get_state_entity_macs(hass)
-    state_overlap = payload_mac_set & state_mac_set
+    device_count, client_count = _count_device_types(node_types)
     return {
         "svg_length": len(data.svg),
         "payload_schema_version": payload.get("schema_version"),
         "node_count": len(node_types),
         "edge_count": len(edges),
-        "client_macs_count": len(client_macs),
-        "linked_clients_count": len(client_entities),
-        "device_macs_count": len(device_macs),
-        "client_mac_overlap_count": len(overlap),
+        "client_count": client_count,
+        "device_count": device_count,
+        "mac_overlap_count": len(payload_mac_set & entity_mac_set),
         "payload_mac_hashes": _hash_mac_samples(payload_mac_set),
         "entity_mac_hashes": _hash_mac_samples(entity_mac_set),
         "state_mac_count": len(state_mac_set),
-        "state_mac_overlap_count": len(state_overlap),
+        "state_mac_overlap_count": len(payload_mac_set & state_mac_set),
         "state_mac_hashes": _hash_mac_samples(state_mac_set),
-        "clients": _summarize_clients(node_types, edges, client_macs),
+        "clients": _summarize_clients(node_types, edges),
         "ap_wireless_client_counts": _summarize_ap_client_counts(
             ap_client_counts
         ),
-        **entity_stats,
+        **get_unifi_entity_mac_stats(hass),
     }
 
 
 def _summarize_clients(
     node_types: dict[str, str],
     edges: list[dict[str, Any]],
-    client_macs: dict[str, str],
 ) -> dict[str, Any]:
-    """Summarize client information with anonymized sample names."""
-    # Find all client nodes
-    client_names = [
-        name for name, ntype in node_types.items() if ntype == "client"
-    ]
+    """Summarize client information with anonymized sample MACs."""
+    client_macs = {
+        mac for mac, ntype in node_types.items() if ntype == "client"
+    }
 
-    # Count wired vs wireless clients from edges
     wired_clients: list[str] = []
     wireless_clients: list[str] = []
 
@@ -134,22 +134,20 @@ def _summarize_clients(
         right = edge.get("right", "")
         is_wireless = edge.get("wireless", False)
 
-        # Check if either end is a client
-        for name in [left, right]:
-            if name in client_names:
+        for mac in [left, right]:
+            if mac in client_macs:
                 if is_wireless:
-                    if name not in wireless_clients:
-                        wireless_clients.append(name)
+                    if mac not in wireless_clients:
+                        wireless_clients.append(mac)
                 else:
-                    if name not in wired_clients:
-                        wired_clients.append(name)
+                    if mac not in wired_clients:
+                        wired_clients.append(mac)
 
     return {
-        "total_count": len(client_names),
+        "total_count": len(client_macs),
         "wired_count": len(wired_clients),
         "wireless_count": len(wireless_clients),
-        "with_mac_count": len(client_macs),
-        "sample_names_hashed": _hash_name_samples(client_names),
+        "sample_macs_hashed": _hash_name_samples(sorted(client_macs)),
         "wired_sample_hashed": _hash_name_samples(wired_clients),
         "wireless_sample_hashed": _hash_name_samples(wireless_clients),
     }
@@ -182,14 +180,6 @@ def _hash_name_samples(names: list[str], sample_size: int = 5) -> list[str]:
     """Hash a sample of names for anonymized diagnostics."""
     samples = sorted(names)[:sample_size]
     return [_hash_value(name) for name in samples]
-
-
-def _normalize_mac_values(mac_map: dict[str, Any]) -> set[str]:
-    normalized: set[str] = set()
-    for mac in mac_map.values():
-        if isinstance(mac, str) and mac.strip():
-            normalized.add(normalize_mac_value(mac))
-    return normalized
 
 
 def _hash_mac_samples(values: set[str], sample_size: int = 5) -> list[str]:

@@ -31,7 +31,6 @@ from custom_components.unifi_network_map.http import (
     _svg_options_from_settings,
     _valid_edge_payload,
     build_enriched_payload,
-    resolve_node_entity_map,
     resolve_node_status_map,
 )
 
@@ -192,23 +191,6 @@ class TestEntityStateDetails:
 
         result = _entity_state_details(hass, "light.test")
         assert result["friendly_name"] == "Living Room Light"
-
-
-class TestResolveNodeEntityMap:
-    """Tests for resolve_node_entity_map function."""
-
-    def test_merges_device_and_client_entities(self) -> None:
-        client = {"client1": "device_tracker.client1"}
-        device = {"switch1": "device_tracker.switch1"}
-        result = resolve_node_entity_map(client, device)
-        assert result["client1"] == "device_tracker.client1"
-        assert result["switch1"] == "device_tracker.switch1"
-
-    def test_client_overwrites_device(self) -> None:
-        client = {"node1": "device_tracker.client"}
-        device = {"node1": "device_tracker.device"}
-        result = resolve_node_entity_map(client, device)
-        assert result["node1"] == "device_tracker.client"
 
 
 class TestAppendUniqueEntity:
@@ -640,45 +622,44 @@ class TestResolveNodeStatusMap:
         state.last_changed = datetime(2024, 1, 15, tzinfo=UTC)
         hass.states.get.return_value = state
 
-        node_entities = {"my_phone": "device_tracker.my_phone"}
+        node_entities = {"aa:bb:cc:dd:ee:ff": "device_tracker.my_phone"}
         result = resolve_node_status_map(hass, node_entities)
 
-        assert "my_phone" in result
-        assert result["my_phone"]["state"] == "online"
-        assert result["my_phone"]["entity_id"] == "device_tracker.my_phone"
+        assert "aa:bb:cc:dd:ee:ff" in result
+        assert result["aa:bb:cc:dd:ee:ff"]["state"] == "online"
+        assert (
+            result["aa:bb:cc:dd:ee:ff"]["entity_id"]
+            == "device_tracker.my_phone"
+        )
 
     def test_skips_non_device_tracker(self) -> None:
         hass = MagicMock()
-        node_entities = {"my_sensor": "sensor.my_sensor"}
+        node_entities = {"aa:bb:cc:dd:ee:ff": "sensor.my_sensor"}
         result = resolve_node_status_map(hass, node_entities)
-        assert "my_sensor" not in result
+        assert "aa:bb:cc:dd:ee:ff" not in result
 
     def test_skips_missing_states(self) -> None:
         hass = MagicMock()
         hass.states.get.return_value = None
-        node_entities = {"my_phone": "device_tracker.my_phone"}
+        node_entities = {"aa:bb:cc:dd:ee:ff": "device_tracker.my_phone"}
         result = resolve_node_status_map(hass, node_entities)
-        assert "my_phone" not in result
+        assert "aa:bb:cc:dd:ee:ff" not in result
 
 
 class TestBuildEnrichedPayload:
     """Tests for build_enriched_payload function."""
 
-    def test_returns_unchanged_when_client_macs_not_dict(self) -> None:
+    def test_returns_unchanged_when_node_types_not_dict(self) -> None:
         hass = MagicMock()
         payload: dict[str, object] = {
-            "client_macs": "not-a-dict",
-            "device_macs": {},
+            "node_types": "not-a-dict",
         }
         result = build_enriched_payload(hass, payload)
         assert result is payload
 
-    def test_returns_unchanged_when_device_macs_not_dict(self) -> None:
+    def test_returns_unchanged_when_node_types_missing(self) -> None:
         hass = MagicMock()
-        payload: dict[str, object] = {
-            "client_macs": {},
-            "device_macs": ["not", "a", "dict"],
-        }
+        payload: dict[str, object] = {}
         result = build_enriched_payload(hass, payload)
         assert result is payload
 

@@ -111,24 +111,18 @@ def _get_or_build_enriched_payload(
     return payload
 
 
-def resolve_client_entity_map(
-    hass: HomeAssistant, client_macs: dict[str, str]
+def _resolve_entity_map_by_mac(
+    hass: HomeAssistant, macs: set[str]
 ) -> dict[str, str]:
-    return _resolve_entity_map(hass, client_macs)
-
-
-def resolve_device_entity_map(
-    hass: HomeAssistant, device_macs: dict[str, str]
-) -> dict[str, str]:
-    return _resolve_entity_map(hass, device_macs)
-
-
-def resolve_node_entity_map(
-    client_entities: dict[str, str], device_entities: dict[str, str]
-) -> dict[str, str]:
-    merged = dict(device_entities)
-    merged.update(client_entities)
-    return merged
+    """Resolve MAC addresses to their primary HA entity IDs."""
+    if not macs:
+        return {}
+    mac_to_entity = _build_mac_entity_index(hass)
+    return {
+        mac: entity_id
+        for mac in macs
+        if (entity_id := mac_to_entity.get(_normalize_mac(mac)))
+    }
 
 
 def resolve_node_status_map(
@@ -136,13 +130,13 @@ def resolve_node_status_map(
 ) -> dict[str, dict[str, str | None]]:
     """Resolve device_tracker states for linked entities."""
     status_map: dict[str, dict[str, str | None]] = {}
-    for node_name, entity_id in node_entities.items():
+    for node_mac, entity_id in node_entities.items():
         if not entity_id.startswith("device_tracker."):
             continue
         state = hass.states.get(entity_id)
         if state is None:
             continue
-        status_map[node_name] = {
+        status_map[node_mac] = {
             "entity_id": entity_id,
             "state": _normalize_tracker_state(state.state),
             "last_changed": state.last_changed.isoformat()
@@ -156,19 +150,22 @@ def build_enriched_payload(
     hass: HomeAssistant, payload: dict[str, object]
 ) -> dict[str, object]:
     """Add entity, status, and related entity data to a map payload."""
-    client_macs = payload.get("client_macs", {})
-    device_macs = payload.get("device_macs", {})
-    if not isinstance(client_macs, dict) or not isinstance(device_macs, dict):
+    node_types = payload.get("node_types", {})
+    if not isinstance(node_types, dict):
         return payload
-    client_entities = resolve_client_entity_map(hass, client_macs)
-    device_entities = resolve_device_entity_map(hass, device_macs)
-    node_entities = resolve_node_entity_map(client_entities, device_entities)
+    all_macs = set(node_types.keys())
+    device_types = frozenset({"gateway", "switch", "ap"})
+    device_macs = {m for m in all_macs if node_types.get(m) in device_types}
+    client_macs = all_macs - device_macs
+    device_entities = _resolve_entity_map_by_mac(hass, device_macs)
+    client_entities = _resolve_entity_map_by_mac(hass, client_macs)
+    node_entities = {**device_entities, **client_entities}
     _store_payload_field(payload, "client_entities", client_entities)
     _store_payload_field(payload, "device_entities", device_entities)
     _store_payload_field(payload, "node_entities", node_entities)
     node_status = resolve_node_status_map(hass, node_entities)
     _store_payload_field(payload, "node_status", node_status)
-    related_entities = resolve_related_entities(hass, client_macs, device_macs)
+    related_entities = resolve_related_entities(hass, all_macs)
     _store_payload_field(payload, "related_entities", related_entities)
     return payload
 
@@ -185,33 +182,30 @@ RelatedEntity = dict[str, str | None]
 
 def resolve_related_entities(
     hass: HomeAssistant,
-    client_macs: dict[str, str],
-    device_macs: dict[str, str],
+    node_macs: set[str],
 ) -> dict[str, list[RelatedEntity]]:
     """Resolve all related entities for each node by MAC address."""
     mac_to_entities = _build_mac_to_all_entities_index(hass)
-    all_macs = {**device_macs, **client_macs}
     result: dict[str, list[RelatedEntity]] = {}
     matched = 0
     unmatched = 0
-    for node_name, mac in all_macs.items():
+    for mac in node_macs:
         normalized = _normalize_mac(mac)
         entities = mac_to_entities.get(normalized, [])
         if entities:
             matched += 1
             related = [_entity_state_details(hass, eid) for eid in entities]
-            result[node_name] = _sort_related_entities(related)
+            result[mac] = _sort_related_entities(related)
         else:
             unmatched += 1
             LOGGER.debug(
-                "http related_entities no_match node=%s mac=%s normalized=%s",
-                node_name,
+                "http related_entities no_match mac=%s normalized=%s",
                 mac,
                 normalized,
             )
     LOGGER.debug(
         "http related_entities resolved nodes=%d matched=%d unmatched=%d",
-        len(all_macs),
+        len(node_macs),
         matched,
         unmatched,
     )
@@ -505,19 +499,6 @@ def _normalize_tracker_state(state: str) -> str:
     return "unknown"
 
 
-def _resolve_entity_map(
-    hass: HomeAssistant, macs: dict[str, str]
-) -> dict[str, str]:
-    if not macs:
-        return {}
-    mac_to_entity = _build_mac_entity_index(hass)
-    return {
-        name: entity_id
-        for name, mac in macs.items()
-        if (entity_id := mac_to_entity.get(_normalize_mac(mac)))
-    }
-
-
 def _build_mac_entity_index(hass: HomeAssistant) -> dict[str, str]:
     """Build index mapping MAC addresses to primary entity IDs.
 
@@ -752,6 +733,7 @@ def _render_svg_with_theme(
     payload = data.payload or {}
     edges_payload = payload.get("edges") or []
     node_types = payload.get("node_types") or {}
+    node_names = payload.get("node_names") or {}
     if not _should_render_svg(edges_payload, node_types):
         return data.svg, background
     edges = _build_svg_edges(edges_payload)
@@ -761,6 +743,7 @@ def _render_svg_with_theme(
     svg = _render_svg_variant(
         edges,
         node_types,
+        node_names,
         options,
         theme,
         coordinator.settings.svg_isometric,
@@ -808,6 +791,7 @@ def _svg_options_from_settings(settings: RenderSettings) -> SvgOptions:
 def _render_svg_variant(
     edges: list[Edge],
     node_types: dict[str, str],
+    node_names: dict[str, str],
     options: SvgOptions,
     theme: SvgTheme,
     is_isometric: bool,
@@ -817,6 +801,7 @@ def _render_svg_variant(
         return render_svg_isometric(
             edges,
             node_types=node_types,
+            node_names=node_names,
             options=options,
             theme=theme,
             wan_info=wan_info,
@@ -824,6 +809,7 @@ def _render_svg_variant(
     return render_svg(
         edges,
         node_types=node_types,
+        node_names=node_names,
         options=options,
         theme=theme,
         wan_info=wan_info,

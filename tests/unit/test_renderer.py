@@ -15,10 +15,8 @@ from custom_components.unifi_network_map.renderer import (
     _build_ap_client_counts,
     _build_client_details,
     _build_client_ip_index,
-    _build_client_mac_index,
     _build_device_details,
     _build_device_ip_index,
-    _build_device_mac_index,
     _build_device_ports,
     _build_network_name_map,
     _build_node_vlan_index,
@@ -418,71 +416,26 @@ class TestSelectEdges:
         assert _select_edges(topology) == []
 
 
-class TestBuildClientMacIndex:
-    """Tests for _build_client_mac_index function."""
-
-    def test_builds_index(self) -> None:
-        clients: list[dict[str, Any]] = [
-            {"name": "Client1", "mac": "AA:BB:CC:DD:EE:01"},
-            {"name": "Client2", "mac": "AA:BB:CC:DD:EE:02"},
-        ]
-        result = _build_client_mac_index(clients)
-        assert result == {
-            "Client1": "aa:bb:cc:dd:ee:01",
-            "Client2": "aa:bb:cc:dd:ee:02",
-        }
-
-    def test_skips_clients_without_mac(self) -> None:
-        clients: list[dict[str, Any]] = [
-            {"name": "Client1", "mac": "AA:BB:CC:DD:EE:01"},
-            {"name": "Client2"},
-        ]
-        result = _build_client_mac_index(clients)
-        assert "Client2" not in result
-
-    def test_returns_empty_for_none(self) -> None:
-        assert _build_client_mac_index(None) == {}
-
-    def test_returns_empty_for_empty_list(self) -> None:
-        assert _build_client_mac_index([]) == {}
-
-
-class TestBuildDeviceMacIndex:
-    """Tests for _build_device_mac_index function."""
-
-    def test_builds_index(self) -> None:
-        devices = [
-            MockDevice(name="Switch1", mac="AA:BB:CC:DD:EE:01"),
-            MockDevice(name="AP1", mac="AA:BB:CC:DD:EE:02"),
-        ]
-        result = _build_device_mac_index(devices)
-        assert result == {
-            "Switch1": "aa:bb:cc:dd:ee:01",
-            "AP1": "aa:bb:cc:dd:ee:02",
-        }
-
-    def test_skips_devices_without_mac_or_name(self) -> None:
-        devices = [
-            MockDevice(name="Switch1", mac="AA:BB:CC:DD:EE:01"),
-            MockDevice(name=None, mac="AA:BB:CC:DD:EE:02"),
-            MockDevice(name="AP1", mac=None),
-        ]
-        result = _build_device_mac_index(devices)
-        assert result == {"Switch1": "aa:bb:cc:dd:ee:01"}
-
-
 class TestBuildClientIpIndex:
     """Tests for _build_client_ip_index function."""
 
     def test_builds_index(self) -> None:
         clients: list[dict[str, Any]] = [
-            {"name": "Client1", "ip": "192.168.1.100"},
-            {"name": "Client2", "ip": "192.168.1.101"},
+            {
+                "name": "Client1",
+                "mac": "AA:BB:CC:DD:EE:01",
+                "ip": "192.168.1.100",
+            },
+            {
+                "name": "Client2",
+                "mac": "AA:BB:CC:DD:EE:02",
+                "ip": "192.168.1.101",
+            },
         ]
         result = _build_client_ip_index(clients)
         assert result == {
-            "Client1": "192.168.1.100",
-            "Client2": "192.168.1.101",
+            "aa:bb:cc:dd:ee:01": "192.168.1.100",
+            "aa:bb:cc:dd:ee:02": "192.168.1.101",
         }
 
     def test_returns_empty_for_none(self) -> None:
@@ -494,13 +447,15 @@ class TestBuildDeviceIpIndex:
 
     def test_builds_index(self) -> None:
         devices = [
-            MockDevice(name="Switch1", ip="192.168.1.1"),
-            MockDevice(name="AP1", ip="192.168.1.2"),
+            MockDevice(
+                name="Switch1", mac="AA:BB:CC:DD:EE:01", ip="192.168.1.1"
+            ),
+            MockDevice(name="AP1", mac="AA:BB:CC:DD:EE:02", ip="192.168.1.2"),
         ]
         result = _build_device_ip_index(devices)
         assert result == {
-            "Switch1": "192.168.1.1",
-            "AP1": "192.168.1.2",
+            "aa:bb:cc:dd:ee:01": "192.168.1.1",
+            "aa:bb:cc:dd:ee:02": "192.168.1.2",
         }
 
 
@@ -509,17 +464,19 @@ class TestBuildNodeVlanIndex:
 
     def test_builds_index(self) -> None:
         clients: list[dict[str, Any]] = [
-            {"name": "Client1", "vlan": 10},
-            {"name": "Client2", "vlan": 20},
+            {"name": "Client1", "mac": "AA:BB:CC:DD:EE:01", "vlan": 10},
+            {"name": "Client2", "mac": "AA:BB:CC:DD:EE:02", "vlan": 20},
         ]
         result = _build_node_vlan_index(clients, [])
-        assert result == {"Client1": 10, "Client2": 20}
+        assert result == {"aa:bb:cc:dd:ee:01": 10, "aa:bb:cc:dd:ee:02": 20}
 
     def test_uses_network_name_map_fallback(self) -> None:
-        clients: list[dict[str, Any]] = [{"name": "Client1", "network": "IoT"}]
+        clients: list[dict[str, Any]] = [
+            {"name": "Client1", "mac": "AA:BB:CC:DD:EE:01", "network": "IoT"}
+        ]
         networks: list[dict[str, Any]] = [{"name": "IoT", "vlan": 10}]
         result = _build_node_vlan_index(clients, networks)
-        assert result == {"Client1": 10}
+        assert result == {"aa:bb:cc:dd:ee:01": 10}
 
     def test_returns_empty_for_none(self) -> None:
         assert _build_node_vlan_index(None, []) == {}
@@ -571,7 +528,7 @@ class TestBuildApClientCounts:
             {"name": "Client3", "ap_mac": "aa:bb:cc:dd:ee:02"},  # Unknown AP
         ]
         result = _build_ap_client_counts(clients, devices)
-        assert result == {"AP1": 2}
+        assert result == {"aa:bb:cc:dd:ee:01": 2}
 
     def test_ignores_wired_clients(self) -> None:
         devices = [MockDevice(name="Switch1", mac="aa:bb:cc:dd:ee:01")]
@@ -621,7 +578,7 @@ class TestBuildDeviceDetails:
     """Tests for _build_device_details function."""
 
     def test_builds_details(self) -> None:
-        uplink = MockDevice(name="Gateway")
+        uplink = MockDevice(name="Gateway", mac="AA:BB:CC:DD:EE:02")
         devices = [
             MockDevice(
                 name="Switch1",
@@ -634,22 +591,24 @@ class TestBuildDeviceDetails:
         ]
         result = _build_device_details(devices)
         assert result == {
-            "Switch1": {
+            "aa:bb:cc:dd:ee:01": {
                 "mac": "aa:bb:cc:dd:ee:01",
                 "ip": "192.168.1.1",
                 "model": "USW-24",
                 "model_name": "Switch 24",
-                "uplink_device": "Gateway",
+                "uplink_device": "aa:bb:cc:dd:ee:02",
             }
         }
 
     def test_handles_none_uplink(self) -> None:
-        devices = [MockDevice(name="Switch1", mac="aa:bb", uplink=None)]
+        devices = [
+            MockDevice(name="Switch1", mac="aa:bb:cc:dd:ee:01", uplink=None)
+        ]
         result = _build_device_details(devices)
-        assert result["Switch1"]["uplink_device"] is None
+        assert result["aa:bb:cc:dd:ee:01"]["uplink_device"] is None
 
-    def test_skips_devices_without_name(self) -> None:
-        devices = [MockDevice(name=None, mac="aa:bb")]
+    def test_skips_devices_without_mac(self) -> None:
+        devices = [MockDevice(name="Switch1", mac=None)]
         assert _build_device_details(devices) == {}
 
 
@@ -674,15 +633,19 @@ class TestBuildDevicePorts:
                 poe_good=False,
             ),
         ]
-        devices = [MockDevice(name="Switch1", port_table=ports)]
+        devices = [
+            MockDevice(
+                name="Switch1", mac="aa:bb:cc:dd:ee:01", port_table=ports
+            )
+        ]
         result = _build_device_ports(devices)
-        assert "Switch1" in result
-        assert len(result["Switch1"]) == 2
-        assert result["Switch1"][0]["port"] == 1
-        assert result["Switch1"][0]["poe_active"] is True
-        assert result["Switch1"][0]["poe_power"] == 5.5
-        assert result["Switch1"][1]["poe_active"] is False
-        assert result["Switch1"][1]["poe_power"] is None
+        assert "aa:bb:cc:dd:ee:01" in result
+        assert len(result["aa:bb:cc:dd:ee:01"]) == 2
+        assert result["aa:bb:cc:dd:ee:01"][0]["port"] == 1
+        assert result["aa:bb:cc:dd:ee:01"][0]["poe_active"] is True
+        assert result["aa:bb:cc:dd:ee:01"][0]["poe_power"] == 5.5
+        assert result["aa:bb:cc:dd:ee:01"][1]["poe_active"] is False
+        assert result["aa:bb:cc:dd:ee:01"][1]["poe_power"] is None
 
     def test_skips_ports_without_idx(self) -> None:
         ports = [MockPort(port_idx=None, name="Unknown")]
@@ -700,9 +663,13 @@ class TestBuildDevicePorts:
             MockPort(port_idx=1, name="Port 1"),
             MockPort(port_idx=2, name="Port 2"),
         ]
-        devices = [MockDevice(name="Switch1", port_table=ports)]
+        devices = [
+            MockDevice(
+                name="Switch1", mac="aa:bb:cc:dd:ee:01", port_table=ports
+            )
+        ]
         result = _build_device_ports(devices)
-        port_nums = [p["port"] for p in result["Switch1"]]
+        port_nums = [p["port"] for p in result["aa:bb:cc:dd:ee:01"]]
         assert port_nums == [1, 2, 3]
 
 
@@ -814,7 +781,7 @@ class TestExtractWanInfo:
     """Tests for _extract_wan_info function."""
 
     def test_passes_wan_params_to_extract_wan_info(self) -> None:
-        gateway = MockDevice(name="Gateway")
+        gateway = MockDevice(name="Gateway", mac="aa:bb:cc:dd:ee:01")
         devices = [gateway]
         settings = RenderSettings(
             include_ports=True,
@@ -835,7 +802,7 @@ class TestExtractWanInfo:
         with (
             patch(
                 "custom_components.unifi_network_map.renderer.group_devices_by_type",
-                return_value={"gateway": ["Gateway"]},
+                return_value={"gateway": ["aa:bb:cc:dd:ee:01"]},
             ),
             patch(
                 "custom_components.unifi_network_map.renderer.extract_wan_info",
@@ -854,7 +821,7 @@ class TestExtractWanInfo:
             )
 
     def test_empty_labels_passed_as_none(self) -> None:
-        gateway = MockDevice(name="Gateway")
+        gateway = MockDevice(name="Gateway", mac="aa:bb:cc:dd:ee:01")
         devices = [gateway]
         settings = RenderSettings(
             include_ports=True,
@@ -875,7 +842,7 @@ class TestExtractWanInfo:
         with (
             patch(
                 "custom_components.unifi_network_map.renderer.group_devices_by_type",
-                return_value={"gateway": ["Gateway"]},
+                return_value={"gateway": ["aa:bb:cc:dd:ee:01"]},
             ),
             patch(
                 "custom_components.unifi_network_map.renderer.extract_wan_info",

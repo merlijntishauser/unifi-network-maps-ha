@@ -131,16 +131,16 @@ def test_resolve_node_status_map_filters_non_trackers() -> None:
         }
     )
     node_entities = {
-        "Gateway": "device_tracker.one",
-        "Switch": "device_tracker.two",
-        "Temp": "sensor.temp",
+        "aa:bb:cc:dd:ee:01": "device_tracker.one",
+        "aa:bb:cc:dd:ee:02": "device_tracker.two",
+        "aa:bb:cc:dd:ee:03": "sensor.temp",
     }
 
     result = http_module.resolve_node_status_map(hass, node_entities)
 
-    assert result["Gateway"]["state"] == "online"
-    assert result["Switch"]["state"] == "offline"
-    assert "Temp" not in result
+    assert result["aa:bb:cc:dd:ee:01"]["state"] == "online"
+    assert result["aa:bb:cc:dd:ee:02"]["state"] == "offline"
+    assert "aa:bb:cc:dd:ee:03" not in result
 
 
 def test_register_unifi_http_views_registers_once() -> None:
@@ -211,7 +211,12 @@ async def test_payload_view_returns_mapped_entities(
 ) -> None:
     data = UniFiNetworkMapData(
         svg="<svg />",
-        payload={"client_macs": {"One": "aa"}, "device_macs": {"Two": "bb"}},
+        payload={
+            "node_types": {
+                "aa:bb:cc:dd:ee:01": "client",
+                "aa:bb:cc:dd:ee:02": "switch",
+            },
+        },
     )
     coordinator = FakeCoordinator(settings=build_settings())
     coordinator.data = data
@@ -702,13 +707,13 @@ def test_get_unifi_entity_macs_and_normalize_mac_value(
     )
 
 
-def test_resolve_entity_map_returns_empty() -> None:
-    resolve_entity_map = cast(
-        "Callable[[FakeHassWithHttp, dict[str, str]], dict[str, str]]",
-        getattr(http_module, "_resolve_entity_map"),
+def test_resolve_entity_map_by_mac_returns_empty() -> None:
+    resolve_entity_map_by_mac = cast(
+        "Callable[[FakeHassWithHttp, set[str]], dict[str, str]]",
+        getattr(http_module, "_resolve_entity_map_by_mac"),
     )
 
-    assert resolve_entity_map(FakeHassWithHttp({}), {}) == {}
+    assert resolve_entity_map_by_mac(FakeHassWithHttp({}), set()) == {}
 
 
 def test_mac_from_state_entry_rejects_non_dict() -> None:

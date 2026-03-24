@@ -1,4 +1,4 @@
-export function resolveNodeName(event: MouseEvent | PointerEvent): string | null {
+export function resolveNodeId(event: MouseEvent | PointerEvent): string | null {
   const path = event.composedPath();
   for (const item of path) {
     if (item instanceof Element) {
