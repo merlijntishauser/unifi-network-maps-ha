@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-03-25
+
+### Fixed
+- Devices with duplicate names (e.g. two "USW-Lite-8-PoE" switches) collapsed into a single node on the map (#149)
+
+### Changed
+- **Breaking: payload schema 2.0** -- the WebSocket/HTTP payload now uses MAC addresses as keys instead of device names. Custom automations or templates that parse the raw payload will need updating.
+- Bumped `unifi-topology` from 1.3.2 to 2.0.0 (MAC-based node identification)
+- SVG `data-node-id` attributes now contain MAC addresses instead of device names. Custom CSS or JS targeting `[data-node-id="Device Name"]` must switch to MAC selectors.
+- Payload fields `device_macs` and `client_macs` removed; replaced by `node_names` (MAC to display name mapping)
+- Frontend function `resolveNodeName` renamed to `resolveNodeId`
+- Frontend types `ContextMenuState.nodeName` and `PortModalState.nodeName` renamed to `nodeId`
+
 ## [0.4.0] - 2026-03-21
 This release is primarly focused on quality improvements and bug fixes.
 
@@ -254,7 +267,8 @@ The upcoming 0.2 release will have some major new features.
 ## [0.1.0] - 2026-01-17
 - Initial public release.
 
-[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.0
 [0.4.0]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.4.0
 [0.3.5]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.3.5
 [0.3.4]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.3.4
