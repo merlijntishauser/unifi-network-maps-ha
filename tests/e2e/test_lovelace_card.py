@@ -150,10 +150,19 @@ def _create_test_card_in_ha_card(
     page.wait_for_timeout(500)  # Extra time for full initialization
 
 
-def _node_locator(page: Page, node_name: str) -> Locator:
-    selector = f'#test-card [data-node-id="{node_name}"]'
+def _node_locator(page: Page, node_id: str) -> Locator:
+    selector = f'#test-card [data-node-id="{node_id}"]'
     page.wait_for_selector(selector, timeout=10000)
     return page.locator(selector)
+
+
+# Mock device MACs (from mock-unifi/fixtures/topology.json)
+_MAC_UDM_PRO = "00:11:22:33:44:01"
+_MAC_OFFICE_SWITCH = "00:11:22:33:44:02"
+_MAC_LIVING_ROOM_AP = "00:11:22:33:44:03"
+_MAC_MACBOOK_PRO = "aa:bb:cc:dd:ee:01"
+_MAC_DESKTOP_PC = "aa:bb:cc:dd:ee:02"
+_MAC_IPHONE = "aa:bb:cc:dd:ee:03"
 
 
 def test_custom_card_element_registered(
@@ -225,7 +234,7 @@ def test_node_click_selects_node(
     _create_test_card(page, entry_id, ha_auth_token)
 
     # Find a node and click on it
-    node = _node_locator(page, "Office Switch")
+    node = _node_locator(page, _MAC_OFFICE_SWITCH)
     node.click()
     page.wait_for_timeout(500)
 
@@ -242,7 +251,7 @@ def test_node_click_selects_node(
     }""")
 
     assert result["selectedCount"] == 1, "One node should be selected"
-    assert result["selectedId"] == "Office Switch", (
+    assert result["selectedId"] == _MAC_OFFICE_SWITCH, (
         "Office Switch should be selected"
     )
     assert result["panelContainsNodeName"], (
@@ -262,7 +271,7 @@ def test_node_click_selects_node_with_small_drag(
 
     _create_test_card(page, entry_id, ha_auth_token)
 
-    node = _node_locator(page, "Office Switch")
+    node = _node_locator(page, _MAC_OFFICE_SWITCH)
     box = node.bounding_box()
     assert box is not None, "Node bounding box not found"
     cx = box["x"] + box["width"] / 2
@@ -286,7 +295,7 @@ def test_node_click_selects_node_with_small_drag(
     assert result["selectedCount"] == 1, (
         "Node should be selected after small drag"
     )
-    assert result["selectedId"] == "Office Switch", (
+    assert result["selectedId"] == _MAC_OFFICE_SWITCH, (
         "Office Switch should be selected"
     )
 
@@ -304,7 +313,7 @@ def test_context_menu_opens_on_right_click(
     _create_test_card(page, entry_id, ha_auth_token)
 
     # Right-click on a node
-    node = _node_locator(page, "UDM Pro")
+    node = _node_locator(page, _MAC_UDM_PRO)
     node.click(button="right")
     page.wait_for_timeout(500)
 
@@ -318,7 +327,7 @@ def test_context_menu_opens_on_right_click(
         );
         const payload = card?._payload;
         const re = payload?.related_entities;
-        const hasIp = !!re?.["UDM Pro"]?.some(
+        const hasIp = !!re?.["00:11:22:33:44:01"]?.some(
             (entity) => entity.ip
         );
         const vis = menu
@@ -366,7 +375,7 @@ def test_context_menu_opens_with_small_drag(
 
     _create_test_card(page, entry_id, ha_auth_token)
 
-    node = _node_locator(page, "UDM Pro")
+    node = _node_locator(page, _MAC_UDM_PRO)
     box = node.bounding_box()
     assert box is not None, "Node bounding box not found"
     cx = box["x"] + box["width"] / 2
@@ -420,7 +429,7 @@ def test_node_click_works_inside_ha_card(
     _create_test_card_in_ha_card(page, entry_id, ha_auth_token)
 
     # Find a node and click on it
-    node = _node_locator(page, "Office Switch")
+    node = _node_locator(page, _MAC_OFFICE_SWITCH)
     node.click()
     page.wait_for_timeout(500)
 
@@ -439,7 +448,7 @@ def test_node_click_works_inside_ha_card(
     assert result["selectedCount"] == 1, (
         "One node should be selected inside ha-card"
     )
-    assert result["selectedId"] == "Office Switch", (
+    assert result["selectedId"] == _MAC_OFFICE_SWITCH, (
         "Office Switch should be selected"
     )
     assert result["panelContainsNodeName"], (
@@ -463,7 +472,7 @@ def test_context_menu_works_inside_ha_card(
     _create_test_card_in_ha_card(page, entry_id, ha_auth_token)
 
     # Right-click on a node
-    node = _node_locator(page, "UDM Pro")
+    node = _node_locator(page, _MAC_UDM_PRO)
     node.click(button="right")
     page.wait_for_timeout(500)
 
@@ -561,9 +570,9 @@ def test_filter_button_toggles_node_visibility(
 
     # Initially all clients should be visible
     _sel = (
-        '[data-node-id="MacBook Pro"],'
-        ' [data-node-id="Desktop PC"],'
-        ' [data-node-id="iPhone"]'
+        f'[data-node-id="{_MAC_MACBOOK_PRO}"],'
+        f' [data-node-id="{_MAC_DESKTOP_PC}"],'
+        f' [data-node-id="{_MAC_IPHONE}"]'
     )
     initial_result = page.evaluate(
         """(sel) => {
@@ -772,15 +781,15 @@ def test_filter_state_persists_across_selection(
     page.wait_for_timeout(300)
 
     # Select a visible node (switch)
-    node = _node_locator(page, "Office Switch")
+    node = _node_locator(page, _MAC_OFFICE_SWITCH)
     node.click()
     page.wait_for_timeout(500)
 
     # Verify filter state is preserved after selection
     _sel = (
-        '[data-node-id="MacBook Pro"],'
-        ' [data-node-id="Desktop PC"],'
-        ' [data-node-id="iPhone"]'
+        f'[data-node-id="{_MAC_MACBOOK_PRO}"],'
+        f' [data-node-id="{_MAC_DESKTOP_PC}"],'
+        f' [data-node-id="{_MAC_IPHONE}"]'
     )
     result = page.evaluate(
         """(sel) => {
@@ -820,6 +829,6 @@ def test_filter_state_persists_across_selection(
         "Filter button should remain inactive"
     )
     assert result["hasSelection"], "Should have a selected node"
-    assert result["selectedNodeId"] == "Office Switch", (
+    assert result["selectedNodeId"] == _MAC_OFFICE_SWITCH, (
         "Office Switch should be selected"
     )
