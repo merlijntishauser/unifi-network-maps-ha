@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.5.0] - 2026-03-25
 
+### Added
+- WAN label now shows the actual public IP under CGNAT, using the controller's `connect_request_ip` field (#157)
+
 ### Fixed
 - Devices with duplicate names (e.g. two "USW-Lite-8-PoE" switches) collapsed into a single node on the map (#149)
 
