@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Model name shown as "Dream Machine Pro Max" for UniFi Express 7 and other newer devices where the controller misreports `model_name` (#156)
+
+### Changed
+- Model name resolution now prefers the upstream curated lookup table over the controller's `model_name` field; controller value is used as fallback for unknown model codes
+- WAN info included in diagnostics output for debugging CGNAT/public IP issues
+
 ## [0.5.0] - 2026-03-25
 
 ### Added
