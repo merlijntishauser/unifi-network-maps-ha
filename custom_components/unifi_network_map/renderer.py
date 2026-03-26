@@ -714,19 +714,22 @@ def _resolve_model_name(
     """Resolve a friendly model name from multiple sources.
 
     Resolution order:
-    1. API-provided model_name (if it differs from the raw code)
-    2. lookup_model_name() from unifi-topology
-    3. Hardcoded UNIFI_MODEL_NAMES fallback
+    1. lookup_model_name() from unifi-topology (authoritative, curated)
+    2. Hardcoded UNIFI_MODEL_NAMES fallback
+    3. API-provided model_name (controller may misreport for new devices)
     4. Raw model code
     """
     if not model_code:
         return None
-    if api_name and api_name != model_code:
-        return api_name
     upstream_name = lookup_model_name(model_code)
     if upstream_name:
         return upstream_name
-    return UNIFI_MODEL_NAMES.get(model_code, model_code)
+    fallback = UNIFI_MODEL_NAMES.get(model_code)
+    if fallback:
+        return fallback
+    if api_name and api_name != model_code:
+        return api_name
+    return model_code
 
 
 def _build_device_details(devices: list[Device]) -> dict[str, dict[str, Any]]:
