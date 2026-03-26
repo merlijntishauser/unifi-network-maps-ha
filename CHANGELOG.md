@@ -9,8 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Model name shown as "Dream Machine Pro Max" for UniFi Express 7 and other newer devices where the controller misreports `model_name` (#156)
+- Reduced log noise: "missing LLDP info; using uplink fallback" downgraded from WARNING to DEBUG for offline devices (#161)
 
 ### Changed
+- Bumped `unifi-topology` from 2.0.0 to 2.1.1
 - Model name resolution now prefers the upstream curated lookup table over the controller's `model_name` field; controller value is used as fallback for unknown model codes
 - WAN info included in diagnostics output for debugging CGNAT/public IP issues
 
