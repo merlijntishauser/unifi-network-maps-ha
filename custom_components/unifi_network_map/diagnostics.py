@@ -109,11 +109,35 @@ def _summarize_map_data(
         "state_mac_count": len(state_mac_set),
         "state_mac_overlap_count": len(payload_mac_set & state_mac_set),
         "state_mac_hashes": _hash_mac_samples(state_mac_set),
+        "wan_info": _summarize_wan_info(data),
         "clients": _summarize_clients(node_types, edges),
         "ap_wireless_client_counts": _summarize_ap_client_counts(
             ap_client_counts
         ),
         **get_unifi_entity_mac_stats(hass),
+    }
+
+
+def _summarize_wan_info(data: UniFiNetworkMapData) -> dict[str, Any] | None:
+    """Summarize WAN interface info for diagnostics."""
+    wan = data.wan_info
+    if wan is None:
+        return None
+
+    def _iface(iface: object) -> dict[str, Any] | None:
+        if iface is None:
+            return None
+        return {
+            "ip_address": getattr(iface, "ip_address", None),
+            "public_ip": getattr(iface, "public_ip", None),
+            "link_speed": getattr(iface, "link_speed", None),
+            "enabled": getattr(iface, "enabled", None),
+            "label": getattr(iface, "label", None),
+        }
+
+    return {
+        "wan1": _iface(wan.wan1),
+        "wan2": _iface(wan.wan2),
     }
 
 
