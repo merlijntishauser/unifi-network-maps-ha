@@ -161,9 +161,15 @@ class UniFiNetworkMapConfigFlow(  # type: ignore[reportUntypedBaseClass,reportGe
                 LOGGER.debug("config_flow entry_created title=%s", title)
                 return self.async_create_entry(title=title, data=data)
 
+        schema = _build_schema()
+        if user_input is not None:
+            schema = self.add_suggested_values_to_schema(
+                schema, _suggested_values_on_error(user_input)
+            )
+
         return self.async_show_form(
             step_id="user",
-            data_schema=_build_schema(),
+            data_schema=schema,
             errors=errors,
         )
 
@@ -235,6 +241,14 @@ class UniFiNetworkMapOptionsFlow(config_entries.OptionsFlow):  # type: ignore[re
             step_id="init",
             data_schema=_build_options_schema(self._entry.options),
         )
+
+
+def _suggested_values_on_error(user_input: dict[str, Any]) -> dict[str, Any]:
+    """Return values to pre-fill when re-showing the form after an error.
+
+    Excludes password so the user doesn't resubmit a wrong password.
+    """
+    return {k: v for k, v in user_input.items() if k != CONF_PASSWORD}
 
 
 def _build_schema() -> vol.Schema:

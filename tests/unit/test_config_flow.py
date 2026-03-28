@@ -615,6 +615,29 @@ async def test_reconfigure_cannot_connect(monkeypatch):
     assert result["errors"]["base"] == "cannot_connect"
 
 
+async def test_step_user_preserves_input_on_error(monkeypatch):
+    def _validate(*_args: object, **_kwargs: object) -> None:
+        raise InvalidAuth("bad auth")
+
+    monkeypatch.setattr(
+        config_flow_module, "validate_unifi_credentials", _validate
+    )
+    result = await _make_flow().async_step_user(_base_input())
+
+    assert result["type"] == "form"
+    assert result["errors"]["base"] == "invalid_auth"
+    schema = result["data_schema"]
+    suggested = {
+        k.schema: k.description.get("suggested_value")
+        for k in schema.schema
+        if hasattr(k, "description") and k.description
+    }
+    assert suggested[CONF_URL] == "https://unifi.local/"
+    assert suggested[CONF_USERNAME] == "admin"
+    assert suggested[CONF_SITE] == DEFAULT_SITE
+    assert CONF_PASSWORD not in suggested
+
+
 async def test_reconfigure_invalid_url(monkeypatch):
     def _validate(*_args: object, **_kwargs: object) -> None:
         return None
