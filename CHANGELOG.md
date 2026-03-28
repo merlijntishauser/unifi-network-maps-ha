@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-03-28
+
+### Fixed
+- Setup form cleared all fields on validation error (e.g. "invalid username or password"); URL, username, site, and SSL setting are now preserved (#166)
+
+### Changed
+- Bumped `unifi-topology` from 2.1.1 to 2.1.2: filters bogus `connect_request_ip` values (e.g. `127.0.0.1`) so the map no longer shows loopback as the public IP under CGNAT (#157)
+- Expanded contract tests from 2 to 18, covering all payload fields, WAN info, and public IP filtering
+
 ## [0.5.1] - 2026-03-26
 
 ### Fixed
