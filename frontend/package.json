@@ -13,8 +13,8 @@
   },
   "devDependencies": {
     "@types/jest": "30.0.0",
-    "@typescript-eslint/eslint-plugin": "8.58.1",
-    "@typescript-eslint/parser": "8.58.1",
+    "@typescript-eslint/eslint-plugin": "8.58.2",
+    "@typescript-eslint/parser": "8.58.2",
     "esbuild": "0.28.0",
     "eslint": "10.2.0",
     "jest": "30.3.0",
@@ -25,6 +25,6 @@
     "typescript": "6.0.2"
   },
   "dependencies": {
-    "dompurify": "^3.3.3"
+    "dompurify": "^3.4.0"
   }
 }
