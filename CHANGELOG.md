@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-05-17
+
 ### Added
 - API key authentication: optional `X-API-KEY` header auth as an alternative to username/password, using site-level API keys from UniFi OS 4.x / Network 9.x (Settings -> Control Plane -> Integrations). Avoids brute-force lockouts on coordinator re-auth and supports least-privilege deployments (#211)
 - API key field added to the setup, reconfigure, and reauth flows; existing username/password configs continue to work unchanged
@@ -297,7 +299,9 @@ The upcoming 0.2 release will have some major new features.
 ## [0.1.0] - 2026-01-17
 - Initial public release.
 
-[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.5.3...HEAD
+[0.5.3]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.3
+[0.5.2]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.2
 [0.5.1]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.1
 [0.5.0]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.0
 [0.4.0]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.4.0
