@@ -4,10 +4,14 @@
     "step": {
       "reauth_confirm": {
         "title": "Reautenticar",
-        "description": "Tus credenciales de UniFi ya no son válidas. Por favor, vuelve a introducir tu nombre de usuario y contraseña.",
+        "description": "Tus credenciales de UniFi ya no son válidas. Vuelve a introducir tu usuario y contraseña, o proporciona una clave API.",
         "data": {
           "username": "Nombre de usuario",
-          "password": "Contraseña"
+          "password": "Contraseña",
+          "api_key": "Clave API"
+        },
+        "data_description": {
+          "api_key": "Clave API a nivel de sitio desde UniFi OS (Ajustes -> Control Plane -> Integraciones). Úsala en lugar de usuario y contraseña."
         }
       },
       "reconfigure": {
@@ -18,25 +22,29 @@
           "username": "Usuario",
           "password": "Contraseña",
           "site": "Sitio",
-          "verify_ssl": "Verificar SSL"
+          "verify_ssl": "Verificar SSL",
+          "api_key": "Clave API"
         },
         "data_description": {
           "url": "Incluye el esquema (http o https) y el puerto si es necesario.",
-          "verify_ssl": "Los controladores UniFi usan certificados autofirmados por defecto, lo que fallará en la verificación. Solo activa si has instalado un certificado de confianza."
+          "verify_ssl": "Los controladores UniFi usan certificados autofirmados por defecto, lo que fallará en la verificación. Solo activa si has instalado un certificado de confianza.",
+          "api_key": "Clave API a nivel de sitio desde UniFi OS (Ajustes -> Control Plane -> Integraciones). Úsala en lugar de usuario y contraseña."
         }
       },
       "user": {
         "title": "Conectar a UniFi",
-        "description": "Introduce los detalles de tu controlador UniFi.",
+        "description": "Introduce los datos de tu controlador UniFi. Usa una clave API (recomendado desde UniFi OS 4.x) o un usuario y contraseña.",
         "data": {
           "url": "URL del controlador",
           "username": "Nombre de usuario",
           "password": "Contraseña",
           "site": "Sitio",
-          "verify_ssl": "Verificar SSL"
+          "verify_ssl": "Verificar SSL",
+          "api_key": "Clave API"
         },
         "data_description": {
-          "url": "Incluye el esquema (http o https) y el puerto si es necesario."
+          "url": "Incluye el esquema (http o https) y el puerto si es necesario.",
+          "api_key": "Clave API a nivel de sitio desde UniFi OS (Ajustes -> Control Plane -> Integraciones). Úsala en lugar de usuario y contraseña."
         }
       },
       "init": {
@@ -70,7 +78,7 @@
       "invalid_url": "Introduce una URL de controlador válida que incluya http o https.",
       "url_has_credentials": "No incluyas usuario ni contraseña en la URL. Usa los campos separados de abajo.",
       "invalid_port": "La URL contiene un número de puerto inválido. Los puertos deben estar entre 1 y 65535.",
-      "empty_credential": "El nombre de usuario, contraseña y sitio no pueden estar vacíos.",
+      "empty_credential": "Indica un sitio, además de una clave API o usuario y contraseña (no ambos métodos de autenticación).",
       "invalid_auth": "Usuario o contraseña inválidos.",
       "cannot_connect": "No se puede conectar al controlador UniFi."
     },

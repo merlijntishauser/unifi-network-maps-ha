@@ -4,10 +4,14 @@
     "step": {
       "reauth_confirm": {
         "title": "Endurauðkenna",
-        "description": "UniFi-innskráningarupplýsingarnar þínar eru ekki lengur gildar. Vinsamlegast sláðu inn notandanafn og lykilorð aftur.",
+        "description": "UniFi-aðgangsupplýsingarnar þínar eru ekki lengur gildar. Sláðu inn notandanafn og lykilorð aftur, eða gefðu upp API-lykil.",
         "data": {
           "username": "Notandanafn",
-          "password": "Lykilorð"
+          "password": "Lykilorð",
+          "api_key": "API-lykill"
+        },
+        "data_description": {
+          "api_key": "Vefsvæðis-API-lykill úr UniFi OS (Stillingar -> Control Plane -> Samþættingar). Notaðu í stað notandanafns og lykilorðs."
         }
       },
       "reconfigure": {
@@ -18,25 +22,29 @@
           "username": "Notandanafn",
           "password": "Lykilorð",
           "site": "Svæði",
-          "verify_ssl": "Staðfesta SSL"
+          "verify_ssl": "Staðfesta SSL",
+          "api_key": "API-lykill"
         },
         "data_description": {
           "url": "Tilgreindu samskiptareglur (http eða https) og gátt ef þarf.",
-          "verify_ssl": "UniFi-stýringar nota sjálfundirrituð vottorð sjálfgefið, sem munu ekki standast staðfestingu. Virkjaðu aðeins ef þú hefur sett upp traust vottorð."
+          "verify_ssl": "UniFi-stýringar nota sjálfundirrituð vottorð sjálfgefið, sem munu ekki standast staðfestingu. Virkjaðu aðeins ef þú hefur sett upp traust vottorð.",
+          "api_key": "Vefsvæðis-API-lykill úr UniFi OS (Stillingar -> Control Plane -> Samþættingar). Notaðu í stað notandanafns og lykilorðs."
         }
       },
       "user": {
         "title": "Tengjast UniFi",
-        "description": "Sláðu inn upplýsingar um UniFi-stýribúnaðinn.",
+        "description": "Sláðu inn upplýsingar fyrir UniFi-stýringuna. Notaðu annaðhvort API-lykil (mælt með frá UniFi OS 4.x) eða notandanafn og lykilorð.",
         "data": {
           "url": "URL stýribúnaðar",
           "username": "Notandanafn",
           "password": "Lykilorð",
           "site": "Svæði",
-          "verify_ssl": "Staðfesta SSL"
+          "verify_ssl": "Staðfesta SSL",
+          "api_key": "API-lykill"
         },
         "data_description": {
-          "url": "Hafðu með samskiptareglu (http eða https) og gátt ef þörf er á."
+          "url": "Hafðu með samskiptareglu (http eða https) og gátt ef þörf er á.",
+          "api_key": "Vefsvæðis-API-lykill úr UniFi OS (Stillingar -> Control Plane -> Samþættingar). Notaðu í stað notandanafns og lykilorðs."
         }
       },
       "init": {
@@ -69,7 +77,7 @@
     "error": {
       "invalid_url": "Sláðu inn gilda URL stýribúnaðar ásamt http eða https.",
       "url_has_credentials": "Ekki setja notandanafn eða lykilorð í URL-ið. Notaðu aðskilda reitina hér að neðan.",
-      "empty_credential": "Notandanafn, lykilorð og svæði mega ekki vera tóm.",
+      "empty_credential": "Gefðu upp svæði ásamt annaðhvort API-lykli eða bæði notandanafni og lykilorði (ekki báðar auðkenningaraðferðir).",
       "invalid_port": "Vefslóð inniheldur ógilt gáttanúmer. Gáttir verða að vera á milli 1 og 65535.",
       "invalid_auth": "Ógilt notandanafn eða lykilorð.",
       "cannot_connect": "Ekki næst samband við UniFi-stjórnanda."

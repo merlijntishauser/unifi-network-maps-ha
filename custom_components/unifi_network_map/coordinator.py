@@ -11,6 +11,7 @@ from homeassistant.helpers.update_coordinator import (
 
 from .api import UniFiNetworkMapClient
 from .const import (
+    CONF_API_KEY,
     CONF_CLIENT_SCOPE,
     CONF_ICON_SET,
     CONF_INCLUDE_CLIENTS,
@@ -206,8 +207,9 @@ def _build_client(
     _validate_required_keys(data)
     return UniFiNetworkMapClient(
         base_url=data[CONF_URL],
-        username=data[CONF_USERNAME],
-        password=data[CONF_PASSWORD],
+        username=data.get(CONF_USERNAME),
+        password=data.get(CONF_PASSWORD),
+        api_key=data.get(CONF_API_KEY),
         site=data[CONF_SITE],
         verify_ssl=data.get(CONF_VERIFY_SSL, True),
         settings=_build_settings(entry),
@@ -217,14 +219,23 @@ def _build_client(
     )
 
 
-_REQUIRED_KEYS = (CONF_URL, CONF_USERNAME, CONF_PASSWORD, CONF_SITE)
+_REQUIRED_BASE_KEYS = (CONF_URL, CONF_SITE)
 
 
 def _validate_required_keys(data: Mapping[str, Any]) -> None:
-    missing = [key for key in _REQUIRED_KEYS if key not in data]
+    missing = [key for key in _REQUIRED_BASE_KEYS if key not in data]
     if missing:
         raise UniFiNetworkMapError(
             f"Missing required config keys: {', '.join(missing)}"
+        )
+    has_password = bool(data.get(CONF_USERNAME)) and bool(
+        data.get(CONF_PASSWORD)
+    )
+    has_api_key = bool(data.get(CONF_API_KEY))
+    if not (has_password or has_api_key):
+        raise UniFiNetworkMapError(
+            "Missing UniFi credentials: provide either"
+            f" {CONF_API_KEY} or both {CONF_USERNAME} and {CONF_PASSWORD}"
         )
 
 

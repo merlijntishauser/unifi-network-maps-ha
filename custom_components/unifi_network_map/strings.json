@@ -4,10 +4,14 @@
     "step": {
       "reauth_confirm": {
         "title": "Re-authenticate",
-        "description": "Your UniFi credentials are no longer valid. Please re-enter your username and password.",
+        "description": "Your UniFi credentials are no longer valid. Re-enter your username and password, or supply an API key.",
         "data": {
           "username": "Username",
-          "password": "Password"
+          "password": "Password",
+          "api_key": "API key"
+        },
+        "data_description": {
+          "api_key": "Site-level API key from UniFi OS (Settings -> Control Plane -> Integrations). Use this instead of username and password."
         }
       },
       "reconfigure": {
@@ -17,26 +21,30 @@
           "url": "Controller URL",
           "username": "Username",
           "password": "Password",
+          "api_key": "API key",
           "site": "Site",
           "verify_ssl": "Verify SSL"
         },
         "data_description": {
           "url": "Include the scheme (http or https) and port if needed.",
+          "api_key": "Site-level API key from UniFi OS (Settings -> Control Plane -> Integrations). Use this instead of username and password.",
           "verify_ssl": "UniFi controllers use self-signed certificates by default, which will fail verification. Only enable if you have installed a trusted certificate."
         }
       },
       "user": {
         "title": "Connect to UniFi",
-        "description": "Enter your UniFi controller details.",
+        "description": "Enter your UniFi controller details. Use either an API key (recommended on UniFi OS 4.x and later) or a username and password.",
         "data": {
           "url": "Controller URL",
           "username": "Username",
           "password": "Password",
+          "api_key": "API key",
           "site": "Site",
           "verify_ssl": "Verify SSL"
         },
         "data_description": {
           "url": "Include the scheme (http or https) and port if needed.",
+          "api_key": "Site-level API key from UniFi OS (Settings -> Control Plane -> Integrations). Use this instead of username and password.",
           "verify_ssl": "UniFi controllers use self-signed certificates by default, which will fail verification. Only enable if you have installed a trusted certificate."
         }
       },
@@ -71,7 +79,7 @@
       "invalid_url": "Enter a valid controller URL including http or https.",
       "url_has_credentials": "Do not include username or password in the URL. Use the separate fields below.",
       "invalid_port": "The URL contains an invalid port number. Ports must be between 1 and 65535.",
-      "empty_credential": "Username, password, and site cannot be empty.",
+      "empty_credential": "Provide a site, plus either an API key or both username and password (not both auth methods).",
       "invalid_auth": "Invalid username or password.",
       "cannot_connect": "Cannot connect to the UniFi controller."
     },

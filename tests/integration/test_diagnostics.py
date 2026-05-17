@@ -42,6 +42,18 @@ async def test_diagnostics_without_coordinator() -> None:
     assert result["map_summary"] is None
 
 
+async def test_diagnostics_redacts_api_key() -> None:
+    hass = FakeHass()
+    entry = build_entry()
+    entry.data = {**entry.data, "api_key": "super-secret-key"}
+
+    result = await diagnostics.async_get_config_entry_diagnostics(hass, entry)
+
+    redacted = result["entry"]["data"]
+    assert redacted["api_key"] != "super-secret-key"
+    assert "super-secret-key" not in str(redacted)
+
+
 async def test_diagnostics_summary_with_payload(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -4,10 +4,14 @@
     "step": {
       "reauth_confirm": {
         "title": "Todenna uudelleen",
-        "description": "UniFi-tunnistetietosi eivät ole enää voimassa. Syötä käyttäjänimesi ja salasanasi uudelleen.",
+        "description": "UniFi-tunnistetietosi eivät ole enää voimassa. Anna käyttäjänimi ja salasana uudelleen tai määritä API-avain.",
         "data": {
           "username": "Käyttäjänimi",
-          "password": "Salasana"
+          "password": "Salasana",
+          "api_key": "API-avain"
+        },
+        "data_description": {
+          "api_key": "Sivustokohtainen API-avain UniFi OS:stä (Asetukset -> Control Plane -> Integraatiot). Käytä käyttäjänimen ja salasanan sijaan."
         }
       },
       "reconfigure": {
@@ -18,25 +22,29 @@
           "username": "Käyttäjänimi",
           "password": "Salasana",
           "site": "Sivusto",
-          "verify_ssl": "Vahvista SSL"
+          "verify_ssl": "Vahvista SSL",
+          "api_key": "API-avain"
         },
         "data_description": {
           "url": "Sisällytä protokolla (http tai https) ja portti tarvittaessa.",
-          "verify_ssl": "UniFi-ohjaimet käyttävät oletuksena itseallekirjoitettuja varmenteita, jotka eivät läpäise vahvistusta. Ota käyttöön vain jos olet asentanut luotetun varmenteen."
+          "verify_ssl": "UniFi-ohjaimet käyttävät oletuksena itseallekirjoitettuja varmenteita, jotka eivät läpäise vahvistusta. Ota käyttöön vain jos olet asentanut luotetun varmenteen.",
+          "api_key": "Sivustokohtainen API-avain UniFi OS:stä (Asetukset -> Control Plane -> Integraatiot). Käytä käyttäjänimen ja salasanan sijaan."
         }
       },
       "user": {
         "title": "Yhdistä UniFi-ohjaimeen",
-        "description": "Syötä UniFi-ohjaimen tiedot.",
+        "description": "Anna UniFi-ohjaimen tiedot. Käytä joko API-avainta (suositus UniFi OS 4.x:stä alkaen) tai käyttäjänimeä ja salasanaa.",
         "data": {
           "url": "Ohjaimen URL",
           "username": "Käyttäjänimi",
           "password": "Salasana",
           "site": "Sivusto",
-          "verify_ssl": "Vahvista SSL"
+          "verify_ssl": "Vahvista SSL",
+          "api_key": "API-avain"
         },
         "data_description": {
-          "url": "Sisällytä protokolla (http tai https) ja portti tarvittaessa."
+          "url": "Sisällytä protokolla (http tai https) ja portti tarvittaessa.",
+          "api_key": "Sivustokohtainen API-avain UniFi OS:stä (Asetukset -> Control Plane -> Integraatiot). Käytä käyttäjänimen ja salasanan sijaan."
         }
       },
       "init": {
@@ -69,7 +77,7 @@
     "error": {
       "invalid_url": "Syötä kelvollinen ohjaimen URL, joka sisältää http tai https.",
       "url_has_credentials": "Älä sisällytä käyttäjänimeä tai salasanaa URL-osoitteeseen. Käytä erillisiä kenttiä alla.",
-      "empty_credential": "Käyttäjänimi, salasana ja sivusto eivät saa olla tyhjiä.",
+      "empty_credential": "Anna sivusto sekä joko API-avain tai käyttäjänimi ja salasana (älä molempia todennusmenetelmiä).",
       "invalid_port": "URL sisältää virheellisen porttinumeron. Porttien on oltava välillä 1–65535.",
       "invalid_auth": "Virheellinen käyttäjänimi tai salasana.",
       "cannot_connect": "UniFi-ohjaimeen ei saada yhteyttä."

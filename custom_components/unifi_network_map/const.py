@@ -27,6 +27,7 @@ MAX_PAYLOAD_CACHE_TTL_SECONDS = 300
 CLIENT_SCOPE_OPTIONS = ["wired", "wireless", "all"]
 
 CONF_SITE = "site"
+CONF_API_KEY = "api_key"
 CONF_VERIFY_SSL = "verify_ssl"
 CONF_INCLUDE_PORTS = "include_ports"
 CONF_INCLUDE_CLIENTS = "include_clients"

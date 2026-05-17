@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 
+from .const import CONF_API_KEY
 from .http import (
     get_state_entity_macs,
     get_unifi_entity_mac_stats,
@@ -22,7 +23,7 @@ if TYPE_CHECKING:
         UniFiNetworkMapData,
     )
 
-_REDACT_KEYS = {CONF_PASSWORD, CONF_USERNAME}
+_REDACT_KEYS = {CONF_PASSWORD, CONF_USERNAME, CONF_API_KEY}
 
 
 async def async_get_config_entry_diagnostics(

@@ -4,10 +4,14 @@
     "step": {
       "reauth_confirm": {
         "title": "Opnieuw authenticeren",
-        "description": "Je UniFi-inloggegevens zijn niet meer geldig. Voer je gebruikersnaam en wachtwoord opnieuw in.",
+        "description": "Je UniFi-inloggegevens zijn niet meer geldig. Voer je gebruikersnaam en wachtwoord opnieuw in, of geef een API-sleutel op.",
         "data": {
           "username": "Gebruikersnaam",
-          "password": "Wachtwoord"
+          "password": "Wachtwoord",
+          "api_key": "API-sleutel"
+        },
+        "data_description": {
+          "api_key": "Site-API-sleutel uit UniFi OS (Instellingen -> Control Plane -> Integraties). Gebruik deze in plaats van gebruikersnaam en wachtwoord."
         }
       },
       "reconfigure": {
@@ -18,25 +22,29 @@
           "username": "Gebruikersnaam",
           "password": "Wachtwoord",
           "site": "Site",
-          "verify_ssl": "SSL verifiëren"
+          "verify_ssl": "SSL verifiëren",
+          "api_key": "API-sleutel"
         },
         "data_description": {
           "url": "Vermeld het schema (http of https) en de poort indien nodig.",
-          "verify_ssl": "UniFi-controllers gebruiken standaard zelfondertekende certificaten, die de verificatie niet doorstaan. Schakel dit alleen in als je een vertrouwd certificaat hebt geïnstalleerd."
+          "verify_ssl": "UniFi-controllers gebruiken standaard zelfondertekende certificaten, die de verificatie niet doorstaan. Schakel dit alleen in als je een vertrouwd certificaat hebt geïnstalleerd.",
+          "api_key": "Site-API-sleutel uit UniFi OS (Instellingen -> Control Plane -> Integraties). Gebruik deze in plaats van gebruikersnaam en wachtwoord."
         }
       },
       "user": {
         "title": "Verbinden met UniFi",
-        "description": "Voer je UniFi-controllergegevens in.",
+        "description": "Voer de gegevens van je UniFi-controller in. Gebruik een API-sleutel (aanbevolen vanaf UniFi OS 4.x) of een gebruikersnaam en wachtwoord.",
         "data": {
           "url": "Controller-URL",
           "username": "Gebruikersnaam",
           "password": "Wachtwoord",
           "site": "Site",
-          "verify_ssl": "SSL verifiëren"
+          "verify_ssl": "SSL verifiëren",
+          "api_key": "API-sleutel"
         },
         "data_description": {
-          "url": "Gebruik het schema (http of https) en poort indien nodig."
+          "url": "Gebruik het schema (http of https) en poort indien nodig.",
+          "api_key": "Site-API-sleutel uit UniFi OS (Instellingen -> Control Plane -> Integraties). Gebruik deze in plaats van gebruikersnaam en wachtwoord."
         }
       },
       "init": {
@@ -70,7 +78,7 @@
       "invalid_url": "Voer een geldige controller-URL in inclusief http of https.",
       "url_has_credentials": "Voeg geen gebruikersnaam of wachtwoord toe aan de URL. Gebruik de aparte velden hieronder.",
       "invalid_port": "De URL bevat een ongeldig poortnummer. Poorten moeten tussen 1 en 65535 liggen.",
-      "empty_credential": "Gebruikersnaam, wachtwoord en site mogen niet leeg zijn.",
+      "empty_credential": "Geef een site op, plus een API-sleutel of zowel gebruikersnaam als wachtwoord (niet beide auth-methoden).",
       "invalid_auth": "Ongeldige gebruikersnaam of wachtwoord.",
       "cannot_connect": "Kan geen verbinding maken met de UniFi-controller."
     },

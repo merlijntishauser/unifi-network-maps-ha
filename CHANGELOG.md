@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- API key authentication: optional `X-API-KEY` header auth as an alternative to username/password, using site-level API keys from UniFi OS 4.x / Network 9.x (Settings -> Control Plane -> Integrations). Avoids brute-force lockouts on coordinator re-auth and supports least-privilege deployments (#211)
+- API key field added to the setup, reconfigure, and reauth flows; existing username/password configs continue to work unchanged
+
+### Changed
+- Bumped `unifi-topology` from 2.1.2 to 2.2.0 (api_key support in `Config` and request client)
+
 ## [0.5.2] - 2026-03-28
 
 ### Fixed

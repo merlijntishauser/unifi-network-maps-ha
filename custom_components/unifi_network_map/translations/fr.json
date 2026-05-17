@@ -4,10 +4,14 @@
     "step": {
       "reauth_confirm": {
         "title": "Réauthentification",
-        "description": "Vos identifiants UniFi ne sont plus valides. Veuillez saisir à nouveau votre nom d'utilisateur et votre mot de passe.",
+        "description": "Vos identifiants UniFi ne sont plus valides. Saisissez à nouveau votre nom d'utilisateur et votre mot de passe, ou fournissez une clé API.",
         "data": {
           "username": "Nom d'utilisateur",
-          "password": "Mot de passe"
+          "password": "Mot de passe",
+          "api_key": "Clé API"
+        },
+        "data_description": {
+          "api_key": "Clé API au niveau du site depuis UniFi OS (Paramètres -> Control Plane -> Intégrations). À utiliser à la place du nom d'utilisateur et du mot de passe."
         }
       },
       "reconfigure": {
@@ -18,25 +22,29 @@
           "username": "Nom d'utilisateur",
           "password": "Mot de passe",
           "site": "Site",
-          "verify_ssl": "Vérifier SSL"
+          "verify_ssl": "Vérifier SSL",
+          "api_key": "Clé API"
         },
         "data_description": {
           "url": "Incluez le schéma (http ou https) et le port si nécessaire.",
-          "verify_ssl": "Les contrôleurs UniFi utilisent des certificats auto-signés par défaut, ce qui échouera à la vérification. N'activez que si vous avez installé un certificat de confiance."
+          "verify_ssl": "Les contrôleurs UniFi utilisent des certificats auto-signés par défaut, ce qui échouera à la vérification. N'activez que si vous avez installé un certificat de confiance.",
+          "api_key": "Clé API au niveau du site depuis UniFi OS (Paramètres -> Control Plane -> Intégrations). À utiliser à la place du nom d'utilisateur et du mot de passe."
         }
       },
       "user": {
         "title": "Connexion à UniFi",
-        "description": "Saisissez les informations de votre contrôleur UniFi.",
+        "description": "Saisissez les détails de votre contrôleur UniFi. Utilisez soit une clé API (recommandée à partir d'UniFi OS 4.x), soit un nom d'utilisateur et un mot de passe.",
         "data": {
           "url": "URL du contrôleur",
           "username": "Nom d’utilisateur",
           "password": "Mot de passe",
           "site": "Site",
-          "verify_ssl": "Vérifier le SSL"
+          "verify_ssl": "Vérifier le SSL",
+          "api_key": "Clé API"
         },
         "data_description": {
-          "url": "Incluez le schéma (http ou https) et le port si nécessaire."
+          "url": "Incluez le schéma (http ou https) et le port si nécessaire.",
+          "api_key": "Clé API au niveau du site depuis UniFi OS (Paramètres -> Control Plane -> Intégrations). À utiliser à la place du nom d'utilisateur et du mot de passe."
         }
       },
       "init": {
@@ -70,7 +78,7 @@
       "invalid_url": "Saisissez une URL de contrôleur valide incluant http ou https.",
       "url_has_credentials": "N'incluez pas le nom d'utilisateur ou le mot de passe dans l'URL. Utilisez les champs séparés ci-dessous.",
       "invalid_port": "L'URL contient un numéro de port invalide. Les ports doivent être compris entre 1 et 65535.",
-      "empty_credential": "Le nom d'utilisateur, le mot de passe et le site ne peuvent pas être vides.",
+      "empty_credential": "Indiquez un site, ainsi qu'une clé API ou un nom d'utilisateur et un mot de passe (pas les deux méthodes d'authentification).",
       "invalid_auth": "Nom d'utilisateur ou mot de passe invalide.",
       "cannot_connect": "Impossible de se connecter au contrôleur UniFi."
     },

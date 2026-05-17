@@ -14,6 +14,7 @@ from yarl import URL
 
 from .api import validate_unifi_credentials
 from .const import (
+    CONF_API_KEY,
     CONF_CLIENT_SCOPE,
     CONF_INCLUDE_CLIENTS,
     CONF_INCLUDE_PORTS,
@@ -89,9 +90,12 @@ class UniFiNetworkMapConfigFlow(  # type: ignore[reportUntypedBaseClass,reportGe
         reauth_entry = self._get_reauth_entry()
 
         if user_input is not None:
-            data = {**reauth_entry.data, **user_input}
+            data = _merge_reauth_data(reauth_entry.data, user_input)
             try:
+                _validate_credentials(data)
                 await self._async_validate_auth(data)
+            except EmptyCredential:
+                errors["base"] = "empty_credential"
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
             except CannotConnect:
@@ -105,8 +109,9 @@ class UniFiNetworkMapConfigFlow(  # type: ignore[reportUntypedBaseClass,reportGe
             step_id="reauth_confirm",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_USERNAME): str,
-                    vol.Required(CONF_PASSWORD): str,
+                    vol.Optional(CONF_USERNAME): str,
+                    vol.Optional(CONF_PASSWORD): str,
+                    vol.Optional(CONF_API_KEY): str,
                 }
             ),
             errors=errors,
@@ -175,12 +180,8 @@ class UniFiNetworkMapConfigFlow(  # type: ignore[reportUntypedBaseClass,reportGe
 
     async def _async_validate_auth(self, data: dict[str, Any]) -> None:
         await self.hass.async_add_executor_job(
-            validate_unifi_credentials,
-            data[CONF_URL],
-            data[CONF_USERNAME],
-            data[CONF_PASSWORD],
-            data[CONF_SITE],
-            data[CONF_VERIFY_SSL],
+            _validate_credentials_call,
+            data,
         )
 
     async def _validate_user_input(
@@ -246,17 +247,19 @@ class UniFiNetworkMapOptionsFlow(config_entries.OptionsFlow):  # type: ignore[re
 def _suggested_values_on_error(user_input: dict[str, Any]) -> dict[str, Any]:
     """Return values to pre-fill when re-showing the form after an error.
 
-    Excludes password so the user doesn't resubmit a wrong password.
+    Excludes secret fields so they aren't resubmitted.
     """
-    return {k: v for k, v in user_input.items() if k != CONF_PASSWORD}
+    secrets = {CONF_PASSWORD, CONF_API_KEY}
+    return {k: v for k, v in user_input.items() if k not in secrets}
 
 
 def _build_schema() -> vol.Schema:
     return vol.Schema(
         {
             vol.Required(CONF_URL): str,
-            vol.Required(CONF_USERNAME): str,
-            vol.Required(CONF_PASSWORD): str,
+            vol.Optional(CONF_USERNAME): str,
+            vol.Optional(CONF_PASSWORD): str,
+            vol.Optional(CONF_API_KEY): str,
             vol.Required(CONF_SITE, default=DEFAULT_SITE): str,
             vol.Optional(CONF_VERIFY_SSL, default=DEFAULT_VERIFY_SSL): bool,
         }
@@ -269,11 +272,12 @@ def _build_reconfigure_schema(
     return vol.Schema(
         {
             vol.Required(CONF_URL, default=current.get(CONF_URL, "")): str,
-            vol.Required(
+            vol.Optional(
                 CONF_USERNAME,
                 default=current.get(CONF_USERNAME, ""),
             ): str,
-            vol.Required(CONF_PASSWORD): str,
+            vol.Optional(CONF_PASSWORD): str,
+            vol.Optional(CONF_API_KEY): str,
             vol.Required(
                 CONF_SITE,
                 default=current.get(CONF_SITE, DEFAULT_SITE),
@@ -439,7 +443,39 @@ def _prepare_entry_data(user_input: dict[str, Any]) -> dict[str, Any]:
     normalized_url = _normalize_url(user_input.get(CONF_URL, ""))
     _validate_url(normalized_url)
     _validate_credentials(user_input)
-    return {**user_input, CONF_URL: normalized_url}
+    data = {**user_input, CONF_URL: normalized_url}
+    for key in (CONF_USERNAME, CONF_PASSWORD, CONF_API_KEY):
+        if not _is_present(data.get(key)):
+            data.pop(key, None)
+    return data
+
+
+def _is_present(value: object) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _merge_reauth_data(
+    existing: Mapping[str, Any], user_input: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Merge reauth input over existing entry data, dropping stale auth fields.
+
+    When the user supplies new credentials of one type, drop the credentials
+    of the other type so the new auth mode wins cleanly.
+    """
+    merged: dict[str, Any] = {**existing, **user_input}
+    new_has_password = _is_present(
+        user_input.get(CONF_USERNAME)
+    ) and _is_present(user_input.get(CONF_PASSWORD))
+    new_has_api_key = _is_present(user_input.get(CONF_API_KEY))
+    if new_has_api_key and not new_has_password:
+        merged.pop(CONF_USERNAME, None)
+        merged.pop(CONF_PASSWORD, None)
+    elif new_has_password and not new_has_api_key:
+        merged.pop(CONF_API_KEY, None)
+    for key in (CONF_USERNAME, CONF_PASSWORD, CONF_API_KEY):
+        if not _is_present(merged.get(key)):
+            merged.pop(key, None)
+    return merged
 
 
 def _normalize_url(url: str) -> str:
@@ -462,16 +498,45 @@ def _validate_url(url: str) -> None:
 
 
 def _validate_credentials(user_input: dict[str, Any]) -> None:
-    """Validate that required credential fields are not empty."""
-    username = user_input.get(CONF_USERNAME, "")
-    password = user_input.get(CONF_PASSWORD, "")
+    """Validate that required credential fields are not empty.
+
+    Exactly one of (username + password) OR api_key must be provided.
+    """
     site = user_input.get(CONF_SITE, "")
-    if not isinstance(username, str) or not username.strip():
-        raise EmptyCredential
-    if not isinstance(password, str) or not password:
-        raise EmptyCredential
     if not isinstance(site, str) or not site.strip():
         raise EmptyCredential
+    has_password_auth = _has_password_auth(user_input)
+    has_api_key = _has_api_key(user_input)
+    if has_password_auth == has_api_key:
+        raise EmptyCredential
+
+
+def _has_password_auth(user_input: dict[str, Any]) -> bool:
+    username = user_input.get(CONF_USERNAME) or ""
+    password = user_input.get(CONF_PASSWORD) or ""
+    return (
+        isinstance(username, str)
+        and bool(username.strip())
+        and isinstance(password, str)
+        and bool(password)
+    )
+
+
+def _has_api_key(user_input: dict[str, Any]) -> bool:
+    api_key = user_input.get(CONF_API_KEY) or ""
+    return isinstance(api_key, str) and bool(api_key.strip())
+
+
+def _validate_credentials_call(data: dict[str, Any]) -> None:
+    """Executor entry point that forwards entry data to the validator."""
+    validate_unifi_credentials(
+        base_url=data[CONF_URL],
+        username=data.get(CONF_USERNAME) or None,
+        password=data.get(CONF_PASSWORD) or None,
+        site=data[CONF_SITE],
+        verify_ssl=data[CONF_VERIFY_SSL],
+        api_key=data.get(CONF_API_KEY) or None,
+    )
 
 
 def _build_unique_id(data: dict[str, Any]) -> str:

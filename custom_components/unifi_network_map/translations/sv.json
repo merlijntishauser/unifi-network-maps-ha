@@ -4,10 +4,14 @@
     "step": {
       "reauth_confirm": {
         "title": "Autentisera igen",
-        "description": "Dina UniFi-inloggningsuppgifter är inte längre giltiga. Ange ditt användarnamn och lösenord igen.",
+        "description": "Dina UniFi-inloggningsuppgifter är inte längre giltiga. Ange användarnamn och lösenord på nytt, eller ange en API-nyckel.",
         "data": {
           "username": "Användarnamn",
-          "password": "Lösenord"
+          "password": "Lösenord",
+          "api_key": "API-nyckel"
+        },
+        "data_description": {
+          "api_key": "Platsspecifik API-nyckel från UniFi OS (Inställningar -> Control Plane -> Integrationer). Använd istället för användarnamn och lösenord."
         }
       },
       "reconfigure": {
@@ -18,25 +22,29 @@
           "username": "Användarnamn",
           "password": "Lösenord",
           "site": "Plats",
-          "verify_ssl": "Verifiera SSL"
+          "verify_ssl": "Verifiera SSL",
+          "api_key": "API-nyckel"
         },
         "data_description": {
           "url": "Inkludera protokollet (http eller https) och port vid behov.",
-          "verify_ssl": "UniFi-kontroller använder självsignerade certifikat som standard, vilket inte godkänns vid verifiering. Aktivera endast om du har installerat ett betrott certifikat."
+          "verify_ssl": "UniFi-kontroller använder självsignerade certifikat som standard, vilket inte godkänns vid verifiering. Aktivera endast om du har installerat ett betrott certifikat.",
+          "api_key": "Platsspecifik API-nyckel från UniFi OS (Inställningar -> Control Plane -> Integrationer). Använd istället för användarnamn och lösenord."
         }
       },
       "user": {
         "title": "Anslut till UniFi",
-        "description": "Ange dina UniFi-kontrolleruppgifter.",
+        "description": "Ange uppgifterna för din UniFi-kontroller. Använd en API-nyckel (rekommenderas från UniFi OS 4.x) eller användarnamn och lösenord.",
         "data": {
           "url": "Kontroller-URL",
           "username": "Användarnamn",
           "password": "Lösenord",
           "site": "Plats",
-          "verify_ssl": "Verifiera SSL"
+          "verify_ssl": "Verifiera SSL",
+          "api_key": "API-nyckel"
         },
         "data_description": {
-          "url": "Inkludera schemat (http eller https) och port vid behov."
+          "url": "Inkludera schemat (http eller https) och port vid behov.",
+          "api_key": "Platsspecifik API-nyckel från UniFi OS (Inställningar -> Control Plane -> Integrationer). Använd istället för användarnamn och lösenord."
         }
       },
       "init": {
@@ -69,7 +77,7 @@
     "error": {
       "invalid_url": "Ange en giltig kontroller-URL inklusive http eller https.",
       "url_has_credentials": "Inkludera inte användarnamn eller lösenord i URL:en. Använd de separata fälten nedan.",
-      "empty_credential": "Användarnamn, lösenord och plats får inte vara tomma.",
+      "empty_credential": "Ange en plats samt antingen en API-nyckel eller både användarnamn och lösenord (inte båda autentiseringsmetoderna).",
       "invalid_port": "URL:en innehåller ett ogiltigt portnummer. Portar måste vara mellan 1 och 65535.",
       "invalid_auth": "Ogiltigt användarnamn eller lösenord.",
       "cannot_connect": "Kan inte ansluta till UniFi-kontrollern."

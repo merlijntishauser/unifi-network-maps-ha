@@ -31,12 +31,13 @@ _ssl_warning_filter: logging.Filter | None = None
 @dataclass(slots=True)
 class UniFiNetworkMapClient:
     base_url: str
-    username: str
-    password: str
+    username: str | None
+    password: str | None
     site: str
     verify_ssl: bool
     settings: RenderSettings
     request_timeout_seconds: float | None = None
+    api_key: str | None = None
     _cache_data: UniFiNetworkMapData | None = field(default=None, init=False)
     _cache_time: float | None = field(default=None, init=False)
 
@@ -48,17 +49,19 @@ class UniFiNetworkMapClient:
             LOGGER.debug("api fetch_map cache_hit=true site=%s", self.site)
             return cached
         LOGGER.debug(
-            "api fetch_map started site=%s verify_ssl=%s timeout=%s",
+            "api fetch_map started site=%s verify_ssl=%s timeout=%s auth=%s",
             self.site,
             self.verify_ssl,
             self.request_timeout_seconds,
+            "api_key" if self.api_key else "password",
         )
-        config = Config(
-            url=self.base_url,
-            site=self.site,
-            user=self.username,
+        config = _build_config(
+            base_url=self.base_url,
+            username=self.username,
             password=self.password,
+            site=self.site,
             verify_ssl=self.verify_ssl,
+            api_key=self.api_key,
         )
         data = _render_map_payload(config, self.settings)
         self._store_cache(data)
@@ -83,31 +86,47 @@ class UniFiNetworkMapClient:
 
 def validate_unifi_credentials(
     base_url: str,
-    username: str,
-    password: str,
+    username: str | None,
+    password: str | None,
     site: str,
     verify_ssl: bool,
+    api_key: str | None = None,
 ) -> None:
     LOGGER.debug(
-        "api validate_credentials started site=%s verify_ssl=%s",
+        "api validate_credentials started site=%s verify_ssl=%s auth=%s",
         site,
         verify_ssl,
+        "api_key" if api_key else "password",
     )
     _ensure_unifi_ssl_warning_filter(verify_ssl)
     _ensure_unifi_request_timeout(None)
-    config = _build_config(base_url, username, password, site, verify_ssl)
+    config = _build_config(
+        base_url=base_url,
+        username=username,
+        password=password,
+        site=site,
+        verify_ssl=verify_ssl,
+        api_key=api_key,
+    )
     _assert_unifi_connectivity(config, site)
     LOGGER.debug("api validate_credentials succeeded site=%s", site)
 
 
 def _build_config(
-    base_url: str, username: str, password: str, site: str, verify_ssl: bool
+    *,
+    base_url: str,
+    username: str | None,
+    password: str | None,
+    site: str,
+    verify_ssl: bool,
+    api_key: str | None = None,
 ) -> Config:
     return Config(
         url=base_url,
         site=site,
         user=username,
         password=password,
+        api_key=api_key,
         verify_ssl=verify_ssl,
     )
 

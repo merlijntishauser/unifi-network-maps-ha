@@ -159,7 +159,14 @@ def test_render_map_payload_maps_request_errors(
 
     with pytest.raises(CannotConnect):
         render_map_payload(
-            api_module.Config("url", "site", "u", "p", True), _build_settings()
+            api_module.Config(
+                url="url",
+                site="site",
+                user="u",
+                password="p",
+                verify_ssl=True,
+            ),
+            _build_settings(),
         )
 
 
@@ -198,7 +205,13 @@ def test_assert_unifi_connectivity_maps_invalid_auth(
             getattr(api_module, "_assert_unifi_connectivity"),
         )
         assert_unifi_connectivity(
-            api_module.Config("url", "site", "u", "p", True),
+            api_module.Config(
+                url="url",
+                site="site",
+                user="u",
+                password="p",
+                verify_ssl=True,
+            ),
             "site",
         )
 
@@ -217,7 +230,13 @@ def test_assert_unifi_connectivity_maps_cannot_connect(
             getattr(api_module, "_assert_unifi_connectivity"),
         )
         assert_unifi_connectivity(
-            api_module.Config("url", "site", "u", "p", True),
+            api_module.Config(
+                url="url",
+                site="site",
+                user="u",
+                password="p",
+                verify_ssl=True,
+            ),
             "site",
         )
 
@@ -240,7 +259,14 @@ def test_render_map_payload_maps_auth_error(
             getattr(api_module, "_render_map_payload"),
         )
         render_map_payload(
-            api_module.Config("url", "site", "u", "p", True), _build_settings()
+            api_module.Config(
+                url="url",
+                site="site",
+                user="u",
+                password="p",
+                verify_ssl=True,
+            ),
+            _build_settings(),
         )
 
 
@@ -305,3 +331,36 @@ def test_store_cache_noop_when_cache_disabled() -> None:
     data = UniFiNetworkMapData(svg="<svg />", payload={})
     client._store_cache(data)
     assert client._cache_data is None
+
+
+def test_client_forwards_api_key_to_config(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When api_key is set, the upstream Config carries it instead of creds."""
+    settings = _build_settings()
+    client = api_module.UniFiNetworkMapClient(
+        base_url="https://controller",
+        username=None,
+        password=None,
+        site="default",
+        verify_ssl=True,
+        settings=settings,
+        api_key="topsecret",
+    )
+    captured: dict[str, object] = {}
+
+    def _render_payload(
+        config: api_module.Config, _settings: object
+    ) -> UniFiNetworkMapData:
+        captured["config"] = config
+        return UniFiNetworkMapData(svg="<svg />", payload={})
+
+    monkeypatch.setattr(api_module, "_render_map_payload", _render_payload)
+
+    client.fetch_map()
+
+    config = captured["config"]
+    assert isinstance(config, api_module.Config)
+    assert config.api_key == "topsecret"
+    assert config.user is None
+    assert config.password is None

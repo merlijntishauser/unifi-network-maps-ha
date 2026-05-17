@@ -8,6 +8,7 @@ from custom_components.unifi_network_map import (
     config_flow as config_flow_module,
 )
 from custom_components.unifi_network_map.const import (
+    CONF_API_KEY,
     CONF_SHOW_WAN,
     CONF_SITE,
     CONF_SVG_HEIGHT,
@@ -654,3 +655,93 @@ async def test_reconfigure_invalid_url(monkeypatch):
 
     assert result["type"] == "form"
     assert result["errors"]["base"] == "invalid_url"
+
+
+def _api_key_input() -> dict[str, object]:
+    return {
+        CONF_URL: "https://unifi.local/",
+        CONF_API_KEY: "abc123",
+        CONF_SITE: DEFAULT_SITE,
+        CONF_VERIFY_SSL: DEFAULT_VERIFY_SSL,
+    }
+
+
+async def test_step_user_accepts_api_key_only(monkeypatch):
+    """API key alone (no username/password) is a valid auth mode."""
+    captured: dict[str, object] = {}
+
+    def _validate(*_args: object, **kwargs: object) -> None:
+        captured.update(kwargs)
+
+    monkeypatch.setattr(
+        config_flow_module, "validate_unifi_credentials", _validate
+    )
+    result = await _make_flow().async_step_user(_api_key_input())
+
+    assert result["type"] == "create_entry"
+    assert result["data"][CONF_API_KEY] == "abc123"
+    assert CONF_USERNAME not in result["data"]
+    assert CONF_PASSWORD not in result["data"]
+
+
+async def test_step_user_rejects_when_no_credentials_provided(monkeypatch):
+    """Neither api_key nor username/password is an empty_credential error."""
+
+    def _validate(*_args: object, **_kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(
+        config_flow_module, "validate_unifi_credentials", _validate
+    )
+    bad_input: dict[str, object] = {
+        CONF_URL: "https://unifi.local/",
+        CONF_SITE: DEFAULT_SITE,
+        CONF_VERIFY_SSL: DEFAULT_VERIFY_SSL,
+    }
+    result = await _make_flow().async_step_user(bad_input)
+
+    assert result["type"] == "form"
+    assert result["errors"]["base"] == "empty_credential"
+
+
+async def test_step_user_rejects_api_key_combined_with_password(monkeypatch):
+    """Supplying both auth modes is rejected to avoid ambiguous configs."""
+
+    def _validate(*_args: object, **_kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(
+        config_flow_module, "validate_unifi_credentials", _validate
+    )
+    bad_input = _base_input()
+    bad_input[CONF_API_KEY] = "abc123"
+    result = await _make_flow().async_step_user(bad_input)
+
+    assert result["type"] == "form"
+    assert result["errors"]["base"] == "empty_credential"
+
+
+async def test_step_user_passes_api_key_to_validator(monkeypatch):
+    captured: dict[str, object] = {}
+
+    def _validate(
+        base_url: str,
+        username: object,
+        password: object,
+        site: str,
+        verify_ssl: bool,
+        api_key: object = None,
+    ) -> None:
+        captured["api_key"] = api_key
+        captured["username"] = username
+        captured["password"] = password
+
+    monkeypatch.setattr(
+        config_flow_module, "validate_unifi_credentials", _validate
+    )
+    result = await _make_flow().async_step_user(_api_key_input())
+
+    assert result["type"] == "create_entry"
+    assert captured["api_key"] == "abc123"
+    assert captured["username"] in (None, "")
+    assert captured["password"] in (None, "")
