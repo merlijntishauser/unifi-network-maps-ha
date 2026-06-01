@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Map card disappeared with "XML not well-formed" when a device or client name contained an XML-invalid control character (e.g. U+0003 from a misencoded UniFi name). Upstream fix in `unifi-topology` strips these characters before emitting SVG text (#226)
+
+### Changed
+- Bumped `unifi-topology` from 2.2.0 to 2.2.2 (XML-invalid control character stripping in `_escape_text`)
+- Added contract test that locks in the `_escape_text` strip-then-escape behavior so future upstream bumps cannot silently regress the fix
+
 ## [0.5.3] - 2026-05-17
 
 ### Added
