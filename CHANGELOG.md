@@ -7,12 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.4] - 2026-06-01
+
 ### Fixed
 - Map card disappeared with "XML not well-formed" when a device or client name contained an XML-invalid control character (e.g. U+0003 from a misencoded UniFi name). Upstream fix in `unifi-topology` strips these characters before emitting SVG text (#226)
 
 ### Changed
 - Bumped `unifi-topology` from 2.2.0 to 2.2.2 (XML-invalid control character stripping in `_escape_text`)
 - Added contract test that locks in the `_escape_text` strip-then-escape behavior so future upstream bumps cannot silently regress the fix
+- Bumped DOMPurify from 3.4.2 to 3.4.6 (security: fixes for DOM Clobbering in `IN_PLACE` mode and hardened cross-realm and Shadow DOM sanitization; this integration does not use `IN_PLACE`, so direct exploitability was unlikely, but pulling the patch is good hygiene)
 
 ## [0.5.3] - 2026-05-17
 
@@ -306,7 +309,8 @@ The upcoming 0.2 release will have some major new features.
 ## [0.1.0] - 2026-01-17
 - Initial public release.
 
-[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.5.3...HEAD
+[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.5.4...HEAD
+[0.5.4]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.4
 [0.5.3]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.3
 [0.5.2]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.2
 [0.5.1]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.1
