@@ -152,6 +152,10 @@ jobs:
         run: git diff --exit-code frontend/dist custom_components/unifi_network_map/frontend
 
   hacs:
+    # Skip on Dependabot PRs: they only touch lockfiles and dep versions,
+    # never the repo structure HACS validates. Avoids a benign-but-noisy
+    # race where the action runs after the branch is deleted on merge.
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
