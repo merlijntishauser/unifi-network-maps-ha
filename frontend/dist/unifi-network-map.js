@@ -326,7 +326,7 @@ var _createHooksMap = function _createHooksMap2() {
 function createDOMPurify() {
   let window2 = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : getGlobal();
   const DOMPurify = (root) => createDOMPurify(root);
-  DOMPurify.version = "3.4.6";
+  DOMPurify.version = "3.4.7";
   DOMPurify.removed = [];
   if (!window2 || !window2.document || window2.document.nodeType !== NODE_TYPE.document || !window2.Element) {
     DOMPurify.isSupported = false;
@@ -591,6 +591,12 @@ function createDOMPurify() {
         emptyHTML = trustedTypesPolicy.createHTML("");
       }
     }
+    if ((hooks.uponSanitizeElement.length > 0 || hooks.uponSanitizeAttribute.length > 0) && ALLOWED_TAGS === DEFAULT_ALLOWED_TAGS) {
+      ALLOWED_TAGS = clone(ALLOWED_TAGS);
+    }
+    if (hooks.uponSanitizeAttribute.length > 0 && ALLOWED_ATTR === DEFAULT_ALLOWED_ATTR) {
+      ALLOWED_ATTR = clone(ALLOWED_ATTR);
+    }
     if (freeze) {
       freeze(cfg);
     }
@@ -756,7 +762,14 @@ function createDOMPurify() {
     // makes the direct read diverge from the cached read; a clean form
     // (same-realm OR foreign-realm) has both reads pointing at the same
     // canonical NamedNodeMap.
-    element.attributes !== getAttributes(element) || typeof element.removeAttribute !== "function" || typeof element.setAttribute !== "function" || typeof element.namespaceURI !== "string" || typeof element.insertBefore !== "function" || typeof element.hasChildNodes !== "function" || // HTMLFormElement has [LegacyOverrideBuiltIns]: a descendant named
+    element.attributes !== getAttributes(element) || typeof element.removeAttribute !== "function" || typeof element.setAttribute !== "function" || typeof element.namespaceURI !== "string" || typeof element.insertBefore !== "function" || typeof element.hasChildNodes !== "function" || // NodeType clobbering probe. Cached Node.prototype.nodeType getter
+    // returns the integer 1 for any Element regardless of realm; direct
+    // read on a clobbered form (e.g. <input name="nodeType">) returns
+    // the named child element. Cheap addition — nodeType is read from
+    // an internal slot, no serialization cost — and removes a residual
+    // clobbering surface used by several mXSS / PI / comment branches
+    // in _sanitizeElements that compare currentNode.nodeType directly.
+    element.nodeType !== getNodeType4(element) || // HTMLFormElement has [LegacyOverrideBuiltIns]: a descendant named
     // "childNodes" shadows the prototype getter. Direct reads of
     // form.childNodes from a clobbered form return the named child
     // instead of the real NodeList, so any walk that reads it directly
@@ -832,8 +845,8 @@ function createDOMPurify() {
         }
       }
       if (KEEP_CONTENT && !FORBID_CONTENTS[tagName]) {
-        const parentNode = getParentNode(currentNode) || currentNode.parentNode;
-        const childNodes = getChildNodes(currentNode) || currentNode.childNodes;
+        const parentNode = getParentNode(currentNode);
+        const childNodes = getChildNodes(currentNode);
         if (childNodes && parentNode) {
           const childCount = childNodes.length;
           for (let i = childCount - 1; i >= 0; --i) {
@@ -1008,6 +1021,14 @@ function createDOMPurify() {
       if (_isDocumentFragment(shadowNode.content)) {
         _sanitizeShadowDOM2(shadowNode.content);
       }
+      const shadowNodeType = getNodeType4 ? getNodeType4(shadowNode) : shadowNode.nodeType;
+      if (shadowNodeType === NODE_TYPE.element) {
+        const innerSr = getShadowRoot ? getShadowRoot(shadowNode) : shadowNode.shadowRoot;
+        if (_isDocumentFragment(innerSr)) {
+          _sanitizeAttachedShadowRoots2(innerSr);
+          _sanitizeShadowDOM2(innerSr);
+        }
+      }
     }
     _executeHooks(hooks.afterSanitizeShadowDOM, fragment, null);
   };
@@ -1030,6 +1051,15 @@ function createDOMPurify() {
     });
     for (const child of snapshot) {
       _sanitizeAttachedShadowRoots2(child);
+    }
+    if (nodeType === NODE_TYPE.element) {
+      const rootName = getNodeName ? getNodeName(root) : null;
+      if (typeof rootName === "string" && transformCaseFunc(rootName) === "template") {
+        const content = root.content;
+        if (_isDocumentFragment(content)) {
+          _sanitizeAttachedShadowRoots2(content);
+        }
+      }
     }
   };
   DOMPurify.sanitize = function(dirty) {
@@ -8186,5 +8216,5 @@ console.info(`unifi-network-map card loaded v${CARD_VERSION}`);
 /*! Bundled license information:
 
 dompurify/dist/purify.es.mjs:
-  (*! @license DOMPurify 3.4.6 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/3.4.6/LICENSE *)
+  (*! @license DOMPurify 3.4.7 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/3.4.7/LICENSE *)
 */
