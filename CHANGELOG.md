@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- The card now appears as a suggestion under the **Community** section of the Lovelace card picker when a user selects any entity owned by the UniFi Network Map integration (HA 2026.6+). Implements the new `getEntitySuggestion` opt-in described in the [Home Assistant developer blog](https://developers.home-assistant.io/blog/2026/05/27/custom-card-suggestions/). The suggested card is pre-configured with the entity's `config_entry_id`, so it renders immediately without further setup.
+
 ## [0.5.4] - 2026-06-01
 
 ### Fixed

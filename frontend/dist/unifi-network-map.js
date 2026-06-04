@@ -1,3 +1,23 @@
+// src/card/core/entity-suggestion.ts
+var INTEGRATION_DOMAIN = "unifi_network_map";
+var CARD_TYPE = "custom:unifi-network-map";
+function getEntitySuggestion(hass, entityId) {
+  const entity = hass?.entities?.[entityId];
+  if (!entity || entity.platform !== INTEGRATION_DOMAIN) {
+    return null;
+  }
+  const entryId = entity.config_entry_id;
+  if (!entryId) {
+    return null;
+  }
+  return {
+    config: {
+      type: CARD_TYPE,
+      entry_id: entryId
+    }
+  };
+}
+
 // src/card/shared/constants.ts
 var DOMAIN = "unifi_network_map";
 var MIN_PAN_MOVEMENT_THRESHOLD = 6;
@@ -8210,9 +8230,10 @@ window.customCards.push({
   name: "UniFi Network Map",
   description: "Displays your UniFi network topology as an interactive SVG map",
   preview: true,
-  documentationURL: "https://github.com/merlijntishauser/unifi-network-maps"
+  documentationURL: "https://github.com/merlijntishauser/unifi-network-maps",
+  getEntitySuggestion
 });
-console.info(`unifi-network-map card loaded v${CARD_VERSION}`);
+console.info(`unifi-network-map card loaded v${CARD_VERSION} (domain=${INTEGRATION_DOMAIN})`);
 /*! Bundled license information:
 
 dompurify/dist/purify.es.mjs:
