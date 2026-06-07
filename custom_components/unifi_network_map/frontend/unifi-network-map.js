@@ -346,7 +346,7 @@ var _createHooksMap = function _createHooksMap2() {
 function createDOMPurify() {
   let window2 = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : getGlobal();
   const DOMPurify = (root) => createDOMPurify(root);
-  DOMPurify.version = "3.4.7";
+  DOMPurify.version = "3.4.8";
   DOMPurify.removed = [];
   if (!window2 || !window2.document || window2.document.nodeType !== NODE_TYPE.document || !window2.Element) {
     DOMPurify.isSupported = false;
@@ -378,6 +378,18 @@ function createDOMPurify() {
   }
   let trustedTypesPolicy;
   let emptyHTML = "";
+  let IN_POLICY_CREATE_HTML = 0;
+  const _createTrustedHTML = function _createTrustedHTML2(html2) {
+    if (IN_POLICY_CREATE_HTML > 0) {
+      throw typeErrorCreate('The configured TRUSTED_TYPES_POLICY.createHTML must not call DOMPurify.sanitize, as that causes infinite recursion. Do not pass a policy whose createHTML wraps DOMPurify as TRUSTED_TYPES_POLICY; see the "DOMPurify and Trusted Types" section of the README.');
+    }
+    IN_POLICY_CREATE_HTML++;
+    try {
+      return trustedTypesPolicy.createHTML(html2);
+    } finally {
+      IN_POLICY_CREATE_HTML--;
+    }
+  };
   const _document = document2, implementation = _document.implementation, createNodeIterator = _document.createNodeIterator, createDocumentFragment = _document.createDocumentFragment, getElementsByTagName = _document.getElementsByTagName;
   const importNode = originalDocument.importNode;
   let hooks = _createHooksMap();
@@ -601,14 +613,20 @@ function createDOMPurify() {
       if (typeof cfg.TRUSTED_TYPES_POLICY.createScriptURL !== "function") {
         throw typeErrorCreate('TRUSTED_TYPES_POLICY configuration option must provide a "createScriptURL" hook.');
       }
+      const previousTrustedTypesPolicy = trustedTypesPolicy;
       trustedTypesPolicy = cfg.TRUSTED_TYPES_POLICY;
-      emptyHTML = trustedTypesPolicy.createHTML("");
+      try {
+        emptyHTML = _createTrustedHTML("");
+      } catch (error) {
+        trustedTypesPolicy = previousTrustedTypesPolicy;
+        throw error;
+      }
     } else {
-      if (trustedTypesPolicy === void 0) {
+      if (trustedTypesPolicy === void 0 && cfg.TRUSTED_TYPES_POLICY !== null) {
         trustedTypesPolicy = _createTrustedTypesPolicy(trustedTypes, currentScript);
       }
-      if (trustedTypesPolicy !== null && typeof emptyHTML === "string") {
-        emptyHTML = trustedTypesPolicy.createHTML("");
+      if (trustedTypesPolicy && typeof emptyHTML === "string") {
+        emptyHTML = _createTrustedHTML("");
       }
     }
     if ((hooks.uponSanitizeElement.length > 0 || hooks.uponSanitizeAttribute.length > 0) && ALLOWED_TAGS === DEFAULT_ALLOWED_TAGS) {
@@ -718,7 +736,7 @@ function createDOMPurify() {
     if (PARSER_MEDIA_TYPE === "application/xhtml+xml" && NAMESPACE === HTML_NAMESPACE) {
       dirty = '<html xmlns="http://www.w3.org/1999/xhtml"><head></head><body>' + dirty + "</body></html>";
     }
-    const dirtyPayload = trustedTypesPolicy ? trustedTypesPolicy.createHTML(dirty) : dirty;
+    const dirtyPayload = trustedTypesPolicy ? _createTrustedHTML(dirty) : dirty;
     if (NAMESPACE === HTML_NAMESPACE) {
       try {
         doc = new DOMParser2().parseFromString(dirtyPayload, PARSER_MEDIA_TYPE);
@@ -750,7 +768,8 @@ function createDOMPurify() {
       null
     );
   };
-  const _scrubTemplateExpressions = function _scrubTemplateExpressions2(node) {
+  const _scrubTemplateExpressions2 = function _scrubTemplateExpressions(node) {
+    var _node$querySelectorAl, _node$querySelectorAl2;
     node.normalize();
     const walker = createNodeIterator.call(
       node.ownerDocument || node,
@@ -768,6 +787,12 @@ function createDOMPurify() {
       currentNode.data = data;
       currentNode = walker.nextNode();
     }
+    const templates = (_node$querySelectorAl = (_node$querySelectorAl2 = node.querySelectorAll) === null || _node$querySelectorAl2 === void 0 ? void 0 : _node$querySelectorAl2.call(node, "template")) !== null && _node$querySelectorAl !== void 0 ? _node$querySelectorAl : [];
+    arrayForEach(Array.from(templates), (tmpl) => {
+      if (_isDocumentFragment(tmpl.content)) {
+        _scrubTemplateExpressions2(tmpl.content);
+      }
+    });
   };
   const _isClobbered = function _isClobbered2(element) {
     const realTagName = getNodeName ? getNodeName(element) : null;
@@ -834,7 +859,7 @@ function createDOMPurify() {
       _forceRemove(currentNode);
       return true;
     }
-    const tagName = transformCaseFunc(currentNode.nodeName);
+    const tagName = transformCaseFunc(getNodeName ? getNodeName(currentNode) : currentNode.nodeName);
     _executeHooks(hooks.uponSanitizeElement, currentNode, {
       tagName,
       allowedTags: ALLOWED_TAGS
@@ -1001,7 +1026,7 @@ function createDOMPurify() {
         else {
           switch (trustedTypes.getAttributeType(lcTag, lcName)) {
             case "TrustedHTML": {
-              value = trustedTypesPolicy.createHTML(value);
+              value = _createTrustedHTML(value);
               break;
             }
             case "TrustedScriptURL": {
@@ -1134,7 +1159,7 @@ function createDOMPurify() {
     } else {
       if (!RETURN_DOM && !SAFE_FOR_TEMPLATES && !WHOLE_DOCUMENT && // eslint-disable-next-line unicorn/prefer-includes
       dirty.indexOf("<") === -1) {
-        return trustedTypesPolicy && RETURN_TRUSTED_TYPE ? trustedTypesPolicy.createHTML(dirty) : dirty;
+        return trustedTypesPolicy && RETURN_TRUSTED_TYPE ? _createTrustedHTML(dirty) : dirty;
       }
       body = _initDocument(dirty);
       if (!body) {
@@ -1154,13 +1179,13 @@ function createDOMPurify() {
     }
     if (IN_PLACE) {
       if (SAFE_FOR_TEMPLATES) {
-        _scrubTemplateExpressions(dirty);
+        _scrubTemplateExpressions2(dirty);
       }
       return dirty;
     }
     if (RETURN_DOM) {
       if (SAFE_FOR_TEMPLATES) {
-        _scrubTemplateExpressions(body);
+        _scrubTemplateExpressions2(body);
       }
       if (RETURN_DOM_FRAGMENT) {
         returnNode = createDocumentFragment.call(body.ownerDocument);
@@ -1184,7 +1209,7 @@ function createDOMPurify() {
         serializedHTML = stringReplace(serializedHTML, expr, " ");
       });
     }
-    return trustedTypesPolicy && RETURN_TRUSTED_TYPE ? trustedTypesPolicy.createHTML(serializedHTML) : serializedHTML;
+    return trustedTypesPolicy && RETURN_TRUSTED_TYPE ? _createTrustedHTML(serializedHTML) : serializedHTML;
   };
   DOMPurify.setConfig = function() {
     let cfg = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : {};
@@ -8237,5 +8262,5 @@ console.info(`unifi-network-map card loaded v${CARD_VERSION} (domain=${INTEGRATI
 /*! Bundled license information:
 
 dompurify/dist/purify.es.mjs:
-  (*! @license DOMPurify 3.4.7 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/3.4.7/LICENSE *)
+  (*! @license DOMPurify 3.4.8 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/3.4.8/LICENSE *)
 */

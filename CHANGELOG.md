@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Setup, reauth, and reconfigure flows now show a clear "Unexpected error" message (hinting to check the logs and try API key auth) instead of Home Assistant's generic "Unknown error occurred" when validation hits an unmapped exception. The underlying exception is now logged with a full traceback so these failures can be diagnosed (#231)
 
+### Changed
+- Bumped DOMPurify from 3.4.7 to 3.4.8 (maintenance release: Trusted Types policy handling and node-iterator template-scrubbing fixes) and rebuilt the frontend bundle (#229)
+
 ## [0.5.5] - 2026-06-04
 
 ### Added
