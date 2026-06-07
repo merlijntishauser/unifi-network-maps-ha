@@ -721,6 +721,72 @@ async def test_step_user_rejects_api_key_combined_with_password(monkeypatch):
     assert result["errors"]["base"] == "empty_credential"
 
 
+async def test_step_user_reports_unknown_on_unexpected_error(monkeypatch):
+    """An unmapped exception becomes the generic 'unknown' error."""
+
+    def _validate(*_args: object, **_kwargs: object) -> None:
+        raise RuntimeError("kaboom")
+
+    monkeypatch.setattr(
+        config_flow_module, "validate_unifi_credentials", _validate
+    )
+    result = await _make_flow().async_step_user(_base_input())
+
+    assert result["type"] == "form"
+    assert result["errors"]["base"] == "unknown"
+
+
+async def test_step_user_logs_unexpected_error(monkeypatch, caplog):
+    """The unmapped exception is logged with a traceback for diagnosis."""
+    import logging
+
+    def _validate(*_args: object, **_kwargs: object) -> None:
+        raise RuntimeError("kaboom")
+
+    monkeypatch.setattr(
+        config_flow_module, "validate_unifi_credentials", _validate
+    )
+    with caplog.at_level(logging.ERROR):
+        await _make_flow().async_step_user(_base_input())
+
+    assert any(
+        record.levelno == logging.ERROR and record.exc_info
+        for record in caplog.records
+    )
+
+
+async def test_reauth_confirm_reports_unknown_on_unexpected_error(monkeypatch):
+    def _validate(*_args: object, **_kwargs: object) -> None:
+        raise RuntimeError("kaboom")
+
+    monkeypatch.setattr(
+        config_flow_module, "validate_unifi_credentials", _validate
+    )
+    flow = _make_reauth_flow()
+    result = await flow.async_step_reauth_confirm(
+        {CONF_USERNAME: "admin", CONF_PASSWORD: "secret"}
+    )
+
+    assert result["type"] == "form"
+    assert result["errors"]["base"] == "unknown"
+
+
+async def test_reconfigure_reports_unknown_on_unexpected_error(monkeypatch):
+    def _validate(*_args: object, **_kwargs: object) -> None:
+        raise RuntimeError("kaboom")
+
+    monkeypatch.setattr(
+        config_flow_module,
+        "validate_unifi_credentials",
+        _validate,
+    )
+    flow = _make_reconfigure_flow()
+    result = await flow.async_step_reconfigure(_base_input())
+
+    assert result["type"] == "form"
+    assert result["errors"]["base"] == "unknown"
+
+
 async def test_step_user_passes_api_key_to_validator(monkeypatch):
     captured: dict[str, object] = {}
 

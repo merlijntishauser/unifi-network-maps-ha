@@ -80,7 +80,8 @@
       "empty_credential": "Angi et område samt enten en API-nøkkel eller både brukernavn og passord (ikke begge autentiseringsmetodene).",
       "invalid_port": "URL-en inneholder et ugyldig portnummer. Porter må være mellom 1 og 65535.",
       "invalid_auth": "Ugyldig brukernavn eller passord.",
-      "cannot_connect": "Kan ikke koble til UniFi-kontrolleren."
+      "cannot_connect": "Kan ikke koble til UniFi-kontrolleren.",
+      "unknown": "Uventet feil. Sjekk Home Assistant-loggene for detaljer, og prøv API-nøkkelautentisering hvis du bruker brukernavn og passord."
     },
     "abort": {
       "already_configured": "Denne kontrolleren og dette nettstedet er allerede konfigurert.",

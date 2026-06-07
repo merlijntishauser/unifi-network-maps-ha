@@ -80,7 +80,8 @@
       "empty_credential": "Angiv et site samt enten en API-nøgle eller både brugernavn og adgangskode (ikke begge godkendelsesmetoder).",
       "invalid_port": "URL'en indeholder et ugyldigt portnummer. Porte skal være mellem 1 og 65535.",
       "invalid_auth": "Ugyldigt brugernavn eller adgangskode.",
-      "cannot_connect": "Kan ikke oprette forbindelse til UniFi-controlleren."
+      "cannot_connect": "Kan ikke oprette forbindelse til UniFi-controlleren.",
+      "unknown": "Uventet fejl. Tjek Home Assistant-loggene for detaljer, og prøv API-nøglegodkendelse, hvis du bruger brugernavn og adgangskode."
     },
     "abort": {
       "already_configured": "Denne controller og dette site er allerede konfigureret.",

@@ -80,7 +80,8 @@
       "invalid_port": "Die URL enthält eine ungültige Portnummer. Ports müssen zwischen 1 und 65535 liegen.",
       "empty_credential": "Site angeben sowie entweder einen API-Schlüssel oder Benutzername und Passwort (nicht beide Auth-Methoden).",
       "invalid_auth": "Ungültiger Benutzername oder Passwort.",
-      "cannot_connect": "Verbindung zum UniFi-Controller nicht möglich."
+      "cannot_connect": "Verbindung zum UniFi-Controller nicht möglich.",
+      "unknown": "Unerwarteter Fehler. Prüfe die Home-Assistant-Protokolle für Details und versuche die API-Schlüssel-Authentifizierung, wenn du Benutzername/Passwort verwendest."
     },
     "abort": {
       "already_configured": "Dieser Controller und diese Site sind bereits konfiguriert.",

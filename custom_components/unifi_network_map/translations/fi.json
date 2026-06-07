@@ -80,7 +80,8 @@
       "empty_credential": "Anna sivusto sekä joko API-avain tai käyttäjänimi ja salasana (älä molempia todennusmenetelmiä).",
       "invalid_port": "URL sisältää virheellisen porttinumeron. Porttien on oltava välillä 1–65535.",
       "invalid_auth": "Virheellinen käyttäjänimi tai salasana.",
-      "cannot_connect": "UniFi-ohjaimeen ei saada yhteyttä."
+      "cannot_connect": "UniFi-ohjaimeen ei saada yhteyttä.",
+      "unknown": "Odottamaton virhe. Tarkista Home Assistant -lokit lisätietoja varten ja kokeile API-avaintodennusta, jos käytät käyttäjänimeä ja salasanaa."
     },
     "abort": {
       "already_configured": "Tämä ohjain ja sivusto on jo määritetty.",

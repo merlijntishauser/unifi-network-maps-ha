@@ -80,7 +80,8 @@
       "invalid_port": "L'URL contient un numéro de port invalide. Les ports doivent être compris entre 1 et 65535.",
       "empty_credential": "Indiquez un site, ainsi qu'une clé API ou un nom d'utilisateur et un mot de passe (pas les deux méthodes d'authentification).",
       "invalid_auth": "Nom d'utilisateur ou mot de passe invalide.",
-      "cannot_connect": "Impossible de se connecter au contrôleur UniFi."
+      "cannot_connect": "Impossible de se connecter au contrôleur UniFi.",
+      "unknown": "Erreur inattendue. Consultez les journaux de Home Assistant pour plus de détails et essayez l'authentification par clé API si vous utilisez un nom d'utilisateur et un mot de passe."
     },
     "abort": {
       "already_configured": "Ce contrôleur et ce site sont déjà configurés.",

@@ -80,7 +80,8 @@
       "empty_credential": "Provide a site, plus either an API key or both username and password (not both auth methods).",
       "invalid_port": "The URL contains an invalid port number. Ports must be between 1 and 65535.",
       "invalid_auth": "Invalid username or password.",
-      "cannot_connect": "Cannot connect to the UniFi controller."
+      "cannot_connect": "Cannot connect to the UniFi controller.",
+      "unknown": "Unexpected error. Check the Home Assistant logs for details, and try API key authentication if you use username/password."
     },
     "abort": {
       "already_configured": "This controller and site are already configured.",

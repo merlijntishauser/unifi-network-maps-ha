@@ -100,6 +100,9 @@ class UniFiNetworkMapConfigFlow(  # type: ignore[reportUntypedBaseClass,reportGe
                 errors["base"] = "invalid_auth"
             except CannotConnect:
                 errors["base"] = "cannot_connect"
+            except Exception:
+                LOGGER.exception("config_flow reauth unexpected error")
+                errors["base"] = "unknown"
             else:
                 return self.async_update_reload_and_abort(
                     reauth_entry, data=data
@@ -202,6 +205,9 @@ class UniFiNetworkMapConfigFlow(  # type: ignore[reportUntypedBaseClass,reportGe
             return user_input, "invalid_auth"
         except CannotConnect:
             return user_input, "cannot_connect"
+        except Exception:
+            LOGGER.exception("config_flow unexpected validation error")
+            return user_input, "unknown"
         return data, None
 
     @staticmethod

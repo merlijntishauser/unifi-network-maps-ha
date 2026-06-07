@@ -80,7 +80,8 @@
       "empty_credential": "Gefðu upp svæði ásamt annaðhvort API-lykli eða bæði notandanafni og lykilorði (ekki báðar auðkenningaraðferðir).",
       "invalid_port": "Vefslóð inniheldur ógilt gáttanúmer. Gáttir verða að vera á milli 1 og 65535.",
       "invalid_auth": "Ógilt notandanafn eða lykilorð.",
-      "cannot_connect": "Ekki næst samband við UniFi-stjórnanda."
+      "cannot_connect": "Ekki næst samband við UniFi-stjórnanda.",
+      "unknown": "Óvænt villa. Skoðaðu annála Home Assistant fyrir nánari upplýsingar og prófaðu auðkenningu með API-lykli ef þú notar notandanafn og lykilorð."
     },
     "abort": {
       "already_configured": "Þessi stýribúnaður og svæði eru þegar stillt.",
