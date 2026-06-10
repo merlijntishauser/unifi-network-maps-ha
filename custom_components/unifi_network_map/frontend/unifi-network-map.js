@@ -346,7 +346,7 @@ var _createHooksMap = function _createHooksMap2() {
 function createDOMPurify() {
   let window2 = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : getGlobal();
   const DOMPurify = (root) => createDOMPurify(root);
-  DOMPurify.version = "3.4.8";
+  DOMPurify.version = "3.4.9";
   DOMPurify.removed = [];
   if (!window2 || !window2.document || window2.document.nodeType !== NODE_TYPE.document || !window2.Element) {
     DOMPurify.isSupported = false;
@@ -378,17 +378,38 @@ function createDOMPurify() {
   }
   let trustedTypesPolicy;
   let emptyHTML = "";
-  let IN_POLICY_CREATE_HTML = 0;
-  const _createTrustedHTML = function _createTrustedHTML2(html2) {
-    if (IN_POLICY_CREATE_HTML > 0) {
-      throw typeErrorCreate('The configured TRUSTED_TYPES_POLICY.createHTML must not call DOMPurify.sanitize, as that causes infinite recursion. Do not pass a policy whose createHTML wraps DOMPurify as TRUSTED_TYPES_POLICY; see the "DOMPurify and Trusted Types" section of the README.');
+  let defaultTrustedTypesPolicy;
+  let defaultTrustedTypesPolicyResolved = false;
+  let IN_TRUSTED_TYPES_POLICY = 0;
+  const _assertNotInTrustedTypesPolicy = function _assertNotInTrustedTypesPolicy2() {
+    if (IN_TRUSTED_TYPES_POLICY > 0) {
+      throw typeErrorCreate('A configured TRUSTED_TYPES_POLICY callback (createHTML or createScriptURL) must not call DOMPurify.sanitize, as that causes infinite recursion. Do not pass a policy whose callbacks wrap DOMPurify as TRUSTED_TYPES_POLICY; see the "DOMPurify and Trusted Types" section of the README.');
     }
-    IN_POLICY_CREATE_HTML++;
+  };
+  const _createTrustedHTML = function _createTrustedHTML2(html2) {
+    _assertNotInTrustedTypesPolicy();
+    IN_TRUSTED_TYPES_POLICY++;
     try {
       return trustedTypesPolicy.createHTML(html2);
     } finally {
-      IN_POLICY_CREATE_HTML--;
+      IN_TRUSTED_TYPES_POLICY--;
     }
+  };
+  const _createTrustedScriptURL = function _createTrustedScriptURL2(scriptUrl) {
+    _assertNotInTrustedTypesPolicy();
+    IN_TRUSTED_TYPES_POLICY++;
+    try {
+      return trustedTypesPolicy.createScriptURL(scriptUrl);
+    } finally {
+      IN_TRUSTED_TYPES_POLICY--;
+    }
+  };
+  const _getDefaultTrustedTypesPolicy = function _getDefaultTrustedTypesPolicy2() {
+    if (!defaultTrustedTypesPolicyResolved) {
+      defaultTrustedTypesPolicy = _createTrustedTypesPolicy(trustedTypes, currentScript);
+      defaultTrustedTypesPolicyResolved = true;
+    }
+    return defaultTrustedTypesPolicy;
   };
   const _document = document2, implementation = _document.implementation, createNodeIterator = _document.createNodeIterator, createDocumentFragment = _document.createDocumentFragment, getElementsByTagName = _document.getElementsByTagName;
   const importNode = originalDocument.importNode;
@@ -455,7 +476,43 @@ function createDOMPurify() {
   let IN_PLACE = false;
   let USE_PROFILES = {};
   let FORBID_CONTENTS = null;
-  const DEFAULT_FORBID_CONTENTS = addToSet({}, ["annotation-xml", "audio", "colgroup", "desc", "foreignobject", "head", "iframe", "math", "mi", "mn", "mo", "ms", "mtext", "noembed", "noframes", "noscript", "plaintext", "script", "style", "svg", "template", "thead", "title", "video", "xmp"]);
+  const DEFAULT_FORBID_CONTENTS = addToSet({}, [
+    "annotation-xml",
+    "audio",
+    "colgroup",
+    "desc",
+    "foreignobject",
+    "head",
+    "iframe",
+    "math",
+    "mi",
+    "mn",
+    "mo",
+    "ms",
+    "mtext",
+    "noembed",
+    "noframes",
+    "noscript",
+    "plaintext",
+    "script",
+    // <selectedcontent> mirrors the selected <option>'s subtree, cloned by
+    // the UA (customizable <select>) — including any on* handlers — and the
+    // engine re-mirrors synchronously whenever a removal changes which
+    // option/selectedcontent is current, even inside DOMPurify's inert
+    // DOMParser document. Hoisting its children on removal re-inserts a fresh
+    // mirror target ahead of the walk, which the engine refills, looping
+    // forever (DoS) and amplifying output. Dropping its content on removal
+    // (rather than hoisting) breaks that cascade; the content is a duplicate
+    // of the option, which is sanitized on its own. See campaign-3 F1/F6.
+    "selectedcontent",
+    "style",
+    "svg",
+    "template",
+    "thead",
+    "title",
+    "video",
+    "xmp"
+  ]);
   let DATA_URI_TAGS = null;
   const DEFAULT_DATA_URI_TAGS = addToSet({}, ["audio", "video", "img", "source", "image", "track"]);
   let URI_SAFE_ATTRIBUTES = null;
@@ -621,9 +678,12 @@ function createDOMPurify() {
         trustedTypesPolicy = previousTrustedTypesPolicy;
         throw error;
       }
+    } else if (cfg.TRUSTED_TYPES_POLICY === null) {
+      trustedTypesPolicy = void 0;
+      emptyHTML = "";
     } else {
-      if (trustedTypesPolicy === void 0 && cfg.TRUSTED_TYPES_POLICY !== null) {
-        trustedTypesPolicy = _createTrustedTypesPolicy(trustedTypes, currentScript);
+      if (trustedTypesPolicy === void 0) {
+        trustedTypesPolicy = _getDefaultTrustedTypesPolicy();
       }
       if (trustedTypesPolicy && typeof emptyHTML === "string") {
         emptyHTML = _createTrustedHTML("");
@@ -695,6 +755,37 @@ function createDOMPurify() {
       getParentNode(node).removeChild(node);
     } catch (_) {
       remove(node);
+      if (!getParentNode(node)) {
+        throw typeErrorCreate("a node selected for removal could not be detached from its tree and cannot be safely returned; refusing to sanitize in place");
+      }
+    }
+  };
+  const _neutralizeRoot = function _neutralizeRoot2(root) {
+    const childNodes = getChildNodes ? getChildNodes(root) : root.childNodes;
+    if (childNodes) {
+      const snapshot = [];
+      arrayForEach(childNodes, (child) => {
+        arrayPush(snapshot, child);
+      });
+      arrayForEach(snapshot, (child) => {
+        try {
+          remove(child);
+        } catch (_) {
+        }
+      });
+    }
+    const attributes = getAttributes ? getAttributes(root) : null;
+    if (attributes) {
+      for (let i = attributes.length - 1; i >= 0; --i) {
+        const attribute = attributes[i];
+        const name = attribute && attribute.name;
+        if (typeof name === "string") {
+          try {
+            root.removeAttribute(name);
+          } catch (_) {
+          }
+        }
+      }
     }
   };
   const _removeAttribute = function _removeAttribute2(name, element) {
@@ -720,6 +811,39 @@ function createDOMPurify() {
         try {
           element.setAttribute(name, "");
         } catch (_) {
+        }
+      }
+    }
+  };
+  const _stripDisallowedAttributes = function _stripDisallowedAttributes2(element) {
+    const attributes = getAttributes ? getAttributes(element) : element.attributes;
+    if (!attributes) {
+      return;
+    }
+    for (let i = attributes.length - 1; i >= 0; --i) {
+      const attribute = attributes[i];
+      const name = attribute && attribute.name;
+      if (typeof name !== "string" || ALLOWED_ATTR[transformCaseFunc(name)]) {
+        continue;
+      }
+      try {
+        element.removeAttribute(name);
+      } catch (_) {
+      }
+    }
+  };
+  const _neutralizeSubtree = function _neutralizeSubtree2(root) {
+    const stack = [root];
+    while (stack.length > 0) {
+      const node = stack.pop();
+      const nodeType = getNodeType4 ? getNodeType4(node) : node.nodeType;
+      if (nodeType === NODE_TYPE.element) {
+        _stripDisallowedAttributes(node);
+      }
+      const childNodes = getChildNodes ? getChildNodes(node) : node.childNodes;
+      if (childNodes) {
+        for (let i = childNodes.length - 1; i >= 0; --i) {
+          stack.push(childNodes[i]);
         }
       }
     }
@@ -895,8 +1019,8 @@ function createDOMPurify() {
         if (childNodes && parentNode) {
           const childCount = childNodes.length;
           for (let i = childCount - 1; i >= 0; --i) {
-            const childClone = cloneNode(childNodes[i], true);
-            parentNode.insertBefore(childClone, getNextSibling(currentNode));
+            const hoisted = IN_PLACE ? childNodes[i] : cloneNode(childNodes[i], true);
+            parentNode.insertBefore(hoisted, getNextSibling(currentNode));
           }
         }
       }
@@ -1030,7 +1154,7 @@ function createDOMPurify() {
               break;
             }
             case "TrustedScriptURL": {
-              value = trustedTypesPolicy.createScriptURL(value);
+              value = _createTrustedScriptURL(value);
               break;
             }
           }
@@ -1070,39 +1194,58 @@ function createDOMPurify() {
       if (shadowNodeType === NODE_TYPE.element) {
         const innerSr = getShadowRoot ? getShadowRoot(shadowNode) : shadowNode.shadowRoot;
         if (_isDocumentFragment(innerSr)) {
-          _sanitizeAttachedShadowRoots2(innerSr);
+          _sanitizeAttachedShadowRoots(innerSr);
           _sanitizeShadowDOM2(innerSr);
         }
       }
     }
     _executeHooks(hooks.afterSanitizeShadowDOM, fragment, null);
   };
-  const _sanitizeAttachedShadowRoots2 = function _sanitizeAttachedShadowRoots(root) {
-    const nodeType = getNodeType4 ? getNodeType4(root) : root.nodeType;
-    if (nodeType === NODE_TYPE.element) {
-      const sr = getShadowRoot ? getShadowRoot(root) : root.shadowRoot;
-      if (_isDocumentFragment(sr)) {
-        _sanitizeAttachedShadowRoots2(sr);
-        _sanitizeShadowDOM2(sr);
+  const _sanitizeAttachedShadowRoots = function _sanitizeAttachedShadowRoots2(root) {
+    const stack = [{
+      node: root,
+      shadow: null
+    }];
+    while (stack.length > 0) {
+      const item = stack.pop();
+      if (item.shadow) {
+        _sanitizeShadowDOM2(item.shadow);
+        continue;
       }
-    }
-    const childNodes = getChildNodes ? getChildNodes(root) : root.childNodes;
-    if (!childNodes) {
-      return;
-    }
-    const snapshot = [];
-    arrayForEach(childNodes, (child) => {
-      arrayPush(snapshot, child);
-    });
-    for (const child of snapshot) {
-      _sanitizeAttachedShadowRoots2(child);
-    }
-    if (nodeType === NODE_TYPE.element) {
-      const rootName = getNodeName ? getNodeName(root) : null;
-      if (typeof rootName === "string" && transformCaseFunc(rootName) === "template") {
-        const content = root.content;
-        if (_isDocumentFragment(content)) {
-          _sanitizeAttachedShadowRoots2(content);
+      const node = item.node;
+      const nodeType = getNodeType4 ? getNodeType4(node) : node.nodeType;
+      const isElement = nodeType === NODE_TYPE.element;
+      const childNodes = getChildNodes ? getChildNodes(node) : node.childNodes;
+      if (childNodes) {
+        for (let i = childNodes.length - 1; i >= 0; --i) {
+          stack.push({
+            node: childNodes[i],
+            shadow: null
+          });
+        }
+      }
+      if (isElement) {
+        const rootName = getNodeName ? getNodeName(node) : null;
+        if (typeof rootName === "string" && transformCaseFunc(rootName) === "template") {
+          const content = node.content;
+          if (_isDocumentFragment(content)) {
+            stack.push({
+              node: content,
+              shadow: null
+            });
+          }
+        }
+      }
+      if (isElement) {
+        const sr = getShadowRoot ? getShadowRoot(node) : node.shadowRoot;
+        if (_isDocumentFragment(sr)) {
+          stack.push({
+            node: null,
+            shadow: sr
+          }, {
+            node: sr,
+            shadow: null
+          });
         }
       }
     }
@@ -1130,10 +1273,8 @@ function createDOMPurify() {
       _parseConfig(cfg);
     }
     DOMPurify.removed = [];
-    if (typeof dirty === "string") {
-      IN_PLACE = false;
-    }
-    if (IN_PLACE) {
+    const inPlace = IN_PLACE && typeof dirty !== "string" && _isNode(dirty);
+    if (inPlace) {
       const nn = getNodeName ? getNodeName(dirty) : dirty.nodeName;
       if (typeof nn === "string") {
         const tagName = transformCaseFunc(nn);
@@ -1144,7 +1285,12 @@ function createDOMPurify() {
       if (_isClobbered(dirty)) {
         throw typeErrorCreate("root node is clobbered and cannot be sanitized in-place");
       }
-      _sanitizeAttachedShadowRoots2(dirty);
+      try {
+        _sanitizeAttachedShadowRoots(dirty);
+      } catch (error) {
+        _neutralizeRoot(dirty);
+        throw error;
+      }
     } else if (_isNode(dirty)) {
       body = _initDocument("<!---->");
       importedNode = body.ownerDocument.importNode(dirty, true);
@@ -1155,7 +1301,7 @@ function createDOMPurify() {
       } else {
         body.appendChild(importedNode);
       }
-      _sanitizeAttachedShadowRoots2(importedNode);
+      _sanitizeAttachedShadowRoots(importedNode);
     } else {
       if (!RETURN_DOM && !SAFE_FOR_TEMPLATES && !WHOLE_DOCUMENT && // eslint-disable-next-line unicorn/prefer-includes
       dirty.indexOf("<") === -1) {
@@ -1169,15 +1315,27 @@ function createDOMPurify() {
     if (body && FORCE_BODY) {
       _forceRemove(body.firstChild);
     }
-    const nodeIterator = _createNodeIterator(IN_PLACE ? dirty : body);
-    while (currentNode = nodeIterator.nextNode()) {
-      _sanitizeElements(currentNode);
-      _sanitizeAttributes(currentNode);
-      if (_isDocumentFragment(currentNode.content)) {
-        _sanitizeShadowDOM2(currentNode.content);
+    const nodeIterator = _createNodeIterator(inPlace ? dirty : body);
+    try {
+      while (currentNode = nodeIterator.nextNode()) {
+        _sanitizeElements(currentNode);
+        _sanitizeAttributes(currentNode);
+        if (_isDocumentFragment(currentNode.content)) {
+          _sanitizeShadowDOM2(currentNode.content);
+        }
       }
+    } catch (error) {
+      if (inPlace) {
+        _neutralizeRoot(dirty);
+      }
+      throw error;
     }
-    if (IN_PLACE) {
+    if (inPlace) {
+      arrayForEach(DOMPurify.removed, (entry) => {
+        if (entry.element) {
+          _neutralizeSubtree(entry.element);
+        }
+      });
       if (SAFE_FOR_TEMPLATES) {
         _scrubTemplateExpressions2(dirty);
       }
@@ -1219,6 +1377,8 @@ function createDOMPurify() {
   DOMPurify.clearConfig = function() {
     CONFIG = null;
     SET_CONFIG = false;
+    trustedTypesPolicy = defaultTrustedTypesPolicy;
+    emptyHTML = "";
   };
   DOMPurify.isValidAttribute = function(tag, attr, value) {
     if (!CONFIG) {
@@ -8262,5 +8422,5 @@ console.info(`unifi-network-map card loaded v${CARD_VERSION} (domain=${INTEGRATI
 /*! Bundled license information:
 
 dompurify/dist/purify.es.mjs:
-  (*! @license DOMPurify 3.4.8 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/3.4.8/LICENSE *)
+  (*! @license DOMPurify 3.4.9 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/3.4.9/LICENSE *)
 */
