@@ -5,6 +5,15 @@ name: Dependabot frontend bundle
 # frontend-build check fails. This workflow rebuilds the bundle on
 # Dependabot frontend PRs and commits it back to the PR branch, so the
 # branch (and main, once merged) always matches the locked dependencies.
+#
+# Security: this is a pull_request_target workflow with a write token, so
+# it must never execute PR-controlled code with that token in scope:
+#   - npm lifecycle/postinstall scripts are disabled (NPM_CONFIG_IGNORE_SCRIPTS)
+#     so a compromised dependency Dependabot bumps to cannot run code at install;
+#   - the build runs with NO credentials persisted (persist-credentials: false);
+#   - the GITHUB_TOKEN is only introduced in the final commit/push step, which
+#     runs trusted git commands only;
+#   - actions are pinned to full commit SHAs.
 on:
   pull_request_target:
     paths:
@@ -25,19 +34,30 @@ jobs:
     if: github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.event.pull_request.head.ref }}
-      - uses: actions/setup-node@v6
+          # Do not leave a write-capable token in .git/config while building
+          # PR-supplied dependencies. The push step authenticates explicitly.
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: "20"
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
       - name: Rebuild card bundle
+        # Disable npm lifecycle scripts so no dependency code executes during
+        # install. esbuild bundling transforms source but does not run it, and
+        # Dependabot only changes dependency versions (not build scripts), so
+        # the build itself stays trusted. No token is present in this step.
+        env:
+          NPM_CONFIG_IGNORE_SCRIPTS: "true"
         run: make frontend-build
       - name: Commit rebuilt bundle if changed
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           bundle_paths="frontend/dist/unifi-network-map.js custom_components/unifi_network_map/frontend/unifi-network-map.js"
@@ -49,4 +69,4 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add $bundle_paths
           git commit -m "Rebuild frontend bundle for dependency update"
-          git push origin "HEAD:$HEAD_REF"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" "HEAD:$HEAD_REF"
