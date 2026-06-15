@@ -1,0 +1,52 @@
+name: Dependabot frontend bundle
+
+# Dependabot can bump a bundled frontend dependency (e.g. dompurify) but
+# cannot run the build, so the committed bundle drifts and the CI
+# frontend-build check fails. This workflow rebuilds the bundle on
+# Dependabot frontend PRs and commits it back to the PR branch, so the
+# branch (and main, once merged) always matches the locked dependencies.
+on:
+  pull_request_target:
+    paths:
+      - frontend/package.json
+      - frontend/package-lock.json
+
+# Scoped to the minimum needed to push the rebuilt bundle to the PR branch.
+permissions:
+  contents: write
+
+concurrency:
+  group: dependabot-frontend-bundle-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  rebuild-bundle:
+    # Only ever runs for Dependabot, never for human-authored PRs.
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+      - name: Rebuild card bundle
+        run: make frontend-build
+      - name: Commit rebuilt bundle if changed
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          bundle_paths="frontend/dist/unifi-network-map.js custom_components/unifi_network_map/frontend/unifi-network-map.js"
+          if git diff --quiet -- $bundle_paths; then
+            echo "Bundle already in sync; nothing to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add $bundle_paths
+          git commit -m "Rebuild frontend bundle for dependency update"
+          git push origin "HEAD:$HEAD_REF"

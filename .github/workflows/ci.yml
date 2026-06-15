@@ -149,6 +149,12 @@ jobs:
       - name: Build card bundle
         run: make frontend-build
       - name: Ensure bundle is up to date
+        # Skip on Dependabot PRs: Dependabot bumps a bundled dependency but
+        # cannot rebuild the bundle, so this would always fail. The
+        # dependabot-frontend-bundle workflow rebuilds and commits the bundle
+        # to the PR branch instead. The strict check still guards all human
+        # commits and pushes to main.
+        if: github.actor != 'dependabot[bot]'
         run: git diff --exit-code frontend/dist custom_components/unifi_network_map/frontend
 
   hacs:
