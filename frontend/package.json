@@ -26,5 +26,8 @@
   },
   "dependencies": {
     "dompurify": "^3.4.10"
+  },
+  "overrides": {
+    "js-yaml": "^4.2.0"
   }
 }

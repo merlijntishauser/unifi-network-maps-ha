@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Bumped DOMPurify from 3.4.7 to 3.4.10 (maintenance releases: Trusted Types policy handling, node-iterator template-scrubbing, and IN_PLACE sanitization fixes) and rebuilt the frontend bundle (#229, #234, #239)
 
+### Security
+- Cleared two Dependabot advisories in the frontend build/test toolchain (transitive dev dependencies; not part of the shipped card bundle): updated `@babel/core` to 7.29.7 (CVE-2026-49356, arbitrary file read via `sourceMappingURL`) and forced `js-yaml` to 4.2.0 via an npm override (CVE-2026-53550, quadratic-complexity DoS in merge-key handling). The vulnerable `js-yaml` 3.x was pinned by the unmaintained `@istanbuljs/load-nyc-config`; the override is verified against the Jest coverage run. `npm audit` now reports 0 vulnerabilities
+
 ## [0.5.5] - 2026-06-04
 
 ### Added
