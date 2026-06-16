@@ -19,6 +19,7 @@ from custom_components.unifi_network_map.data import (
 from custom_components.unifi_network_map.errors import (
     CannotConnect,
     InvalidAuth,
+    RequestRejected,
 )
 from tests.helpers import build_settings
 
@@ -168,6 +169,121 @@ def test_render_map_payload_maps_request_errors(
             ),
             _build_settings(),
         )
+
+
+def test_assert_unifi_connectivity_maps_request_rejected_on_401(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A 401 on the data fetch (login OK, request rejected) is distinct."""
+    from unifi_topology.adapters.unifi_api import UnifiApiError
+
+    def _fetch_devices(*_args: object, **_kwargs: object) -> None:
+        raise UnifiApiError(
+            "GET /api/s/Home/stat/device-basic failed (HTTP 401)"
+        )
+
+    monkeypatch.setattr(api_module, "fetch_devices", _fetch_devices)
+
+    assert_unifi_connectivity = cast(
+        "Callable[[api_module.Config, str], None]",
+        getattr(api_module, "_assert_unifi_connectivity"),
+    )
+    with pytest.raises(RequestRejected):
+        assert_unifi_connectivity(
+            api_module.Config(
+                url="url", site="Home", user="u", password="p", verify_ssl=True
+            ),
+            "Home",
+        )
+
+
+def test_assert_unifi_connectivity_maps_request_rejected_on_403(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from unifi_topology.adapters.unifi_api import UnifiApiError
+
+    def _fetch_devices(*_args: object, **_kwargs: object) -> None:
+        raise UnifiApiError(
+            "GET /api/s/Home/stat/device-basic failed (HTTP 403)"
+        )
+
+    monkeypatch.setattr(api_module, "fetch_devices", _fetch_devices)
+
+    assert_unifi_connectivity = cast(
+        "Callable[[api_module.Config, str], None]",
+        getattr(api_module, "_assert_unifi_connectivity"),
+    )
+    with pytest.raises(RequestRejected):
+        assert_unifi_connectivity(
+            api_module.Config(
+                url="url", site="Home", user="u", password="p", verify_ssl=True
+            ),
+            "Home",
+        )
+
+
+def test_assert_unifi_connectivity_other_api_error_maps_cannot_connect(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A non-401/403 API error stays a CannotConnect."""
+    from unifi_topology.adapters.unifi_api import UnifiApiError
+
+    def _fetch_devices(*_args: object, **_kwargs: object) -> None:
+        raise UnifiApiError("Missing 'data' field in response for /api/s/x")
+
+    monkeypatch.setattr(api_module, "fetch_devices", _fetch_devices)
+
+    assert_unifi_connectivity = cast(
+        "Callable[[api_module.Config, str], None]",
+        getattr(api_module, "_assert_unifi_connectivity"),
+    )
+    with pytest.raises(CannotConnect):
+        assert_unifi_connectivity(
+            api_module.Config(
+                url="url", site="x", user="u", password="p", verify_ssl=True
+            ),
+            "x",
+        )
+
+
+def test_render_map_payload_maps_request_rejected_on_401(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from unifi_topology.adapters.unifi_api import UnifiApiError
+
+    def _renderer() -> FakeRenderer:
+        return FakeRenderer(
+            error=UnifiApiError(
+                "GET /api/s/Home/stat/device-basic failed (HTTP 401)"
+            )
+        )
+
+    monkeypatch.setattr(api_module, "UniFiNetworkMapRenderer", _renderer)
+
+    render_map_payload = cast(
+        "Callable[[api_module.Config, RenderSettings], UniFiNetworkMapData]",
+        getattr(api_module, "_render_map_payload"),
+    )
+    with pytest.raises(RequestRejected):
+        render_map_payload(
+            api_module.Config(
+                url="url", site="Home", user="u", password="p", verify_ssl=True
+            ),
+            _build_settings(),
+        )
+
+
+def test_unifi_api_status_code_parses_http_in_message() -> None:
+    from unifi_topology.adapters.unifi_api import UnifiApiError
+
+    unifi_api_status_code = cast(
+        "Callable[[Exception], int | None]",
+        getattr(api_module, "_unifi_api_status_code"),
+    )
+
+    assert unifi_api_status_code(UnifiApiError("x failed (HTTP 401)")) == 401
+    assert unifi_api_status_code(UnifiApiError("x failed (HTTP 403)")) == 403
+    assert unifi_api_status_code(UnifiApiError("Missing 'data' field")) is None
 
 
 def test_map_auth_error_falls_back_to_invalid_auth() -> None:

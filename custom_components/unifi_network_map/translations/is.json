@@ -81,6 +81,7 @@
       "invalid_port": "Vefslóð inniheldur ógilt gáttanúmer. Gáttir verða að vera á milli 1 og 65535.",
       "invalid_auth": "Ógilt notandanafn eða lykilorð.",
       "cannot_connect": "Ekki næst samband við UniFi-stjórnanda.",
+      "request_rejected": "Stýribúnaðurinn samþykkti innskráninguna en hafnaði beiðninni (HTTP 401/403). Athugaðu að Site sé innra svæðisauðkennið (oft 'default'), ekki birtingarnafnið, og að reikningurinn sé fullgildur staðbundinn stjórnandi án tveggja þátta auðkenningar.",
       "unknown": "Óvænt villa. Skoðaðu annála Home Assistant fyrir nánari upplýsingar og prófaðu auðkenningu með API-lykli ef þú notar notandanafn og lykilorð."
     },
     "abort": {

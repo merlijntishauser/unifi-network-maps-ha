@@ -68,6 +68,7 @@ from .errors import (
     InvalidAuth,
     InvalidPort,
     InvalidUrl,
+    RequestRejected,
     UrlHasCredentials,
 )
 
@@ -98,6 +99,8 @@ class UniFiNetworkMapConfigFlow(  # type: ignore[reportUntypedBaseClass,reportGe
                 errors["base"] = "empty_credential"
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
+            except RequestRejected:
+                errors["base"] = "request_rejected"
             except CannotConnect:
                 errors["base"] = "cannot_connect"
             except Exception:
@@ -203,6 +206,8 @@ class UniFiNetworkMapConfigFlow(  # type: ignore[reportUntypedBaseClass,reportGe
             return user_input, "empty_credential"
         except InvalidAuth:
             return user_input, "invalid_auth"
+        except RequestRejected:
+            return user_input, "request_rejected"
         except CannotConnect:
             return user_input, "cannot_connect"
         except Exception:

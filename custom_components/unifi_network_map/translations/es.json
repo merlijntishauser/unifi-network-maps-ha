@@ -81,6 +81,7 @@
       "empty_credential": "Indica un sitio, además de una clave API o usuario y contraseña (no ambos métodos de autenticación).",
       "invalid_auth": "Usuario o contraseña inválidos.",
       "cannot_connect": "No se puede conectar al controlador UniFi.",
+      "request_rejected": "El controlador aceptó el inicio de sesión pero rechazó la solicitud (HTTP 401/403). Comprueba que Site sea el ID interno del sitio (a menudo 'default'), no el nombre visible, y que la cuenta sea un administrador local completo sin 2FA.",
       "unknown": "Error inesperado. Consulta los registros de Home Assistant para ver los detalles y prueba la autenticación con clave API si usas usuario y contraseña."
     },
     "abort": {

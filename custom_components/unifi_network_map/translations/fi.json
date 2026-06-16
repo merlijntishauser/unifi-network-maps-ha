@@ -81,6 +81,7 @@
       "invalid_port": "URL sisältää virheellisen porttinumeron. Porttien on oltava välillä 1–65535.",
       "invalid_auth": "Virheellinen käyttäjänimi tai salasana.",
       "cannot_connect": "UniFi-ohjaimeen ei saada yhteyttä.",
+      "request_rejected": "Ohjain hyväksyi kirjautumisen mutta hylkäsi pyynnön (HTTP 401/403). Tarkista, että Site on sivuston sisäinen tunnus (usein 'default'), ei näyttönimi, ja että tili on täysi paikallinen järjestelmänvalvoja ilman kaksivaiheista todennusta.",
       "unknown": "Odottamaton virhe. Tarkista Home Assistant -lokit lisätietoja varten ja kokeile API-avaintodennusta, jos käytät käyttäjänimeä ja salasanaa."
     },
     "abort": {

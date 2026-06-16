@@ -81,6 +81,7 @@
       "empty_credential": "Site angeben sowie entweder einen API-Schlüssel oder Benutzername und Passwort (nicht beide Auth-Methoden).",
       "invalid_auth": "Ungültiger Benutzername oder Passwort.",
       "cannot_connect": "Verbindung zum UniFi-Controller nicht möglich.",
+      "request_rejected": "Der Controller hat die Anmeldung akzeptiert, die Anfrage aber abgelehnt (HTTP 401/403). Prüfe, dass Site die interne Site-ID ist (oft 'default'), nicht der Anzeigename, und dass das Konto ein vollwertiger lokaler Admin ohne 2FA ist.",
       "unknown": "Unerwarteter Fehler. Prüfe die Home-Assistant-Protokolle für Details und versuche die API-Schlüssel-Authentifizierung, wenn du Benutzername/Passwort verwendest."
     },
     "abort": {

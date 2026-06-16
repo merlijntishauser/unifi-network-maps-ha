@@ -81,6 +81,7 @@
       "invalid_port": "The URL contains an invalid port number. Ports must be between 1 and 65535.",
       "invalid_auth": "Invalid username or password.",
       "cannot_connect": "Cannot connect to the UniFi controller.",
+      "request_rejected": "The controller accepted the login but rejected the request (HTTP 401/403). Check that Site is the internal site ID (often 'default'), not the display name, and that the account is a full local admin without 2FA.",
       "unknown": "Unexpected error. Check the Home Assistant logs for details, and try API key authentication if you use username/password."
     },
     "abort": {

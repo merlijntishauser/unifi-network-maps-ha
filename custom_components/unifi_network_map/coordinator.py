@@ -54,7 +54,12 @@ from .const import (
     LOGGER,
 )
 from .data import UniFiNetworkMapData
-from .errors import CannotConnect, InvalidAuth, UniFiNetworkMapError
+from .errors import (
+    CannotConnect,
+    InvalidAuth,
+    RequestRejected,
+    UniFiNetworkMapError,
+)
 from .renderer import RenderSettings
 from .utils import monotonic_seconds
 
@@ -193,7 +198,7 @@ class UniFiNetworkMapCoordinator(DataUpdateCoordinator[UniFiNetworkMapData]):  #
 
 
 def _should_backoff(err: UniFiNetworkMapError) -> bool:
-    if isinstance(err, InvalidAuth):
+    if isinstance(err, (InvalidAuth, RequestRejected)):
         return True
     if isinstance(err, CannotConnect):
         return "rate limited" in str(err).lower()

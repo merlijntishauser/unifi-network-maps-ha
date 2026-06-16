@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from dataclasses import dataclass, field
 from time import monotonic
 from typing import TYPE_CHECKING
@@ -12,7 +13,12 @@ from unifi_topology import Config, fetch_devices
 from unifi_topology.adapters.unifi_api import UnifiApiError, UnifiAuthError
 
 from .const import DEFAULT_RENDER_CACHE_SECONDS, LOGGER
-from .errors import CannotConnect, InvalidAuth, UniFiNetworkMapError
+from .errors import (
+    CannotConnect,
+    InvalidAuth,
+    RequestRejected,
+    UniFiNetworkMapError,
+)
 from .renderer import RenderSettings, UniFiNetworkMapRenderer
 
 if TYPE_CHECKING:
@@ -151,12 +157,22 @@ def _assert_unifi_connectivity(config: Config, site: str) -> None:
             "api connectivity_check failed reason=auth_error site=%s", site
         )
         raise InvalidAuth("Authentication failed") from exc
+    except UnifiApiError as exc:
+        mapped = _map_api_error(exc)
+        LOGGER.debug(
+            "api connectivity_check failed reason=%s site=%s error=%s",
+            "request_rejected"
+            if isinstance(mapped, RequestRejected)
+            else "connection_error",
+            site,
+            type(exc).__name__,
+        )
+        raise mapped from exc
     except (
         OSError,
         RequestException,
         RuntimeError,
         TimeoutError,
-        UnifiApiError,
         ValueError,
     ) as exc:
         LOGGER.debug(
@@ -179,12 +195,22 @@ def _render_map_payload(
             "api render_map failed reason=auth_error site=%s", config.site
         )
         raise _map_auth_error(exc) from exc
+    except UnifiApiError as exc:
+        mapped = _map_api_error(exc)
+        LOGGER.debug(
+            "api render_map failed reason=%s site=%s error=%s",
+            "request_rejected"
+            if isinstance(mapped, RequestRejected)
+            else "connection_error",
+            config.site,
+            type(exc).__name__,
+        )
+        raise mapped from exc
     except (
         OSError,
         RequestException,
         RuntimeError,
         TimeoutError,
-        UnifiApiError,
     ) as exc:
         LOGGER.debug(
             "api render_map failed reason=connection_error site=%s error=%s",
@@ -194,6 +220,10 @@ def _render_map_payload(
         raise CannotConnect("Unable to connect") from exc
 
 
+_REQUEST_REJECTED_STATUS = frozenset({401, 403})
+_HTTP_STATUS_IN_MESSAGE = re.compile(r"\(HTTP (\d{3})\)")
+
+
 def _map_auth_error(exc: Exception) -> UniFiNetworkMapError:
     status_code = _status_code_from_exception(exc)
     if status_code == 429:
@@ -201,11 +231,41 @@ def _map_auth_error(exc: Exception) -> UniFiNetworkMapError:
     return InvalidAuth("Authentication failed")
 
 
+def _map_api_error(exc: Exception) -> UniFiNetworkMapError:
+    """Map a data-endpoint failure, distinguishing a post-login rejection.
+
+    A 401/403 here means login succeeded but the request was refused
+    (wrong site, missing permission, or 2FA) -- surfaced as a distinct,
+    actionable error rather than a misleading "cannot connect".
+    """
+    status_code = _unifi_api_status_code(exc)
+    if status_code in _REQUEST_REJECTED_STATUS:
+        return RequestRejected(
+            "Controller accepted the login but rejected the request"
+            f" (HTTP {status_code})"
+        )
+    return CannotConnect("Unable to connect")
+
+
 def _status_code_from_exception(exc: Exception) -> int | None:
     cause = getattr(exc, "__cause__", None)
     if isinstance(cause, HTTPError) and cause.response is not None:
         return cause.response.status_code
     return None
+
+
+def _unifi_api_status_code(exc: Exception) -> int | None:
+    """Extract the HTTP status from a UnifiApiError (cause or message).
+
+    The upstream client raises ``UnifiApiError`` for failed data requests
+    with the status only in the message (``... failed (HTTP <code>)``);
+    the contract test locks that format.
+    """
+    cause_status = _status_code_from_exception(exc)
+    if cause_status is not None:
+        return cause_status
+    match = _HTTP_STATUS_IN_MESSAGE.search(str(exc))
+    return int(match.group(1)) if match else None
 
 
 class _OnceSSLWarningFilter(logging.Filter):

@@ -81,6 +81,7 @@
       "empty_credential": "Indiquez un site, ainsi qu'une clé API ou un nom d'utilisateur et un mot de passe (pas les deux méthodes d'authentification).",
       "invalid_auth": "Nom d'utilisateur ou mot de passe invalide.",
       "cannot_connect": "Impossible de se connecter au contrôleur UniFi.",
+      "request_rejected": "Le contrôleur a accepté la connexion mais a rejeté la requête (HTTP 401/403). Vérifiez que Site est l'ID interne du site (souvent 'default'), pas le nom affiché, et que le compte est un administrateur local complet sans 2FA.",
       "unknown": "Erreur inattendue. Consultez les journaux de Home Assistant pour plus de détails et essayez l'authentification par clé API si vous utilisez un nom d'utilisateur et un mot de passe."
     },
     "abort": {

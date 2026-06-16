@@ -81,6 +81,7 @@
       "invalid_port": "URL'en indeholder et ugyldigt portnummer. Porte skal være mellem 1 og 65535.",
       "invalid_auth": "Ugyldigt brugernavn eller adgangskode.",
       "cannot_connect": "Kan ikke oprette forbindelse til UniFi-controlleren.",
+      "request_rejected": "Controlleren accepterede loginnet, men afviste anmodningen (HTTP 401/403). Tjek, at Site er det interne site-ID (ofte 'default'), ikke visningsnavnet, og at kontoen er en fuld lokal administrator uden 2FA.",
       "unknown": "Uventet fejl. Tjek Home Assistant-loggene for detaljer, og prøv API-nøglegodkendelse, hvis du bruger brugernavn og adgangskode."
     },
     "abort": {

@@ -25,6 +25,7 @@ from custom_components.unifi_network_map.const import (
 from custom_components.unifi_network_map.errors import (
     CannotConnect,
     InvalidAuth,
+    RequestRejected,
 )
 
 if TYPE_CHECKING:
@@ -719,6 +720,37 @@ async def test_step_user_rejects_api_key_combined_with_password(monkeypatch):
 
     assert result["type"] == "form"
     assert result["errors"]["base"] == "empty_credential"
+
+
+async def test_step_user_reports_request_rejected(monkeypatch):
+    """A post-login 401/403 surfaces as the distinct request_rejected error."""
+
+    def _validate(*_args: object, **_kwargs: object) -> None:
+        raise RequestRejected("rejected")
+
+    monkeypatch.setattr(
+        config_flow_module, "validate_unifi_credentials", _validate
+    )
+    result = await _make_flow().async_step_user(_base_input())
+
+    assert result["type"] == "form"
+    assert result["errors"]["base"] == "request_rejected"
+
+
+async def test_reauth_confirm_reports_request_rejected(monkeypatch):
+    def _validate(*_args: object, **_kwargs: object) -> None:
+        raise RequestRejected("rejected")
+
+    monkeypatch.setattr(
+        config_flow_module, "validate_unifi_credentials", _validate
+    )
+    flow = _make_reauth_flow()
+    result = await flow.async_step_reauth_confirm(
+        {CONF_USERNAME: "admin", CONF_PASSWORD: "secret"}
+    )
+
+    assert result["type"] == "form"
+    assert result["errors"]["base"] == "request_rejected"
 
 
 async def test_step_user_reports_unknown_on_unexpected_error(monkeypatch):

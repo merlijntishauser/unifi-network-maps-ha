@@ -82,6 +82,7 @@
       "empty_credential": "Provide a site, plus either an API key or both username and password (not both auth methods).",
       "invalid_auth": "Invalid username or password.",
       "cannot_connect": "Cannot connect to the UniFi controller.",
+      "request_rejected": "The controller accepted the login but rejected the request (HTTP 401/403). Check that Site is the internal site ID (often 'default'), not the display name, and that the account is a full local admin without 2FA.",
       "unknown": "Unexpected error. Check the Home Assistant logs for details, and try API key authentication if you use username/password."
     },
     "abort": {
