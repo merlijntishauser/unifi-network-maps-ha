@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Setup, reauth, and reconfigure flows now show a clear "Unexpected error" message (hinting to check the logs and try API key auth) instead of Home Assistant's generic "Unknown error occurred" when validation hits an unmapped exception. The underlying exception is now logged with a full traceback so these failures can be diagnosed (#231)
 - A post-login HTTP 401/403 from the controller (login accepted but the request refused -- typically a wrong Site value, an account lacking site permission, or a 2FA-restricted account) is now surfaced as a distinct, actionable error pointing at the Site/permissions instead of a misleading "Cannot connect". At runtime this no longer triggers a credential reauth loop and backs off between retries (#231)
+- Added help text to the Site field in the setup and reconfigure forms explaining it needs the internal site ID (usually `default`), not the site's display name -- which previously caused a confusing connection failure on multi-site controllers (#231)
 
 ### Changed
 - Bumped DOMPurify from 3.4.7 to 3.4.10 (maintenance releases: Trusted Types policy handling, node-iterator template-scrubbing, and IN_PLACE sanitization fixes) and rebuilt the frontend bundle (#229, #234, #239)

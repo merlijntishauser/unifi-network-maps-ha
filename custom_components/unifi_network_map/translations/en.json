@@ -28,6 +28,7 @@
         "data_description": {
           "url": "Include the scheme (http or https) and port if needed.",
           "api_key": "Site-level API key from UniFi OS (Settings -> Control Plane -> Integrations). Use this instead of username and password.",
+          "site": "The internal site ID, usually 'default'. For a multi-site setup use the site code shown in the Network app URL (the segment after /manage/ or /network/), not the site's display name.",
           "verify_ssl": "UniFi controllers use self-signed certificates by default, which will fail verification. Only enable if you have installed a trusted certificate."
         }
       },
@@ -44,7 +45,8 @@
         },
         "data_description": {
           "url": "Include the scheme (http or https) and port if needed.",
-          "api_key": "Site-level API key from UniFi OS (Settings -> Control Plane -> Integrations). Use this instead of username and password."
+          "api_key": "Site-level API key from UniFi OS (Settings -> Control Plane -> Integrations). Use this instead of username and password.",
+          "site": "The internal site ID, usually 'default'. For a multi-site setup use the site code shown in the Network app URL (the segment after /manage/ or /network/), not the site's display name."
         }
       },
       "init": {

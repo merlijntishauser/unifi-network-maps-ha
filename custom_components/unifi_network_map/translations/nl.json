@@ -28,7 +28,8 @@
         "data_description": {
           "url": "Vermeld het schema (http of https) en de poort indien nodig.",
           "verify_ssl": "UniFi-controllers gebruiken standaard zelfondertekende certificaten, die de verificatie niet doorstaan. Schakel dit alleen in als je een vertrouwd certificaat hebt geïnstalleerd.",
-          "api_key": "Site-API-sleutel uit UniFi OS (Instellingen -> Control Plane -> Integraties). Gebruik deze in plaats van gebruikersnaam en wachtwoord."
+          "api_key": "Site-API-sleutel uit UniFi OS (Instellingen -> Control Plane -> Integraties). Gebruik deze in plaats van gebruikersnaam en wachtwoord.",
+          "site": "De interne site-ID, meestal 'default'. Gebruik bij een multisite-installatie de sitecode uit de URL van de Network-app (het deel na /manage/ of /network/), niet de weergavenaam van de site."
         }
       },
       "user": {
@@ -44,7 +45,8 @@
         },
         "data_description": {
           "url": "Gebruik het schema (http of https) en poort indien nodig.",
-          "api_key": "Site-API-sleutel uit UniFi OS (Instellingen -> Control Plane -> Integraties). Gebruik deze in plaats van gebruikersnaam en wachtwoord."
+          "api_key": "Site-API-sleutel uit UniFi OS (Instellingen -> Control Plane -> Integraties). Gebruik deze in plaats van gebruikersnaam en wachtwoord.",
+          "site": "De interne site-ID, meestal 'default'. Gebruik bij een multisite-installatie de sitecode uit de URL van de Network-app (het deel na /manage/ of /network/), niet de weergavenaam van de site."
         }
       },
       "init": {

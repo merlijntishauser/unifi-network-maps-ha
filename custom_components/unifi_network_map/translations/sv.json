@@ -28,7 +28,8 @@
         "data_description": {
           "url": "Inkludera protokollet (http eller https) och port vid behov.",
           "verify_ssl": "UniFi-kontroller använder självsignerade certifikat som standard, vilket inte godkänns vid verifiering. Aktivera endast om du har installerat ett betrott certifikat.",
-          "api_key": "Platsspecifik API-nyckel från UniFi OS (Inställningar -> Control Plane -> Integrationer). Använd istället för användarnamn och lösenord."
+          "api_key": "Platsspecifik API-nyckel från UniFi OS (Inställningar -> Control Plane -> Integrationer). Använd istället för användarnamn och lösenord.",
+          "site": "Det interna webbplats-ID:t, oftast 'default'. Vid en flerplatsinstallation, använd platskoden i Network-appens URL (segmentet efter /manage/ eller /network/), inte platsens visningsnamn."
         }
       },
       "user": {
@@ -44,7 +45,8 @@
         },
         "data_description": {
           "url": "Inkludera schemat (http eller https) och port vid behov.",
-          "api_key": "Platsspecifik API-nyckel från UniFi OS (Inställningar -> Control Plane -> Integrationer). Använd istället för användarnamn och lösenord."
+          "api_key": "Platsspecifik API-nyckel från UniFi OS (Inställningar -> Control Plane -> Integrationer). Använd istället för användarnamn och lösenord.",
+          "site": "Det interna webbplats-ID:t, oftast 'default'. Vid en flerplatsinstallation, använd platskoden i Network-appens URL (segmentet efter /manage/ eller /network/), inte platsens visningsnamn."
         }
       },
       "init": {

@@ -28,7 +28,8 @@
         "data_description": {
           "url": "Schema (http oder https) und Port angeben, falls erforderlich.",
           "verify_ssl": "UniFi-Controller verwenden standardmäßig selbstsignierte Zertifikate, die die Verifizierung nicht bestehen. Nur aktivieren, wenn ein vertrauenswürdiges Zertifikat installiert ist.",
-          "api_key": "Site-bezogener API-Schlüssel aus UniFi OS (Einstellungen -> Control Plane -> Integrationen). Verwende ihn anstelle von Benutzername und Passwort."
+          "api_key": "Site-bezogener API-Schlüssel aus UniFi OS (Einstellungen -> Control Plane -> Integrationen). Verwende ihn anstelle von Benutzername und Passwort.",
+          "site": "Die interne Site-ID, normalerweise 'default'. Verwende bei einer Multi-Site-Installation den Site-Code aus der URL der Network-App (der Teil nach /manage/ oder /network/), nicht den Anzeigenamen der Site."
         }
       },
       "user": {
@@ -44,7 +45,8 @@
         },
         "data_description": {
           "url": "Schema angeben (http oder https) und Port falls nötig.",
-          "api_key": "Site-bezogener API-Schlüssel aus UniFi OS (Einstellungen -> Control Plane -> Integrationen). Verwende ihn anstelle von Benutzername und Passwort."
+          "api_key": "Site-bezogener API-Schlüssel aus UniFi OS (Einstellungen -> Control Plane -> Integrationen). Verwende ihn anstelle von Benutzername und Passwort.",
+          "site": "Die interne Site-ID, normalerweise 'default'. Verwende bei einer Multi-Site-Installation den Site-Code aus der URL der Network-App (der Teil nach /manage/ oder /network/), nicht den Anzeigenamen der Site."
         }
       },
       "init": {

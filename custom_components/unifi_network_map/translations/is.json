@@ -28,7 +28,8 @@
         "data_description": {
           "url": "Tilgreindu samskiptareglur (http eða https) og gátt ef þarf.",
           "verify_ssl": "UniFi-stýringar nota sjálfundirrituð vottorð sjálfgefið, sem munu ekki standast staðfestingu. Virkjaðu aðeins ef þú hefur sett upp traust vottorð.",
-          "api_key": "Vefsvæðis-API-lykill úr UniFi OS (Stillingar -> Control Plane -> Samþættingar). Notaðu í stað notandanafns og lykilorðs."
+          "api_key": "Vefsvæðis-API-lykill úr UniFi OS (Stillingar -> Control Plane -> Samþættingar). Notaðu í stað notandanafns og lykilorðs.",
+          "site": "Innra svæðisauðkennið, yfirleitt 'default'. Í fjölsvæðauppsetningu skaltu nota svæðiskóðann úr vefslóð Network-forritsins (hlutann á eftir /manage/ eða /network/), ekki birtingarnafn svæðisins."
         }
       },
       "user": {
@@ -44,7 +45,8 @@
         },
         "data_description": {
           "url": "Hafðu með samskiptareglu (http eða https) og gátt ef þörf er á.",
-          "api_key": "Vefsvæðis-API-lykill úr UniFi OS (Stillingar -> Control Plane -> Samþættingar). Notaðu í stað notandanafns og lykilorðs."
+          "api_key": "Vefsvæðis-API-lykill úr UniFi OS (Stillingar -> Control Plane -> Samþættingar). Notaðu í stað notandanafns og lykilorðs.",
+          "site": "Innra svæðisauðkennið, yfirleitt 'default'. Í fjölsvæðauppsetningu skaltu nota svæðiskóðann úr vefslóð Network-forritsins (hlutann á eftir /manage/ eða /network/), ekki birtingarnafn svæðisins."
         }
       },
       "init": {

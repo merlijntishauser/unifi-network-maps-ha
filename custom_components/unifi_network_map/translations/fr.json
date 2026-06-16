@@ -28,7 +28,8 @@
         "data_description": {
           "url": "Incluez le schéma (http ou https) et le port si nécessaire.",
           "verify_ssl": "Les contrôleurs UniFi utilisent des certificats auto-signés par défaut, ce qui échouera à la vérification. N'activez que si vous avez installé un certificat de confiance.",
-          "api_key": "Clé API au niveau du site depuis UniFi OS (Paramètres -> Control Plane -> Intégrations). À utiliser à la place du nom d'utilisateur et du mot de passe."
+          "api_key": "Clé API au niveau du site depuis UniFi OS (Paramètres -> Control Plane -> Intégrations). À utiliser à la place du nom d'utilisateur et du mot de passe.",
+          "site": "L'ID interne du site, généralement 'default'. Pour une installation multisite, utilisez le code du site affiché dans l'URL de l'app Network (le segment après /manage/ ou /network/), pas le nom affiché du site."
         }
       },
       "user": {
@@ -44,7 +45,8 @@
         },
         "data_description": {
           "url": "Incluez le schéma (http ou https) et le port si nécessaire.",
-          "api_key": "Clé API au niveau du site depuis UniFi OS (Paramètres -> Control Plane -> Intégrations). À utiliser à la place du nom d'utilisateur et du mot de passe."
+          "api_key": "Clé API au niveau du site depuis UniFi OS (Paramètres -> Control Plane -> Intégrations). À utiliser à la place du nom d'utilisateur et du mot de passe.",
+          "site": "L'ID interne du site, généralement 'default'. Pour une installation multisite, utilisez le code du site affiché dans l'URL de l'app Network (le segment après /manage/ ou /network/), pas le nom affiché du site."
         }
       },
       "init": {
