@@ -25,7 +25,7 @@
     "typescript": "6.0.3"
   },
   "dependencies": {
-    "dompurify": "^3.4.10"
+    "dompurify": "^3.4.11"
   },
   "overrides": {
     "js-yaml": "^4.2.0"

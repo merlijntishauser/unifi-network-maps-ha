@@ -353,7 +353,7 @@ var _resolveSetOption = function _resolveSetOption2(cfg, key, fallback, options)
 function createDOMPurify() {
   let window2 = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : getGlobal();
   const DOMPurify = (root) => createDOMPurify(root);
-  DOMPurify.version = "3.4.10";
+  DOMPurify.version = "3.4.11";
   DOMPurify.removed = [];
   if (!window2 || !window2.document || window2.document.nodeType !== NODE_TYPE.document || !window2.Element) {
     DOMPurify.isSupported = false;
@@ -472,6 +472,8 @@ function createDOMPurify() {
   let SAFE_FOR_XML = true;
   let WHOLE_DOCUMENT = false;
   let SET_CONFIG = false;
+  let SET_CONFIG_ALLOWED_TAGS = null;
+  let SET_CONFIG_ALLOWED_ATTR = null;
   let FORCE_BODY = false;
   let RETURN_DOM = false;
   let RETURN_DOM_FRAGMENT = false;
@@ -716,12 +718,6 @@ function createDOMPurify() {
       if (trustedTypesPolicy && typeof emptyHTML === "string") {
         emptyHTML = _createTrustedHTML("");
       }
-    }
-    if ((hooks.uponSanitizeElement.length > 0 || hooks.uponSanitizeAttribute.length > 0) && ALLOWED_TAGS === DEFAULT_ALLOWED_TAGS) {
-      ALLOWED_TAGS = clone(ALLOWED_TAGS);
-    }
-    if (hooks.uponSanitizeAttribute.length > 0 && ALLOWED_ATTR === DEFAULT_ALLOWED_ATTR) {
-      ALLOWED_ATTR = clone(ALLOWED_ATTR);
     }
     if (freeze) {
       freeze(cfg);
@@ -1315,8 +1311,17 @@ function createDOMPurify() {
     if (!DOMPurify.isSupported) {
       return dirty;
     }
-    if (!SET_CONFIG) {
+    if (SET_CONFIG) {
+      ALLOWED_TAGS = SET_CONFIG_ALLOWED_TAGS;
+      ALLOWED_ATTR = SET_CONFIG_ALLOWED_ATTR;
+    } else {
       _parseConfig(cfg);
+    }
+    if (hooks.uponSanitizeElement.length > 0 || hooks.uponSanitizeAttribute.length > 0) {
+      ALLOWED_TAGS = clone(ALLOWED_TAGS);
+    }
+    if (hooks.uponSanitizeAttribute.length > 0) {
+      ALLOWED_ATTR = clone(ALLOWED_ATTR);
     }
     DOMPurify.removed = [];
     const inPlace = IN_PLACE && typeof dirty !== "string" && _isNode(dirty);
@@ -1417,10 +1422,14 @@ function createDOMPurify() {
     let cfg = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : {};
     _parseConfig(cfg);
     SET_CONFIG = true;
+    SET_CONFIG_ALLOWED_TAGS = ALLOWED_TAGS;
+    SET_CONFIG_ALLOWED_ATTR = ALLOWED_ATTR;
   };
   DOMPurify.clearConfig = function() {
     CONFIG = null;
     SET_CONFIG = false;
+    SET_CONFIG_ALLOWED_TAGS = null;
+    SET_CONFIG_ALLOWED_ATTR = null;
     trustedTypesPolicy = defaultTrustedTypesPolicy;
     emptyHTML = "";
   };
@@ -1436,9 +1445,15 @@ function createDOMPurify() {
     if (typeof hookFunction !== "function") {
       return;
     }
+    if (!objectHasOwnProperty(hooks, entryPoint)) {
+      return;
+    }
     arrayPush(hooks[entryPoint], hookFunction);
   };
   DOMPurify.removeHook = function(entryPoint, hookFunction) {
+    if (!objectHasOwnProperty(hooks, entryPoint)) {
+      return void 0;
+    }
     if (hookFunction !== void 0) {
       const index = arrayLastIndexOf(hooks[entryPoint], hookFunction);
       return index === -1 ? void 0 : arraySplice(hooks[entryPoint], index, 1)[0];
@@ -1446,6 +1461,9 @@ function createDOMPurify() {
     return arrayPop(hooks[entryPoint]);
   };
   DOMPurify.removeHooks = function(entryPoint) {
+    if (!objectHasOwnProperty(hooks, entryPoint)) {
+      return;
+    }
     hooks[entryPoint] = [];
   };
   DOMPurify.removeAllHooks = function() {
@@ -8466,5 +8484,5 @@ console.info(`unifi-network-map card loaded v${CARD_VERSION} (domain=${INTEGRATI
 /*! Bundled license information:
 
 dompurify/dist/purify.es.mjs:
-  (*! @license DOMPurify 3.4.10 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/3.4.10/LICENSE *)
+  (*! @license DOMPurify 3.4.11 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/3.4.11/LICENSE *)
 */
