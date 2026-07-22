@@ -167,9 +167,6 @@ class UniFiNetworkMapCoordinator(DataUpdateCoordinator[UniFiNetworkMapData]):  #
         self._client.invalidate_cache()
         await self.async_request_refresh()
 
-    async def async_fetch_for_testing(self) -> UniFiNetworkMapData:
-        return await self._async_update_data()
-
     def _auth_backoff_remaining(self) -> float | None:
         if self._auth_backoff_until is None:
             return None

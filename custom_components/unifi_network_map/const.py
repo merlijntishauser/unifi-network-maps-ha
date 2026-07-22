@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
 
 DOMAIN = "unifi_network_map"
 PLATFORMS = ["sensor", "binary_sensor"]
@@ -10,7 +9,6 @@ PAYLOAD_SCHEMA_VERSION = "2.0"
 SERVICE_REFRESH = "refresh"
 ATTR_ENTRY_ID = "entry_id"
 DEFAULT_SCAN_INTERVAL_SECONDS = 600
-DEFAULT_SCAN_INTERVAL = timedelta(seconds=DEFAULT_SCAN_INTERVAL_SECONDS)
 DEFAULT_RENDER_CACHE_SECONDS = DEFAULT_SCAN_INTERVAL_SECONDS
 DEFAULT_SITE = "default"
 DEFAULT_VERIFY_SSL = False
@@ -24,7 +22,6 @@ DEFAULT_REQUEST_TIMEOUT_SECONDS = 30
 DEFAULT_PAYLOAD_CACHE_TTL_SECONDS = 30
 MIN_PAYLOAD_CACHE_TTL_SECONDS = 0
 MAX_PAYLOAD_CACHE_TTL_SECONDS = 300
-CLIENT_SCOPE_OPTIONS = ["wired", "wireless", "all"]
 
 CONF_SITE = "site"
 CONF_API_KEY = "api_key"

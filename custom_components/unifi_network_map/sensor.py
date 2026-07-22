@@ -23,8 +23,6 @@ if TYPE_CHECKING:
     from .coordinator import UniFiNetworkMapCoordinator
     from .data import UniFiNetworkMapConfigEntry
 
-EntityList = list["UniFiNetworkMapSensor | UniFiVlanClientsSensor"]
-
 
 async def async_setup_entry(
     hass: HomeAssistant,

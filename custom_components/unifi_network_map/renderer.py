@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Protocol, TypedDict, cast
+from typing import Any, Protocol, cast
 
 from unifi_topology import (
     Config,
@@ -54,13 +54,6 @@ class RenderSettings:
     wan2_speed: str = ""
     wan2_disabled: str = "auto"
     show_vpn: bool = True
-
-
-class ClientDict(TypedDict, total=False):
-    name: str
-    hostname: str
-    mac: str
-    ip: str
 
 
 class ClientLike(Protocol):
@@ -194,7 +187,6 @@ def _build_client_edges(
     devices: list[Device],
     clients: list[ClientData],
     settings: RenderSettings,
-    node_names: dict[str, str] | None = None,
 ) -> list[Edge]:
     device_index = build_device_index(devices)
     return build_client_edges(
@@ -203,7 +195,6 @@ def _build_client_edges(
         include_ports=settings.include_ports,
         client_mode=settings.client_scope,
         only_unifi=settings.only_unifi,
-        node_names=node_names,
     )
 
 

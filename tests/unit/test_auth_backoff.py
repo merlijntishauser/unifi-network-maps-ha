@@ -78,7 +78,7 @@ async def test_auth_backoff_blocks_immediate_retry(
         patch.object(entry, "async_start_reauth"),
         pytest.raises(UpdateFailed),
     ):
-        await coordinator.async_fetch_for_testing()
+        await coordinator._async_update_data()
 
     assert coordinator.auth_backoff_until == pytest.approx(
         100.0 + AUTH_BACKOFF_BASE_SECONDS
@@ -86,7 +86,7 @@ async def test_auth_backoff_blocks_immediate_retry(
     assert coordinator.auth_backoff_seconds == AUTH_BACKOFF_BASE_SECONDS * 2
 
     with pytest.raises(UpdateFailed) as exc:
-        await coordinator.async_fetch_for_testing()
+        await coordinator._async_update_data()
     assert "Auth backoff active" in str(exc.value)
 
 
@@ -114,13 +114,13 @@ async def test_auth_backoff_resets_after_success(
         patch.object(entry, "async_start_reauth"),
         pytest.raises(UpdateFailed),
     ):
-        await coordinator.async_fetch_for_testing()
+        await coordinator._async_update_data()
 
     monkeypatch.setattr(
         "custom_components.unifi_network_map.coordinator.monotonic_seconds",
         lambda: 100.0 + AUTH_BACKOFF_BASE_SECONDS + 1,
     )
-    data = await coordinator.async_fetch_for_testing()
+    data = await coordinator._async_update_data()
 
     assert data.svg == "<svg />"
     assert coordinator.auth_backoff_until is None
@@ -146,7 +146,7 @@ async def test_invalid_auth_triggers_reauth(
         patch.object(entry, "async_start_reauth") as mock_reauth,
         pytest.raises(UpdateFailed),
     ):
-        await coordinator.async_fetch_for_testing()
+        await coordinator._async_update_data()
 
     mock_reauth.assert_called_once()
 
@@ -170,7 +170,7 @@ async def test_connect_error_does_not_trigger_reauth(
         patch.object(entry, "async_start_reauth") as mock_reauth,
         pytest.raises(UpdateFailed),
     ):
-        await coordinator.async_fetch_for_testing()
+        await coordinator._async_update_data()
 
     mock_reauth.assert_not_called()
 
@@ -190,7 +190,7 @@ async def test_rate_limit_triggers_backoff(
     )
 
     with pytest.raises(UpdateFailed):
-        await coordinator.async_fetch_for_testing()
+        await coordinator._async_update_data()
 
     assert coordinator.auth_backoff_until == pytest.approx(
         200.0 + AUTH_BACKOFF_BASE_SECONDS
