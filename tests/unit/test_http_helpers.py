@@ -9,8 +9,6 @@ from custom_components.unifi_network_map.http import (
     _add_entities_by_device,
     _append_unique_entity,
     _build_device_entities_map,
-    _build_svg_edges,
-    _edge_from_payload,
     _entity_state_details,
     _extract_mac,
     _extract_mac_from_attributes,
@@ -25,13 +23,15 @@ from custom_components.unifi_network_map.http import (
     _mac_from_unique_id,
     _normalize_mac,
     _normalize_tracker_state,
-    _should_render_svg,
     _sort_related_entities,
     _store_payload_field,
-    _svg_options_from_settings,
-    _valid_edge_payload,
     build_enriched_payload,
     resolve_node_status_map,
+)
+from custom_components.unifi_network_map.renderer import (
+    _build_svg_edges,
+    _edge_from_payload,
+    _valid_edge_payload,
 )
 
 
@@ -460,23 +460,6 @@ class TestEdgeFromPayload:
         assert edge.speed is None
 
 
-class TestShouldRenderSvg:
-    """Tests for _should_render_svg function."""
-
-    def test_returns_true_with_edges_and_types(self) -> None:
-        edges = [{"left": "a", "right": "b"}]
-        node_types = {"a": "gateway"}
-        assert _should_render_svg(edges, node_types) is True
-
-    def test_returns_false_without_edges(self) -> None:
-        node_types = {"a": "gateway"}
-        assert _should_render_svg([], node_types) is False
-
-    def test_returns_false_without_node_types(self) -> None:
-        edges = [{"left": "a", "right": "b"}]
-        assert _should_render_svg(edges, {}) is False
-
-
 class TestFormatMac:
     """Tests for _format_mac function."""
 
@@ -551,27 +534,6 @@ class TestBuildSvgEdges:
         ]
         result = _build_svg_edges(payload)
         assert len(result) == 1
-
-
-class TestSvgOptionsFromSettings:
-    """Tests for _svg_options_from_settings function."""
-
-    def test_extracts_width_and_height(self) -> None:
-        from custom_components.unifi_network_map.renderer import RenderSettings
-
-        settings = RenderSettings(
-            include_ports=True,
-            include_clients=True,
-            client_scope="all",
-            only_unifi=False,
-            svg_isometric=True,
-            svg_width=800,
-            svg_height=600,
-            use_cache=True,
-        )
-        options = _svg_options_from_settings(settings)
-        assert options.width == 800
-        assert options.height == 600
 
 
 class TestExtractMacFromAttributes:

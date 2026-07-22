@@ -36,6 +36,7 @@ from custom_components.unifi_network_map.renderer import (
     _resolve_model_name,
     _select_edges,
 )
+from tests.helpers import build_settings
 
 
 @dataclass
@@ -874,3 +875,83 @@ class TestExtractWanInfo:
         )
         result = _extract_wan_info([], settings)
         assert result is None
+
+
+class TestRenderThemedSvg:
+    """Tests for render_themed_svg (themed re-render for the SVG view)."""
+
+    @staticmethod
+    def _data() -> Any:
+        from unifi_topology import VpnTunnel, WanInfo
+
+        from custom_components.unifi_network_map.data import (
+            UniFiNetworkMapData,
+        )
+
+        return UniFiNetworkMapData(
+            svg="<svg original />",
+            payload={
+                "edges": [{"left": "a", "right": "b"}],
+                "node_types": {"a": "gateway", "b": "switch"},
+                "node_names": {"a": "Gateway", "b": "Switch"},
+            },
+            wan_info=WanInfo(),
+            vpn_tunnels=[
+                VpnTunnel(
+                    name="site-b",
+                    vpn_type="site-to-site",
+                    remote_subnets=("10.0.0.0/24",),
+                    ifname="wg0",
+                    enabled=True,
+                    up=True,
+                    gateway_mac=None,
+                )
+            ],
+        )
+
+    def test_forwards_vpn_tunnels_and_wan_info(self) -> None:
+        from custom_components.unifi_network_map import renderer
+
+        data = self._data()
+        settings = build_settings()
+        captured: dict[str, Any] = {}
+
+        def _fake_render(*_args: Any, **kwargs: Any) -> str:
+            captured.update(kwargs)
+            return "themed"
+
+        with patch.object(renderer, "render_svg", _fake_render):
+            svg, background = renderer.render_themed_svg(
+                data, settings, "unifi-dark", None
+            )
+
+        assert svg == "themed"
+        assert background
+        assert captured["vpn_tunnels"] == data.vpn_tunnels
+        assert captured["wan_info"] == data.wan_info
+
+    def test_returns_original_svg_without_edges(self) -> None:
+        from custom_components.unifi_network_map import renderer
+        from custom_components.unifi_network_map.data import (
+            UniFiNetworkMapData,
+        )
+
+        data = UniFiNetworkMapData(svg="<svg original />", payload={})
+        svg, background = renderer.render_themed_svg(
+            data, build_settings(), "unifi", None
+        )
+
+        assert svg == "<svg original />"
+        assert background
+
+    def test_falls_back_on_unknown_theme(self) -> None:
+        from custom_components.unifi_network_map import renderer
+
+        data = self._data()
+        with patch.object(renderer, "render_svg", lambda *a, **k: "themed"):
+            svg, background = renderer.render_themed_svg(
+                data, build_settings(), "bogus", None
+            )
+
+        assert svg == "themed"
+        assert background

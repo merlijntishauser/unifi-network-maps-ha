@@ -9,6 +9,7 @@ import pytest
 from aiohttp import web
 
 from custom_components.unifi_network_map import http as http_module
+from custom_components.unifi_network_map import renderer as renderer_module
 from custom_components.unifi_network_map.data import UniFiNetworkMapData
 from tests.helpers import FakeBus, build_settings
 
@@ -179,17 +180,15 @@ async def test_svg_view_renders_theme_when_requested(
     hass = FakeHassWithHttp({})
     hass.config_entries.entries_by_id["entry-1"] = fake_entry
 
-    def _render_svg_with_theme(
+    def _render_themed_svg(
         _data: object,
-        _coordinator: object,
+        _settings: object,
         _svg_theme: str | None,
         _icon_set: str | None,
     ) -> tuple[str, str]:
         return ("themed", "#1c1e21")
 
-    monkeypatch.setattr(
-        http_module, "_render_svg_with_theme", _render_svg_with_theme
-    )
+    monkeypatch.setattr(http_module, "render_themed_svg", _render_themed_svg)
 
     def _response(**kwargs: object) -> SimpleNamespace:
         return SimpleNamespace(**kwargs)
@@ -270,11 +269,11 @@ def test_extract_mac_parses_common_formats() -> None:
 def test_edge_payload_validation_and_defaults() -> None:
     valid_edge_payload = cast(
         "Callable[[dict[str, object]], bool]",
-        getattr(http_module, "_valid_edge_payload"),
+        getattr(renderer_module, "_valid_edge_payload"),
     )
     edge_from_payload = cast(
         "Callable[[dict[str, object]], Edge]",
-        getattr(http_module, "_edge_from_payload"),
+        getattr(renderer_module, "_edge_from_payload"),
     )
     assert valid_edge_payload({"left": "a", "right": "b"}) is True
     assert valid_edge_payload({"left": "a"}) is False
@@ -307,7 +306,9 @@ async def test_payload_view_returns_404_when_missing_data() -> None:
         await view.get(request, "missing")
 
 
-def test_render_svg_with_theme_paths(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_render_themed_svg_paths(monkeypatch: pytest.MonkeyPatch) -> None:
+    from custom_components.unifi_network_map import renderer
+
     settings = build_settings()
     data = UniFiNetworkMapData(
         svg="<svg />",
@@ -316,78 +317,53 @@ def test_render_svg_with_theme_paths(monkeypatch: pytest.MonkeyPatch) -> None:
             "node_types": {"a": "gateway", "b": "switch"},
         },
     )
-    coordinator = cast(
-        "http_module.UniFiNetworkMapCoordinator",
-        FakeCoordinator(settings=settings),
-    )
 
     def _render_svg(*_args: object, **_kwargs: object) -> str:
         return "rendered"
 
-    monkeypatch.setattr(http_module, "render_svg", _render_svg)
+    monkeypatch.setattr(renderer, "render_svg", _render_svg)
 
-    render_svg_with_theme = cast(
-        "Callable["
-        "[UniFiNetworkMapData, object,"
-        " str | None, str | None],"
-        " tuple[str, str]]",
-        getattr(http_module, "_render_svg_with_theme"),
-    )
-    svg, background = render_svg_with_theme(data, coordinator, "unifi", None)
+    svg, background = renderer.render_themed_svg(data, settings, "unifi", None)
 
     assert svg == "rendered"
     assert background == "#f9fafa"
 
 
-def test_render_svg_with_theme_returns_original_on_missing_edges() -> None:
+def test_render_themed_svg_returns_original_on_missing_edges() -> None:
+    from custom_components.unifi_network_map import renderer
+
     settings = build_settings(svg_isometric=True)
     data = UniFiNetworkMapData(
         svg="<svg />", payload={"edges": [], "node_types": {}}
     )
-    coordinator = cast(
-        "http_module.UniFiNetworkMapCoordinator",
-        FakeCoordinator(settings=settings),
-    )
 
-    render_svg_with_theme = cast(
-        "Callable["
-        "[UniFiNetworkMapData, object,"
-        " str | None, str | None],"
-        " tuple[str, str]]",
-        getattr(http_module, "_render_svg_with_theme"),
-    )
-    svg, background = render_svg_with_theme(data, coordinator, "unifi", None)
+    svg, background = renderer.render_themed_svg(data, settings, "unifi", None)
 
     assert svg == "<svg />"
     assert background == "#f9fafa"
 
 
-def test_render_svg_with_theme_returns_original_on_invalid_edges() -> None:
+def test_render_themed_svg_returns_original_on_invalid_edges() -> None:
+    from custom_components.unifi_network_map import renderer
+
     data = UniFiNetworkMapData(
         svg="<svg />",
         payload={"edges": [{"left": "a"}], "node_types": {"a": "gateway"}},
     )
-    coordinator = cast(
-        "http_module.UniFiNetworkMapCoordinator",
-        FakeCoordinator(settings=build_settings()),
-    )
 
-    render_svg_with_theme = cast(
-        "Callable["
-        "[UniFiNetworkMapData, object,"
-        " str | None, str | None],"
-        " tuple[str, str]]",
-        getattr(http_module, "_render_svg_with_theme"),
+    svg, background = renderer.render_themed_svg(
+        data, build_settings(), "unifi", None
     )
-    svg, background = render_svg_with_theme(data, coordinator, "unifi", None)
 
     assert svg == "<svg />"
     assert background == "#f9fafa"
 
 
-def test_render_svg_with_theme_isometric_branch(
+def test_render_themed_svg_isometric_branch(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    from custom_components.unifi_network_map import renderer
+
     settings = build_settings(svg_isometric=True)
     data = UniFiNetworkMapData(
         svg="<svg />",
@@ -396,85 +372,45 @@ def test_render_svg_with_theme_isometric_branch(
             "node_types": {"a": "gateway", "b": "switch"},
         },
     )
-    coordinator = cast(
-        "http_module.UniFiNetworkMapCoordinator",
-        FakeCoordinator(settings=settings),
-    )
 
     def _render_svg_isometric(*_args: object, **_kwargs: object) -> str:
         return "iso"
 
     monkeypatch.setattr(
-        http_module, "render_svg_isometric", _render_svg_isometric
+        renderer, "render_svg_isometric", _render_svg_isometric
     )
 
-    render_svg_with_theme = cast(
-        "Callable["
-        "[UniFiNetworkMapData, object,"
-        " str | None, str | None],"
-        " tuple[str, str]]",
-        getattr(http_module, "_render_svg_with_theme"),
-    )
-    svg, background = render_svg_with_theme(data, coordinator, "unifi", None)
+    svg, background = renderer.render_themed_svg(data, settings, "unifi", None)
 
     assert svg == "iso"
     assert background == "#f9fafa"
 
 
-def test_load_svg_theme_applies_icon_set_override() -> None:
-    """_load_svg_theme applies icon_set override when
-    different from theme default."""
-    from custom_components.unifi_network_map.renderer import RenderSettings
+def test_resolve_svg_theme_applies_icon_set_override() -> None:
+    from custom_components.unifi_network_map import renderer
 
-    settings = RenderSettings(
-        include_ports=True,
-        include_clients=False,
-        client_scope="active",
-        only_unifi=True,
-        svg_isometric=False,
-        svg_width=None,
-        svg_height=None,
-        use_cache=True,
-        svg_theme="unifi",
-        icon_set="modern",
-    )
-    load_svg_theme = cast(
-        "Callable[[str | None, str | None, RenderSettings], object]",
-        getattr(http_module, "_load_svg_theme"),
+    resolve_svg_theme = cast(
+        "Callable[[str | None, str | None], object]",
+        getattr(renderer, "_resolve_svg_theme"),
     )
 
-    # Test with icon_set override
-    theme = load_svg_theme("unifi", "isometric", settings)
-    assert hasattr(theme, "icon_set")
-    assert theme.icon_set == "isometric"
+    theme = resolve_svg_theme("unifi", "isometric")
+    assert getattr(theme, "icon_set", None) == "isometric"
 
-    # Test without override (uses theme default)
-    theme_default = load_svg_theme("unifi", None, settings)
+    theme_default = resolve_svg_theme("unifi", None)
     assert hasattr(theme_default, "icon_set")
 
 
-def test_load_svg_theme_falls_back_on_unknown_theme() -> None:
+def test_resolve_svg_theme_falls_back_on_unknown_theme() -> None:
     """An unknown theme name falls back instead of raising HTTP 500."""
-    from custom_components.unifi_network_map.renderer import RenderSettings
+    from custom_components.unifi_network_map import renderer
 
-    settings = RenderSettings(
-        include_ports=True,
-        include_clients=False,
-        client_scope="active",
-        only_unifi=True,
-        svg_isometric=False,
-        svg_width=None,
-        svg_height=None,
-        use_cache=True,
-        svg_theme="unifi",
-        icon_set="modern",
-    )
-    load_svg_theme = cast(
-        "Callable[[str | None, str | None, RenderSettings], object]",
-        getattr(http_module, "_load_svg_theme"),
+    resolve_svg_theme = cast(
+        "Callable[[str | None, str | None], object]",
+        getattr(renderer, "_resolve_svg_theme"),
     )
 
-    theme = load_svg_theme("bogus", None, settings)
+    theme = resolve_svg_theme("bogus", None)
 
     assert hasattr(theme, "background")
 

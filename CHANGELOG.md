@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Clicking a node's text label now selects the node correctly. Previously the display name was used instead of the MAC-keyed node id, so the detail panel came up empty (leftover from the pre-2.0 name-keyed payload schema)
 - The context menu's "Restart device" action now targets the node's actual restart button entity from `related_entities`. Previously it mangled the linked entity id into a nonexistent entity (e.g. `device_tracker.restart`), so the restart never happened while a success toast was still shown; a node without a restart button now shows an error toast instead
 - Clicking Retry while a request was still in flight could permanently wedge the card's loading state (every future load, including the 30s poll, was skipped until a page reload). Aborted requests now reset the loading flag and re-trigger the load
+- VPN tunnels now render in the card. The SVG endpoint's themed re-render path (taken on every card load, since the card always sends theme parameters) was a diverged copy of the renderer pipeline that never passed `vpn_tunnels`; the duplicate has been removed and both paths now share one renderer entry point (`render_themed_svg`), which also forwards WAN info consistently
 
 ### Changed
 - Bumped DOMPurify from 3.4.7 to 3.4.10 (maintenance releases: Trusted Types policy handling, node-iterator template-scrubbing, and IN_PLACE sanitization fixes) and rebuilt the frontend bundle (#229, #234, #239)

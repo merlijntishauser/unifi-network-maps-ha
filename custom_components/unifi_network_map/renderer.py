@@ -9,6 +9,7 @@ from unifi_topology import (
     Device,
     Edge,
     SvgOptions,
+    SvgTheme,
     TopologyResult,
     VpnTunnel,
     WanInfo,
@@ -285,19 +286,24 @@ def _render_svg(
         wan_info is not None,
         len(vpn_tunnels) if vpn_tunnels else 0,
     )
-    options = SvgOptions(width=settings.svg_width, height=settings.svg_height)
     theme = _resolve_svg_theme(settings.svg_theme, settings.icon_set)
-    if settings.svg_isometric:
-        return render_svg_isometric(
-            edges,
-            node_types=node_types,
-            node_names=node_names,
-            options=options,
-            theme=theme,
-            wan_info=wan_info,
-            vpn_tunnels=vpn_tunnels or None,
-        )
-    return render_svg(
+    return _render_svg_variant(
+        edges, node_types, node_names, settings, theme, wan_info, vpn_tunnels
+    )
+
+
+def _render_svg_variant(
+    edges: list[Edge],
+    node_types: dict[str, str],
+    node_names: dict[str, str] | None,
+    settings: RenderSettings,
+    theme: SvgTheme,
+    wan_info: WanInfo | None,
+    vpn_tunnels: list[VpnTunnel] | None,
+) -> str:
+    options = SvgOptions(width=settings.svg_width, height=settings.svg_height)
+    render = render_svg_isometric if settings.svg_isometric else render_svg
+    return render(
         edges,
         node_types=node_types,
         node_names=node_names,
@@ -305,6 +311,85 @@ def _render_svg(
         theme=theme,
         wan_info=wan_info,
         vpn_tunnels=vpn_tunnels or None,
+    )
+
+
+def render_themed_svg(
+    data: UniFiNetworkMapData,
+    settings: RenderSettings,
+    svg_theme: str | None,
+    icon_set: str | None,
+) -> tuple[str, str]:
+    """Re-render a fetched map's SVG with a theme/icon-set override.
+
+    Used by the SVG HTTP view for per-card theme query parameters.
+    Returns ``(svg, background_color)``; falls back to the pre-rendered
+    SVG when the payload lacks renderable topology.
+    """
+    theme = _resolve_svg_theme(
+        svg_theme or settings.svg_theme, icon_set or settings.icon_set
+    )
+    background = str(theme.background)
+    payload = data.payload or {}
+    node_types = _payload_str_dict(payload.get("node_types"))
+    edges = _build_svg_edges(payload.get("edges"))
+    if not edges or not node_types:
+        return data.svg, background
+    node_names = _payload_str_dict(payload.get("node_names"))
+    svg = _render_svg_variant(
+        edges,
+        node_types,
+        node_names or None,
+        settings,
+        theme,
+        data.wan_info,
+        data.vpn_tunnels,
+    )
+    return svg, background
+
+
+def _payload_str_dict(value: object) -> dict[str, str]:
+    if not isinstance(value, dict):
+        return {}
+    return {
+        str(key): str(item)
+        for key, item in cast("dict[object, object]", value).items()
+    }
+
+
+def _build_svg_edges(edges_payload: object) -> list[Edge]:
+    if not isinstance(edges_payload, list):
+        return []
+    payload = cast("list[object]", edges_payload)
+    return [
+        _edge_from_payload(cast("Mapping[str, object]", edge))
+        for edge in payload
+        if _valid_edge_payload(edge)
+    ]
+
+
+def _valid_edge_payload(edge: object) -> bool:
+    return (
+        isinstance(edge, dict)
+        and isinstance(edge.get("left"), str)
+        and isinstance(edge.get("right"), str)
+    )
+
+
+def _edge_from_payload(edge: Mapping[str, object]) -> Edge:
+    label = edge.get("label")
+    poe_value = edge.get("poe")
+    wireless_value = edge.get("wireless")
+    speed_value = edge.get("speed")
+    channel_value = edge.get("channel")
+    return Edge(
+        left=str(edge.get("left", "")),
+        right=str(edge.get("right", "")),
+        label=label if isinstance(label, str) else None,
+        poe=poe_value if isinstance(poe_value, bool) else False,
+        wireless=wireless_value if isinstance(wireless_value, bool) else False,
+        speed=speed_value if isinstance(speed_value, int) else None,
+        channel=channel_value if isinstance(channel_value, int) else None,
     )
 
 

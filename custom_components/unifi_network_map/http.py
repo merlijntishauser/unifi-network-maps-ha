@@ -8,28 +8,17 @@ from aiohttp import web
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
-from unifi_topology import (
-    Edge,
-    SvgOptions,
-    SvgTheme,
-    WanInfo,
-    render_svg,
-    render_svg_isometric,
-    resolve_svg_themes,
-)
 
 from .const import DOMAIN, LOGGER
 from .entity_cache import get_entity_cache
 from .payload_cache import compute_payload_hash, get_payload_cache
+from .renderer import render_themed_svg
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-
     from homeassistant.core import HomeAssistant
 
     from .coordinator import UniFiNetworkMapCoordinator
     from .data import UniFiNetworkMapData
-    from .renderer import RenderSettings
 
 _VIEWS_REGISTERED = "views_registered"
 _MAC_ATTRIBUTE_KEYS = ("mac_address", "mac")
@@ -75,7 +64,11 @@ class UniFiNetworkMapSvgView(HomeAssistantView):  # type: ignore[reportUntypedBa
         icon_set = request.query.get("icon_set")
         if (svg_theme or icon_set) and coordinator is not None:
             themed_svg, background = await hass.async_add_executor_job(
-                _render_svg_with_theme, data, coordinator, svg_theme, icon_set
+                render_themed_svg,
+                data,
+                coordinator.settings,
+                svg_theme,
+                icon_set,
             )
             headers = {"X-Theme-Background": background}
             return web.Response(
@@ -718,133 +711,6 @@ def _extract_mac(value: str) -> str | None:
             ":".join(packed[i : i + 2] for i in range(0, 12, 2))
         )
     return None
-
-
-def _render_svg_with_theme(
-    data: UniFiNetworkMapData,
-    coordinator: UniFiNetworkMapCoordinator,
-    svg_theme: str | None,
-    icon_set: str | None,
-) -> tuple[str, str]:
-    """Render SVG with theme, returning (svg, background_color)."""
-    theme = _load_svg_theme(svg_theme, icon_set, coordinator.settings)
-    background = theme.background
-
-    payload = data.payload or {}
-    edges_payload = payload.get("edges") or []
-    node_types = payload.get("node_types") or {}
-    node_names = payload.get("node_names") or {}
-    if not _should_render_svg(edges_payload, node_types):
-        return data.svg, background
-    edges = _build_svg_edges(edges_payload)
-    if not edges:
-        return data.svg, background
-    options = _svg_options_from_settings(coordinator.settings)
-    svg = _render_svg_variant(
-        edges,
-        node_types,
-        node_names,
-        options,
-        theme,
-        coordinator.settings.svg_isometric,
-        data.wan_info,
-    )
-    return svg, background
-
-
-def _load_svg_theme(
-    svg_theme: str | None, icon_set: str | None, settings: RenderSettings
-) -> SvgTheme:
-    """Load SVG theme from request params.
-
-    Falls back to coordinator settings.
-    """
-    from dataclasses import replace
-
-    theme_name = svg_theme or settings.svg_theme or "unifi"
-    icon_set_name = icon_set or settings.icon_set or "modern"
-
-    try:
-        theme = resolve_svg_themes(theme_name=theme_name)
-    except ValueError:
-        LOGGER.warning(
-            "Unknown svg_theme %r; falling back to default", theme_name
-        )
-        theme = resolve_svg_themes(theme_name="unifi")
-    if theme.icon_set != icon_set_name:
-        theme = replace(theme, icon_set=icon_set_name)
-    return theme
-
-
-def _should_render_svg(
-    edges_payload: list[Mapping[str, object]], node_types: dict[str, str]
-) -> bool:
-    return bool(edges_payload and node_types)
-
-
-def _build_svg_edges(edges_payload: list[Mapping[str, object]]) -> list[Edge]:
-    return [
-        _edge_from_payload(edge)
-        for edge in edges_payload
-        if _valid_edge_payload(edge)
-    ]
-
-
-def _svg_options_from_settings(settings: RenderSettings) -> SvgOptions:
-    return SvgOptions(width=settings.svg_width, height=settings.svg_height)
-
-
-def _render_svg_variant(
-    edges: list[Edge],
-    node_types: dict[str, str],
-    node_names: dict[str, str],
-    options: SvgOptions,
-    theme: SvgTheme,
-    is_isometric: bool,
-    wan_info: WanInfo | None = None,
-) -> str:
-    if is_isometric:
-        return render_svg_isometric(
-            edges,
-            node_types=node_types,
-            node_names=node_names,
-            options=options,
-            theme=theme,
-            wan_info=wan_info,
-        )
-    return render_svg(
-        edges,
-        node_types=node_types,
-        node_names=node_names,
-        options=options,
-        theme=theme,
-        wan_info=wan_info,
-    )
-
-
-def _valid_edge_payload(edge: object) -> bool:
-    return (
-        isinstance(edge, dict)
-        and isinstance(edge.get("left"), str)
-        and isinstance(edge.get("right"), str)
-    )
-
-
-def _edge_from_payload(edge: Mapping[str, object]) -> Edge:
-    label = edge.get("label")
-    poe_value = edge.get("poe")
-    wireless_value = edge.get("wireless")
-    speed_value = edge.get("speed")
-    channel_value = edge.get("channel")
-    return Edge(
-        left=str(edge.get("left", "")),
-        right=str(edge.get("right", "")),
-        label=label if isinstance(label, str) else None,
-        poe=poe_value if isinstance(poe_value, bool) else False,
-        wireless=wireless_value if isinstance(wireless_value, bool) else False,
-        speed=speed_value if isinstance(speed_value, int) else None,
-        channel=channel_value if isinstance(channel_value, int) else None,
-    )
 
 
 _MAC_PATTERN = re.compile(r"^(?:[0-9a-f]{2}:){5}[0-9a-f]{2}$", re.IGNORECASE)
