@@ -178,6 +178,41 @@ class TestWebsocketSubscribeMap:
         assert args[1] == "no_data"
 
     @pytest.mark.asyncio  # type: ignore[misc]
+    async def test_sends_result_before_initial_event(self) -> None:
+        """The subscribe promise resolves only on a result message.
+
+        Without send_result, home-assistant-js-websocket never settles the
+        frontend's subscribeMessage promise, so the card cannot store the
+        unsubscribe callback or stop HTTP polling.
+        """
+        coordinator = MagicMock(spec=UniFiNetworkMapCoordinator)
+        coordinator.data = UniFiNetworkMapData(
+            svg="<svg></svg>",
+            payload={"edges": [], "node_types": {}},
+        )
+        coordinator.async_add_listener = MagicMock(return_value=MagicMock())
+
+        entry = MagicMock()
+        entry.runtime_data = coordinator
+        hass = MagicMock()
+        hass.config_entries.async_get_entry.return_value = entry
+        connection = MagicMock()
+        connection.subscriptions = {}
+        msg: dict[str, Any] = {"id": 7, "entry_id": "entry123"}
+
+        with patch(
+            "custom_components.unifi_network_map.websocket.build_enriched_payload"
+        ) as mock_enrich:
+            mock_enrich.return_value = {"enriched": True}
+            await _subscribe_map_async(hass, connection, msg)
+
+        connection.send_result.assert_called_once_with(7)
+        call_names = [mock_call[0] for mock_call in connection.mock_calls]
+        assert call_names.index("send_result") < call_names.index(
+            "send_message"
+        )
+
+    @pytest.mark.asyncio  # type: ignore[misc]
     async def test_sends_initial_payload_and_subscribes(self) -> None:
         coordinator = MagicMock(spec=UniFiNetworkMapCoordinator)
         coordinator.data = UniFiNetworkMapData(

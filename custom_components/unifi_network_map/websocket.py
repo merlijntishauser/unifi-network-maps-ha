@@ -51,6 +51,10 @@ async def websocket_subscribe_map(
         )
         return
 
+    # The result message resolves the frontend's subscribeMessage promise;
+    # events alone never settle it.
+    connection.send_result(msg["id"])
+
     payload = _build_payload(hass, coordinator)
     connection.send_message(
         websocket_api.event_message(msg["id"], {"payload": payload})
