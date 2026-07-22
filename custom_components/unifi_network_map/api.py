@@ -248,6 +248,9 @@ def _map_api_error(exc: Exception) -> UniFiNetworkMapError:
 
 
 def _status_code_from_exception(exc: Exception) -> int | None:
+    status_code = getattr(exc, "status_code", None)
+    if isinstance(status_code, int):
+        return status_code
     cause = getattr(exc, "__cause__", None)
     if isinstance(cause, HTTPError) and cause.response is not None:
         return cause.response.status_code
@@ -255,11 +258,11 @@ def _status_code_from_exception(exc: Exception) -> int | None:
 
 
 def _unifi_api_status_code(exc: Exception) -> int | None:
-    """Extract the HTTP status from a UnifiApiError (cause or message).
+    """Extract the HTTP status from a UnifiApiError.
 
-    The upstream client raises ``UnifiApiError`` for failed data requests
-    with the status only in the message (``... failed (HTTP <code>)``);
-    the contract test locks that format.
+    Prefers the ``status_code`` attribute (unifi-topology >= 3.0), then the
+    ``HTTPError`` cause, then the ``... failed (HTTP <code>)`` message format
+    locked by the contract test.
     """
     cause_status = _status_code_from_exception(exc)
     if cause_status is not None:
