@@ -156,7 +156,7 @@ def _assert_unifi_connectivity(config: Config, site: str) -> None:
         LOGGER.debug(
             "api connectivity_check failed reason=auth_error site=%s", site
         )
-        raise InvalidAuth("Authentication failed") from exc
+        raise _map_auth_error(exc) from exc
     except UnifiApiError as exc:
         mapped = _map_api_error(exc)
         LOGGER.debug(

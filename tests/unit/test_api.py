@@ -329,6 +329,30 @@ def test_status_code_from_exception_missing_cause() -> None:
     assert status_code_from_exception(Exception("boom")) is None
 
 
+def test_assert_unifi_connectivity_maps_rate_limit_to_cannot_connect(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A 429 during validation is rate limiting, not bad credentials."""
+    from unifi_topology.adapters.unifi_api import UnifiAuthError
+
+    def _fetch_devices(*_args: object, **_kwargs: object) -> None:
+        raise UnifiAuthError("Login failed (HTTP 429)", status_code=429)
+
+    monkeypatch.setattr(api_module, "fetch_devices", _fetch_devices)
+
+    assert_unifi_connectivity = cast(
+        "Callable[[api_module.Config, str], None]",
+        getattr(api_module, "_assert_unifi_connectivity"),
+    )
+    with pytest.raises(CannotConnect):
+        assert_unifi_connectivity(
+            api_module.Config(
+                url="url", site="Home", user="u", password="p", verify_ssl=True
+            ),
+            "Home",
+        )
+
+
 def test_assert_unifi_connectivity_maps_invalid_auth(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
