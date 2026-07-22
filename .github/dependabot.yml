@@ -24,6 +24,11 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 5
+    # TypeScript 7 is not yet supported by @typescript-eslint (peer range <6.1.0);
+    # drop this once the toolchain supports TS 7 and migrate deliberately.
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
     groups:
       frontend-dependencies:
         patterns:
