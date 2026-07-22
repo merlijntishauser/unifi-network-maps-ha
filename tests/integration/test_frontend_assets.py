@@ -29,25 +29,11 @@ class _FakeHttp:
                 self.registered.append(path)
 
 
-class _FakePersistentNotification:
-    def __init__(self) -> None:
-        self.notifications: list[dict[str, object]] = []
-
-    def async_create(self, **kwargs: object) -> None:
-        self.notifications.append(kwargs)
-
-
-class _FakeComponents:
-    def __init__(self) -> None:
-        self.persistent_notification = _FakePersistentNotification()
-
-
 class _FakeHass:
     def __init__(self) -> None:
         self.data: dict[str, object] = {}
         self.http = _FakeHttp()
         self.is_running = True
-        self.components = _FakeComponents()
 
     def async_create_task(self, _coro) -> None:
         if hasattr(_coro, "close"):
@@ -55,11 +41,20 @@ class _FakeHass:
         return None
 
 
-def test_register_frontend_assets_with_async_static_paths() -> None:
+def test_register_frontend_assets_with_async_static_paths(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     hass = _FakeHass()
     hass.data["unifi_network_map"] = {}
+    notifications: list[object] = []
+    monkeypatch.setattr(
+        unifi_network_map.persistent_notification,
+        "async_create",
+        lambda *args, **kwargs: notifications.append((args, kwargs)),
+    )
     register = getattr(unifi_network_map, "_register_frontend_assets")
     register(hass)
+    assert notifications, "Expected the install notification to be created"
     assert hass.http.registered, (
         "Expected static path registration to be called"
     )

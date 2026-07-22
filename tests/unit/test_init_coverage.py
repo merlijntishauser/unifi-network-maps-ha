@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from types import SimpleNamespace
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -108,15 +107,27 @@ def test_suppress_unifi_api_info_logs_skips_when_already_added(
     assert init_module._unifi_api_info_filter_added is True
 
 
-# -- _create_install_notification early return (lines 279-280) --
+# -- _create_install_notification --
 
 
-def test_create_install_notification_skips_when_unavailable() -> None:
+def test_create_install_notification_creates_notification() -> None:
+    """The notification uses the real persistent_notification API.
+
+    hass.components was removed from HomeAssistant, so the old
+    getattr(hass, "components", ...) path silently never notified.
+    """
     hass = MagicMock()
-    # SimpleNamespace without persistent_notification attribute
-    hass.components = SimpleNamespace()
-    _create_install_notification(hass)
-    # Should not crash -- just return early.
+    with patch.object(
+        init_module.persistent_notification, "async_create"
+    ) as mock_create:
+        _create_install_notification(hass)
+
+    mock_create.assert_called_once()
+    assert mock_create.call_args[0][0] is hass
+    assert (
+        mock_create.call_args[1]["notification_id"]
+        == "unifi_network_map_install"
+    )
 
 
 # -- _frontend_bundle_url fallback (line 318) --

@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol, cast
 
 import voluptuous as vol
+from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import EVENT_HOMEASSISTANT_START
 from homeassistant.exceptions import HomeAssistantError
@@ -286,20 +287,15 @@ def _set_flag(data: dict[str, object], key: str) -> None:
 
 def _create_install_notification(hass: HomeAssistant) -> None:
     """Create a one-time notification about card availability after install."""
-    persistent_notification = getattr(
-        getattr(hass, "components", None), "persistent_notification", None
-    )
-    if persistent_notification is None:
-        LOGGER.debug("init notification_skipped reason=component_unavailable")
-        return
     persistent_notification.async_create(
-        title="UniFi Network Map Installed",
-        message=(
+        hass,
+        (
             "The UniFi Network Map card has been installed. "
             "If you don't see it in the Lovelace card picker, "
             "**clear your browser cache** or do a **hard refresh** "
             "(Ctrl+Shift+R on Windows/Linux, Cmd+Shift+R on Mac)."
         ),
+        title="UniFi Network Map Installed",
         notification_id=f"{DOMAIN}_install",
     )
 
