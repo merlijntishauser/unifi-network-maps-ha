@@ -14,12 +14,7 @@ export type ContextMenuRenderOptions = {
 };
 
 export type ContextMenuAction =
-  | "details"
-  | "copy-mac"
-  | "copy-ip"
-  | "restart"
-  | "view-ports"
-  | "unknown";
+  "details" | "copy-mac" | "copy-ip" | "restart" | "view-ports" | "unknown";
 
 export type ContextMenuActionResult = {
   action: ContextMenuAction;
