@@ -234,7 +234,7 @@ async def test_payload_view_returns_mapped_entities(
     http_module.web.json_response = _json_response
     monkeypatch.setattr(
         http_module,
-        "_get_or_build_enriched_payload",
+        "get_or_build_enriched_payload",
         lambda _hass, _eid, _payload: enriched,
     )
     request = SimpleNamespace(app={"hass": hass})

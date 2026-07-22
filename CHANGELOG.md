@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Clicking Retry while a request was still in flight could permanently wedge the card's loading state (every future load, including the 30s poll, was skipped until a page reload). Aborted requests now reset the loading flag and re-trigger the load
 - VPN tunnels now render in the card. The SVG endpoint's themed re-render path (taken on every card load, since the card always sends theme parameters) was a diverged copy of the renderer pipeline that never passed `vpn_tunnels`; the duplicate has been removed and both paths now share one renderer entry point (`render_themed_svg`), which also forwards WAN info consistently
 - The render cache TTL now follows the configured scan interval instead of a fixed 10 minutes, so short scan intervals actually poll the controller (previously a 1-minute interval served cached data for 9 of every 10 polls). The `unifi_network_map.refresh` service now bypasses the cache entirely; before, a manual refresh within the cache window never contacted the controller
+- WebSocket subscribers now share the HTTP payload view's enrichment cache. Previously every subscriber deep-copied and re-enriched the full payload on every coordinator update, synchronously on the event loop -- N open dashboards meant N times the work per poll
 
 ### Changed
 - Bumped DOMPurify from 3.4.7 to 3.4.10 (maintenance releases: Trusted Types policy handling, node-iterator template-scrubbing, and IN_PLACE sanitization fixes) and rebuilt the frontend bundle (#229, #234, #239)

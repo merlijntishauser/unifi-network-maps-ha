@@ -86,11 +86,11 @@ class UniFiNetworkMapPayloadView(HomeAssistantView):  # type: ignore[reportUntyp
         data = _get_data(_get_coordinator(hass, entry_id))
         if data is None:
             raise web.HTTPNotFound()
-        payload = _get_or_build_enriched_payload(hass, entry_id, data.payload)
+        payload = get_or_build_enriched_payload(hass, entry_id, data.payload)
         return web.json_response(payload)
 
 
-def _get_or_build_enriched_payload(
+def get_or_build_enriched_payload(
     hass: HomeAssistant, entry_id: str, source_payload: dict[str, object]
 ) -> dict[str, object]:
     """Get cached enriched payload or build and cache a new one."""

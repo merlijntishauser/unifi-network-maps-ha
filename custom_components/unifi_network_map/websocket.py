@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
 from typing import Any
 
 import voluptuous as vol
@@ -11,7 +10,7 @@ from homeassistant.core import HomeAssistant, callback
 
 from .const import DOMAIN
 from .coordinator import UniFiNetworkMapCoordinator
-from .http import build_enriched_payload
+from .http import get_or_build_enriched_payload
 
 
 def async_register_websocket_api(hass: HomeAssistant) -> None:
@@ -55,7 +54,7 @@ async def websocket_subscribe_map(
     # events alone never settle it.
     connection.send_result(msg["id"])
 
-    payload = _build_payload(hass, coordinator)
+    payload = _build_payload(hass, coordinator, entry_id)
     connection.send_message(
         websocket_api.event_message(msg["id"], {"payload": payload})
     )
@@ -65,7 +64,7 @@ async def websocket_subscribe_map(
         """Handle coordinator update."""
         if coordinator.data is None:
             return
-        updated_payload = _build_payload(hass, coordinator)
+        updated_payload = _build_payload(hass, coordinator, entry_id)
         connection.send_message(
             websocket_api.event_message(
                 msg["id"], {"payload": updated_payload}
@@ -90,12 +89,16 @@ def _get_coordinator(
 
 
 def _build_payload(
-    hass: HomeAssistant, coordinator: UniFiNetworkMapCoordinator
+    hass: HomeAssistant,
+    coordinator: UniFiNetworkMapCoordinator,
+    entry_id: str,
 ) -> dict[str, Any]:
-    """Build full payload with resolved entities."""
+    """Build the enriched payload via the shared hash+TTL cache.
+
+    Sharing the HTTP view's cache means N subscribers cost one
+    enrichment per coordinator update instead of one each.
+    """
     data = coordinator.data
     if data is None:
         return {}
-
-    payload = deepcopy(data.payload)
-    return build_enriched_payload(hass, payload)
+    return get_or_build_enriched_payload(hass, entry_id, data.payload)

@@ -20,8 +20,8 @@ from custom_components.unifi_network_map.http import (
     _add_entities_from_states,
     _build_mac_entity_index,
     _build_mac_to_all_entities_index,
-    _get_or_build_enriched_payload,
     _iter_unifi_entity_entries,
+    get_or_build_enriched_payload,
     resolve_related_entities,
 )
 
@@ -247,22 +247,22 @@ async def test_add_entities_from_states_with_mac_attribute(
 
 
 # ------------------------------------------------------------------
-# Test 6: _get_or_build_enriched_payload caching
+# Test 6: get_or_build_enriched_payload caching
 # ------------------------------------------------------------------
 
 
-async def test_get_or_build_enriched_payload(
+async def testget_or_build_enriched_payload(
     hass: HomeAssistant,
 ) -> None:
     """Enriched payload is cached and returned on second call."""
     invalidate_entity_cache(hass)
     source = {"client_macs": {}, "device_macs": {}}
 
-    first = _get_or_build_enriched_payload(hass, "entry1", source)
+    first = get_or_build_enriched_payload(hass, "entry1", source)
     assert isinstance(first, dict)
 
     # Second call with the same source should hit the cache.
-    second = _get_or_build_enriched_payload(hass, "entry1", source)
+    second = get_or_build_enriched_payload(hass, "entry1", source)
     assert second is first
 
 

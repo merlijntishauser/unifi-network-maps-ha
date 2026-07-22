@@ -60,6 +60,7 @@ class TestGetCoordinator:
         entry = MagicMock()
         entry.runtime_data = coordinator
         hass = MagicMock()
+        hass.data = {}
         hass.config_entries.async_get_entry.return_value = entry
 
         result = _get_coordinator(hass, "entry123")
@@ -99,28 +100,38 @@ class TestBuildPayload:
         coordinator = MagicMock(spec=UniFiNetworkMapCoordinator)
         coordinator.data = None
 
-        result = _build_payload(hass, coordinator)
+        result = _build_payload(hass, coordinator, "entry-1")
         assert result == {}
 
-    def test_builds_enriched_payload(self) -> None:
+    def test_uses_shared_enriched_payload_cache(self) -> None:
+        """N subscribers share one enrichment per coordinator update.
+
+        The WebSocket path must go through the same hash+TTL cache as the
+        HTTP payload view instead of enriching per subscriber on the event
+        loop.
+        """
         hass = MagicMock()
+        hass.data = {}
         coordinator = MagicMock(spec=UniFiNetworkMapCoordinator)
         coordinator.data = UniFiNetworkMapData(
             svg="<svg></svg>",
-            payload={"edges": [], "node_types": {}},
+            payload={"edges": [], "node_types": {"a": "switch"}},
         )
 
         with patch(
-            "custom_components.unifi_network_map.websocket.build_enriched_payload"
+            "custom_components.unifi_network_map.http.build_enriched_payload"
         ) as mock_enrich:
             mock_enrich.return_value = {"enriched": True}
-            result = _build_payload(hass, coordinator)
+            first = _build_payload(hass, coordinator, "entry-1")
+            second = _build_payload(hass, coordinator, "entry-1")
 
-        assert result == {"enriched": True}
+        assert first == {"enriched": True}
+        assert second == {"enriched": True}
         mock_enrich.assert_called_once()
 
-    def test_deep_copies_payload(self) -> None:
+    def test_does_not_mutate_source_payload(self) -> None:
         hass = MagicMock()
+        hass.data = {}
         original_payload = {
             "edges": [{"left": "a", "right": "b"}],
             "node_types": {"a": "switch"},
@@ -132,14 +143,13 @@ class TestBuildPayload:
         )
 
         with patch(
-            "custom_components.unifi_network_map.websocket.build_enriched_payload"
+            "custom_components.unifi_network_map.http.build_enriched_payload"
         ) as mock_enrich:
             mock_enrich.return_value = {"enriched": True}
-            _build_payload(hass, coordinator)
+            _build_payload(hass, coordinator, "entry-1")
 
-        # Verify the original payload wasn't modified
         args = mock_enrich.call_args[0]
-        assert args[1] is not original_payload  # Should be a copy
+        assert args[1] is not original_payload
 
 
 class TestWebsocketSubscribeMap:
@@ -166,6 +176,7 @@ class TestWebsocketSubscribeMap:
         entry = MagicMock()
         entry.runtime_data = coordinator
         hass = MagicMock()
+        hass.data = {}
         hass.config_entries.async_get_entry.return_value = entry
         connection = MagicMock()
         msg: dict[str, Any] = {"id": 1, "entry_id": "entry123"}
@@ -195,13 +206,14 @@ class TestWebsocketSubscribeMap:
         entry = MagicMock()
         entry.runtime_data = coordinator
         hass = MagicMock()
+        hass.data = {}
         hass.config_entries.async_get_entry.return_value = entry
         connection = MagicMock()
         connection.subscriptions = {}
         msg: dict[str, Any] = {"id": 7, "entry_id": "entry123"}
 
         with patch(
-            "custom_components.unifi_network_map.websocket.build_enriched_payload"
+            "custom_components.unifi_network_map.http.build_enriched_payload"
         ) as mock_enrich:
             mock_enrich.return_value = {"enriched": True}
             await _subscribe_map_async(hass, connection, msg)
@@ -224,13 +236,14 @@ class TestWebsocketSubscribeMap:
         entry = MagicMock()
         entry.runtime_data = coordinator
         hass = MagicMock()
+        hass.data = {}
         hass.config_entries.async_get_entry.return_value = entry
         connection = MagicMock()
         connection.subscriptions = {}
         msg: dict[str, Any] = {"id": 1, "entry_id": "entry123"}
 
         with patch(
-            "custom_components.unifi_network_map.websocket.build_enriched_payload"
+            "custom_components.unifi_network_map.http.build_enriched_payload"
         ) as mock_enrich:
             mock_enrich.return_value = {"enriched": True}
             await _subscribe_map_async(hass, connection, msg)
@@ -264,13 +277,14 @@ class TestWebsocketSubscribeMap:
         entry = MagicMock()
         entry.runtime_data = coordinator
         hass = MagicMock()
+        hass.data = {}
         hass.config_entries.async_get_entry.return_value = entry
         connection = MagicMock()
         connection.subscriptions = {}
         msg: dict[str, Any] = {"id": 1, "entry_id": "entry123"}
 
         with patch(
-            "custom_components.unifi_network_map.websocket.build_enriched_payload"
+            "custom_components.unifi_network_map.http.build_enriched_payload"
         ) as mock_enrich:
             mock_enrich.return_value = {"enriched": True}
             await _subscribe_map_async(hass, connection, msg)
@@ -305,13 +319,14 @@ class TestWebsocketSubscribeMap:
         entry = MagicMock()
         entry.runtime_data = coordinator
         hass = MagicMock()
+        hass.data = {}
         hass.config_entries.async_get_entry.return_value = entry
         connection = MagicMock()
         connection.subscriptions = {}
         msg: dict[str, Any] = {"id": 1, "entry_id": "entry123"}
 
         with patch(
-            "custom_components.unifi_network_map.websocket.build_enriched_payload"
+            "custom_components.unifi_network_map.http.build_enriched_payload"
         ) as mock_enrich:
             mock_enrich.return_value = {"enriched": True}
             await _subscribe_map_async(hass, connection, msg)
