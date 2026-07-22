@@ -1,8 +1,76 @@
+import { resolveNodeId } from "../card/interaction/node";
 import type { ConfigurableCard } from "./test-helpers";
 import { makeSvg, resetTestDom } from "./test-helpers";
 
 describe("unifi-network-map card interaction", () => {
   afterEach(resetTestDom);
+
+  it("prefers an ancestor data-node-id over label text content", () => {
+    // Upstream SVGs put data-node-id (the MAC) on the group; the visible
+    // <text> label holds the display name, which is not a payload key.
+    const group = document.createElement("g");
+    group.setAttribute("data-node-id", "aa:bb:cc:dd:ee:ff");
+    const text = document.createElement("text");
+    text.textContent = "Office AP";
+    group.appendChild(text);
+    const event = {
+      composedPath: () => [text, group],
+      clientX: 0,
+      clientY: 0,
+    } as unknown as MouseEvent;
+    expect(resolveNodeId(event)).toBe("aa:bb:cc:dd:ee:ff");
+  });
+
+  it("restart action targets the node's restart button entity", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as {
+      _payload?: unknown;
+      _handleRestartDevice: (nodeId: string) => void;
+    };
+    card._payload = {
+      edges: [],
+      node_types: {},
+      node_entities: { "aa:bb:cc:dd:ee:ff": "device_tracker.office_ap" },
+      related_entities: {
+        "aa:bb:cc:dd:ee:ff": [
+          { entity_id: "device_tracker.office_ap", domain: "device_tracker", state: "home" },
+          { entity_id: "button.office_ap_restart", domain: "button", state: null },
+        ],
+      },
+    };
+    const events: CustomEvent[] = [];
+    element.addEventListener("hass-action", (event) => events.push(event as CustomEvent));
+
+    card._handleRestartDevice("aa:bb:cc:dd:ee:ff");
+
+    expect(events).toHaveLength(1);
+    const detail = events[0].detail as { target: { entity_id: string } };
+    expect(detail.target.entity_id).toBe("button.office_ap_restart");
+  });
+
+  it("restart action does nothing when the node has no restart button", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as {
+      _payload?: unknown;
+      _handleRestartDevice: (nodeId: string) => void;
+    };
+    card._payload = {
+      edges: [],
+      node_types: {},
+      node_entities: { "aa:bb:cc:dd:ee:ff": "device_tracker.office_ap" },
+      related_entities: {
+        "aa:bb:cc:dd:ee:ff": [
+          { entity_id: "device_tracker.office_ap", domain: "device_tracker", state: "home" },
+        ],
+      },
+    };
+    const events: CustomEvent[] = [];
+    element.addEventListener("hass-action", (event) => events.push(event as CustomEvent));
+
+    card._handleRestartDevice("aa:bb:cc:dd:ee:ff");
+
+    expect(events).toHaveLength(0);
+  });
 
   it("resolves node name from text element in event path", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;

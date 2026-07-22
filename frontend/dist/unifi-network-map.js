@@ -1892,23 +1892,23 @@ function invalidateAnnotationCache(cache) {
 
 // src/card/interaction/node.ts
 function resolveNodeId(event) {
-  const path = event.composedPath();
+  const path = event.composedPath().filter((item) => item instanceof Element);
   for (const item of path) {
-    if (item instanceof Element) {
-      const nodeId = item.getAttribute("data-node-id");
-      if (nodeId) {
-        return nodeId.trim();
-      }
-      const aria = item.getAttribute("aria-label");
-      if (aria) {
-        return aria.trim();
-      }
-      if (item.tagName.toLowerCase() === "text" && item.textContent) {
-        return item.textContent.trim();
-      }
-      if (item.tagName.toLowerCase() === "title" && item.textContent) {
-        return item.textContent.trim();
-      }
+    const nodeId = item.getAttribute("data-node-id");
+    if (nodeId) {
+      return nodeId.trim();
+    }
+  }
+  for (const item of path) {
+    const aria = item.getAttribute("aria-label");
+    if (aria) {
+      return aria.trim();
+    }
+    if (item.tagName.toLowerCase() === "text" && item.textContent) {
+      return item.textContent.trim();
+    }
+    if (item.tagName.toLowerCase() === "title" && item.textContent) {
+      return item.textContent.trim();
     }
   }
   const fallback = document.elementFromPoint(event.clientX, event.clientY);
@@ -7362,10 +7362,19 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       request.url,
       request.controller.signal
     );
-    if (!this._isActiveSvgRequest(request.id, result)) {
+    this._completeSvgRequest(request.id, result, request.url);
+  }
+  _completeSvgRequest(requestId, result, url) {
+    if (requestId !== this._svgRequestId) {
       return;
     }
-    this._finalizeSvgRequest(result, request.url);
+    if ("aborted" in result) {
+      this._loading = false;
+      this._clearLoadingOverlay();
+      void this._loadSvg();
+      return;
+    }
+    this._finalizeSvgRequest(result, url);
   }
   async _loadPayload() {
     if (!this._shouldLoadPayload()) {
@@ -7381,10 +7390,19 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       request.url,
       request.controller.signal
     );
-    if (!this._isActivePayloadRequest(request.id, result)) {
+    this._completePayloadRequest(request.id, result, request.url);
+  }
+  _completePayloadRequest(requestId, result, url) {
+    if (requestId !== this._payloadRequestId) {
       return;
     }
-    this._finalizePayloadRequest(result, request.url);
+    if ("aborted" in result) {
+      this._dataLoading = false;
+      this._clearLoadingOverlay();
+      void this._loadPayload();
+      return;
+    }
+    this._finalizePayloadRequest(result, url);
   }
   _scheduleLoadingOverlay() {
     if (this._loadingOverlayTimeout) return;
@@ -7437,12 +7455,6 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     }
     this._scheduleLoadingOverlay();
   }
-  _isActiveSvgRequest(requestId, result) {
-    if (requestId !== this._svgRequestId) {
-      return false;
-    }
-    return !("aborted" in result);
-  }
   _finalizeSvgRequest(result, url) {
     if ("error" in result && result.error) {
       this._error = `Failed to load SVG (${result.error})`;
@@ -7480,12 +7492,6 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     if (!isRefresh) {
       this._scheduleLoadingOverlay();
     }
-  }
-  _isActivePayloadRequest(requestId, result) {
-    if (requestId !== this._payloadRequestId) {
-      return false;
-    }
-    return !("aborted" in result);
   }
   _finalizePayloadRequest(result, url) {
     if ("error" in result && result.error) {
@@ -8110,8 +8116,8 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     showToast(message, "success");
   }
   _handleRestartDevice(nodeId) {
-    const entityId = this._payload?.node_entities?.[nodeId] ?? this._payload?.device_entities?.[nodeId];
-    if (!entityId) {
+    const restartEntityId = this._findRestartButtonEntity(nodeId);
+    if (!restartEntityId) {
       this._showActionError(this._localize("toast.no_entity"));
       return;
     }
@@ -8122,11 +8128,18 @@ var UnifiNetworkMapCard = class extends HTMLElement {
         detail: {
           action: "call-service",
           service: "button.press",
-          target: { entity_id: entityId.replace(/\.[^.]+$/, ".restart") }
+          target: { entity_id: restartEntityId }
         }
       })
     );
     this._showActionFeedback(this._localize("toast.restart_sent"));
+  }
+  _findRestartButtonEntity(nodeId) {
+    const related = this._payload?.related_entities?.[nodeId] ?? [];
+    const restartButton = related.find(
+      (entity) => entity.domain === "button" && entity.entity_id.endsWith("_restart")
+    );
+    return restartButton?.entity_id ?? null;
   }
   _showActionFeedback(message) {
     showToast(message, "info");

@@ -439,10 +439,25 @@ export class UnifiNetworkMapCard extends HTMLElement {
       request.url,
       request.controller.signal,
     );
-    if (!this._isActiveSvgRequest(request.id, result)) {
+    this._completeSvgRequest(request.id, result, request.url);
+  }
+
+  private _completeSvgRequest(
+    requestId: number,
+    result: AuthFetchResult<SvgLoadResult>,
+    url: string,
+  ): void {
+    if (requestId !== this._svgRequestId) {
+      // Superseded: the newer request owns the loading flag.
       return;
     }
-    this._finalizeSvgRequest(result, request.url);
+    if ("aborted" in result) {
+      this._loading = false;
+      this._clearLoadingOverlay();
+      void this._loadSvg();
+      return;
+    }
+    this._finalizeSvgRequest(result, url);
   }
 
   private async _loadPayload() {
@@ -459,10 +474,25 @@ export class UnifiNetworkMapCard extends HTMLElement {
       request.url,
       request.controller.signal,
     );
-    if (!this._isActivePayloadRequest(request.id, result)) {
+    this._completePayloadRequest(request.id, result, request.url);
+  }
+
+  private _completePayloadRequest(
+    requestId: number,
+    result: AuthFetchResult<MapPayload>,
+    url: string,
+  ): void {
+    if (requestId !== this._payloadRequestId) {
+      // Superseded: the newer request owns the loading flag.
       return;
     }
-    this._finalizePayloadRequest(result, request.url);
+    if ("aborted" in result) {
+      this._dataLoading = false;
+      this._clearLoadingOverlay();
+      void this._loadPayload();
+      return;
+    }
+    this._finalizePayloadRequest(result, url);
   }
 
   private _scheduleLoadingOverlay(): void {
@@ -527,13 +557,6 @@ export class UnifiNetworkMapCard extends HTMLElement {
     this._scheduleLoadingOverlay();
   }
 
-  private _isActiveSvgRequest(requestId: number, result: AuthFetchResult<SvgLoadResult>): boolean {
-    if (requestId !== this._svgRequestId) {
-      return false;
-    }
-    return !("aborted" in result);
-  }
-
   private _finalizeSvgRequest(result: AuthFetchResult<SvgLoadResult>, url: string): void {
     if ("error" in result && result.error) {
       this._error = `Failed to load SVG (${result.error})`;
@@ -579,13 +602,6 @@ export class UnifiNetworkMapCard extends HTMLElement {
     if (!isRefresh) {
       this._scheduleLoadingOverlay();
     }
-  }
-
-  private _isActivePayloadRequest(requestId: number, result: AuthFetchResult<MapPayload>): boolean {
-    if (requestId !== this._payloadRequestId) {
-      return false;
-    }
-    return !("aborted" in result);
   }
 
   private _finalizePayloadRequest(result: AuthFetchResult<MapPayload>, url: string): void {
@@ -1312,10 +1328,9 @@ export class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _handleRestartDevice(nodeId: string): void {
-    const entityId =
-      this._payload?.node_entities?.[nodeId] ?? this._payload?.device_entities?.[nodeId];
+    const restartEntityId = this._findRestartButtonEntity(nodeId);
 
-    if (!entityId) {
+    if (!restartEntityId) {
       this._showActionError(this._localize("toast.no_entity"));
       return;
     }
@@ -1327,12 +1342,20 @@ export class UnifiNetworkMapCard extends HTMLElement {
         detail: {
           action: "call-service",
           service: "button.press",
-          target: { entity_id: entityId.replace(/\.[^.]+$/, ".restart") },
+          target: { entity_id: restartEntityId },
         },
       }),
     );
 
     this._showActionFeedback(this._localize("toast.restart_sent"));
+  }
+
+  private _findRestartButtonEntity(nodeId: string): string | null {
+    const related = this._payload?.related_entities?.[nodeId] ?? [];
+    const restartButton = related.find(
+      (entity) => entity.domain === "button" && entity.entity_id.endsWith("_restart"),
+    );
+    return restartButton?.entity_id ?? null;
   }
 
   private _showActionFeedback(message: string): void {

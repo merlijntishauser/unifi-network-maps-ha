@@ -1,21 +1,23 @@
 export function resolveNodeId(event: MouseEvent | PointerEvent): string | null {
-  const path = event.composedPath();
+  const path = event.composedPath().filter((item): item is Element => item instanceof Element);
+  // data-node-id is the canonical node id (the MAC); check the whole path
+  // first so an inner <text> label never shadows its group's id.
   for (const item of path) {
-    if (item instanceof Element) {
-      const nodeId = item.getAttribute("data-node-id");
-      if (nodeId) {
-        return nodeId.trim();
-      }
-      const aria = item.getAttribute("aria-label");
-      if (aria) {
-        return aria.trim();
-      }
-      if (item.tagName.toLowerCase() === "text" && item.textContent) {
-        return item.textContent.trim();
-      }
-      if (item.tagName.toLowerCase() === "title" && item.textContent) {
-        return item.textContent.trim();
-      }
+    const nodeId = item.getAttribute("data-node-id");
+    if (nodeId) {
+      return nodeId.trim();
+    }
+  }
+  for (const item of path) {
+    const aria = item.getAttribute("aria-label");
+    if (aria) {
+      return aria.trim();
+    }
+    if (item.tagName.toLowerCase() === "text" && item.textContent) {
+      return item.textContent.trim();
+    }
+    if (item.tagName.toLowerCase() === "title" && item.textContent) {
+      return item.textContent.trim();
     }
   }
   const fallback = document.elementFromPoint(event.clientX, event.clientY);

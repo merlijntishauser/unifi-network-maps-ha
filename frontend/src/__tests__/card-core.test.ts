@@ -4,6 +4,51 @@ import { flushPromises, makeSvg, resetTestDom } from "./test-helpers";
 describe("unifi-network-map card core", () => {
   afterEach(resetTestDom);
 
+  it("resets the svg loading flag when the current request is aborted", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as {
+      _loading: boolean;
+      _svgRequestId: number;
+      _completeSvgRequest: (requestId: number, result: object, url: string) => void;
+    };
+    card._loading = true;
+    card._svgRequestId = 3;
+
+    card._completeSvgRequest(3, { aborted: true }, "/map.svg");
+
+    expect(card._loading).toBe(false);
+  });
+
+  it("leaves the svg loading flag to a superseding request", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as {
+      _loading: boolean;
+      _svgRequestId: number;
+      _completeSvgRequest: (requestId: number, result: object, url: string) => void;
+    };
+    card._loading = true;
+    card._svgRequestId = 4;
+
+    card._completeSvgRequest(3, { aborted: true }, "/map.svg");
+
+    expect(card._loading).toBe(true);
+  });
+
+  it("resets the payload loading flag when the current request is aborted", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    const card = element as unknown as {
+      _dataLoading: boolean;
+      _payloadRequestId: number;
+      _completePayloadRequest: (requestId: number, result: object, url: string) => void;
+    };
+    card._dataLoading = true;
+    card._payloadRequestId = 2;
+
+    card._completePayloadRequest(2, { aborted: true }, "/payload");
+
+    expect(card._dataLoading).toBe(false);
+  });
+
   it("clears missing auth error once token is available", () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     const card = element as unknown as { _error?: string; _config?: { svg_url?: string } };
@@ -95,12 +140,12 @@ describe("unifi-network-map card core", () => {
     expect(result).toEqual({ error: "boom" });
   });
 
-  it("handles aborted svg and payload fetches", async () => {
+  it("recovers from aborted svg and payload fetches", async () => {
     const element = document.createElement("unifi-network-map") as ConfigurableCard;
     const card = element as unknown as {
       _config?: { svg_url?: string; data_url?: string };
       _hass?: { auth?: { data?: { access_token?: string } } };
-      _fetchWithAuth: () => Promise<{ aborted: true }>;
+      _fetchWithAuth: () => Promise<{ aborted: true } | { error: string }>;
       _loadSvg: () => Promise<void>;
       _loadPayload: () => Promise<void>;
       _loading: boolean;
@@ -108,11 +153,23 @@ describe("unifi-network-map card core", () => {
     };
     card._config = { svg_url: "/map.svg", data_url: "/map.json" };
     card._hass = { auth: { data: { access_token: "token" } } };
-    card._fetchWithAuth = jest.fn().mockResolvedValue({ aborted: true });
+    // An aborted current request must reset the loading flag and re-trigger
+    // the load (which then completes) instead of wedging the card forever.
+    card._fetchWithAuth = jest
+      .fn()
+      .mockResolvedValueOnce({ aborted: true })
+      .mockResolvedValue({ error: "network" });
     await card._loadSvg();
+    await flushPromises();
+    expect(card._loading).toBe(false);
+
+    card._fetchWithAuth = jest
+      .fn()
+      .mockResolvedValueOnce({ aborted: true })
+      .mockResolvedValue({ error: "network" });
     await card._loadPayload();
-    expect(card._loading).toBe(true);
-    expect(card._dataLoading).toBe(true);
+    await flushPromises();
+    expect(card._dataLoading).toBe(false);
   });
 
   it("shows configuration prompt when svg_url is missing", () => {
