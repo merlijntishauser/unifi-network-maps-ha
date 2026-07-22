@@ -286,6 +286,30 @@ def test_unifi_api_status_code_parses_http_in_message() -> None:
     assert unifi_api_status_code(UnifiApiError("Missing 'data' field")) is None
 
 
+def test_unifi_api_status_code_prefers_status_code_attribute() -> None:
+    from unifi_topology.adapters.unifi_api import UnifiApiError
+
+    unifi_api_status_code = cast(
+        "Callable[[Exception], int | None]",
+        getattr(api_module, "_unifi_api_status_code"),
+    )
+
+    assert unifi_api_status_code(UnifiApiError("boom", status_code=403)) == 403
+
+
+def test_map_auth_error_rate_limit_from_status_code_attribute() -> None:
+    from unifi_topology.adapters.unifi_api import UnifiAuthError
+
+    map_auth_error = cast(
+        "Callable[[Exception], Exception]",
+        getattr(api_module, "_map_auth_error"),
+    )
+
+    mapped = map_auth_error(UnifiAuthError("boom", status_code=429))
+
+    assert isinstance(mapped, CannotConnect)
+
+
 def test_map_auth_error_falls_back_to_invalid_auth() -> None:
     map_auth_error = cast(
         "Callable[[Exception], Exception]",
