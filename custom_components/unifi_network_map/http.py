@@ -764,7 +764,13 @@ def _load_svg_theme(
     theme_name = svg_theme or settings.svg_theme or "unifi"
     icon_set_name = icon_set or settings.icon_set or "modern"
 
-    theme = resolve_svg_themes(theme_name=theme_name)
+    try:
+        theme = resolve_svg_themes(theme_name=theme_name)
+    except ValueError:
+        LOGGER.warning(
+            "Unknown svg_theme %r; falling back to default", theme_name
+        )
+        theme = resolve_svg_themes(theme_name="unifi")
     if theme.icon_set != icon_set_name:
         theme = replace(theme, icon_set=icon_set_name)
     return theme

@@ -453,6 +453,32 @@ def test_load_svg_theme_applies_icon_set_override() -> None:
     assert hasattr(theme_default, "icon_set")
 
 
+def test_load_svg_theme_falls_back_on_unknown_theme() -> None:
+    """An unknown theme name falls back instead of raising HTTP 500."""
+    from custom_components.unifi_network_map.renderer import RenderSettings
+
+    settings = RenderSettings(
+        include_ports=True,
+        include_clients=False,
+        client_scope="active",
+        only_unifi=True,
+        svg_isometric=False,
+        svg_width=None,
+        svg_height=None,
+        use_cache=True,
+        svg_theme="unifi",
+        icon_set="modern",
+    )
+    load_svg_theme = cast(
+        "Callable[[str | None, str | None, RenderSettings], object]",
+        getattr(http_module, "_load_svg_theme"),
+    )
+
+    theme = load_svg_theme("bogus", None, settings)
+
+    assert hasattr(theme, "background")
+
+
 def test_build_mac_entity_index_prefers_registry(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
