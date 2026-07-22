@@ -240,7 +240,7 @@ def _build_refresh_handler(
                 "No matching UniFi Network Map entry found"
             )
         for coordinator in coordinators:
-            await coordinator.async_request_refresh()
+            await coordinator.async_force_refresh()
 
     return _handle_refresh
 

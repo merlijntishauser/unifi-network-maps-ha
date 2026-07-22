@@ -78,6 +78,8 @@ class MapClient(Protocol):
 
     def fetch_map(self) -> UniFiNetworkMapData: ...
 
+    def invalidate_cache(self) -> None: ...
+
 
 class UniFiNetworkMapCoordinator(DataUpdateCoordinator[UniFiNetworkMapData]):  # type: ignore[reportUntypedBaseClass]
     def __init__(
@@ -160,6 +162,11 @@ class UniFiNetworkMapCoordinator(DataUpdateCoordinator[UniFiNetworkMapData]):  #
                 )
             raise UpdateFailed(str(err)) from err
 
+    async def async_force_refresh(self) -> None:
+        """Refresh bypassing the render cache (manual refresh service)."""
+        self._client.invalidate_cache()
+        await self.async_request_refresh()
+
     async def async_fetch_for_testing(self) -> UniFiNetworkMapData:
         return await self._async_update_data()
 
@@ -221,6 +228,7 @@ def _build_client(
         request_timeout_seconds=entry.options.get(
             CONF_REQUEST_TIMEOUT_SECONDS, DEFAULT_REQUEST_TIMEOUT_SECONDS
         ),
+        cache_ttl_seconds=_get_scan_interval(entry).total_seconds(),
     )
 
 

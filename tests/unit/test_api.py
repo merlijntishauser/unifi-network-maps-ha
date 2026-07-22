@@ -528,3 +528,63 @@ def test_client_forwards_api_key_to_config(
     assert config.api_key == "topsecret"
     assert config.user is None
     assert config.password is None
+
+
+def test_client_cache_honors_custom_ttl(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The cache TTL follows the configured value, not a fixed constant."""
+    client = api_module.UniFiNetworkMapClient(
+        base_url="https://controller",
+        username="user",
+        password="pass",
+        site="default",
+        verify_ssl=True,
+        settings=_build_cache_settings(),
+        cache_ttl_seconds=60.0,
+    )
+    counter = {"value": 0}
+
+    def _render_payload(
+        *_args: object, **_kwargs: object
+    ) -> UniFiNetworkMapData:
+        counter["value"] += 1
+        return UniFiNetworkMapData(svg="<svg />", payload={})
+
+    times = iter([0.0, 61.0, 62.0])
+    monkeypatch.setattr(api_module, "_render_map_payload", _render_payload)
+    monkeypatch.setattr(api_module, "monotonic", lambda: next(times))
+
+    client.fetch_map()
+    client.fetch_map()
+
+    assert counter["value"] == 2
+
+
+def test_invalidate_cache_forces_refetch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = api_module.UniFiNetworkMapClient(
+        base_url="https://controller",
+        username="user",
+        password="pass",
+        site="default",
+        verify_ssl=True,
+        settings=_build_cache_settings(),
+    )
+    counter = {"value": 0}
+
+    def _render_payload(
+        *_args: object, **_kwargs: object
+    ) -> UniFiNetworkMapData:
+        counter["value"] += 1
+        return UniFiNetworkMapData(svg="<svg />", payload={})
+
+    monkeypatch.setattr(api_module, "_render_map_payload", _render_payload)
+    monkeypatch.setattr(api_module, "monotonic", lambda: 100.0)
+
+    client.fetch_map()
+    client.invalidate_cache()
+    client.fetch_map()
+
+    assert counter["value"] == 2

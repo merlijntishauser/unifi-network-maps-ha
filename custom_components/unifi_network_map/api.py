@@ -44,6 +44,7 @@ class UniFiNetworkMapClient:
     settings: RenderSettings
     request_timeout_seconds: float | None = None
     api_key: str | None = None
+    cache_ttl_seconds: float = DEFAULT_RENDER_CACHE_SECONDS
     _cache_data: UniFiNetworkMapData | None = field(default=None, init=False)
     _cache_time: float | None = field(default=None, init=False)
 
@@ -79,9 +80,14 @@ class UniFiNetworkMapClient:
             return None
         if self._cache_data is None or self._cache_time is None:
             return None
-        if monotonic() - self._cache_time > DEFAULT_RENDER_CACHE_SECONDS:
+        if monotonic() - self._cache_time > self.cache_ttl_seconds:
             return None
         return self._cache_data
+
+    def invalidate_cache(self) -> None:
+        """Drop the cached map so the next fetch contacts the controller."""
+        self._cache_data = None
+        self._cache_time = None
 
     def _store_cache(self, data: UniFiNetworkMapData) -> None:
         if not self.settings.use_cache:
