@@ -127,8 +127,7 @@ export class UnifiNetworkMapEditor extends HTMLElement {
       </div>
     `;
     const form = this.querySelector("ha-form") as
-      | (HTMLElement & { schema: unknown; data: Record<string, unknown> })
-      | null;
+      (HTMLElement & { schema: unknown; data: Record<string, unknown> }) | null;
     if (!form) {
       return;
     }

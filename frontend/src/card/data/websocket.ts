@@ -1,8 +1,7 @@
 import type { Hass, MapPayload, UnsubscribeFunc } from "../core/types";
 
 export type SubscribeResult =
-  | { subscribed: true; unsubscribe: UnsubscribeFunc }
-  | { subscribed: false; reason: string };
+  { subscribed: true; unsubscribe: UnsubscribeFunc } | { subscribed: false; reason: string };
 
 type MapUpdateMessage = {
   payload: MapPayload;
