@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol, cast
 
 import voluptuous as vol
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import EVENT_HOMEASSISTANT_START
 from homeassistant.exceptions import HomeAssistantError
 
@@ -109,16 +110,29 @@ async def async_unload_entry(
     hass: HomeAssistant,
     entry: UniFiNetworkMapConfigEntry,
 ) -> bool:
-    from .entity_cache import invalidate_entity_cache
+    from . import entity_cache
     from .payload_cache import invalidate_payload_cache
 
     unload_ok = await hass.config_entries.async_unload_platforms(
         entry, PLATFORMS
     )
     if unload_ok:
-        invalidate_entity_cache(hass)
+        entity_cache.invalidate_entity_cache(hass)
         invalidate_payload_cache(hass, entry.entry_id)
+        if not _other_loaded_entries(hass, entry):
+            entity_cache.cleanup_entity_cache(hass)
     return unload_ok
+
+
+def _other_loaded_entries(
+    hass: HomeAssistant, entry: UniFiNetworkMapConfigEntry
+) -> list[ConfigEntry]:
+    return [
+        other
+        for other in hass.config_entries.async_entries(DOMAIN)
+        if other.entry_id != entry.entry_id
+        and other.state is ConfigEntryState.LOADED
+    ]
 
 
 async def async_migrate_entry(

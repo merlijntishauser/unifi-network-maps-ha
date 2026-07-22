@@ -192,6 +192,57 @@ async def test_async_unload_entry_unloads_platforms(
     assert fake_hass.config_entries.unloaded
 
 
+async def test_unload_last_entry_cleans_up_entity_cache(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unloading the last entry unsubscribes the registry listeners."""
+    from custom_components.unifi_network_map import entity_cache
+
+    fake_hass = FakeHass()
+    entry = _build_entry("entry-1")
+    entry.runtime_data = UniFiNetworkMapCoordinator(hass, entry)
+    fake_hass.config_entries.entries = [entry]
+    cleaned = {"value": False}
+
+    def _cleanup(_hass: object) -> None:
+        cleaned["value"] = True
+
+    monkeypatch.setattr(entity_cache, "cleanup_entity_cache", _cleanup)
+
+    result = await init_module.async_unload_entry(fake_hass, entry)
+
+    assert result is True
+    assert cleaned["value"] is True
+
+
+async def test_unload_keeps_entity_cache_while_other_entry_loaded(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from homeassistant.config_entries import ConfigEntryState
+
+    from custom_components.unifi_network_map import entity_cache
+
+    fake_hass = FakeHass()
+    entry = _build_entry("entry-1")
+    entry.runtime_data = UniFiNetworkMapCoordinator(hass, entry)
+    other_entry = _build_entry("entry-2")
+    other_entry.state = ConfigEntryState.LOADED
+    fake_hass.config_entries.entries = [entry, other_entry]
+    cleaned = {"value": False}
+
+    def _cleanup(_hass: object) -> None:
+        cleaned["value"] = True
+
+    monkeypatch.setattr(entity_cache, "cleanup_entity_cache", _cleanup)
+
+    result = await init_module.async_unload_entry(fake_hass, entry)
+
+    assert result is True
+    assert cleaned["value"] is False
+
+
 def test_register_runtime_services_calls_helpers() -> None:
     hass = FakeHass()
     called = {"views": False, "frontend": False, "refresh": False}
