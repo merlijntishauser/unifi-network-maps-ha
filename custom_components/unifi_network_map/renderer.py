@@ -96,7 +96,12 @@ def _render_map(
     devices = _load_devices(config, settings)
     LOGGER.debug("renderer devices_loaded count=%d", len(devices))
     topology, gateways = _build_topology(devices, settings)
-    edges, clients = _apply_clients(config, settings, topology, devices)
+    # One controller fetch, shared by the client edges and the stats.
+    all_clients = _load_all_clients(config, settings)
+    clients = all_clients if settings.include_clients and all_clients else None
+    edges = _select_edges(topology)
+    if clients:
+        edges = edges + _build_client_edges(devices, clients, settings)
     client_count = len(clients) if clients else 0
     LOGGER.debug(
         "renderer topology_built edges=%d clients=%d gateways=%d",
@@ -121,8 +126,6 @@ def _render_map(
     svg = _render_svg(
         edges, node_types, settings, wan_info, vpn_tunnels, node_names
     )
-    # Always fetch clients for stats (wireless counts per AP)
-    all_clients = _load_all_clients(config, settings)
     networks = _load_networks(config, settings)
     payload = _build_payload(
         edges,
@@ -169,20 +172,6 @@ def _build_topology(
     return topology, gateways
 
 
-def _apply_clients(
-    config: Config,
-    settings: RenderSettings,
-    topology: TopologyResult,
-    devices: list[Device],
-) -> tuple[list[Edge], list[ClientData] | None]:
-    edges = _select_edges(topology)
-    clients = _load_clients(config, settings)
-    if not clients:
-        return edges, None
-    client_edges = _build_client_edges(devices, clients, settings)
-    return edges + client_edges, clients
-
-
 def _build_client_edges(
     devices: list[Device],
     clients: list[ClientData],
@@ -202,28 +191,10 @@ def _select_edges(topology: TopologyResult) -> list[Edge]:
     return topology.tree_edges or topology.raw_edges or []
 
 
-def _load_clients(
-    config: Config, settings: RenderSettings
-) -> list[ClientData] | None:
-    if not settings.include_clients:
-        return None
-    return cast(
-        "list[ClientData]",
-        list(
-            fetch_clients(
-                config, site=config.site, use_cache=settings.use_cache
-            )
-        ),
-    )
-
-
 def _load_all_clients(
     config: Config, settings: RenderSettings
 ) -> list[ClientData]:
-    """Load all clients for stats purposes.
-
-    Always fetched regardless of include_clients.
-    """
+    """Load all clients (stats always need them, client edges may too)."""
     return cast(
         "list[ClientData]",
         list(

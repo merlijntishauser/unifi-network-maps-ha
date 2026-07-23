@@ -955,3 +955,31 @@ class TestRenderThemedSvg:
 
         assert svg == "themed"
         assert background
+
+
+def test_render_map_fetches_clients_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """One controller call per refresh, shared between edges and stats."""
+    from custom_components.unifi_network_map import renderer
+
+    calls = {"clients": 0}
+
+    def _fetch_clients(*_args: Any, **_kwargs: Any) -> list[Any]:
+        calls["clients"] += 1
+        return []
+
+    monkeypatch.setattr(renderer, "fetch_devices", lambda *a, **k: [])
+    monkeypatch.setattr(renderer, "fetch_networks", lambda *a, **k: [])
+    monkeypatch.setattr(renderer, "fetch_clients", _fetch_clients)
+
+    config = renderer.Config(
+        url="https://c",
+        site="default",
+        user="u",
+        password="p",
+        verify_ssl=True,
+    )
+    renderer._render_map(config, build_settings(include_clients=True))
+
+    assert calls["clients"] == 1
