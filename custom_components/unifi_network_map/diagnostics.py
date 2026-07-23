@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 
-from .const import CONF_API_KEY
+from .const import CONF_API_KEY, CONF_TRACKED_CLIENTS
 from .enrichment import (
     get_state_entity_macs,
     get_unifi_entity_mac_stats,
@@ -16,6 +16,8 @@ from .enrichment import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from homeassistant.core import HomeAssistant
 
     from .data import (
@@ -36,7 +38,7 @@ async def async_get_config_entry_diagnostics(
             "entry_id": entry.entry_id,
             "title": entry.title,
             "data": async_redact_data(entry.data, _REDACT_KEYS),
-            "options": entry.options,
+            "options": _redacted_options(entry.options),
         },
         "coordinator": {
             "last_update_success": getattr(
@@ -45,8 +47,7 @@ async def async_get_config_entry_diagnostics(
             "last_update_success_time": _format_timestamp(
                 getattr(coordinator, "last_update_success_time", None)
             ),
-            "last_exception": str(getattr(coordinator, "last_exception", ""))
-            or None,
+            "last_exception": _coordinator_last_exception(coordinator),
             "data_age_seconds": _calculate_data_age(
                 getattr(coordinator, "last_update_success_time", None)
             ),
@@ -214,3 +215,13 @@ def _hash_mac_samples(values: set[str], sample_size: int = 5) -> list[str]:
 
 def _hash_value(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()[:10]
+
+
+def _redacted_options(options: Mapping[str, Any]) -> dict[str, Any]:
+    """Options may contain tracked-client MACs; redact like everything else."""
+    return dict(async_redact_data(options, {CONF_TRACKED_CLIENTS}))
+
+
+def _coordinator_last_exception(coordinator: object) -> str | None:
+    exception = getattr(coordinator, "last_exception", None)
+    return str(exception) if exception is not None else None

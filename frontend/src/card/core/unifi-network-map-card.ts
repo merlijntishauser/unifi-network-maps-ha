@@ -121,6 +121,14 @@ export class UnifiNetworkMapCard extends HTMLElement {
       this._stopStatusPolling();
       this._payload = undefined;
       this._lastDataUrl = undefined;
+      // Everything below belongs to the previous controller; keeping it
+      // would render site A's map, selection, and errors against site B.
+      this._svgContent = undefined;
+      this._lastSvgUrl = undefined;
+      this._error = undefined;
+      this._selection = createSelectionState();
+      this._filterState = createFilterState();
+      this._activeTab = "overview";
       if (this.isConnected) {
         void this._startWebSocketSubscription();
       }

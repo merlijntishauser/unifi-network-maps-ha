@@ -12,6 +12,7 @@ export class UnifiNetworkMapEditor extends HTMLElement {
   private _config?: CardConfig;
   private _hass?: Hass;
   private _entries: ConfigEntry[] = [];
+  private _entriesRequested = false;
   private _localize = createLocalize();
   private _form?: HTMLElement & {
     schema: unknown;
@@ -24,7 +25,12 @@ export class UnifiNetworkMapEditor extends HTMLElement {
   set hass(hass: Hass) {
     this._hass = hass;
     this._localize = createLocalize(hass);
-    this._loadEntries();
+    // HA reassigns hass on every state change; fetch the entry list once
+    // instead of spamming config_entries/get while the dialog is open.
+    if (!this._entriesRequested && hass?.callWS) {
+      this._entriesRequested = true;
+      void this._loadEntries();
+    }
   }
 
   setConfig(config: CardConfig) {

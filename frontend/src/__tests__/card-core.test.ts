@@ -464,3 +464,30 @@ describe("targeted payload updates", () => {
     expect(renderSpy).toHaveBeenCalled();
   });
 });
+
+describe("entry change resets stale state", () => {
+  afterEach(resetTestDom);
+
+  it("clears selection, filters, svg, and error when entry_id changes", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    document.body.appendChild(element);
+    const card = element as unknown as {
+      _svgContent?: string;
+      _error?: string;
+      _selection: { selectedNode: string | null };
+      _activeTab: string;
+    };
+    element.setConfig({ entry_id: "entry-a" });
+    card._svgContent = makeSvg("aa:bb:cc:dd:ee:01");
+    card._error = "Failed to load payload (old site)";
+    card._selection.selectedNode = "aa:bb:cc:dd:ee:01";
+    card._activeTab = "stats";
+
+    element.setConfig({ entry_id: "entry-b" });
+
+    expect(card._svgContent).toBeUndefined();
+    expect(card._error).toBeUndefined();
+    expect(card._selection.selectedNode).toBeUndefined();
+    expect(card._activeTab).toBe("overview");
+  });
+});

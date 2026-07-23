@@ -259,3 +259,26 @@ class TestSummarizeMapData:
                     assert result["node_count"] == 1
                     assert result["edge_count"] == 0
                     assert result["payload_schema_version"] == "1.1"
+
+
+def test_diagnostics_redact_tracked_clients_and_none_exception() -> None:
+    """Options MACs are redacted; a healthy coordinator reports null."""
+    from custom_components.unifi_network_map.diagnostics import (
+        _coordinator_last_exception,
+        _redacted_options,
+    )
+
+    options = {"tracked_clients": "aa:bb:cc:dd:ee:ff", "scan_interval": 5}
+    redacted = _redacted_options(options)
+    assert redacted["tracked_clients"] == "**REDACTED**"
+    assert redacted["scan_interval"] == 5
+
+    class _Coordinator:
+        last_exception = None
+
+    assert _coordinator_last_exception(_Coordinator()) is None
+
+    class _Failed:
+        last_exception = ValueError("boom")
+
+    assert _coordinator_last_exception(_Failed()) == "boom"

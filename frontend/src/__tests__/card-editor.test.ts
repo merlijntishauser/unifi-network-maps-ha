@@ -134,3 +134,22 @@ describe("unifi-network-map editor", () => {
     expect(element.innerHTML).toContain("No UniFi Network Map integrations found");
   });
 });
+
+describe("hass reassignment", () => {
+  it("fetches config entries only once across hass updates", async () => {
+    const element = document.createElement("unifi-network-map-editor") as HTMLElement & {
+      hass: unknown;
+      setConfig: (config: object) => void;
+    };
+    document.body.appendChild(element);
+    const callWS = jest.fn().mockResolvedValue([{ entry_id: "e1", title: "T", domain: "d" }]);
+    element.setConfig({ entry_id: "e1" });
+
+    element.hass = { callWS };
+    element.hass = { callWS };
+    element.hass = { callWS };
+    await Promise.resolve();
+
+    expect(callWS).toHaveBeenCalledTimes(1);
+  });
+});

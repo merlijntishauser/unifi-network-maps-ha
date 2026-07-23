@@ -6685,6 +6685,12 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       this._stopStatusPolling();
       this._payload = void 0;
       this._lastDataUrl = void 0;
+      this._svgContent = void 0;
+      this._lastSvgUrl = void 0;
+      this._error = void 0;
+      this._selection = createSelectionState();
+      this._filterState = createFilterState();
+      this._activeTab = "overview";
       if (this.isConnected) {
         void this._startWebSocketSubscription();
       }
@@ -7785,13 +7791,17 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
   constructor() {
     super(...arguments);
     this._entries = [];
+    this._entriesRequested = false;
     this._localize = createLocalize();
     this._boundOnChange = (event) => this._onChange(event);
   }
   set hass(hass) {
     this._hass = hass;
     this._localize = createLocalize(hass);
-    this._loadEntries();
+    if (!this._entriesRequested && hass?.callWS) {
+      this._entriesRequested = true;
+      void this._loadEntries();
+    }
   }
   setConfig(config) {
     this._config = config;

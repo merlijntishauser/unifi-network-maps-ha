@@ -143,11 +143,17 @@ def _migrate_device_unique_ids(
         old_uid = f"{entry.entry_id}_device_{old_suffix}"
         new_uid = f"{entry.entry_id}_device_{new_suffix}"
 
-        if registry.async_get_entity_id("binary_sensor", DOMAIN, old_uid):
-            registry.async_update_entity(
-                registry.async_get_entity_id("binary_sensor", DOMAIN, old_uid),
-                new_unique_id=new_uid,
-            )
+        old_entity_id = registry.async_get_entity_id(
+            "binary_sensor", DOMAIN, old_uid
+        )
+        if old_entity_id is None:
+            continue
+        if registry.async_get_entity_id("binary_sensor", DOMAIN, new_uid):
+            # A MAC-based entity already exists alongside the stale
+            # name-based one; migrating would raise and abort platform
+            # setup. Leave the orphan for the user to remove.
+            continue
+        registry.async_update_entity(old_entity_id, new_unique_id=new_uid)
 
 
 def _create_device_presence_entities(
