@@ -1,5 +1,5 @@
 pytest-homeassistant-custom-component==0.13.316
-Faker==40.32.0
+Faker==40.35.0
 pre-commit==4.6.1
 pyright==1.1.411
 ruff==0.15.22
