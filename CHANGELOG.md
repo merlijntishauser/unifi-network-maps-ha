@@ -24,11 +24,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The "card installed" notification actually appears again: it was created via `hass.components`, which Home Assistant removed, so it had been silently skipped ever since
 - The client list is fetched from the controller once per refresh instead of twice (the client-edges path and the stats path issued the identical request back to back)
 - The VPN panel section is now localized in all 10 languages (the 6 VPN keys were missing from every non-English locale and silently fell back to English)
+- Real-time map updates no longer rebuild the whole card DOM: pan/zoom position now survives every WebSocket push and payload poll, with only annotations, filters, and the detail panel refreshed in place
+- Clicking a non-action area inside the context menu (title, divider) no longer permanently disarms closing it by clicking outside
+- Escape now closes the entity modal and port modal, not just the context menu
 
 ### Removed
 - Roughly 1100 lines of dead code found by a full-codebase review: legacy Home Assistant compatibility fallbacks that could never execute on supported versions (the pre-2025.7 static path API, the old lovelace resources module API, and a five-strategy `StaticPathConfig` construction dance), the frontend annotation cache (invalidated before every possible hit, so it never cached anything), ~25 test-only methods on the card class with their tests retargeted at the real modules, a divergent third copy of click resolution that only tests executed, and assorted unused constants, type aliases, and parameters
 
 ### Changed
+- Split the MAC-to-entity resolution and payload enrichment subsystem out of `http.py` into a dedicated `enrichment.py` module; `http.py` is now just the two HTTP views (~90 lines instead of ~870)
+- Deduplicated frontend logic that had already started drifting: overlay CSS (~350 lines shipped twice), the entity-state formatting stack, payload accessors, port-label parsing, and edge-key computation each now live in one shared module
 - Bumped DOMPurify from 3.4.7 to 3.4.10 (maintenance releases: Trusted Types policy handling, node-iterator template-scrubbing, and IN_PLACE sanitization fixes) and rebuilt the frontend bundle (#229, #234, #239)
 - Bumped `unifi-topology` from 2.2.2 to 3.0.1 (#252). The 3.0 breaking changes (edge diff `entity_type`, `collapse_client_edges` return shape, snapshot version validation) do not affect this integration -- it uses none of those APIs. The error mapping now reads the HTTP status from the `status_code` attribute introduced on the `UnifiError` hierarchy, with the previous cause/message parsing kept as fallback. Upstream 3.0 also brings a default 30s HTTP timeout, fewer spurious diff events from wireless signal jitter, and no longer probes legacy controllers with a doomed UDM login on every fetch (reducing 429/lockout risk)
 
