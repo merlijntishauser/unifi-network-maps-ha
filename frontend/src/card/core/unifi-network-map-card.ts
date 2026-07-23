@@ -6,7 +6,7 @@ import {
   ZOOM_INCREMENT,
 } from "../shared/constants";
 import { escapeHtml, sanitizeHtml, sanitizeSvg } from "../data/sanitize";
-import { annotateEdges } from "../data/svg";
+import { annotateEdges, edgeKey } from "../data/svg";
 import { findNodeElement, highlightSelectedNode, removeSvgTitles } from "../interaction/node";
 import {
   closeEntityModal,
@@ -18,7 +18,7 @@ import { domainIcon, iconMarkup, nodeTypeIcon } from "../ui/icons";
 import type { IconTheme } from "../ui/icons";
 import { renderPanelContent } from "../ui/panel";
 import { renderContextMenu } from "../ui/context-menu";
-import { fetchWithAuth } from "../data/auth";
+import { MISSING_AUTH_ERROR, fetchWithAuth } from "../data/auth";
 import type { AuthFetchResult } from "../data/auth";
 import { showToast } from "../shared/feedback";
 import { loadPayload, loadSvg, type SvgLoadResult } from "../data/data";
@@ -50,7 +50,7 @@ import {
   bindViewportInteractions,
   createDefaultViewportHandlers,
   createDefaultViewportState,
-  resetPan,
+  resetView,
 } from "../interaction/viewport";
 import { CARD_STYLES, GLOBAL_STYLES } from "../ui/styles";
 import { assignVlanColors, generateVlanStyles } from "../ui/vlan-colors";
@@ -182,7 +182,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
     const result = await subscribeMapUpdates(this._hass, entryId, (payload) => {
       this._payload = payload;
       this._lastDataUrl = this._config?.data_url;
-      this._render();
+      this._applyPayloadUpdate();
     });
 
     if (subscriptionVersion !== this._wsSubscriptionVersion || entryId !== this._config?.entry_id) {
@@ -301,7 +301,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _clearMissingAuthError(token?: string): void {
-    if (token && this._error === "Missing auth token") {
+    if (token && this._error === MISSING_AUTH_ERROR) {
       this._error = undefined;
     }
   }
@@ -317,7 +317,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
   }
 
   private _canFinishRender(token?: string): boolean {
-    return !(!token && this._error === "Missing auth token");
+    return !(!token && this._error === MISSING_AUTH_ERROR);
   }
 
   private _finalizeRender(): void {
@@ -446,7 +446,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
     if (this._getAuthToken()) {
       return true;
     }
-    this._error = "Missing auth token";
+    this._error = MISSING_AUTH_ERROR;
     this._render();
     return false;
   }
@@ -533,7 +533,20 @@ export class UnifiNetworkMapCard extends HTMLElement {
     this._lastDataUrl = url;
     this._dataLoading = false;
     this._clearLoadingOverlay();
-    this._render();
+    this._applyPayloadUpdate();
+  }
+
+  private _applyPayloadUpdate(): void {
+    // Payload-only updates (WebSocket pushes, payload polls) refresh
+    // annotations, filters, and the panel in place. Rebuilding the DOM
+    // would discard pan/zoom state and panel scroll position.
+    const svg = this.querySelector(".unifi-network-map__viewport svg") as SVGElement | null;
+    if (this._error || !this._svgContent || !svg) {
+      this._render();
+      return;
+    }
+    this._wireInteractions();
+    this._updateSelectionOnly();
   }
 
   private _renderPreview(): string {
@@ -566,7 +579,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
     if (!error) {
       return this._localize("card.error.unknown");
     }
-    if (error === "Missing auth token") {
+    if (error === MISSING_AUTH_ERROR) {
       return this._localize("card.error.missing_auth");
     }
     const svgMatch = error.match(/^Failed to load SVG \((.+)\)$/);
@@ -958,7 +971,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
       path.classList.toggle("edge--filtered", shouldHide);
 
       if (shouldHide) {
-        filteredEdges.add(this._edgeKey(left, right));
+        filteredEdges.add(edgeKey(left, right));
       }
 
       // Also hide the hitbox if present
@@ -971,10 +984,6 @@ export class UnifiNetworkMapCard extends HTMLElement {
     this._applyEdgeLabelFilters(svg, filteredEdges);
   }
 
-  private _edgeKey(left: string, right: string): string {
-    return [left.trim(), right.trim()].sort().join("|");
-  }
-
   private _applyEdgeLabelFilters(svg: SVGElement, filteredEdges: Set<string>): void {
     // Filter edge labels that have data-edge-left/right attributes
     const labeledElements = svg.querySelectorAll("[data-edge-left][data-edge-right]:not(path)");
@@ -982,7 +991,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
       const left = el.getAttribute("data-edge-left");
       const right = el.getAttribute("data-edge-right");
       if (!left || !right) continue;
-      const shouldHide = filteredEdges.has(this._edgeKey(left, right));
+      const shouldHide = filteredEdges.has(edgeKey(left, right));
       el.classList.toggle("edge--filtered", shouldHide);
     }
 
@@ -992,7 +1001,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
       const left = label.getAttribute("data-edge-left");
       const right = label.getAttribute("data-edge-right");
       if (left && right) {
-        const shouldHide = filteredEdges.has(this._edgeKey(left, right));
+        const shouldHide = filteredEdges.has(edgeKey(left, right));
         label.classList.toggle("edge--filtered", shouldHide);
       }
     }
@@ -1289,7 +1298,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
     if (reset) {
       reset.onclick = (event) => {
         event.preventDefault();
-        resetPan(svg, this._viewportState, callbacks);
+        resetView(svg, this._viewportState, callbacks);
       };
     }
   }

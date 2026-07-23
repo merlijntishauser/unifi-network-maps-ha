@@ -1,8 +1,10 @@
 import { renderEntityModal } from "../ui/entity-modal";
+import { bindEscapeToClose } from "../shared/overlay";
 import type { MapPayload } from "../core/types";
 
 export type EntityModalController = {
   overlay?: HTMLElement;
+  unbindEscape?: () => void;
 };
 
 export function createEntityModalController(): EntityModalController {
@@ -39,10 +41,13 @@ export function openEntityModal(params: {
 
   document.body.appendChild(overlay);
   params.controller.overlay = overlay;
+  params.controller.unbindEscape = bindEscapeToClose(() => closeEntityModal(params.controller));
   wireEntityModalEvents(overlay, () => closeEntityModal(params.controller), params.onEntityDetails);
 }
 
 export function closeEntityModal(controller: EntityModalController): void {
+  controller.unbindEscape?.();
+  controller.unbindEscape = undefined;
   if (controller.overlay) {
     controller.overlay.remove();
     controller.overlay = undefined;

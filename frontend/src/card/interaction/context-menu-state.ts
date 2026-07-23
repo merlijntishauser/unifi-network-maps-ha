@@ -1,4 +1,5 @@
 import { parseContextMenuAction } from "../ui/context-menu";
+import { bindEscapeToClose } from "../shared/overlay";
 import type { ContextMenuState } from "../core/types";
 
 type ContextMenuElement = HTMLElement & { _cleanup?: () => void };
@@ -100,19 +101,15 @@ function wireContextMenuEvents(
     }
   };
 
-  const handleKeydown = (event: KeyboardEvent) => {
-    if (event.key === "Escape") {
-      onClose();
-    }
-  };
-
   menu.addEventListener("click", handleClick);
-  document.addEventListener("click", handleClickOutside, { once: true });
-  document.addEventListener("keydown", handleKeydown);
+  // No { once: true }: a click inside the menu on a non-action area must
+  // not consume the outside-click listener.
+  document.addEventListener("click", handleClickOutside);
+  const unbindEscape = bindEscapeToClose(onClose);
 
   menu._cleanup = () => {
     menu.removeEventListener("click", handleClick);
     document.removeEventListener("click", handleClickOutside);
-    document.removeEventListener("keydown", handleKeydown);
+    unbindEscape();
   };
 }

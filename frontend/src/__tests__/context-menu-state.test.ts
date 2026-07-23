@@ -338,3 +338,30 @@ describe("context-menu-state", () => {
     });
   });
 });
+
+describe("outside-click closing", () => {
+  beforeEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("still closes on outside click after a click inside the menu", () => {
+    const controller = createContextMenuController();
+    const renderMenu = () => '<div class="test-menu"><span class="header">Title</span></div>';
+
+    openContextMenu({
+      controller,
+      menu: { nodeId: "TestNode", x: 100, y: 200 },
+      renderMenu,
+      onAction: jest.fn(),
+    });
+
+    // A click on a non-action area inside the menu must not consume the
+    // outside-click listener ({ once: true } regression).
+    const header = document.querySelector(".header") as HTMLElement;
+    header.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(controller.element).toBeDefined();
+
+    document.body.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(controller.element).toBeUndefined();
+  });
+});

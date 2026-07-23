@@ -224,3 +224,28 @@ describe("entity-modal-state", () => {
     });
   });
 });
+
+describe("escape key", () => {
+  it("closes the entity modal on Escape", () => {
+    const controller = createEntityModalController();
+    const payload: MapPayload = {
+      edges: [],
+      node_types: { TestDevice: "switch" },
+    };
+    openEntityModal({
+      controller,
+      nodeId: "TestDevice",
+      theme: "dark",
+      getNodeTypeIcon: (type: string) => `[${type}]`,
+      formatLastChanged: (value: string | null | undefined) => value ?? "Unknown",
+      localize: (key: string) => key,
+      onEntityDetails: jest.fn(),
+      payload,
+    });
+    expect(controller.overlay).toBeDefined();
+
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+
+    expect(controller.overlay).toBeUndefined();
+  });
+});

@@ -1,9 +1,13 @@
+import { escapeHtml } from "../data/sanitize";
+import { extractPortNumber } from "../shared/port-label";
+import { bindEscapeToClose } from "../shared/overlay";
 import type { MapPayload, PortInfo, PortModalState } from "../core/types";
 import type { IconTheme } from "./icons";
 
 export type PortModalController = {
   overlay: HTMLElement | null;
   state: PortModalState | null;
+  unbindEscape?: () => void;
 };
 
 export function createPortModalController(): PortModalController {
@@ -66,9 +70,15 @@ export function openPortModal(params: {
 
   document.body.appendChild(overlay);
   controller.overlay = overlay;
+  controller.unbindEscape = bindEscapeToClose(() => {
+    closePortModal(controller);
+    onClose();
+  });
 }
 
 export function closePortModal(controller: PortModalController): void {
+  controller.unbindEscape?.();
+  controller.unbindEscape = undefined;
   if (controller.overlay) {
     controller.overlay.remove();
     controller.overlay = null;
@@ -133,21 +143,6 @@ function extractPortsForDevice(nodeId: string, payload: MapPayload): PortInfo[] 
       speed: conn.speed,
     }))
     .sort((a, b) => a.port - b.port);
-}
-
-function extractPortNumber(label: string | null | undefined, isLeft: boolean): number | null {
-  if (!label) return null;
-
-  // Check if it's a complex label with " <-> " separator
-  const parts = label.split(" <-> ");
-  let side = label;
-  if (parts.length === 2) {
-    side = isLeft ? parts[0] : parts[1];
-  }
-
-  // Extract port number
-  const match = side.match(/Port\s*(\d+)/i);
-  return match ? parseInt(match[1], 10) : null;
 }
 
 function renderPortModal(
@@ -217,7 +212,7 @@ function renderPortRow(
           isConnected
             ? `
               <span class="port-row__device-icon">${deviceIcon}</span>
-              <a href="#" class="port-row__device-name" data-device-name="${escapeAttr(port.connectedDevice!)}">${escapeHtml(deviceName)}</a>
+              <a href="#" class="port-row__device-name" data-device-name="${escapeHtml(port.connectedDevice!)}">${escapeHtml(deviceName)}</a>
             `
             : `<span class="port-row__empty">${localize("port_modal.empty")}</span>`
         }
@@ -242,16 +237,4 @@ function formatPower(watts: number): string {
     return `${(watts * 1000).toFixed(0)}mW`;
   }
   return `${watts.toFixed(1)}W`;
-}
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function escapeAttr(str: string): string {
-  return str.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }

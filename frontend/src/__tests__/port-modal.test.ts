@@ -519,3 +519,40 @@ describe("port-modal", () => {
     });
   });
 });
+
+describe("escape key", () => {
+  it("closes the port modal on Escape", () => {
+    const controller = createPortModalController();
+    const payload: MapPayload = {
+      edges: [],
+      node_types: { "11:22:33:44:55:66": "switch" },
+      device_ports: {
+        "11:22:33:44:55:66": [
+          {
+            port: 1,
+            name: "Port 1",
+            speed: 1000,
+            poe_enabled: true,
+            poe_active: true,
+            poe_power: 5.5,
+          },
+        ],
+      },
+    };
+    openPortModal({
+      controller,
+      nodeId: "11:22:33:44:55:66",
+      theme: "dark",
+      getNodeTypeIcon: (type: string) => `[${type}]`,
+      localize: (key: string) => key,
+      onClose: jest.fn(),
+      onDeviceClick: jest.fn(),
+      payload,
+    });
+    expect(controller.overlay).not.toBeNull();
+
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+
+    expect(controller.overlay).toBeNull();
+  });
+});

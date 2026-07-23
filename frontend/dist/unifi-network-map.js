@@ -375,7 +375,7 @@ function createDOMPurify() {
   const getParentNode = lookupGetter(ElementPrototype, "parentNode");
   const getShadowRoot = lookupGetter(ElementPrototype, "shadowRoot");
   const getAttributes = lookupGetter(ElementPrototype, "attributes");
-  const getNodeType4 = Node && Node.prototype ? lookupGetter(Node.prototype, "nodeType") : null;
+  const getNodeType3 = Node && Node.prototype ? lookupGetter(Node.prototype, "nodeType") : null;
   const getNodeName = Node && Node.prototype ? lookupGetter(Node.prototype, "nodeName") : null;
   if (typeof HTMLTemplateElement === "function") {
     const template = document2.createElement("template");
@@ -870,7 +870,7 @@ function createDOMPurify() {
     const stack = [root];
     while (stack.length > 0) {
       const node = stack.pop();
-      const nodeType = getNodeType4 ? getNodeType4(node) : node.nodeType;
+      const nodeType = getNodeType3 ? getNodeType3(node) : node.nodeType;
       if (nodeType === NODE_TYPE.element) {
         _stripDisallowedAttributes(node);
       }
@@ -889,7 +889,7 @@ function createDOMPurify() {
     const stack = [root];
     while (stack.length > 0) {
       const node = stack.pop();
-      const nodeType = getNodeType4 ? getNodeType4(node) : node.nodeType;
+      const nodeType = getNodeType3 ? getNodeType3(node) : node.nodeType;
       if (nodeType === NODE_TYPE.processingInstruction || nodeType === NODE_TYPE.comment && regExpTest(COMMENT_MARKUP_PROBE, node.data)) {
         try {
           remove(node);
@@ -1012,7 +1012,7 @@ function createDOMPurify() {
     // an internal slot, no serialization cost — and removes a residual
     // clobbering surface used by several mXSS / PI / comment branches
     // in _sanitizeElements that compare currentNode.nodeType directly.
-    element.nodeType !== getNodeType4(element) || // HTMLFormElement has [LegacyOverrideBuiltIns]: a descendant named
+    element.nodeType !== getNodeType3(element) || // HTMLFormElement has [LegacyOverrideBuiltIns]: a descendant named
     // "childNodes" shadows the prototype getter. Direct reads of
     // form.childNodes from a clobbered form return the named child
     // instead of the real NodeList, so any walk that reads it directly
@@ -1026,21 +1026,21 @@ function createDOMPurify() {
     element.childNodes !== getChildNodes(element);
   };
   const _isDocumentFragment = function _isDocumentFragment2(value) {
-    if (!getNodeType4 || typeof value !== "object" || value === null) {
+    if (!getNodeType3 || typeof value !== "object" || value === null) {
       return false;
     }
     try {
-      return getNodeType4(value) === NODE_TYPE.documentFragment;
+      return getNodeType3(value) === NODE_TYPE.documentFragment;
     } catch (_) {
       return false;
     }
   };
   const _isNode = function _isNode2(value) {
-    if (!getNodeType4 || typeof value !== "object" || value === null) {
+    if (!getNodeType3 || typeof value !== "object" || value === null) {
       return false;
     }
     try {
-      return typeof getNodeType4(value) === "number";
+      return typeof getNodeType3(value) === "number";
     } catch (_) {
       return false;
     }
@@ -1119,7 +1119,7 @@ function createDOMPurify() {
       }
       return removed;
     }
-    const nt = getNodeType4 ? getNodeType4(currentNode) : currentNode.nodeType;
+    const nt = getNodeType3 ? getNodeType3(currentNode) : currentNode.nodeType;
     if (nt === NODE_TYPE.element && !_checkValidNamespace(currentNode)) {
       _forceRemove(currentNode);
       return true;
@@ -1285,7 +1285,7 @@ function createDOMPurify() {
       if (_isDocumentFragment(shadowNode.content)) {
         _sanitizeShadowDOM2(shadowNode.content);
       }
-      const shadowNodeType = getNodeType4 ? getNodeType4(shadowNode) : shadowNode.nodeType;
+      const shadowNodeType = getNodeType3 ? getNodeType3(shadowNode) : shadowNode.nodeType;
       if (shadowNodeType === NODE_TYPE.element) {
         const innerSr = getShadowRoot(shadowNode);
         if (_isDocumentFragment(innerSr)) {
@@ -1308,7 +1308,7 @@ function createDOMPurify() {
         continue;
       }
       const node = item.node;
-      const nodeType = getNodeType4 ? getNodeType4(node) : node.nodeType;
+      const nodeType = getNodeType3 ? getNodeType3(node) : node.nodeType;
       const isElement = nodeType === NODE_TYPE.element;
       const childNodes = getChildNodes(node);
       if (childNodes) {
@@ -2176,93 +2176,27 @@ function svg2(paths, circles = []) {
   return `<svg viewBox="0 0 24 24" width="16" height="16" style="width:16px;height:16px;display:inline-block;vertical-align:middle;" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${pathMarkup}${circleMarkup}</svg>`;
 }
 
-// src/card/ui/entity-modal.ts
-function renderEntityModal(context) {
-  const data = buildEntityModalData(context);
-  return renderEntityModalMarkup(data, context);
-}
-function renderEntityItem(entity, theme, displayNodeName) {
-  const domainIconMarkup = domainIcon(entity.domain, theme);
-  const displayName = getCompactDisplayName(entity, displayNodeName);
-  const safeDisplayName = escapeHtml(displayName);
-  const safeEntityId = escapeHtml(entity.entity_id);
-  const compactEntityId = getCompactEntityId(entity.entity_id);
-  const formattedState = formatEntityState(entity);
-  const stateClass = getStateBadgeClass(formattedState.normalized);
-  return `
-    <div class="entity-modal__entity-item" data-modal-entity-id="${safeEntityId}">
-      <span class="entity-modal__domain-icon">${domainIconMarkup}</span>
-      <div class="entity-modal__entity-info">
-        <span class="entity-modal__entity-name" title="${safeDisplayName}">${safeDisplayName}</span>
-        <span class="entity-modal__entity-id" title="${safeEntityId}">${escapeHtml(compactEntityId)}</span>
-      </div>
-      <div class="entity-modal__entity-state">
-        <span class="entity-modal__state-badge ${stateClass}">${escapeHtml(formattedState.display)}</span>
-        <span class="entity-modal__arrow">\u203A</span>
-      </div>
-    </div>
-  `;
-}
-function getCompactDisplayName(entity, nodeName) {
-  const fullName = entity.friendly_name ?? entity.entity_id;
-  const lowerName = fullName.toLowerCase();
-  const lowerNodeName = nodeName.toLowerCase();
-  if (lowerName.startsWith(lowerNodeName + " ")) {
-    const stripped = fullName.substring(nodeName.length + 1).trim();
-    if (stripped.length > 0) {
-      return capitalizeFirst(stripped);
-    }
-  }
-  const normalizedNode = nodeName.replace(/[\s_-]+/g, " ").toLowerCase();
-  const normalizedFull = fullName.replace(/[\s_-]+/g, " ").toLowerCase();
-  if (normalizedFull.startsWith(normalizedNode + " ")) {
-    const prefixLen = normalizedNode.length + 1;
-    const stripped = fullName.replace(/[\s_-]+/g, " ").substring(prefixLen).trim();
-    if (stripped.length > 0) {
-      return capitalizeFirst(stripped);
-    }
-  }
-  return fullName;
-}
-function getCompactEntityId(entityId) {
-  const parts = entityId.split(".");
-  if (parts.length !== 2) return entityId;
-  const domain = parts[0];
-  const objectId = parts[1];
-  const domainAbbr = {
-    sensor: "sensor",
-    binary_sensor: "binary",
-    device_tracker: "tracker",
-    switch: "switch",
-    button: "button",
-    update: "update",
-    number: "number",
-    select: "select"
-  };
-  const abbr = domainAbbr[domain] ?? domain;
-  return `${abbr}.${objectId}`;
-}
+// src/card/shared/entity-state.ts
 var SIMPLE_STATES = ["on", "off", "home", "not_home", "unavailable", "unknown"];
 var ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T/;
 var MAC_ADDRESS_PATTERN = /^([0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}$/;
 var NUMERIC_PATTERN = /^-?\d+(\.\d+)?$/;
-function formatEntityState(entity) {
-  const state = entity.state ?? "unavailable";
-  const domain = entity.domain ?? "";
+function formatEntityState(params) {
+  const state = params.state ?? "unavailable";
   const lowerState = state.toLowerCase();
   if (SIMPLE_STATES.includes(lowerState)) {
     return { display: capitalizeFirst(state), normalized: lowerState };
   }
-  const sensorResult = formatSensorState(state, domain, entity.entity_id);
+  const sensorResult = formatSensorState(state, params.domain, params.entityId);
   if (sensorResult) return sensorResult;
-  const domainResult = formatDomainSpecificState(state, domain);
+  const domainResult = formatDomainSpecificState(state, params.domain);
   if (domainResult) return domainResult;
   return formatFallbackState(state);
 }
 function formatSensorState(state, domain, entityId) {
   if (domain !== "sensor" && domain !== "binary_sensor") return null;
   if (ISO_TIMESTAMP_PATTERN.test(state)) {
-    return { display: formatTimestamp(state), normalized: "default" };
+    return { display: formatRelativeTime(state), normalized: "default" };
   }
   if (MAC_ADDRESS_PATTERN.test(state)) {
     return { display: state.substring(0, 8) + "\u2026", normalized: "default" };
@@ -2323,7 +2257,7 @@ function capitalizeFirst(str) {
   if (!str) return str;
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }
-function formatTimestamp(iso) {
+function formatRelativeTime(iso) {
   try {
     const date = new Date(iso);
     const now = /* @__PURE__ */ new Date();
@@ -2352,6 +2286,111 @@ function formatLargeNumber(num) {
   }
   return num.toString();
 }
+
+// src/card/shared/node-utils.ts
+function getNodeType(payload, nodeId) {
+  return payload?.node_types?.[nodeId] ?? "unknown";
+}
+function nodeMacFromId(payload, nodeId) {
+  if (!payload?.node_types?.[nodeId]) return null;
+  return nodeId;
+}
+function getNodeModel(payload, nodeId) {
+  const details = payload?.device_details?.[nodeId];
+  if (!details) return null;
+  return details.model_name ?? details.model ?? null;
+}
+function getNodeEntityId(payload, nodeId) {
+  return payload?.node_entities?.[nodeId] ?? payload?.client_entities?.[nodeId] ?? payload?.device_entities?.[nodeId] ?? null;
+}
+function getNodeIpFromPayload(payload, nodeName) {
+  const direct = getDirectNodeIp(payload, nodeName);
+  if (direct) {
+    return direct;
+  }
+  return getRelatedNodeIp(payload, nodeName);
+}
+function getDirectNodeIp(payload, nodeName) {
+  return payload?.client_ips?.[nodeName] ?? payload?.device_ips?.[nodeName] ?? null;
+}
+function getRelatedNodeIp(payload, nodeName) {
+  const related = payload?.related_entities?.[nodeName];
+  if (!related) {
+    return null;
+  }
+  return related.find((entity) => entity.ip)?.ip ?? null;
+}
+
+// src/card/ui/entity-modal.ts
+function renderEntityModal(context) {
+  const data = buildEntityModalData(context);
+  return renderEntityModalMarkup(data, context);
+}
+function renderEntityItem(entity, theme, displayNodeName) {
+  const domainIconMarkup = domainIcon(entity.domain, theme);
+  const displayName = getCompactDisplayName(entity, displayNodeName);
+  const safeDisplayName = escapeHtml(displayName);
+  const safeEntityId = escapeHtml(entity.entity_id);
+  const compactEntityId = getCompactEntityId(entity.entity_id);
+  const formattedState = formatEntityState({
+    state: entity.state,
+    domain: entity.domain ?? "",
+    entityId: entity.entity_id
+  });
+  const stateClass = getStateBadgeClass(formattedState.normalized);
+  return `
+    <div class="entity-modal__entity-item" data-modal-entity-id="${safeEntityId}">
+      <span class="entity-modal__domain-icon">${domainIconMarkup}</span>
+      <div class="entity-modal__entity-info">
+        <span class="entity-modal__entity-name" title="${safeDisplayName}">${safeDisplayName}</span>
+        <span class="entity-modal__entity-id" title="${safeEntityId}">${escapeHtml(compactEntityId)}</span>
+      </div>
+      <div class="entity-modal__entity-state">
+        <span class="entity-modal__state-badge ${stateClass}">${escapeHtml(formattedState.display)}</span>
+        <span class="entity-modal__arrow">\u203A</span>
+      </div>
+    </div>
+  `;
+}
+function getCompactDisplayName(entity, nodeName) {
+  const fullName = entity.friendly_name ?? entity.entity_id;
+  const lowerName = fullName.toLowerCase();
+  const lowerNodeName = nodeName.toLowerCase();
+  if (lowerName.startsWith(lowerNodeName + " ")) {
+    const stripped = fullName.substring(nodeName.length + 1).trim();
+    if (stripped.length > 0) {
+      return capitalizeFirst(stripped);
+    }
+  }
+  const normalizedNode = nodeName.replace(/[\s_-]+/g, " ").toLowerCase();
+  const normalizedFull = fullName.replace(/[\s_-]+/g, " ").toLowerCase();
+  if (normalizedFull.startsWith(normalizedNode + " ")) {
+    const prefixLen = normalizedNode.length + 1;
+    const stripped = fullName.replace(/[\s_-]+/g, " ").substring(prefixLen).trim();
+    if (stripped.length > 0) {
+      return capitalizeFirst(stripped);
+    }
+  }
+  return fullName;
+}
+function getCompactEntityId(entityId) {
+  const parts = entityId.split(".");
+  if (parts.length !== 2) return entityId;
+  const domain = parts[0];
+  const objectId = parts[1];
+  const domainAbbr = {
+    sensor: "sensor",
+    binary_sensor: "binary",
+    device_tracker: "tracker",
+    switch: "switch",
+    button: "button",
+    update: "update",
+    number: "number",
+    select: "select"
+  };
+  const abbr = domainAbbr[domain] ?? domain;
+  return `${abbr}.${objectId}`;
+}
 function getStateBadgeClass(state) {
   if (state === "home" || state === "on" || state === "connected") {
     return "entity-modal__state-badge--on";
@@ -2361,14 +2400,26 @@ function getStateBadgeClass(state) {
   }
   return "entity-modal__state-badge--default";
 }
-function buildEntityModalData(context) {
+function lookupNodeIdentity(context) {
   const nodeId = context.nodeId;
-  const displayName = context.payload?.node_names?.[nodeId] ?? nodeId;
-  const mac = getNodeMac(context.payload, nodeId);
-  const model = getNodeModel(context.payload, nodeId);
-  const nodeType = getNodeType(context.payload, nodeId);
-  const status = context.payload?.node_status?.[nodeId];
-  const relatedEntities = context.payload?.related_entities?.[nodeId] ?? [];
+  return {
+    displayName: context.payload?.node_names?.[nodeId] ?? nodeId,
+    mac: nodeMacFromId(context.payload, nodeId) ?? void 0,
+    // node ids are MACs
+    model: getNodeModel(context.payload, nodeId) ?? void 0
+  };
+}
+function lookupNodeState(context) {
+  const nodeId = context.nodeId;
+  return {
+    nodeType: getNodeType(context.payload, nodeId),
+    status: context.payload?.node_status?.[nodeId],
+    relatedEntities: context.payload?.related_entities?.[nodeId] ?? []
+  };
+}
+function buildEntityModalData(context) {
+  const { displayName, mac, model } = lookupNodeIdentity(context);
+  const { nodeType, status, relatedEntities } = lookupNodeState(context);
   return {
     safeName: escapeHtml(displayName),
     nodeType,
@@ -2414,18 +2465,6 @@ function buildEntityInfoRows(input) {
   pushIf(infoRows, renderLastChangedRow(status, context));
   infoRows.push(renderDeviceTypeRow(nodeType, context));
   return infoRows;
-}
-function getNodeMac(payload, nodeId) {
-  if (!payload?.node_types?.[nodeId]) return void 0;
-  return nodeId;
-}
-function getNodeType(payload, nodeId) {
-  return payload?.node_types?.[nodeId] ?? "unknown";
-}
-function getNodeModel(payload, nodeId) {
-  const details = payload?.device_details?.[nodeId];
-  if (!details) return void 0;
-  return details.model_name ?? details.model ?? void 0;
 }
 function renderModelRow(model, context) {
   if (!model) {
@@ -2524,6 +2563,17 @@ function pushIf(items, value) {
   }
 }
 
+// src/card/shared/overlay.ts
+function bindEscapeToClose(onClose) {
+  const handleKeydown = (event) => {
+    if (event.key === "Escape") {
+      onClose();
+    }
+  };
+  document.addEventListener("keydown", handleKeydown);
+  return () => document.removeEventListener("keydown", handleKeydown);
+}
+
 // src/card/interaction/entity-modal-state.ts
 function createEntityModalController() {
   return {};
@@ -2546,9 +2596,12 @@ function openEntityModal(params) {
   }
   document.body.appendChild(overlay);
   params.controller.overlay = overlay;
+  params.controller.unbindEscape = bindEscapeToClose(() => closeEntityModal(params.controller));
   wireEntityModalEvents(overlay, () => closeEntityModal(params.controller), params.onEntityDetails);
 }
 function closeEntityModal(controller) {
+  controller.unbindEscape?.();
+  controller.unbindEscape = void 0;
   if (controller.overlay) {
     controller.overlay.remove();
     controller.overlay = void 0;
@@ -2576,6 +2629,38 @@ function wireEntityModalEvents(overlay, onClose, onEntityDetails) {
       }
     }
   });
+}
+
+// src/card/shared/port-label.ts
+var PORT_LABEL_SEPARATOR = " <-> ";
+function extractPortInfo(label, isLeft) {
+  if (!label) return null;
+  const parts = label.split(PORT_LABEL_SEPARATOR);
+  if (parts.length === 2) {
+    const side = isLeft ? parts[0] : parts[1];
+    const portMatch2 = side.match(/Port\s*\d+/i);
+    return portMatch2 ? portMatch2[0] : null;
+  }
+  if (label.match(/^Port\s*\d+$/i)) {
+    return label;
+  }
+  const portMatch = label.match(/Port\s*\d+/i);
+  return portMatch ? portMatch[0] : label;
+}
+function extractPortNumber(label, isLeft) {
+  if (!label) return null;
+  const parts = label.split(PORT_LABEL_SEPARATOR);
+  let side = label;
+  if (parts.length === 2) {
+    side = isLeft ? parts[0] : parts[1];
+  }
+  const match = side.match(/Port\s*(\d+)/i);
+  return match ? parseInt(match[1], 10) : null;
+}
+function portSortNumber(portInfo) {
+  if (!portInfo) return 999;
+  const match = portInfo.match(/\d+/);
+  return match ? parseInt(match[0], 10) : 999;
 }
 
 // src/card/ui/port-modal.ts
@@ -2619,8 +2704,14 @@ function openPortModal(params) {
   });
   document.body.appendChild(overlay);
   controller.overlay = overlay;
+  controller.unbindEscape = bindEscapeToClose(() => {
+    closePortModal(controller);
+    onClose();
+  });
 }
 function closePortModal(controller) {
+  controller.unbindEscape?.();
+  controller.unbindEscape = void 0;
   if (controller.overlay) {
     controller.overlay.remove();
     controller.overlay = null;
@@ -2675,16 +2766,6 @@ function extractPortsForDevice(nodeId, payload) {
     speed: conn.speed
   })).sort((a, b) => a.port - b.port);
 }
-function extractPortNumber(label, isLeft) {
-  if (!label) return null;
-  const parts = label.split(" <-> ");
-  let side = label;
-  if (parts.length === 2) {
-    side = isLeft ? parts[0] : parts[1];
-  }
-  const match = side.match(/Port\s*(\d+)/i);
-  return match ? parseInt(match[1], 10) : null;
-}
 function renderPortModal(state, payload, theme, getNodeTypeIcon, localize) {
   const { nodeId, nodeType, ports } = state;
   const displayName = payload?.node_names?.[nodeId] ?? nodeId;
@@ -2695,7 +2776,7 @@ function renderPortModal(state, payload, theme, getNodeTypeIcon, localize) {
       <div class="port-modal__header">
         <div class="port-modal__title">
           <span class="port-modal__icon">${nodeIcon}</span>
-          <span>${escapeHtml2(displayName)}</span>
+          <span>${escapeHtml(displayName)}</span>
         </div>
         <button type="button" class="port-modal__close">&times;</button>
       </div>
@@ -2731,7 +2812,7 @@ function renderPortRow(port, payload, getNodeTypeIcon, localize) {
       <div class="port-row__device">
         ${isConnected ? `
               <span class="port-row__device-icon">${deviceIcon}</span>
-              <a href="#" class="port-row__device-name" data-device-name="${escapeAttr(port.connectedDevice)}">${escapeHtml2(deviceName)}</a>
+              <a href="#" class="port-row__device-name" data-device-name="${escapeHtml(port.connectedDevice)}">${escapeHtml(deviceName)}</a>
             ` : `<span class="port-row__empty">${localize("port_modal.empty")}</span>`}
       </div>
       <span class="port-row__badges">
@@ -2752,31 +2833,6 @@ function formatPower(watts) {
     return `${(watts * 1e3).toFixed(0)}mW`;
   }
   return `${watts.toFixed(1)}W`;
-}
-function escapeHtml2(str) {
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-function escapeAttr(str) {
-  return str.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-}
-
-// src/card/shared/node-utils.ts
-function getNodeIpFromPayload(payload, nodeName) {
-  const direct = getDirectNodeIp(payload, nodeName);
-  if (direct) {
-    return direct;
-  }
-  return getRelatedNodeIp(payload, nodeName);
-}
-function getDirectNodeIp(payload, nodeName) {
-  return payload?.client_ips?.[nodeName] ?? payload?.device_ips?.[nodeName] ?? null;
-}
-function getRelatedNodeIp(payload, nodeName) {
-  const related = payload?.related_entities?.[nodeName];
-  if (!related) {
-    return null;
-  }
-  return related.find((entity) => entity.ip)?.ip ?? null;
 }
 
 // src/card/interaction/filter-state.ts
@@ -2843,7 +2899,6 @@ function renderMapOverview(context, helpers) {
     `;
   }
   const nodes = Object.keys(context.payload.node_types ?? {});
-  const edges = context.payload.edges ?? [];
   const nodeTypes = context.payload.node_types ?? {};
   const nodeStatus = context.payload.node_status ?? {};
   const deviceCounts = countDevicesByType(nodes, nodeTypes);
@@ -2852,7 +2907,7 @@ function renderMapOverview(context, helpers) {
     <div class="panel-header">
       <div class="panel-header__title">${helpers.localize("panel.overview")}</div>
     </div>
-    ${renderOverviewStatsGrid(nodes.length, edges.length, helpers)}
+    ${renderNodeCount(nodes.length, helpers)}
     ${renderOverviewStatusSection(statusCounts, helpers)}
     ${renderOverviewDeviceBreakdown(deviceCounts, helpers)}
     <div class="panel-hint">
@@ -2920,7 +2975,7 @@ function renderOverviewTab(context, name, helpers) {
     return {
       name: neighborName,
       label: portInfo,
-      portNumber: extractPortNumber2(portInfo),
+      portNumber: portSortNumber(portInfo),
       wireless: edge.wireless,
       poe: edge.poe
     };
@@ -2943,11 +2998,6 @@ function renderOverviewTab(context, name, helpers) {
     </div>
     ${relatedEntitiesSection}
   `;
-}
-function extractPortNumber2(portInfo) {
-  if (!portInfo) return 999;
-  const match = portInfo.match(/\d+/);
-  return match ? parseInt(match[0], 10) : 999;
 }
 function sortNeighborsByPort(neighbors) {
   return [...neighbors].sort((a, b) => {
@@ -3045,7 +3095,12 @@ function renderRelatedEntitiesSection2(context, name, helpers) {
     const icon = helpers.getDomainIcon(entity.domain);
     const displayName = entity.friendly_name ?? entity.entity_id;
     const stateClass = getEntityStateClass(entity.state);
-    const stateLabel = normalizeStateLabel(entity.state, entity.domain, helpers.localize);
+    const stateLabel = normalizeStateLabel(
+      entity.state,
+      entity.domain,
+      entity.entity_id,
+      helpers.localize
+    );
     const safeDisplayName = helpers.escapeHtml(displayName);
     const safeEntityId = helpers.escapeHtml(entity.entity_id);
     return `
@@ -3066,20 +3121,11 @@ function renderRelatedEntitiesSection2(context, name, helpers) {
     </div>
   `;
 }
-var SIMPLE_STATES2 = ["on", "off", "home", "not_home", "unavailable", "unknown"];
-var ISO_TIMESTAMP_PATTERN2 = /^\d{4}-\d{2}-\d{2}T/;
-var MAC_ADDRESS_PATTERN2 = /^([0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}$/;
-var NUMERIC_PATTERN2 = /^-?\d+(\.\d+)?$/;
-function normalizeStateLabel(state, domain, localize) {
+function normalizeStateLabel(state, domain, entityId, localize) {
   if (!state) return localize("panel.status.unknown");
   const trackerLabel = formatDeviceTrackerState(state, domain, localize);
   if (trackerLabel) return trackerLabel;
-  if (SIMPLE_STATES2.includes(state.toLowerCase())) {
-    return capitalizeFirst2(state);
-  }
-  const domainLabel = formatDomainState(state, domain);
-  if (domainLabel) return domainLabel;
-  return formatFallbackStateLabel(state);
+  return formatEntityState({ state, domain, entityId }).display;
 }
 function formatDeviceTrackerState(state, domain, localize) {
   if (domain !== "device_tracker") return null;
@@ -3088,73 +3134,6 @@ function formatDeviceTrackerState(state, domain, localize) {
   if (lower === "not_home" || lower === "disconnected") return localize("panel.status.offline");
   return null;
 }
-function formatDomainState(state, domain) {
-  if (domain === "sensor" || domain === "binary_sensor") {
-    return formatSensorStateForPanel(state);
-  }
-  if (domain === "button") {
-    return "\u2014";
-  }
-  if (domain === "update") {
-    if (state === "off") return "Up to date";
-    if (state === "on") return "Update";
-  }
-  return null;
-}
-function formatFallbackStateLabel(state) {
-  if (state.length > 12) {
-    return state.substring(0, 10) + "\u2026";
-  }
-  return capitalizeFirst2(state);
-}
-function formatSensorStateForPanel(state) {
-  if (ISO_TIMESTAMP_PATTERN2.test(state)) {
-    return formatRelativeTime(state);
-  }
-  if (MAC_ADDRESS_PATTERN2.test(state)) {
-    return state.substring(0, 8) + "\u2026";
-  }
-  if (NUMERIC_PATTERN2.test(state)) {
-    const num = parseFloat(state);
-    if (Math.abs(num) >= 1e6) {
-      return formatLargeNumber2(num);
-    }
-  }
-  return null;
-}
-function capitalizeFirst2(str) {
-  if (!str) return str;
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-}
-function formatRelativeTime(iso) {
-  try {
-    const date = new Date(iso);
-    const now = /* @__PURE__ */ new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 6e4);
-    const diffHours = Math.floor(diffMs / 36e5);
-    const diffDays = Math.floor(diffMs / 864e5);
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
-  } catch {
-    return "\u2014";
-  }
-}
-function formatLargeNumber2(num) {
-  if (Math.abs(num) >= 1e9) {
-    return (num / 1e9).toFixed(1) + "B";
-  }
-  if (Math.abs(num) >= 1e6) {
-    return (num / 1e6).toFixed(1) + "M";
-  }
-  if (Math.abs(num) >= 1e3) {
-    return (num / 1e3).toFixed(1) + "K";
-  }
-  return num.toString();
-}
 function getEntityStateClass(state) {
   if (!state) return "entity-item__state--unknown";
   const onStates = ["on", "home", "connected", "online", "true"];
@@ -3162,20 +3141,6 @@ function getEntityStateClass(state) {
   if (onStates.includes(state.toLowerCase())) return "entity-item__state--on";
   if (offStates.includes(state.toLowerCase())) return "entity-item__state--off";
   return "entity-item__state--neutral";
-}
-function extractPortInfo(label, isLeft) {
-  if (!label) return null;
-  const parts = label.split(" <-> ");
-  if (parts.length === 2) {
-    const side = isLeft ? parts[0] : parts[1];
-    const portMatch2 = side.match(/Port\s*\d+/i);
-    return portMatch2 ? portMatch2[0] : null;
-  }
-  if (label.match(/^Port\s*\d+$/i)) {
-    return label;
-  }
-  const portMatch = label.match(/Port\s*\d+/i);
-  return portMatch ? portMatch[0] : label;
 }
 function renderStatsTab(context, name, helpers) {
   const data = getStatsTabData(context, name);
@@ -3298,20 +3263,21 @@ function getStatsTabData(context, name) {
   const edges = context.payload?.edges ?? [];
   return {
     nodeEdges: edges.filter((edge) => edge.left === name || edge.right === name),
-    mac: getNodeMac2(context.payload, name),
-    ip: getNodeIp(context.payload, name),
-    model: getNodeModel2(context.payload, name),
+    mac: nodeMacFromId(context.payload, name),
+    // node ids are MACs
+    ip: getNodeIpFromPayload(context.payload, name),
+    model: getNodeModel(context.payload, name),
     status: context.payload?.node_status?.[name],
     vlanInfo: getNodeVlanInfo(name, context.payload),
-    nodeType: getNodeType2(context.payload, name),
+    nodeType: getNodeType(context.payload, name),
     apWirelessClients: context.payload?.ap_client_counts?.[name]
   };
 }
 function getActionsTabData(context, name, helpers) {
   const entityId = getNodeEntityId(context.payload, name);
-  const mac = getNodeMac2(context.payload, name);
-  const ip = getNodeIp(context.payload, name);
-  const nodeType = getNodeType2(context.payload, name);
+  const mac = nodeMacFromId(context.payload, name);
+  const ip = getNodeIpFromPayload(context.payload, name);
+  const nodeType = getNodeType(context.payload, name);
   return {
     entityId,
     hasPortInfo: nodeType === "switch" || nodeType === "gateway",
@@ -3382,25 +3348,7 @@ function pushIf2(items, value) {
 function getDisplayName(payload, nodeId) {
   return payload?.node_names?.[nodeId] ?? nodeId;
 }
-function getNodeType2(payload, name) {
-  return payload?.node_types?.[name] ?? "unknown";
-}
-function getNodeMac2(payload, name) {
-  if (!payload?.node_types?.[name]) return null;
-  return name;
-}
-function getNodeIp(payload, name) {
-  return getNodeIpFromPayload(payload, name);
-}
-function getNodeModel2(payload, name) {
-  const details = payload?.device_details?.[name];
-  if (!details) return null;
-  return details.model_name ?? details.model ?? null;
-}
-function getNodeEntityId(payload, name) {
-  return payload?.node_entities?.[name] ?? payload?.client_entities?.[name] ?? payload?.device_entities?.[name] ?? null;
-}
-function renderOverviewStatsGrid(nodeCount, _edgeCount, helpers) {
+function renderNodeCount(nodeCount, helpers) {
   return `
     <div class="panel-stats-compact">
       <span class="panel-stats-compact__value">${nodeCount}</span>
@@ -3528,11 +3476,11 @@ function isContextMenuAction(action) {
 function buildContextMenuData(options) {
   const nodeId = options.nodeId;
   const displayName = options.payload?.node_names?.[nodeId] ?? nodeId;
-  const nodeType = getNodeType3(options.payload, nodeId);
-  const mac = getNodeMac3(options.payload, nodeId);
+  const nodeType = getNodeType2(options.payload, nodeId);
+  const mac = getNodeMac(options.payload, nodeId);
   const entityId = getNodeEntityId2(options.payload, nodeId);
-  const ip = getNodeIp2(options.payload, nodeId);
-  const model = getNodeModel3(options.payload, nodeId);
+  const ip = getNodeIp(options.payload, nodeId);
+  const model = getNodeModel2(options.payload, nodeId);
   return {
     safeName: escapeHtml(displayName),
     nodeType,
@@ -3617,29 +3565,30 @@ function pushIf3(items, value) {
     items.push(value);
   }
 }
-function getNodeType3(payload, nodeId) {
+function getNodeType2(payload, nodeId) {
   return payload?.node_types?.[nodeId] ?? "unknown";
 }
-function getNodeMac3(payload, nodeId) {
+function getNodeMac(payload, nodeId) {
   if (!payload?.node_types?.[nodeId]) return null;
   return nodeId;
 }
 function getNodeEntityId2(payload, nodeId) {
   return payload?.node_entities?.[nodeId] ?? payload?.client_entities?.[nodeId] ?? payload?.device_entities?.[nodeId] ?? null;
 }
-function getNodeIp2(payload, nodeId) {
+function getNodeIp(payload, nodeId) {
   return getNodeIpFromPayload(payload, nodeId);
 }
-function getNodeModel3(payload, nodeId) {
+function getNodeModel2(payload, nodeId) {
   const details = payload?.device_details?.[nodeId];
   if (!details) return null;
   return details.model_name ?? details.model ?? null;
 }
 
 // src/card/data/auth.ts
+var MISSING_AUTH_ERROR = "Missing auth token";
 async function fetchWithAuth(url, token, signal, parseResponse) {
   if (!token) {
-    return { error: "Missing auth token" };
+    return { error: MISSING_AUTH_ERROR };
   }
   try {
     const response = await fetch(url, {
@@ -5183,18 +5132,13 @@ function wireContextMenuEvents(menu, onClose, onAction) {
       onClose();
     }
   };
-  const handleKeydown = (event) => {
-    if (event.key === "Escape") {
-      onClose();
-    }
-  };
   menu.addEventListener("click", handleClick);
-  document.addEventListener("click", handleClickOutside, { once: true });
-  document.addEventListener("keydown", handleKeydown);
+  document.addEventListener("click", handleClickOutside);
+  const unbindEscape = bindEscapeToClose(onClose);
   menu._cleanup = () => {
     menu.removeEventListener("click", handleClick);
     document.removeEventListener("click", handleClickOutside);
-    document.removeEventListener("keydown", handleKeydown);
+    unbindEscape();
   };
 }
 
@@ -5273,7 +5217,7 @@ function applyZoom(svg3, delta, state, options, callbacks) {
   callbacks.onUpdateTransform(state.viewTransform);
   applyTransform(svg3, state.viewTransform, state.isPanning);
 }
-function resetPan(svg3, state, callbacks) {
+function resetView(svg3, state, callbacks) {
   state.viewTransform = { x: 0, y: 0, scale: 1 };
   callbacks.onUpdateTransform(state.viewTransform);
   applyTransform(svg3, state.viewTransform, state.isPanning);
@@ -5401,29 +5345,24 @@ function onClick(event, state, handlers, callbacks, tooltip) {
   if (state.panMoved) {
     return;
   }
-  let label = handlers.resolveNodeId(event);
-  if (!label) {
-    const viewport = event.currentTarget || event.target?.closest(".unifi-network-map__viewport");
-    const svg3 = viewport?.querySelector("svg");
-    if (svg3) {
-      label = findNodeAtPoint(svg3, event.clientX, event.clientY);
-    }
-  }
+  const label = resolveNodeAtEvent(event, handlers);
   if (!label) {
     return;
   }
   callbacks.onNodeSelected(label);
   hideTooltip(tooltip);
 }
-function onContextMenu(event, state, handlers, callbacks) {
-  let nodeName = handlers.resolveNodeId(event);
-  if (!nodeName) {
-    const viewport = event.currentTarget || event.target?.closest(".unifi-network-map__viewport");
-    const svg3 = viewport?.querySelector("svg");
-    if (svg3) {
-      nodeName = findNodeAtPoint(svg3, event.clientX, event.clientY);
-    }
+function resolveNodeAtEvent(event, handlers) {
+  const resolved = handlers.resolveNodeId(event);
+  if (resolved) {
+    return resolved;
   }
+  const viewport = event.currentTarget || event.target?.closest(".unifi-network-map__viewport");
+  const svg3 = viewport?.querySelector("svg");
+  return svg3 ? findNodeAtPoint(svg3, event.clientX, event.clientY) : null;
+}
+function onContextMenu(event, state, handlers, callbacks) {
+  const nodeName = resolveNodeAtEvent(event, handlers);
   if (!nodeName) {
     return;
   }
@@ -5579,6 +5518,365 @@ function createDefaultViewportHandlers(edges, getIcon, localize) {
 }
 
 // src/card/ui/styles.ts
+var OVERLAY_STYLES = `
+  /* Entity Modal Styles (appended to document.body) */
+  .entity-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+  }
+  .entity-modal {
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 480px;
+    max-height: 85vh;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+  }
+  .entity-modal__header {
+    padding: 20px 24px;
+    background: rgba(148, 163, 184, 0.1);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .entity-modal__title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #f8fafc;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .entity-modal__close {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: all 0.2s;
+  }
+  .entity-modal__close:hover {
+    background: rgba(148, 163, 184, 0.2);
+    color: #f8fafc;
+  }
+  .entity-modal__body {
+    padding: 20px 24px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    max-height: calc(85vh - 80px);
+  }
+  .entity-modal__section {
+    margin-bottom: 20px;
+  }
+  .entity-modal__section:last-child {
+    margin-bottom: 0;
+  }
+  .entity-modal__section-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748b;
+    margin-bottom: 12px;
+  }
+  .entity-modal__info-grid {
+    display: grid;
+    gap: 8px;
+  }
+  .entity-modal__info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: rgba(30, 41, 59, 0.5);
+    border-radius: 8px;
+    border: 1px solid rgba(148, 163, 184, 0.1);
+  }
+  .entity-modal__info-label {
+    color: #94a3b8;
+    font-size: 13px;
+  }
+  .entity-modal__info-value {
+    color: #f8fafc;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: monospace;
+  }
+  .entity-modal__entity-list {
+    display: grid;
+    gap: 8px;
+    padding-bottom: 28px;
+  }
+  .entity-modal__entity-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: rgba(30, 41, 59, 0.5);
+    border-radius: 10px;
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    cursor: pointer;
+    transition: all 0.2s;
+    overflow: hidden;
+    max-width: 100%;
+  }
+  .entity-modal__entity-item:hover {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.3);
+  }
+  .entity-modal__entity-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+  }
+  .entity-modal__entity-name {
+    color: #f8fafc;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .entity-modal__entity-id {
+    color: #64748b;
+    font-size: 11px;
+    font-family: monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .entity-modal__entity-state {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .entity-modal__state-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    max-width: 100px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .entity-modal__state-badge--home,
+  .entity-modal__state-badge--on {
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+  }
+  .entity-modal__state-badge--not_home,
+  .entity-modal__state-badge--off {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+  }
+  .entity-modal__state-badge--default {
+    background: rgba(148, 163, 184, 0.2);
+    color: #94a3b8;
+  }
+  .entity-modal__domain-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+    margin-right: 12px;
+  }
+  .entity-modal__arrow {
+    color: #64748b;
+    margin-left: 8px;
+  }
+  .panel-empty__text {
+    color: #64748b;
+    font-size: 13px;
+  }
+
+  /* Light theme modal */
+  .entity-modal-overlay[data-theme="light"] .entity-modal {
+    background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+  }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__header {
+    background: rgba(148, 163, 184, 0.15);
+    border-bottom-color: rgba(148, 163, 184, 0.3);
+  }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__title { color: #0f172a; }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__close { color: #64748b; }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__close:hover { background: rgba(15, 23, 42, 0.1); color: #0f172a; }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__section-title { color: #475569; }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__info-row { background: rgba(15, 23, 42, 0.04); }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__info-label { color: #64748b; }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__info-value { color: #0f172a; }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__entity-item { background: rgba(15, 23, 42, 0.04); }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__entity-item:hover { background: rgba(59, 130, 246, 0.1); }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__entity-name { color: #0f172a; }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__entity-id { color: #64748b; }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__state-badge--home,
+  .entity-modal-overlay[data-theme="light"] .entity-modal__state-badge--on { background: rgba(34, 197, 94, 0.15); color: #16a34a; }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__state-badge--not_home,
+  .entity-modal-overlay[data-theme="light"] .entity-modal__state-badge--off { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
+  .entity-modal-overlay[data-theme="light"] .entity-modal__state-badge--default { background: rgba(107, 114, 128, 0.15); color: #6b7280; }
+
+  /* Context Menu (appended to document.body) */
+  .context-menu {
+    position: fixed;
+    z-index: 1001;
+    background: rgba(15, 23, 42, 0.98);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 12px;
+    padding: 6px;
+    min-width: 180px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(12px);
+  }
+  .context-menu__header {
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    margin-bottom: 4px;
+  }
+  .context-menu__title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #f1f5f9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+  }
+  .context-menu__type {
+    font-size: 10px;
+    color: #64748b;
+    margin-top: 2px;
+    text-transform: capitalize;
+  }
+  .context-menu__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: #e2e8f0;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+  }
+  .context-menu__item:hover {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+  }
+  .context-menu__item:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .context-menu__item:disabled:hover {
+    background: transparent;
+    color: #e2e8f0;
+  }
+  .context-menu__icon {
+    font-size: 14px;
+    width: 20px;
+    text-align: center;
+  }
+  .context-menu__divider {
+    height: 1px;
+    background: rgba(148, 163, 184, 0.1);
+    margin: 4px 0;
+  }
+  .context-menu__item--danger:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+  }
+
+  /* Light theme context menu */
+  .context-menu[data-theme="light"] {
+    background: rgba(255, 255, 255, 0.98);
+    border-color: rgba(148, 163, 184, 0.3);
+  }
+  .context-menu[data-theme="light"] .context-menu__title { color: #0f172a; }
+  .context-menu[data-theme="light"] .context-menu__type { color: #64748b; }
+  .context-menu[data-theme="light"] .context-menu__item { color: #0f172a; }
+  .context-menu[data-theme="light"] .context-menu__item:hover { background: rgba(59, 130, 246, 0.1); color: #1d4ed8; }
+  .context-menu[data-theme="light"] .context-menu__item--danger:hover { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+  .context-menu[data-theme="light"] .context-menu__divider { background: rgba(148, 163, 184, 0.2); }
+
+  /* UniFi theme entity modal (global) */
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal { background: #ffffff; border: 1px solid #e5e7eb; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__header { background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__title { color: #1a1a1a; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__close { color: #6b7280; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__close:hover { background: #f3f4f6; color: #1a1a1a; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__section-title { color: #6b7280; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__info-row { background: #f9fafb; border: 1px solid #e5e7eb; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__info-label { color: #6b7280; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__info-value { color: #1a1a1a; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__entity-item { background: #f9fafb; border: 1px solid #e5e7eb; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__entity-item:hover { background: #f3f4f6; border-color: #006fff; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__entity-name { color: #1a1a1a; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__entity-id { color: #6b7280; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__state-badge--home,
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__state-badge--on { background: rgba(0, 168, 107, 0.1); color: #00a86b; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__state-badge--not_home,
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__state-badge--off { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+  .entity-modal-overlay[data-theme="unifi"] .entity-modal__state-badge--default { background: #f3f4f6; color: #6b7280; }
+
+  /* UniFi theme context menu (global) */
+  .context-menu[data-theme="unifi"] { background: #ffffff; border: 1px solid #e5e7eb; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+  .context-menu[data-theme="unifi"] .context-menu__header { border-bottom: 1px solid #e5e7eb; }
+  .context-menu[data-theme="unifi"] .context-menu__title { color: #1a1a1a; }
+  .context-menu[data-theme="unifi"] .context-menu__type { color: #6b7280; }
+  .context-menu[data-theme="unifi"] .context-menu__item { color: #374151; }
+  .context-menu[data-theme="unifi"] .context-menu__item:hover { background: rgba(0, 111, 255, 0.1); color: #006fff; }
+  .context-menu[data-theme="unifi"] .context-menu__item--danger:hover { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+  .context-menu[data-theme="unifi"] .context-menu__divider { background: #e5e7eb; }
+
+  /* UniFi Dark theme entity modal (global) */
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal { background: #1a1a1a; border: 1px solid #2a2a2a; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__header { background: #151515; border-bottom: 1px solid #2a2a2a; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__title { color: #ffffff; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__close { color: #9ca3af; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__close:hover { background: #252525; color: #ffffff; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__section-title { color: #9ca3af; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__info-row { background: #151515; border: 1px solid #2a2a2a; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__info-label { color: #9ca3af; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__info-value { color: #e5e5e5; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__entity-item { background: #151515; border: 1px solid #2a2a2a; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__entity-item:hover { background: #1f1f1f; border-color: #006fff; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__entity-name { color: #e5e5e5; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__entity-id { color: #9ca3af; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__state-badge--home,
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__state-badge--on { background: rgba(0, 168, 107, 0.15); color: #00d68f; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__state-badge--not_home,
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__state-badge--off { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__state-badge--default { background: #1f1f1f; color: #9ca3af; }
+
+  /* UniFi Dark theme context menu (global) */
+  .context-menu[data-theme="unifi-dark"] { background: #1a1a1a; border: 1px solid #2a2a2a; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); }
+  .context-menu[data-theme="unifi-dark"] .context-menu__header { border-bottom: 1px solid #2a2a2a; }
+  .context-menu[data-theme="unifi-dark"] .context-menu__title { color: #ffffff; }
+  .context-menu[data-theme="unifi-dark"] .context-menu__type { color: #9ca3af; }
+  .context-menu[data-theme="unifi-dark"] .context-menu__item { color: #e5e5e5; }
+  .context-menu[data-theme="unifi-dark"] .context-menu__item:hover { background: rgba(0, 111, 255, 0.15); color: #3b9eff; }
+  .context-menu[data-theme="unifi-dark"] .context-menu__item--danger:hover { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+  .context-menu[data-theme="unifi-dark"] .context-menu__divider { background: #2a2a2a; }
+`;
 var CARD_STYLES = `
   unifi-network-map { display: block; }
   unifi-network-map ha-card { display: flex; flex-direction: column; box-sizing: border-box; }
@@ -6060,722 +6358,12 @@ var CARD_STYLES = `
   ha-card[data-theme="unifi-dark"] .filter-button { background: #151515; border: 1px solid #2a2a2a; color: #e5e5e5; }
   ha-card[data-theme="unifi-dark"] .filter-button:hover { background: #252525; border-color: #006fff; color: #3b9eff; }
   ha-card[data-theme="unifi-dark"] .filter-button--active { background: rgba(0, 111, 255, 0.15); border-color: #006fff; color: #3b9eff; }
-
-  /* Entity Modal Styles */
-  .entity-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    backdrop-filter: blur(4px);
-  }
-  .entity-modal {
-    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-    border-radius: 16px;
-    width: 90%;
-    max-width: 480px;
-    max-height: 85vh;
-    overflow: hidden;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(148, 163, 184, 0.2);
-  }
-  .entity-modal__header {
-    padding: 20px 24px;
-    background: rgba(148, 163, 184, 0.1);
-    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .entity-modal__title {
-    font-size: 18px;
-    font-weight: 600;
-    color: #f8fafc;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .entity-modal__close {
-    background: transparent;
-    border: none;
-    color: #94a3b8;
-    font-size: 24px;
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 8px;
-    transition: all 0.2s;
-  }
-  .entity-modal__close:hover {
-    background: rgba(148, 163, 184, 0.2);
-    color: #f8fafc;
-  }
-  .entity-modal__body {
-    padding: 20px 24px;
-    overflow-x: hidden;
-    overflow-y: auto;
-    max-height: calc(85vh - 80px);
-  }
-  .entity-modal__section {
-    margin-bottom: 20px;
-  }
-  .entity-modal__section:last-child {
-    margin-bottom: 0;
-  }
-  .entity-modal__section-title {
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #64748b;
-    margin-bottom: 12px;
-  }
-  .entity-modal__info-grid {
-    display: grid;
-    gap: 8px;
-  }
-  .entity-modal__info-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 14px;
-    background: rgba(30, 41, 59, 0.5);
-    border-radius: 8px;
-    border: 1px solid rgba(148, 163, 184, 0.1);
-  }
-  .entity-modal__info-label {
-    color: #94a3b8;
-    font-size: 13px;
-  }
-  .entity-modal__info-value {
-    color: #f8fafc;
-    font-size: 13px;
-    font-weight: 500;
-    font-family: monospace;
-  }
-  .entity-modal__entity-list {
-    display: grid;
-    gap: 8px;
-    padding-bottom: 28px;
-  }
-  .entity-modal__entity-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 14px;
-    background: rgba(30, 41, 59, 0.5);
-    border-radius: 10px;
-    border: 1px solid rgba(148, 163, 184, 0.1);
-    cursor: pointer;
-    transition: all 0.2s;
-    overflow: hidden;
-    max-width: 100%;
-  }
-  .entity-modal__entity-item:hover {
-    background: rgba(59, 130, 246, 0.15);
-    border-color: rgba(59, 130, 246, 0.3);
-  }
-  .entity-modal__entity-info {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    min-width: 0;
-    flex: 1;
-    overflow: hidden;
-  }
-  .entity-modal__entity-name {
-    color: #f8fafc;
-    font-size: 14px;
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .entity-modal__entity-id {
-    color: #64748b;
-    font-size: 11px;
-    font-family: monospace;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .entity-modal__entity-state {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-  }
-  .entity-modal__state-badge {
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 500;
-    max-width: 100px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .entity-modal__state-badge--home,
-  .entity-modal__state-badge--on {
-    background: rgba(34, 197, 94, 0.2);
-    color: #4ade80;
-  }
-  .entity-modal__state-badge--not_home,
-  .entity-modal__state-badge--off {
-    background: rgba(239, 68, 68, 0.2);
-    color: #f87171;
-  }
-  .entity-modal__state-badge--default {
-    background: rgba(148, 163, 184, 0.2);
-    color: #94a3b8;
-  }
-  .entity-modal__domain-icon {
-    font-size: 20px;
-    flex-shrink: 0;
-    margin-right: 12px;
-  }
-  .entity-modal__arrow {
-    color: #64748b;
-    margin-left: 8px;
-  }
-
-  /* Light theme modal */
-  .entity-modal-overlay[data-theme="light"] .entity-modal {
-    background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
-  }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__header {
-    background: rgba(148, 163, 184, 0.15);
-    border-bottom-color: rgba(148, 163, 184, 0.3);
-  }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__title { color: #0f172a; }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__close { color: #64748b; }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__close:hover { background: rgba(15, 23, 42, 0.1); color: #0f172a; }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__section-title { color: #475569; }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__info-row { background: rgba(15, 23, 42, 0.04); }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__info-label { color: #64748b; }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__info-value { color: #0f172a; }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__entity-item { background: rgba(15, 23, 42, 0.04); }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__entity-item:hover { background: rgba(59, 130, 246, 0.1); }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__entity-name { color: #0f172a; }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__entity-id { color: #64748b; }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__state-badge--home,
-  .entity-modal-overlay[data-theme="light"] .entity-modal__state-badge--on { background: rgba(34, 197, 94, 0.15); color: #16a34a; }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__state-badge--not_home,
-  .entity-modal-overlay[data-theme="light"] .entity-modal__state-badge--off { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__state-badge--default { background: rgba(107, 114, 128, 0.15); color: #6b7280; }
-
-  /* Context Menu */
-  .context-menu {
-    position: fixed;
-    z-index: 1001;
-    background: rgba(15, 23, 42, 0.98);
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    border-radius: 12px;
-    padding: 6px;
-    min-width: 180px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(12px);
-  }
-  .context-menu__header {
-    padding: 8px 12px;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.1);
-    margin-bottom: 4px;
-  }
-  .context-menu__title {
-    font-size: 12px;
-    font-weight: 600;
-    color: #f1f5f9;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 200px;
-  }
-  .context-menu__type {
-    font-size: 10px;
-    color: #64748b;
-    margin-top: 2px;
-    text-transform: capitalize;
-  }
-  .context-menu__item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding: 10px 12px;
-    background: transparent;
-    border: none;
-    border-radius: 8px;
-    color: #e2e8f0;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    text-align: left;
-  }
-  .context-menu__item:hover {
-    background: rgba(59, 130, 246, 0.15);
-    color: #60a5fa;
-  }
-  .context-menu__item:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-  .context-menu__item:disabled:hover {
-    background: transparent;
-    color: #e2e8f0;
-  }
-  .context-menu__icon {
-    font-size: 14px;
-    width: 20px;
-    text-align: center;
-  }
-  .context-menu__divider {
-    height: 1px;
-    background: rgba(148, 163, 184, 0.1);
-    margin: 4px 0;
-  }
-  .context-menu__item--danger:hover {
-    background: rgba(239, 68, 68, 0.15);
-    color: #f87171;
-  }
-
-  /* Light theme context menu */
-  .context-menu[data-theme="light"] {
-    background: rgba(255, 255, 255, 0.98);
-    border-color: rgba(148, 163, 184, 0.3);
-  }
-  .context-menu[data-theme="light"] .context-menu__title { color: #0f172a; }
-  .context-menu[data-theme="light"] .context-menu__type { color: #64748b; }
-  .context-menu[data-theme="light"] .context-menu__item { color: #0f172a; }
-  .context-menu[data-theme="light"] .context-menu__item:hover { background: rgba(59, 130, 246, 0.1); color: #1d4ed8; }
-  .context-menu[data-theme="light"] .context-menu__item--danger:hover { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
-  .context-menu[data-theme="light"] .context-menu__divider { background: rgba(148, 163, 184, 0.2); }
-
-  /* UniFi theme entity modal */
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal { background: #ffffff; border: 1px solid #e5e7eb; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__header { background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__title { color: #1a1a1a; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__close { color: #6b7280; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__close:hover { background: #f3f4f6; color: #1a1a1a; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__section-title { color: #6b7280; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__info-row { background: #f9fafb; border: 1px solid #e5e7eb; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__info-label { color: #6b7280; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__info-value { color: #1a1a1a; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__entity-item { background: #f9fafb; border: 1px solid #e5e7eb; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__entity-item:hover { background: #f3f4f6; border-color: #006fff; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__entity-name { color: #1a1a1a; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__entity-id { color: #6b7280; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__state-badge--home,
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__state-badge--on { background: rgba(0, 168, 107, 0.1); color: #00a86b; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__state-badge--not_home,
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__state-badge--off { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__state-badge--default { background: #f3f4f6; color: #6b7280; }
-
-  /* UniFi theme context menu */
-  .context-menu[data-theme="unifi"] { background: #ffffff; border: 1px solid #e5e7eb; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
-  .context-menu[data-theme="unifi"] .context-menu__header { border-bottom: 1px solid #e5e7eb; }
-  .context-menu[data-theme="unifi"] .context-menu__title { color: #1a1a1a; }
-  .context-menu[data-theme="unifi"] .context-menu__type { color: #6b7280; }
-  .context-menu[data-theme="unifi"] .context-menu__item { color: #374151; }
-  .context-menu[data-theme="unifi"] .context-menu__item:hover { background: rgba(0, 111, 255, 0.1); color: #006fff; }
-  .context-menu[data-theme="unifi"] .context-menu__item--danger:hover { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
-  .context-menu[data-theme="unifi"] .context-menu__divider { background: #e5e7eb; }
-
-  /* UniFi Dark theme entity modal */
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal { background: #1a1a1a; border: 1px solid #2a2a2a; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__header { background: #151515; border-bottom: 1px solid #2a2a2a; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__title { color: #ffffff; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__close { color: #9ca3af; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__close:hover { background: #252525; color: #ffffff; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__section-title { color: #9ca3af; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__info-row { background: #151515; border: 1px solid #2a2a2a; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__info-label { color: #9ca3af; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__info-value { color: #e5e5e5; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__entity-item { background: #151515; border: 1px solid #2a2a2a; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__entity-item:hover { background: #1f1f1f; border-color: #006fff; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__entity-name { color: #e5e5e5; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__entity-id { color: #9ca3af; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__state-badge--home,
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__state-badge--on { background: rgba(0, 168, 107, 0.15); color: #00d68f; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__state-badge--not_home,
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__state-badge--off { background: rgba(239, 68, 68, 0.15); color: #f87171; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__state-badge--default { background: #1f1f1f; color: #9ca3af; }
-
-  /* UniFi Dark theme context menu */
-  .context-menu[data-theme="unifi-dark"] { background: #1a1a1a; border: 1px solid #2a2a2a; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); }
-  .context-menu[data-theme="unifi-dark"] .context-menu__header { border-bottom: 1px solid #2a2a2a; }
-  .context-menu[data-theme="unifi-dark"] .context-menu__title { color: #ffffff; }
-  .context-menu[data-theme="unifi-dark"] .context-menu__type { color: #9ca3af; }
-  .context-menu[data-theme="unifi-dark"] .context-menu__item { color: #e5e5e5; }
-  .context-menu[data-theme="unifi-dark"] .context-menu__item:hover { background: rgba(0, 111, 255, 0.15); color: #3b9eff; }
-  .context-menu[data-theme="unifi-dark"] .context-menu__item--danger:hover { background: rgba(239, 68, 68, 0.15); color: #f87171; }
-  .context-menu[data-theme="unifi-dark"] .context-menu__divider { background: #2a2a2a; }
 `;
 var GLOBAL_STYLES = `
   .unifi-icon { display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
   .unifi-icon svg { width: 1em; height: 1em; stroke: currentColor; fill: none; }
 
-  /* Entity Modal Styles (appended to document.body) */
-  .entity-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    backdrop-filter: blur(4px);
-  }
-  .entity-modal {
-    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-    border-radius: 16px;
-    width: 90%;
-    max-width: 480px;
-    max-height: 85vh;
-    overflow: hidden;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(148, 163, 184, 0.2);
-  }
-  .entity-modal__header {
-    padding: 20px 24px;
-    background: rgba(148, 163, 184, 0.1);
-    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .entity-modal__title {
-    font-size: 18px;
-    font-weight: 600;
-    color: #f8fafc;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .entity-modal__close {
-    background: transparent;
-    border: none;
-    color: #94a3b8;
-    font-size: 24px;
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 8px;
-    transition: all 0.2s;
-  }
-  .entity-modal__close:hover {
-    background: rgba(148, 163, 184, 0.2);
-    color: #f8fafc;
-  }
-  .entity-modal__body {
-    padding: 20px 24px;
-    overflow-x: hidden;
-    overflow-y: auto;
-    max-height: calc(85vh - 80px);
-  }
-  .entity-modal__section {
-    margin-bottom: 20px;
-  }
-  .entity-modal__section:last-child {
-    margin-bottom: 0;
-  }
-  .entity-modal__section-title {
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #64748b;
-    margin-bottom: 12px;
-  }
-  .entity-modal__info-grid {
-    display: grid;
-    gap: 8px;
-  }
-  .entity-modal__info-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 14px;
-    background: rgba(30, 41, 59, 0.5);
-    border-radius: 8px;
-    border: 1px solid rgba(148, 163, 184, 0.1);
-  }
-  .entity-modal__info-label {
-    color: #94a3b8;
-    font-size: 13px;
-  }
-  .entity-modal__info-value {
-    color: #f8fafc;
-    font-size: 13px;
-    font-weight: 500;
-    font-family: monospace;
-  }
-  .entity-modal__entity-list {
-    display: grid;
-    gap: 8px;
-    padding-bottom: 28px;
-  }
-  .entity-modal__entity-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 14px;
-    background: rgba(30, 41, 59, 0.5);
-    border-radius: 10px;
-    border: 1px solid rgba(148, 163, 184, 0.1);
-    cursor: pointer;
-    transition: all 0.2s;
-    overflow: hidden;
-    max-width: 100%;
-  }
-  .entity-modal__entity-item:hover {
-    background: rgba(59, 130, 246, 0.15);
-    border-color: rgba(59, 130, 246, 0.3);
-  }
-  .entity-modal__entity-info {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    min-width: 0;
-    flex: 1;
-    overflow: hidden;
-  }
-  .entity-modal__entity-name {
-    color: #f8fafc;
-    font-size: 14px;
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .entity-modal__entity-id {
-    color: #64748b;
-    font-size: 11px;
-    font-family: monospace;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .entity-modal__entity-state {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-  }
-  .entity-modal__state-badge {
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 500;
-    max-width: 100px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .entity-modal__state-badge--home,
-  .entity-modal__state-badge--on {
-    background: rgba(34, 197, 94, 0.2);
-    color: #4ade80;
-  }
-  .entity-modal__state-badge--not_home,
-  .entity-modal__state-badge--off {
-    background: rgba(239, 68, 68, 0.2);
-    color: #f87171;
-  }
-  .entity-modal__state-badge--default {
-    background: rgba(148, 163, 184, 0.2);
-    color: #94a3b8;
-  }
-  .entity-modal__domain-icon {
-    font-size: 20px;
-    flex-shrink: 0;
-    margin-right: 12px;
-  }
-  .entity-modal__arrow {
-    color: #64748b;
-    margin-left: 8px;
-  }
-  .panel-empty__text {
-    color: #64748b;
-    font-size: 13px;
-  }
-
-  /* Light theme modal */
-  .entity-modal-overlay[data-theme="light"] .entity-modal {
-    background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
-  }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__header {
-    background: rgba(148, 163, 184, 0.15);
-    border-bottom-color: rgba(148, 163, 184, 0.3);
-  }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__title { color: #0f172a; }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__close { color: #64748b; }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__close:hover { background: rgba(15, 23, 42, 0.1); color: #0f172a; }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__section-title { color: #475569; }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__info-row { background: rgba(15, 23, 42, 0.04); }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__info-label { color: #64748b; }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__info-value { color: #0f172a; }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__entity-item { background: rgba(15, 23, 42, 0.04); }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__entity-item:hover { background: rgba(59, 130, 246, 0.1); }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__entity-name { color: #0f172a; }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__entity-id { color: #64748b; }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__state-badge--home,
-  .entity-modal-overlay[data-theme="light"] .entity-modal__state-badge--on { background: rgba(34, 197, 94, 0.15); color: #16a34a; }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__state-badge--not_home,
-  .entity-modal-overlay[data-theme="light"] .entity-modal__state-badge--off { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
-  .entity-modal-overlay[data-theme="light"] .entity-modal__state-badge--default { background: rgba(107, 114, 128, 0.15); color: #6b7280; }
-
-  /* Context Menu (appended to document.body) */
-  .context-menu {
-    position: fixed;
-    z-index: 1001;
-    background: rgba(15, 23, 42, 0.98);
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    border-radius: 12px;
-    padding: 6px;
-    min-width: 180px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(12px);
-  }
-  .context-menu__header {
-    padding: 8px 12px;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.1);
-    margin-bottom: 4px;
-  }
-  .context-menu__title {
-    font-size: 12px;
-    font-weight: 600;
-    color: #f1f5f9;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 200px;
-  }
-  .context-menu__type {
-    font-size: 10px;
-    color: #64748b;
-    margin-top: 2px;
-    text-transform: capitalize;
-  }
-  .context-menu__item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding: 10px 12px;
-    background: transparent;
-    border: none;
-    border-radius: 8px;
-    color: #e2e8f0;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    text-align: left;
-  }
-  .context-menu__item:hover {
-    background: rgba(59, 130, 246, 0.15);
-    color: #60a5fa;
-  }
-  .context-menu__item:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-  .context-menu__item:disabled:hover {
-    background: transparent;
-    color: #e2e8f0;
-  }
-  .context-menu__icon {
-    font-size: 14px;
-    width: 20px;
-    text-align: center;
-  }
-  .context-menu__divider {
-    height: 1px;
-    background: rgba(148, 163, 184, 0.1);
-    margin: 4px 0;
-  }
-  .context-menu__item--danger:hover {
-    background: rgba(239, 68, 68, 0.15);
-    color: #f87171;
-  }
-
-  /* Light theme context menu */
-  .context-menu[data-theme="light"] {
-    background: rgba(255, 255, 255, 0.98);
-    border-color: rgba(148, 163, 184, 0.3);
-  }
-  .context-menu[data-theme="light"] .context-menu__title { color: #0f172a; }
-  .context-menu[data-theme="light"] .context-menu__type { color: #64748b; }
-  .context-menu[data-theme="light"] .context-menu__item { color: #0f172a; }
-  .context-menu[data-theme="light"] .context-menu__item:hover { background: rgba(59, 130, 246, 0.1); color: #1d4ed8; }
-  .context-menu[data-theme="light"] .context-menu__item--danger:hover { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
-  .context-menu[data-theme="light"] .context-menu__divider { background: rgba(148, 163, 184, 0.2); }
-
-  /* UniFi theme entity modal (global) */
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal { background: #ffffff; border: 1px solid #e5e7eb; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__header { background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__title { color: #1a1a1a; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__close { color: #6b7280; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__close:hover { background: #f3f4f6; color: #1a1a1a; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__section-title { color: #6b7280; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__info-row { background: #f9fafb; border: 1px solid #e5e7eb; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__info-label { color: #6b7280; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__info-value { color: #1a1a1a; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__entity-item { background: #f9fafb; border: 1px solid #e5e7eb; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__entity-item:hover { background: #f3f4f6; border-color: #006fff; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__entity-name { color: #1a1a1a; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__entity-id { color: #6b7280; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__state-badge--home,
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__state-badge--on { background: rgba(0, 168, 107, 0.1); color: #00a86b; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__state-badge--not_home,
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__state-badge--off { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
-  .entity-modal-overlay[data-theme="unifi"] .entity-modal__state-badge--default { background: #f3f4f6; color: #6b7280; }
-
-  /* UniFi theme context menu (global) */
-  .context-menu[data-theme="unifi"] { background: #ffffff; border: 1px solid #e5e7eb; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
-  .context-menu[data-theme="unifi"] .context-menu__header { border-bottom: 1px solid #e5e7eb; }
-  .context-menu[data-theme="unifi"] .context-menu__title { color: #1a1a1a; }
-  .context-menu[data-theme="unifi"] .context-menu__type { color: #6b7280; }
-  .context-menu[data-theme="unifi"] .context-menu__item { color: #374151; }
-  .context-menu[data-theme="unifi"] .context-menu__item:hover { background: rgba(0, 111, 255, 0.1); color: #006fff; }
-  .context-menu[data-theme="unifi"] .context-menu__item--danger:hover { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
-  .context-menu[data-theme="unifi"] .context-menu__divider { background: #e5e7eb; }
-
-  /* UniFi Dark theme entity modal (global) */
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal { background: #1a1a1a; border: 1px solid #2a2a2a; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__header { background: #151515; border-bottom: 1px solid #2a2a2a; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__title { color: #ffffff; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__close { color: #9ca3af; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__close:hover { background: #252525; color: #ffffff; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__section-title { color: #9ca3af; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__info-row { background: #151515; border: 1px solid #2a2a2a; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__info-label { color: #9ca3af; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__info-value { color: #e5e5e5; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__entity-item { background: #151515; border: 1px solid #2a2a2a; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__entity-item:hover { background: #1f1f1f; border-color: #006fff; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__entity-name { color: #e5e5e5; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__entity-id { color: #9ca3af; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__state-badge--home,
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__state-badge--on { background: rgba(0, 168, 107, 0.15); color: #00d68f; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__state-badge--not_home,
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__state-badge--off { background: rgba(239, 68, 68, 0.15); color: #f87171; }
-  .entity-modal-overlay[data-theme="unifi-dark"] .entity-modal__state-badge--default { background: #1f1f1f; color: #9ca3af; }
-
-  /* UniFi Dark theme context menu (global) */
-  .context-menu[data-theme="unifi-dark"] { background: #1a1a1a; border: 1px solid #2a2a2a; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); }
-  .context-menu[data-theme="unifi-dark"] .context-menu__header { border-bottom: 1px solid #2a2a2a; }
-  .context-menu[data-theme="unifi-dark"] .context-menu__title { color: #ffffff; }
-  .context-menu[data-theme="unifi-dark"] .context-menu__type { color: #9ca3af; }
-  .context-menu[data-theme="unifi-dark"] .context-menu__item { color: #e5e5e5; }
-  .context-menu[data-theme="unifi-dark"] .context-menu__item:hover { background: rgba(0, 111, 255, 0.15); color: #3b9eff; }
-  .context-menu[data-theme="unifi-dark"] .context-menu__item--danger:hover { background: rgba(239, 68, 68, 0.15); color: #f87171; }
-  .context-menu[data-theme="unifi-dark"] .context-menu__divider { background: #2a2a2a; }
+${OVERLAY_STYLES}
 
   /* Toast feedback animation */
   @keyframes fadeInOut {
@@ -7146,7 +6734,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     const result = await subscribeMapUpdates(this._hass, entryId, (payload) => {
       this._payload = payload;
       this._lastDataUrl = this._config?.data_url;
-      this._render();
+      this._applyPayloadUpdate();
     });
     if (subscriptionVersion !== this._wsSubscriptionVersion || entryId !== this._config?.entry_id) {
       if (result.subscribed) {
@@ -7219,7 +6807,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._setCardBody(this._renderPreview(), theme, svgTheme);
   }
   _clearMissingAuthError(token) {
-    if (token && this._error === "Missing auth token") {
+    if (token && this._error === MISSING_AUTH_ERROR) {
       this._error = void 0;
     }
   }
@@ -7233,7 +6821,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     return this._renderLoading();
   }
   _canFinishRender(token) {
-    return !(!token && this._error === "Missing auth token");
+    return !(!token && this._error === MISSING_AUTH_ERROR);
   }
   _finalizeRender() {
     this._ensureStyles();
@@ -7342,7 +6930,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     if (this._getAuthToken()) {
       return true;
     }
-    this._error = "Missing auth token";
+    this._error = MISSING_AUTH_ERROR;
     this._render();
     return false;
   }
@@ -7412,7 +7000,16 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._lastDataUrl = url;
     this._dataLoading = false;
     this._clearLoadingOverlay();
-    this._render();
+    this._applyPayloadUpdate();
+  }
+  _applyPayloadUpdate() {
+    const svg3 = this.querySelector(".unifi-network-map__viewport svg");
+    if (this._error || !this._svgContent || !svg3) {
+      this._render();
+      return;
+    }
+    this._wireInteractions();
+    this._updateSelectionOnly();
   }
   _renderPreview() {
     return `
@@ -7441,7 +7038,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     if (!error) {
       return this._localize("card.error.unknown");
     }
-    if (error === "Missing auth token") {
+    if (error === MISSING_AUTH_ERROR) {
       return this._localize("card.error.missing_auth");
     }
     const svgMatch = error.match(/^Failed to load SVG \((.+)\)$/);
@@ -7780,7 +7377,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       const shouldHide = hiddenNodes.has(left) || hiddenNodes.has(right);
       path.classList.toggle("edge--filtered", shouldHide);
       if (shouldHide) {
-        filteredEdges.add(this._edgeKey(left, right));
+        filteredEdges.add(edgeKey(left, right));
       }
       const hitbox = path.nextElementSibling;
       if (hitbox?.getAttribute("data-edge-hitbox")) {
@@ -7789,16 +7386,13 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     }
     this._applyEdgeLabelFilters(svg3, filteredEdges);
   }
-  _edgeKey(left, right) {
-    return [left.trim(), right.trim()].sort().join("|");
-  }
   _applyEdgeLabelFilters(svg3, filteredEdges) {
     const labeledElements = svg3.querySelectorAll("[data-edge-left][data-edge-right]:not(path)");
     for (const el of labeledElements) {
       const left = el.getAttribute("data-edge-left");
       const right = el.getAttribute("data-edge-right");
       if (!left || !right) continue;
-      const shouldHide = filteredEdges.has(this._edgeKey(left, right));
+      const shouldHide = filteredEdges.has(edgeKey(left, right));
       el.classList.toggle("edge--filtered", shouldHide);
     }
     const edgeLabels = svg3.querySelectorAll(".edgeLabel");
@@ -7806,7 +7400,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       const left = label.getAttribute("data-edge-left");
       const right = label.getAttribute("data-edge-right");
       if (left && right) {
-        const shouldHide = filteredEdges.has(this._edgeKey(left, right));
+        const shouldHide = filteredEdges.has(edgeKey(left, right));
         label.classList.toggle("edge--filtered", shouldHide);
       }
     }
@@ -8060,7 +7654,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     if (reset) {
       reset.onclick = (event) => {
         event.preventDefault();
-        resetPan(svg3, this._viewportState, callbacks);
+        resetView(svg3, this._viewportState, callbacks);
       };
     }
   }

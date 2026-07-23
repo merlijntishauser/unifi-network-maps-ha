@@ -103,7 +103,7 @@ export function applyZoom(
   applyTransform(svg, state.viewTransform, state.isPanning);
 }
 
-export function resetPan(
+export function resetView(
   svg: SVGElement,
   state: ViewportState,
   callbacks: ViewportCallbacks,
@@ -312,26 +312,26 @@ export function onClick(
     return;
   }
 
-  // First try normal resolution via composedPath
-  let label = handlers.resolveNodeId(event);
-
-  // If that fails (e.g., due to shadow DOM or slotted content issues),
-  // manually find the SVG element at the click coordinates
-  if (!label) {
-    const viewport =
-      (event.currentTarget as HTMLElement) ||
-      (event.target as HTMLElement)?.closest(".unifi-network-map__viewport");
-    const svg = viewport?.querySelector("svg");
-    if (svg) {
-      label = findNodeAtPoint(svg, event.clientX, event.clientY);
-    }
-  }
-
+  const label = resolveNodeAtEvent(event, handlers);
   if (!label) {
     return;
   }
   callbacks.onNodeSelected(label);
   hideTooltip(tooltip);
+}
+
+// Resolution via composedPath first; if that fails (e.g. shadow DOM or
+// slotted content issues), fall back to hit-testing the click coordinates.
+function resolveNodeAtEvent(event: MouseEvent, handlers: ViewportHandlers): string | null {
+  const resolved = handlers.resolveNodeId(event);
+  if (resolved) {
+    return resolved;
+  }
+  const viewport =
+    (event.currentTarget as HTMLElement) ||
+    (event.target as HTMLElement)?.closest(".unifi-network-map__viewport");
+  const svg = viewport?.querySelector("svg");
+  return svg ? findNodeAtPoint(svg, event.clientX, event.clientY) : null;
 }
 
 function onContextMenu(
@@ -340,20 +340,7 @@ function onContextMenu(
   handlers: ViewportHandlers,
   callbacks: ViewportCallbacks,
 ): void {
-  // First try normal resolution via composedPath
-  let nodeName = handlers.resolveNodeId(event);
-
-  // If that fails, manually find the SVG element at the click coordinates
-  if (!nodeName) {
-    const viewport =
-      (event.currentTarget as HTMLElement) ||
-      (event.target as HTMLElement)?.closest(".unifi-network-map__viewport");
-    const svg = viewport?.querySelector("svg");
-    if (svg) {
-      nodeName = findNodeAtPoint(svg, event.clientX, event.clientY);
-    }
-  }
-
+  const nodeName = resolveNodeAtEvent(event, handlers);
   if (!nodeName) {
     return;
   }

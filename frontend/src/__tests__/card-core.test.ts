@@ -1,5 +1,5 @@
 import type { ConfigurableCard } from "./test-helpers";
-import { flushPromises, makeSvg, resetTestDom } from "./test-helpers";
+import { flushPromises, makeSvg, resetTestDom, samplePayload } from "./test-helpers";
 
 describe("unifi-network-map card core", () => {
   afterEach(resetTestDom);
@@ -403,5 +403,64 @@ describe("unifi-network-map card core", () => {
     card._hass = {};
     await card._loadSvg();
     expect(card._error).toBe("Missing auth token");
+  });
+});
+
+describe("targeted payload updates", () => {
+  afterEach(resetTestDom);
+
+  function cardWithRenderedMap() {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    document.body.appendChild(element);
+    (element as unknown as { _svgContent?: string })._svgContent = makeSvg("aa:bb:cc:dd:ee:01");
+    (element as unknown as { _payload?: unknown })._payload = samplePayload();
+    element.setConfig({ svg_url: "/map.svg" });
+    return element;
+  }
+
+  it("keeps the rendered svg element when only the payload changes", () => {
+    const element = cardWithRenderedMap();
+    const card = element as unknown as {
+      _payload?: unknown;
+      _applyPayloadUpdate: () => void;
+    };
+    const svgBefore = element.querySelector("svg");
+    expect(svgBefore).not.toBeNull();
+
+    card._payload = samplePayload();
+    card._applyPayloadUpdate();
+
+    expect(element.querySelector("svg")).toBe(svgBefore);
+  });
+
+  it("falls back to a full render when no svg is mounted", () => {
+    const element = document.createElement("unifi-network-map") as ConfigurableCard;
+    document.body.appendChild(element);
+    (element as unknown as { _payload?: unknown })._payload = samplePayload();
+    element.setConfig({ svg_url: "/map.svg" });
+    const card = element as unknown as {
+      _applyPayloadUpdate: () => void;
+      _render: () => void;
+    };
+    const renderSpy = jest.spyOn(card, "_render");
+
+    card._applyPayloadUpdate();
+
+    expect(renderSpy).toHaveBeenCalled();
+  });
+
+  it("falls back to a full render when an error is set", () => {
+    const element = cardWithRenderedMap();
+    const card = element as unknown as {
+      _error?: string;
+      _applyPayloadUpdate: () => void;
+      _render: () => void;
+    };
+    card._error = "Failed to load payload (boom)";
+    const renderSpy = jest.spyOn(card, "_render");
+
+    card._applyPayloadUpdate();
+
+    expect(renderSpy).toHaveBeenCalled();
   });
 });

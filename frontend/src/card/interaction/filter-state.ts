@@ -1,7 +1,7 @@
 import type { DeviceType, DeviceTypeFilters } from "../core/types";
 
 /**
- * Client subtypes from unifi-network-maps 1.5.0.
+ * Client subtypes from the unifi-topology payload.
  * These are all filtered together under the "client" filter button.
  */
 export const CLIENT_SUBTYPES = [

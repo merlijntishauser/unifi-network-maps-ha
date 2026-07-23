@@ -8,7 +8,15 @@ import type {
   VpnTunnel,
 } from "../core/types";
 import type { IconName } from "./icons";
-import { getNodeIpFromPayload } from "../shared/node-utils";
+import {
+  getNodeEntityId,
+  getNodeIpFromPayload,
+  getNodeModel,
+  getNodeType,
+  nodeMacFromId,
+} from "../shared/node-utils";
+import { formatEntityState } from "../shared/entity-state";
+import { extractPortInfo, portSortNumber } from "../shared/port-label";
 import { CLIENT_SUBTYPES } from "../interaction/filter-state";
 
 export type PanelContext = {
@@ -44,7 +52,6 @@ function renderMapOverview(context: PanelContext, helpers: PanelHelpers): string
     `;
   }
   const nodes = Object.keys(context.payload.node_types ?? {});
-  const edges = context.payload.edges ?? [];
   const nodeTypes = context.payload.node_types ?? {};
   const nodeStatus = context.payload.node_status ?? {};
 
@@ -55,7 +62,7 @@ function renderMapOverview(context: PanelContext, helpers: PanelHelpers): string
     <div class="panel-header">
       <div class="panel-header__title">${helpers.localize("panel.overview")}</div>
     </div>
-    ${renderOverviewStatsGrid(nodes.length, edges.length, helpers)}
+    ${renderNodeCount(nodes.length, helpers)}
     ${renderOverviewStatusSection(statusCounts, helpers)}
     ${renderOverviewDeviceBreakdown(deviceCounts, helpers)}
     <div class="panel-hint">
@@ -134,7 +141,7 @@ function renderOverviewTab(context: PanelContext, name: string, helpers: PanelHe
       return {
         name: neighborName,
         label: portInfo,
-        portNumber: extractPortNumber(portInfo),
+        portNumber: portSortNumber(portInfo),
         wireless: edge.wireless,
         poe: edge.poe,
       };
@@ -164,12 +171,6 @@ function renderOverviewTab(context: PanelContext, name: string, helpers: PanelHe
     </div>
     ${relatedEntitiesSection}
   `;
-}
-
-function extractPortNumber(portInfo: string | null): number {
-  if (!portInfo) return 999;
-  const match = portInfo.match(/\d+/);
-  return match ? parseInt(match[0], 10) : 999;
 }
 
 function sortNeighborsByPort(neighbors: Neighbor[]): Neighbor[] {
@@ -302,7 +303,12 @@ function renderRelatedEntitiesSection(
       const icon = helpers.getDomainIcon(entity.domain);
       const displayName = entity.friendly_name ?? entity.entity_id;
       const stateClass = getEntityStateClass(entity.state);
-      const stateLabel = normalizeStateLabel(entity.state, entity.domain, helpers.localize);
+      const stateLabel = normalizeStateLabel(
+        entity.state,
+        entity.domain,
+        entity.entity_id,
+        helpers.localize,
+      );
       const safeDisplayName = helpers.escapeHtml(displayName);
       const safeEntityId = helpers.escapeHtml(entity.entity_id);
 
@@ -327,14 +333,10 @@ function renderRelatedEntitiesSection(
   `;
 }
 
-const SIMPLE_STATES = ["on", "off", "home", "not_home", "unavailable", "unknown"];
-const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T/;
-const MAC_ADDRESS_PATTERN = /^([0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}$/;
-const NUMERIC_PATTERN = /^-?\d+(\.\d+)?$/;
-
 function normalizeStateLabel(
   state: string | null,
   domain: string,
+  entityId: string,
   localize: (key: string) => string,
 ): string {
   if (!state) return localize("panel.status.unknown");
@@ -342,14 +344,7 @@ function normalizeStateLabel(
   const trackerLabel = formatDeviceTrackerState(state, domain, localize);
   if (trackerLabel) return trackerLabel;
 
-  if (SIMPLE_STATES.includes(state.toLowerCase())) {
-    return capitalizeFirst(state);
-  }
-
-  const domainLabel = formatDomainState(state, domain);
-  if (domainLabel) return domainLabel;
-
-  return formatFallbackStateLabel(state);
+  return formatEntityState({ state, domain, entityId }).display;
 }
 
 function formatDeviceTrackerState(
@@ -364,83 +359,6 @@ function formatDeviceTrackerState(
   return null;
 }
 
-function formatDomainState(state: string, domain: string): string | null {
-  if (domain === "sensor" || domain === "binary_sensor") {
-    return formatSensorStateForPanel(state);
-  }
-  if (domain === "button") {
-    return "—";
-  }
-  if (domain === "update") {
-    if (state === "off") return "Up to date";
-    if (state === "on") return "Update";
-  }
-  return null;
-}
-
-function formatFallbackStateLabel(state: string): string {
-  if (state.length > 12) {
-    return state.substring(0, 10) + "…";
-  }
-  return capitalizeFirst(state);
-}
-
-function formatSensorStateForPanel(state: string): string | null {
-  // ISO timestamp pattern
-  if (ISO_TIMESTAMP_PATTERN.test(state)) {
-    return formatRelativeTime(state);
-  }
-  // MAC address pattern
-  if (MAC_ADDRESS_PATTERN.test(state)) {
-    return state.substring(0, 8) + "…";
-  }
-  // Large numeric values
-  if (NUMERIC_PATTERN.test(state)) {
-    const num = parseFloat(state);
-    if (Math.abs(num) >= 1000000) {
-      return formatLargeNumber(num);
-    }
-  }
-  return null;
-}
-
-function capitalizeFirst(str: string): string {
-  if (!str) return str;
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-}
-
-function formatRelativeTime(iso: string): string {
-  try {
-    const date = new Date(iso);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
-  } catch {
-    return "—";
-  }
-}
-
-function formatLargeNumber(num: number): string {
-  if (Math.abs(num) >= 1000000000) {
-    return (num / 1000000000).toFixed(1) + "B";
-  }
-  if (Math.abs(num) >= 1000000) {
-    return (num / 1000000).toFixed(1) + "M";
-  }
-  if (Math.abs(num) >= 1000) {
-    return (num / 1000).toFixed(1) + "K";
-  }
-  return num.toString();
-}
-
 function getEntityStateClass(state: string | null): string {
   if (!state) return "entity-item__state--unknown";
   const onStates = ["on", "home", "connected", "online", "true"];
@@ -448,28 +366,6 @@ function getEntityStateClass(state: string | null): string {
   if (onStates.includes(state.toLowerCase())) return "entity-item__state--on";
   if (offStates.includes(state.toLowerCase())) return "entity-item__state--off";
   return "entity-item__state--neutral";
-}
-
-function extractPortInfo(label: string | null | undefined, isLeft: boolean): string | null {
-  if (!label) return null;
-
-  // Check if it's a complex label with " <-> " separator
-  const parts = label.split(" <-> ");
-  if (parts.length === 2) {
-    const side = isLeft ? parts[0] : parts[1];
-    // Extract just "Port X" from "DeviceName: Port X"
-    const portMatch = side.match(/Port\s*\d+/i);
-    return portMatch ? portMatch[0] : null;
-  }
-
-  // Simple label - just return as-is if it looks like a port
-  if (label.match(/^Port\s*\d+$/i)) {
-    return label;
-  }
-
-  // Try to extract port info from any format
-  const portMatch = label.match(/Port\s*\d+/i);
-  return portMatch ? portMatch[0] : label;
 }
 
 function renderStatsTab(context: PanelContext, name: string, helpers: PanelHelpers): string {
@@ -635,8 +531,8 @@ function getStatsTabData(context: PanelContext, name: string): StatsTabData {
   const edges = context.payload?.edges ?? [];
   return {
     nodeEdges: edges.filter((edge) => edge.left === name || edge.right === name),
-    mac: getNodeMac(context.payload, name),
-    ip: getNodeIp(context.payload, name),
+    mac: nodeMacFromId(context.payload, name), // node ids are MACs
+    ip: getNodeIpFromPayload(context.payload, name),
     model: getNodeModel(context.payload, name),
     status: context.payload?.node_status?.[name],
     vlanInfo: getNodeVlanInfo(name, context.payload),
@@ -660,8 +556,8 @@ function getActionsTabData(
   helpers: PanelHelpers,
 ): ActionsTabData {
   const entityId = getNodeEntityId(context.payload, name);
-  const mac = getNodeMac(context.payload, name);
-  const ip = getNodeIp(context.payload, name);
+  const mac = nodeMacFromId(context.payload, name); // node ids are MACs
+  const ip = getNodeIpFromPayload(context.payload, name);
   const nodeType = getNodeType(context.payload, name);
   return {
     entityId,
@@ -744,40 +640,7 @@ function getDisplayName(payload: PanelContext["payload"], nodeId: string): strin
   return payload?.node_names?.[nodeId] ?? nodeId;
 }
 
-function getNodeType(payload: PanelContext["payload"], name: string): string {
-  return payload?.node_types?.[name] ?? "unknown";
-}
-
-function getNodeMac(payload: PanelContext["payload"], name: string): string | null {
-  if (!payload?.node_types?.[name]) return null;
-  return name;
-}
-
-function getNodeIp(payload: PanelContext["payload"], name: string): string | null {
-  return getNodeIpFromPayload(payload, name);
-}
-
-function getNodeModel(payload: PanelContext["payload"], name: string): string | null {
-  const details = payload?.device_details?.[name];
-  if (!details) return null;
-  // Prefer model_name (friendly name) over model code
-  return details.model_name ?? details.model ?? null;
-}
-
-function getNodeEntityId(payload: PanelContext["payload"], name: string): string | null {
-  return (
-    payload?.node_entities?.[name] ??
-    payload?.client_entities?.[name] ??
-    payload?.device_entities?.[name] ??
-    null
-  );
-}
-
-function renderOverviewStatsGrid(
-  nodeCount: number,
-  _edgeCount: number,
-  helpers: PanelHelpers,
-): string {
+function renderNodeCount(nodeCount: number, helpers: PanelHelpers): string {
   return `
     <div class="panel-stats-compact">
       <span class="panel-stats-compact__value">${nodeCount}</span>

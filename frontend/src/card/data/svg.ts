@@ -251,7 +251,7 @@ function buildEdgeLookup(edges: Edge[]): Map<string, Edge> {
   return map;
 }
 
-function edgeKey(left: string, right: string): string {
+export function edgeKey(left: string, right: string): string {
   return [left.trim(), right.trim()].sort().join("|");
 }
 
