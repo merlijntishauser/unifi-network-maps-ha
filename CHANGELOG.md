@@ -27,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Real-time map updates no longer rebuild the whole card DOM: pan/zoom position now survives every WebSocket push and payload poll, with only annotations, filters, and the detail panel refreshed in place
 - Clicking a non-action area inside the context menu (title, divider) no longer permanently disarms closing it by clicking outside
 - Escape now closes the entity modal and port modal, not just the context menu
+- The card editor no longer fires a `config_entries/get` WebSocket request on every Home Assistant state change while the dialog is open
+- Switching a card to a different config entry now clears the previous controller's map, selection, filters, and errors
+- Diagnostics: healthy coordinators report `last_exception: null` instead of the string `"None"`, and the tracked-clients MAC list in options is now redacted like every other MAC in the dump
+- A unique-id collision during the name-to-MAC sensor migration no longer aborts binary sensor setup
 
 ### Removed
 - Roughly 1100 lines of dead code found by a full-codebase review: legacy Home Assistant compatibility fallbacks that could never execute on supported versions (the pre-2025.7 static path API, the old lovelace resources module API, and a five-strategy `StaticPathConfig` construction dance), the frontend annotation cache (invalidated before every possible hit, so it never cached anything), ~25 test-only methods on the card class with their tests retargeted at the real modules, a divergent third copy of click resolution that only tests executed, and assorted unused constants, type aliases, and parameters
