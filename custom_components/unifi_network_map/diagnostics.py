@@ -8,7 +8,7 @@ from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 
 from .const import CONF_API_KEY
-from .http import (
+from .enrichment import (
     get_state_entity_macs,
     get_unifi_entity_mac_stats,
     get_unifi_entity_macs,

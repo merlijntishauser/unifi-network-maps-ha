@@ -1,11 +1,11 @@
-"""Unit tests for http module helper functions."""
+"""Unit tests for enrichment module helper functions."""
 
 from __future__ import annotations
 
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
-from custom_components.unifi_network_map.http import (
+from custom_components.unifi_network_map.enrichment import (
     _add_entities_by_device,
     _append_unique_entity,
     _build_device_entities_map,
@@ -27,11 +27,6 @@ from custom_components.unifi_network_map.http import (
     _store_payload_field,
     build_enriched_payload,
     resolve_node_status_map,
-)
-from custom_components.unifi_network_map.renderer import (
-    _build_svg_edges,
-    _edge_from_payload,
-    _valid_edge_payload,
 )
 
 
@@ -389,100 +384,37 @@ class TestMacFromStateEntry:
         assert result is None
 
 
-class TestValidEdgePayload:
-    """Tests for _valid_edge_payload function."""
-
-    def test_valid_edge(self) -> None:
-        edge = {"left": "nodeA", "right": "nodeB"}
-        assert _valid_edge_payload(edge) is True
-
-    def test_invalid_non_dict(self) -> None:
-        assert _valid_edge_payload("not a dict") is False
-
-    def test_invalid_missing_left(self) -> None:
-        edge = {"right": "nodeB"}
-        assert _valid_edge_payload(edge) is False
-
-    def test_invalid_missing_right(self) -> None:
-        edge = {"left": "nodeA"}
-        assert _valid_edge_payload(edge) is False
-
-    def test_invalid_non_string_left(self) -> None:
-        edge = {"left": 123, "right": "nodeB"}
-        assert _valid_edge_payload(edge) is False
-
-
-class TestEdgeFromPayload:
-    """Tests for _edge_from_payload function."""
-
-    def test_creates_basic_edge(self) -> None:
-        payload = {"left": "nodeA", "right": "nodeB"}
-        edge = _edge_from_payload(payload)
-        assert edge.left == "nodeA"
-        assert edge.right == "nodeB"
-
-    def test_includes_label(self) -> None:
-        payload = {"left": "nodeA", "right": "nodeB", "label": "Port 1"}
-        edge = _edge_from_payload(payload)
-        assert edge.label == "Port 1"
-
-    def test_includes_poe_flag(self) -> None:
-        payload = {"left": "nodeA", "right": "nodeB", "poe": True}
-        edge = _edge_from_payload(payload)
-        assert edge.poe is True
-
-    def test_includes_wireless_flag(self) -> None:
-        payload = {"left": "nodeA", "right": "nodeB", "wireless": True}
-        edge = _edge_from_payload(payload)
-        assert edge.wireless is True
-
-    def test_includes_speed(self) -> None:
-        payload = {"left": "nodeA", "right": "nodeB", "speed": 1000}
-        edge = _edge_from_payload(payload)
-        assert edge.speed == 1000
-
-    def test_includes_channel(self) -> None:
-        payload = {"left": "nodeA", "right": "nodeB", "channel": 36}
-        edge = _edge_from_payload(payload)
-        assert edge.channel == 36
-
-    def test_ignores_invalid_types(self) -> None:
-        payload = {
-            "left": "nodeA",
-            "right": "nodeB",
-            "label": 123,  # Should be string
-            "poe": "yes",  # Should be bool
-            "speed": "fast",  # Should be int
-        }
-        edge = _edge_from_payload(payload)
-        assert edge.label is None
-        assert edge.poe is False
-        assert edge.speed is None
-
-
 class TestFormatMac:
     """Tests for _format_mac function."""
 
     def test_formats_valid_mac(self) -> None:
-        with patch("custom_components.unifi_network_map.http.dr") as mock_dr:
+        with patch(
+            "custom_components.unifi_network_map.enrichment.dr"
+        ) as mock_dr:
             mock_dr.format_mac.return_value = "aa:bb:cc:dd:ee:ff"
             result = _format_mac("AA:BB:CC:DD:EE:FF")
             assert result == "aa:bb:cc:dd:ee:ff"
 
     def test_returns_none_for_invalid_mac(self) -> None:
-        with patch("custom_components.unifi_network_map.http.dr") as mock_dr:
+        with patch(
+            "custom_components.unifi_network_map.enrichment.dr"
+        ) as mock_dr:
             mock_dr.format_mac.side_effect = ValueError("Invalid MAC")
             result = _format_mac("invalid")
             assert result is None
 
     def test_returns_none_when_formatter_unavailable(self) -> None:
-        with patch("custom_components.unifi_network_map.http.dr") as mock_dr:
+        with patch(
+            "custom_components.unifi_network_map.enrichment.dr"
+        ) as mock_dr:
             mock_dr.format_mac = None
             result = _format_mac("aa:bb:cc:dd:ee:ff")
             assert result is None
 
     def test_returns_none_for_empty_result(self) -> None:
-        with patch("custom_components.unifi_network_map.http.dr") as mock_dr:
+        with patch(
+            "custom_components.unifi_network_map.enrichment.dr"
+        ) as mock_dr:
             mock_dr.format_mac.return_value = "   "
             result = _format_mac("aa:bb:cc:dd:ee:ff")
             assert result is None
@@ -513,27 +445,6 @@ class TestAddEntitiesByDevice:
         )
 
         assert len(mac_to_entities) == 0
-
-
-class TestBuildSvgEdges:
-    """Tests for _build_svg_edges function."""
-
-    def test_builds_edges_from_payload(self) -> None:
-        payload = [
-            {"left": "nodeA", "right": "nodeB"},
-            {"left": "nodeB", "right": "nodeC"},
-        ]
-        result = _build_svg_edges(payload)
-        assert len(result) == 2
-
-    def test_filters_invalid_edges(self) -> None:
-        payload = [
-            {"left": "nodeA", "right": "nodeB"},
-            {"left": "nodeA"},  # Invalid - missing right
-            "not a dict",  # Invalid - not a dict
-        ]
-        result = _build_svg_edges(payload)
-        assert len(result) == 1
 
 
 class TestExtractMacFromAttributes:
@@ -630,7 +541,9 @@ class TestFormatMacNonMacString:
     """Additional _format_mac edge cases."""
 
     def test_returns_none_for_non_mac_string(self) -> None:
-        with patch("custom_components.unifi_network_map.http.dr") as mock_dr:
+        with patch(
+            "custom_components.unifi_network_map.enrichment.dr"
+        ) as mock_dr:
             mock_dr.format_mac.return_value = "not-a-mac"
             result = _format_mac("not-a-mac")
             assert result is None

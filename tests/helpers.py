@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime
 from types import SimpleNamespace
 
 from custom_components.unifi_network_map.renderer import RenderSettings
@@ -83,3 +84,89 @@ def build_settings(
         svg_height=svg_height,
         use_cache=use_cache,
     )
+
+
+@dataclass
+class FakeState:
+    entity_id: str
+    state: str
+    attributes: dict[str, object]
+    last_changed: datetime | None
+
+
+class FakeStates:
+    def __init__(self, states: dict[str, FakeState]) -> None:
+        self._states = states
+
+    def get(self, entity_id: str) -> FakeState | None:
+        return self._states.get(entity_id)
+
+
+class FakeHass:
+    def __init__(self, states: dict[str, FakeState]) -> None:
+        self.states = FakeStates(states)
+
+
+class FakeHttp:
+    def __init__(self) -> None:
+        self.views: list[object] = []
+
+    def register_view(self, view: object) -> None:
+        self.views.append(view)
+
+
+class FakeConfigEntries:
+    def __init__(self, entries: list[object]) -> None:
+        self.entries = entries
+        self.entries_by_id: dict[str, object] = {}
+
+    def async_entries(self, _domain: str) -> list[object]:
+        return self.entries
+
+    def async_get_entry(self, entry_id: str) -> object | None:
+        return self.entries_by_id.get(entry_id)
+
+
+class FakeHassWithHttp(FakeHass):
+    def __init__(self, states: dict[str, FakeState]) -> None:
+        super().__init__(states)
+        self.http = FakeHttp()
+        self.data: dict[str, object] = {}
+        self.config_entries = FakeConfigEntries([])
+        self.bus = FakeBus()
+
+    async def async_add_executor_job(self, func, *args: object):
+        return func(*args)
+
+
+@dataclass
+class FakeCoordinator:
+    settings: RenderSettings
+
+
+@dataclass
+class FakeEntityEntry:
+    entity_id: str
+    unique_id: str | None = None
+    device_id: str | None = None
+    platform: str | None = None
+    disabled_by: str | None = None
+
+
+@dataclass
+class FakeDevice:
+    identifiers: set[tuple[str, str]]
+    connections: set[tuple[str, str]]
+
+
+class FakeDeviceRegistry:
+    def __init__(self, devices: dict[str, FakeDevice]) -> None:
+        self._devices = devices
+
+    def async_get(self, device_id: str) -> FakeDevice | None:
+        return self._devices.get(device_id)
+
+
+class FakeEntityRegistry:
+    def __init__(self, entries: dict[str, FakeEntityEntry]) -> None:
+        self.entities = entries

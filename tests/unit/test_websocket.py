@@ -119,7 +119,7 @@ class TestBuildPayload:
         )
 
         with patch(
-            "custom_components.unifi_network_map.http.build_enriched_payload"
+            "custom_components.unifi_network_map.enrichment.build_enriched_payload"
         ) as mock_enrich:
             mock_enrich.return_value = {"enriched": True}
             first = _build_payload(hass, coordinator, "entry-1")
@@ -143,7 +143,7 @@ class TestBuildPayload:
         )
 
         with patch(
-            "custom_components.unifi_network_map.http.build_enriched_payload"
+            "custom_components.unifi_network_map.enrichment.build_enriched_payload"
         ) as mock_enrich:
             mock_enrich.return_value = {"enriched": True}
             _build_payload(hass, coordinator, "entry-1")
@@ -213,7 +213,7 @@ class TestWebsocketSubscribeMap:
         msg: dict[str, Any] = {"id": 7, "entry_id": "entry123"}
 
         with patch(
-            "custom_components.unifi_network_map.http.build_enriched_payload"
+            "custom_components.unifi_network_map.enrichment.build_enriched_payload"
         ) as mock_enrich:
             mock_enrich.return_value = {"enriched": True}
             await _subscribe_map_async(hass, connection, msg)
@@ -243,7 +243,7 @@ class TestWebsocketSubscribeMap:
         msg: dict[str, Any] = {"id": 1, "entry_id": "entry123"}
 
         with patch(
-            "custom_components.unifi_network_map.http.build_enriched_payload"
+            "custom_components.unifi_network_map.enrichment.build_enriched_payload"
         ) as mock_enrich:
             mock_enrich.return_value = {"enriched": True}
             await _subscribe_map_async(hass, connection, msg)
@@ -284,7 +284,7 @@ class TestWebsocketSubscribeMap:
         msg: dict[str, Any] = {"id": 1, "entry_id": "entry123"}
 
         with patch(
-            "custom_components.unifi_network_map.http.build_enriched_payload"
+            "custom_components.unifi_network_map.enrichment.build_enriched_payload"
         ) as mock_enrich:
             mock_enrich.return_value = {"enriched": True}
             await _subscribe_map_async(hass, connection, msg)
@@ -326,7 +326,7 @@ class TestWebsocketSubscribeMap:
         msg: dict[str, Any] = {"id": 1, "entry_id": "entry123"}
 
         with patch(
-            "custom_components.unifi_network_map.http.build_enriched_payload"
+            "custom_components.unifi_network_map.enrichment.build_enriched_payload"
         ) as mock_enrich:
             mock_enrich.return_value = {"enriched": True}
             await _subscribe_map_async(hass, connection, msg)

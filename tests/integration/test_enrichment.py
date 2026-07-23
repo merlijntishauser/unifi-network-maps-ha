@@ -1,0 +1,446 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime
+from types import SimpleNamespace
+from typing import TYPE_CHECKING, cast
+
+import pytest
+
+from custom_components.unifi_network_map import (
+    enrichment as enrichment_module,
+)
+from tests.helpers import (
+    FakeConfigEntries,
+    FakeDevice,
+    FakeDeviceRegistry,
+    FakeEntityEntry,
+    FakeEntityRegistry,
+    FakeHass,
+    FakeHassWithHttp,
+    FakeState,
+    FakeStates,
+)
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+
+def test_resolve_node_status_map_filters_non_trackers() -> None:
+    now = datetime(2026, 1, 17, tzinfo=UTC)
+    hass = FakeHass(
+        {
+            "device_tracker.one": FakeState(
+                entity_id="device_tracker.one",
+                state="home",
+                attributes={},
+                last_changed=now,
+            ),
+            "device_tracker.two": FakeState(
+                entity_id="device_tracker.two",
+                state="not_home",
+                attributes={},
+                last_changed=None,
+            ),
+            "sensor.temp": FakeState(
+                entity_id="sensor.temp",
+                state="23",
+                attributes={},
+                last_changed=now,
+            ),
+        }
+    )
+    node_entities = {
+        "aa:bb:cc:dd:ee:01": "device_tracker.one",
+        "aa:bb:cc:dd:ee:02": "device_tracker.two",
+        "aa:bb:cc:dd:ee:03": "sensor.temp",
+    }
+
+    result = enrichment_module.resolve_node_status_map(hass, node_entities)
+
+    assert result["aa:bb:cc:dd:ee:01"]["state"] == "online"
+    assert result["aa:bb:cc:dd:ee:02"]["state"] == "offline"
+    assert "aa:bb:cc:dd:ee:03" not in result
+
+
+def test_normalize_tracker_state() -> None:
+    normalize_tracker_state = cast(
+        "Callable[[str], str]",
+        getattr(enrichment_module, "_normalize_tracker_state"),
+    )
+    assert normalize_tracker_state("home") == "online"
+    assert normalize_tracker_state("not_home") == "offline"
+    assert normalize_tracker_state("unknown") == "unknown"
+
+
+def test_extract_mac_parses_common_formats() -> None:
+    extract_mac = cast(
+        "Callable[[str], str | None]",
+        getattr(enrichment_module, "_extract_mac"),
+    )
+    assert extract_mac("AA:BB:CC:DD:EE:FF") == "aa:bb:cc:dd:ee:ff"
+    assert extract_mac("aa-bb-cc-dd-ee-ff") == "aa:bb:cc:dd:ee:ff"
+    assert extract_mac("aabbccddeeff") == "aa:bb:cc:dd:ee:ff"
+    assert extract_mac("invalid") is None
+
+
+def test_build_mac_entity_index_prefers_registry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    hass = FakeHassWithHttp({})
+    hass.config_entries = FakeConfigEntries([SimpleNamespace(entry_id="1")])
+    entity_registry = FakeEntityRegistry(
+        {
+            "sensor.one": FakeEntityEntry(
+                entity_id="sensor.one",
+                unique_id="aa:bb:cc:dd:ee:ff",
+                platform="unifi",
+            )
+        }
+    )
+    device_registry = FakeDeviceRegistry({})
+    state = FakeState(
+        entity_id="device_tracker.one",
+        state="home",
+        attributes={"mac": "AA:BB:CC:DD:EE:FF"},
+        last_changed=None,
+    )
+    hass.states = FakeStates({"device_tracker.one": state})
+
+    def _async_get_entity_registry(_hass: object) -> FakeEntityRegistry:
+        return entity_registry
+
+    def _async_get_device_registry(_hass: object) -> FakeDeviceRegistry:
+        return device_registry
+
+    def _entries_for_config_entry(
+        _reg: object, _entry_id: str
+    ) -> list[FakeEntityEntry]:
+        return list(entity_registry.entities.values())
+
+    monkeypatch.setattr(
+        enrichment_module.er, "async_get", _async_get_entity_registry
+    )
+    monkeypatch.setattr(
+        enrichment_module.dr, "async_get", _async_get_device_registry
+    )
+    monkeypatch.setattr(
+        enrichment_module.er,
+        "async_entries_for_config_entry",
+        _entries_for_config_entry,
+        raising=False,
+    )
+
+    build_index = cast(
+        "Callable[[FakeHassWithHttp], dict[str, str]]",
+        getattr(enrichment_module, "_build_mac_entity_index"),
+    )
+    index = build_index(hass)
+
+    assert index["aa:bb:cc:dd:ee:ff"] == "sensor.one"
+
+
+def test_is_state_mac_candidate_paths() -> None:
+    is_state_mac_candidate = cast(
+        "Callable[[object], bool]",
+        getattr(enrichment_module, "_is_state_mac_candidate"),
+    )
+    state_tracker = FakeState(
+        entity_id="device_tracker.one",
+        state="home",
+        attributes={},
+        last_changed=None,
+    )
+    state_router = FakeState(
+        entity_id="sensor.router",
+        state="home",
+        attributes={"source_type": "router", "mac": "aa:bb:cc:dd:ee:ff"},
+        last_changed=None,
+    )
+    state_other = FakeState(
+        entity_id="sensor.other",
+        state="home",
+        attributes={"mac_address": "aa:bb:cc:dd:ee:ff"},
+        last_changed=None,
+    )
+
+    assert is_state_mac_candidate(state_tracker) is True
+    assert is_state_mac_candidate(state_router) is True
+    assert is_state_mac_candidate(state_other) is True
+
+
+def test_is_state_mac_candidate_handles_non_dict_attributes() -> None:
+    is_state_mac_candidate = cast(
+        "Callable[[object], bool]",
+        getattr(enrichment_module, "_is_state_mac_candidate"),
+    )
+    state = SimpleNamespace(entity_id="sensor.one", attributes=["mac"])
+
+    assert is_state_mac_candidate(state) is False
+
+
+def test_iter_state_entries_falls_back_to_all() -> None:
+    class _States:
+        def all(self):
+            return [FakeState("device_tracker.one", "home", {}, None)]
+
+    hass = FakeHassWithHttp({})
+    hass.states = _States()
+
+    iter_state_entries = cast(
+        "Callable[[FakeHassWithHttp], list[object]]",
+        getattr(enrichment_module, "_iter_state_entries"),
+    )
+    entries = iter_state_entries(hass)
+
+    assert len(entries) == 1
+
+
+def test_get_unifi_entity_mac_stats_counts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    hass = FakeHassWithHttp({})
+    hass.config_entries = FakeConfigEntries([SimpleNamespace(entry_id="1")])
+    entity_registry = FakeEntityRegistry(
+        {
+            "sensor.one": FakeEntityEntry(
+                entity_id="sensor.one",
+                unique_id="aa:bb:cc:dd:ee:ff",
+                platform="unifi",
+            ),
+            "sensor.two": FakeEntityEntry(
+                entity_id="sensor.two",
+                unique_id=None,
+                platform="unifi",
+            ),
+        }
+    )
+    device_registry = FakeDeviceRegistry({})
+
+    def _async_get_entity_registry(_hass: object) -> FakeEntityRegistry:
+        return entity_registry
+
+    def _async_get_device_registry(_hass: object) -> FakeDeviceRegistry:
+        return device_registry
+
+    def _entries_for_config_entry(
+        _reg: object, _entry_id: str
+    ) -> list[FakeEntityEntry]:
+        return list(entity_registry.entities.values())
+
+    monkeypatch.setattr(
+        enrichment_module.er, "async_get", _async_get_entity_registry
+    )
+    monkeypatch.setattr(
+        enrichment_module.dr, "async_get", _async_get_device_registry
+    )
+    monkeypatch.setattr(
+        enrichment_module.er,
+        "async_entries_for_config_entry",
+        _entries_for_config_entry,
+        raising=False,
+    )
+
+    stats = enrichment_module.get_unifi_entity_mac_stats(hass)
+
+    assert stats["unifi_entities_scanned"] == 2
+    assert stats["unifi_entities_with_mac"] == 1
+
+
+def test_get_state_entity_macs(monkeypatch: pytest.MonkeyPatch) -> None:
+    hass = FakeHassWithHttp({})
+    state = FakeState(
+        entity_id="device_tracker.one",
+        state="home",
+        attributes={"mac": "AA:BB:CC:DD:EE:FF"},
+        last_changed=None,
+    )
+    hass.states = SimpleNamespace(async_all=lambda: [state])
+
+    assert "aa:bb:cc:dd:ee:ff" in enrichment_module.get_state_entity_macs(hass)
+
+
+def test_format_mac_handles_invalid(monkeypatch: pytest.MonkeyPatch) -> None:
+    def _raise_value_error(_value: str) -> str:
+        raise ValueError("bad")
+
+    monkeypatch.setattr(enrichment_module.dr, "format_mac", _raise_value_error)
+    format_mac = cast(
+        "Callable[[str], str | None]",
+        getattr(enrichment_module, "_format_mac"),
+    )
+
+    assert format_mac("bad") is None
+
+
+def test_format_mac_returns_none_when_formatter_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(enrichment_module.dr, "format_mac", None)
+    format_mac = cast(
+        "Callable[[str], str | None]",
+        getattr(enrichment_module, "_format_mac"),
+    )
+
+    assert format_mac("AA:BB:CC:DD:EE:FF") is None
+
+
+def test_format_mac_returns_none_on_blank() -> None:
+    format_mac = cast(
+        "Callable[[str], str | None]",
+        getattr(enrichment_module, "_format_mac"),
+    )
+
+    assert format_mac("") is None
+
+
+def test_get_unifi_entity_macs_and_normalize_mac_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    hass = FakeHassWithHttp({})
+    hass.config_entries = FakeConfigEntries([SimpleNamespace(entry_id="1")])
+    entity_registry = FakeEntityRegistry(
+        {
+            "sensor.one": FakeEntityEntry(
+                entity_id="sensor.one",
+                unique_id="aa:bb:cc:dd:ee:ff",
+                platform="unifi",
+            )
+        }
+    )
+    device_registry = FakeDeviceRegistry({})
+
+    def _async_get_entity_registry(_hass: object) -> FakeEntityRegistry:
+        return entity_registry
+
+    def _async_get_device_registry(_hass: object) -> FakeDeviceRegistry:
+        return device_registry
+
+    def _entries_for_config_entry(
+        _reg: object, _entry_id: str
+    ) -> list[FakeEntityEntry]:
+        return list(entity_registry.entities.values())
+
+    monkeypatch.setattr(
+        enrichment_module.er, "async_get", _async_get_entity_registry
+    )
+    monkeypatch.setattr(
+        enrichment_module.dr, "async_get", _async_get_device_registry
+    )
+    monkeypatch.setattr(
+        enrichment_module.er,
+        "async_entries_for_config_entry",
+        _entries_for_config_entry,
+        raising=False,
+    )
+
+    assert "aa:bb:cc:dd:ee:ff" in enrichment_module.get_unifi_entity_macs(hass)
+    assert (
+        enrichment_module.normalize_mac_value("AA:BB:CC:DD:EE:FF")
+        == "aa:bb:cc:dd:ee:ff"
+    )
+
+
+def test_resolve_entity_map_by_mac_returns_empty() -> None:
+    resolve_entity_map_by_mac = cast(
+        "Callable[[FakeHassWithHttp, set[str]], dict[str, str]]",
+        getattr(enrichment_module, "_resolve_entity_map_by_mac"),
+    )
+
+    assert resolve_entity_map_by_mac(FakeHassWithHttp({}), set()) == {}
+
+
+def test_mac_from_state_entry_rejects_non_dict() -> None:
+    mac_from_state_entry = cast(
+        "Callable[[object], str | None]",
+        getattr(enrichment_module, "_mac_from_state_entry"),
+    )
+
+    assert mac_from_state_entry(SimpleNamespace(attributes=["mac"])) is None
+
+
+def test_get_mac_attribute_value_none() -> None:
+    get_mac_attribute_value = cast(
+        "Callable[[dict[str, object]], str | None]",
+        getattr(enrichment_module, "_get_mac_attribute_value"),
+    )
+
+    assert get_mac_attribute_value({"mac": ""}) is None
+
+
+def test_mac_from_device_prefers_connection(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    entry = FakeEntityEntry(entity_id="sensor.one", device_id="device-1")
+    device = FakeDevice(
+        identifiers=set(), connections={("mac", "AA-BB-CC-DD-EE-FF")}
+    )
+    device_registry = FakeDeviceRegistry({"device-1": device})
+    mac_from_device = cast(
+        "Callable[[object, FakeDeviceRegistry], str | None]",
+        getattr(enrichment_module, "_mac_from_device"),
+    )
+
+    assert mac_from_device(entry, device_registry) == "aa:bb:cc:dd:ee:ff"
+
+
+def test_normalize_mac_uses_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
+    def _format_mac(_value: str) -> None:
+        return None
+
+    monkeypatch.setattr(enrichment_module, "_format_mac", _format_mac)
+    normalize_mac = cast(
+        "Callable[[str], str]",
+        getattr(enrichment_module, "_normalize_mac"),
+    )
+
+    assert normalize_mac(" AA:BB ") == "aa:bb"
+
+
+def test_extract_mac_returns_none_for_empty() -> None:
+    extract_mac = cast(
+        "Callable[[str], str | None]",
+        getattr(enrichment_module, "_extract_mac"),
+    )
+
+    assert extract_mac("") is None
+
+
+def test_is_entity_enabled_checks_disabled_by() -> None:
+    is_entity_enabled = cast(
+        "Callable[[FakeEntityEntry], bool]",
+        getattr(enrichment_module, "_is_entity_enabled"),
+    )
+
+    enabled_entry = FakeEntityEntry(entity_id="sensor.one", disabled_by=None)
+    disabled_entry = FakeEntityEntry(
+        entity_id="sensor.two", disabled_by="user"
+    )
+
+    assert is_entity_enabled(enabled_entry) is True
+    assert is_entity_enabled(disabled_entry) is False
+
+
+def test_build_device_entities_map_excludes_disabled() -> None:
+    build_device_entities_map = cast(
+        "Callable[[list[FakeEntityEntry]], dict[str, list[str]]]",
+        getattr(enrichment_module, "_build_device_entities_map"),
+    )
+
+    entries = [
+        FakeEntityEntry(
+            entity_id="sensor.one", device_id="d1", disabled_by=None
+        ),
+        FakeEntityEntry(
+            entity_id="sensor.two", device_id="d1", disabled_by="user"
+        ),
+        FakeEntityEntry(
+            entity_id="sensor.three", device_id="d1", disabled_by=None
+        ),
+    ]
+
+    result = build_device_entities_map(entries)
+
+    assert "d1" in result
+    assert "sensor.one" in result["d1"]
+    assert "sensor.two" not in result["d1"]  # disabled
+    assert "sensor.three" in result["d1"]

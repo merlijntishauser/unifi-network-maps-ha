@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant, callback
 
 from .const import DOMAIN
 from .coordinator import UniFiNetworkMapCoordinator
-from .http import get_or_build_enriched_payload
+from .enrichment import get_or_build_enriched_payload
 
 
 def async_register_websocket_api(hass: HomeAssistant) -> None:

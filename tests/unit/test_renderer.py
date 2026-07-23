@@ -20,6 +20,7 @@ from custom_components.unifi_network_map.renderer import (
     _build_device_ports,
     _build_network_name_map,
     _build_node_vlan_index,
+    _build_svg_edges,
     _build_vlan_info,
     _client_display_name,
     _client_field,
@@ -28,6 +29,7 @@ from custom_components.unifi_network_map.renderer import (
     _client_network_name,
     _client_vlan,
     _client_vlan_from_network_name,
+    _edge_from_payload,
     _edge_to_dict,
     _extract_wan_info,
     _is_default_vlan_name,
@@ -35,6 +37,7 @@ from custom_components.unifi_network_map.renderer import (
     _network_vlan_id,
     _resolve_model_name,
     _select_edges,
+    _valid_edge_payload,
 )
 from tests.helpers import build_settings
 
@@ -983,3 +986,95 @@ def test_render_map_fetches_clients_once(
     renderer._render_map(config, build_settings(include_clients=True))
 
     assert calls["clients"] == 1
+
+
+class TestValidEdgePayload:
+    """Tests for _valid_edge_payload function."""
+
+    def test_valid_edge(self) -> None:
+        edge = {"left": "nodeA", "right": "nodeB"}
+        assert _valid_edge_payload(edge) is True
+
+    def test_invalid_non_dict(self) -> None:
+        assert _valid_edge_payload("not a dict") is False
+
+    def test_invalid_missing_left(self) -> None:
+        edge = {"right": "nodeB"}
+        assert _valid_edge_payload(edge) is False
+
+    def test_invalid_missing_right(self) -> None:
+        edge = {"left": "nodeA"}
+        assert _valid_edge_payload(edge) is False
+
+    def test_invalid_non_string_left(self) -> None:
+        edge = {"left": 123, "right": "nodeB"}
+        assert _valid_edge_payload(edge) is False
+
+
+class TestEdgeFromPayload:
+    """Tests for _edge_from_payload function."""
+
+    def test_creates_basic_edge(self) -> None:
+        payload = {"left": "nodeA", "right": "nodeB"}
+        edge = _edge_from_payload(payload)
+        assert edge.left == "nodeA"
+        assert edge.right == "nodeB"
+
+    def test_includes_label(self) -> None:
+        payload = {"left": "nodeA", "right": "nodeB", "label": "Port 1"}
+        edge = _edge_from_payload(payload)
+        assert edge.label == "Port 1"
+
+    def test_includes_poe_flag(self) -> None:
+        payload = {"left": "nodeA", "right": "nodeB", "poe": True}
+        edge = _edge_from_payload(payload)
+        assert edge.poe is True
+
+    def test_includes_wireless_flag(self) -> None:
+        payload = {"left": "nodeA", "right": "nodeB", "wireless": True}
+        edge = _edge_from_payload(payload)
+        assert edge.wireless is True
+
+    def test_includes_speed(self) -> None:
+        payload = {"left": "nodeA", "right": "nodeB", "speed": 1000}
+        edge = _edge_from_payload(payload)
+        assert edge.speed == 1000
+
+    def test_includes_channel(self) -> None:
+        payload = {"left": "nodeA", "right": "nodeB", "channel": 36}
+        edge = _edge_from_payload(payload)
+        assert edge.channel == 36
+
+    def test_ignores_invalid_types(self) -> None:
+        payload = {
+            "left": "nodeA",
+            "right": "nodeB",
+            "label": 123,  # Should be string
+            "poe": "yes",  # Should be bool
+            "speed": "fast",  # Should be int
+        }
+        edge = _edge_from_payload(payload)
+        assert edge.label is None
+        assert edge.poe is False
+        assert edge.speed is None
+
+
+class TestBuildSvgEdges:
+    """Tests for _build_svg_edges function."""
+
+    def test_builds_edges_from_payload(self) -> None:
+        payload = [
+            {"left": "nodeA", "right": "nodeB"},
+            {"left": "nodeB", "right": "nodeC"},
+        ]
+        result = _build_svg_edges(payload)
+        assert len(result) == 2
+
+    def test_filters_invalid_edges(self) -> None:
+        payload = [
+            {"left": "nodeA", "right": "nodeB"},
+            {"left": "nodeA"},  # Invalid - missing right
+            "not a dict",  # Invalid - not a dict
+        ]
+        result = _build_svg_edges(payload)
+        assert len(result) == 1

@@ -1,4 +1,4 @@
-"""Integration tests for http.py entity indexing with real HA registries."""
+"""Integration tests for enrichment entity indexing with real registries."""
 
 from __future__ import annotations
 
@@ -12,10 +12,7 @@ from homeassistant.helpers import (
 )
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.unifi_network_map.entity_cache import (
-    invalidate_entity_cache,
-)
-from custom_components.unifi_network_map.http import (
+from custom_components.unifi_network_map.enrichment import (
     _add_entities_from_registry,
     _add_entities_from_states,
     _build_mac_entity_index,
@@ -23,6 +20,9 @@ from custom_components.unifi_network_map.http import (
     _iter_unifi_entity_entries,
     get_or_build_enriched_payload,
     resolve_related_entities,
+)
+from custom_components.unifi_network_map.entity_cache import (
+    invalidate_entity_cache,
 )
 
 if TYPE_CHECKING:

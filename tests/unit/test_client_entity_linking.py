@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from custom_components.unifi_network_map import http as http_module
+from custom_components.unifi_network_map import enrichment
 from tests.helpers import FakeBus
 
 if TYPE_CHECKING:
@@ -70,12 +70,12 @@ def test_resolve_entity_map_by_mac_happy_path(
     hass = _FakeHass({"unifi"})
     macs = {"aa:bb:cc:dd:ee:ff"}
     monkeypatch.setattr(
-        http_module,
+        enrichment,
         "_build_mac_entity_index",
         _fake_entity_index({"aa:bb:cc:dd:ee:ff": "sensor.unifi_client_ipad"}),
     )
 
-    result = http_module._resolve_entity_map_by_mac(hass, macs)
+    result = enrichment._resolve_entity_map_by_mac(hass, macs)
 
     assert result == {"aa:bb:cc:dd:ee:ff": "sensor.unifi_client_ipad"}
 
@@ -85,12 +85,12 @@ def test_resolve_entity_map_by_mac_empty_set(
 ) -> None:
     hass = _FakeHass(set())
     monkeypatch.setattr(
-        http_module,
+        enrichment,
         "_build_mac_entity_index",
         _fake_entity_index({"aa:bb:cc:dd:ee:ff": "sensor.unifi_client_ipad"}),
     )
 
-    result = http_module._resolve_entity_map_by_mac(hass, set())
+    result = enrichment._resolve_entity_map_by_mac(hass, set())
 
     assert result == {}
 
@@ -100,12 +100,10 @@ def test_resolve_entity_map_by_mac_no_match(
 ) -> None:
     hass = _FakeHass({"unifi"})
     monkeypatch.setattr(
-        http_module, "_build_mac_entity_index", _fake_entity_index({})
+        enrichment, "_build_mac_entity_index", _fake_entity_index({})
     )
 
-    result = http_module._resolve_entity_map_by_mac(
-        hass, {"aa:bb:cc:dd:ee:ff"}
-    )
+    result = enrichment._resolve_entity_map_by_mac(hass, {"aa:bb:cc:dd:ee:ff"})
 
     assert result == {}
 
@@ -117,7 +115,7 @@ def test_mac_from_unique_id() -> None:
     )
     device_registry = _FakeDeviceRegistry({})
 
-    result = http_module.mac_from_entity_entry(hass, entry, device_registry)
+    result = enrichment.mac_from_entity_entry(hass, entry, device_registry)
 
     assert result == "00:11:22:33:44:55"
 
@@ -132,7 +130,7 @@ def test_mac_from_device_identifier() -> None:
     )
     device_registry = _FakeDeviceRegistry({"device-1": device})
 
-    result = http_module.mac_from_entity_entry(hass, entry, device_registry)
+    result = enrichment.mac_from_entity_entry(hass, entry, device_registry)
 
     assert result == "aa:bb:cc:dd:ee:ff"
 
@@ -147,7 +145,7 @@ def test_mac_from_state_attribute() -> None:
     entry = _FakeEntry(entity_id="sensor.unifi_client_ipad")
     device_registry = _FakeDeviceRegistry({})
 
-    result = http_module.mac_from_entity_entry(hass, entry, device_registry)
+    result = enrichment.mac_from_entity_entry(hass, entry, device_registry)
 
     assert result == "aa:bb:cc:dd:ee:ff"
 
@@ -161,13 +159,11 @@ def test_resolve_entity_map_by_mac_from_state(
     )
     hass = _FakeHass(set())
     hass.states = _FakeStates({"device_tracker.appletv_4k": state})
-    monkeypatch.setattr(http_module, "_iter_unifi_entity_entries", _empty_iter)
-    monkeypatch.setattr(http_module.er, "async_get", _fake_async_get)
-    monkeypatch.setattr(http_module.dr, "async_get", _fake_async_get)
+    monkeypatch.setattr(enrichment, "_iter_unifi_entity_entries", _empty_iter)
+    monkeypatch.setattr(enrichment.er, "async_get", _fake_async_get)
+    monkeypatch.setattr(enrichment.dr, "async_get", _fake_async_get)
 
-    result = http_module._resolve_entity_map_by_mac(
-        hass, {"50:de:06:76:60:00"}
-    )
+    result = enrichment._resolve_entity_map_by_mac(hass, {"50:de:06:76:60:00"})
 
     assert result == {"50:de:06:76:60:00": "device_tracker.appletv_4k"}
 
