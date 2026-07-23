@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import importlib
 import inspect
 import json
 import logging
@@ -11,6 +10,7 @@ from typing import TYPE_CHECKING, Any, Protocol, cast
 
 import voluptuous as vol
 from homeassistant.components import persistent_notification
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import EVENT_HOMEASSISTANT_START
 from homeassistant.exceptions import HomeAssistantError
@@ -27,8 +27,6 @@ from .const import (
 from .coordinator import UniFiNetworkMapCoordinator
 
 if TYPE_CHECKING:
-    from types import ModuleType
-
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant, ServiceCall
 
@@ -43,14 +41,6 @@ class _UnifiApiInfoFilter(logging.Filter):
         return record.levelno != logging.INFO
 
 
-class LovelaceResourcesModule(Protocol):
-    def async_get_info(self, hass: HomeAssistant) -> object: ...
-
-    def async_create_item(
-        self, hass: HomeAssistant, payload: Mapping[str, Any]
-    ) -> Awaitable[None] | None: ...
-
-
 class LovelaceResourceCollection(Protocol):
     def async_items(
         self,
@@ -62,14 +52,6 @@ class LovelaceResourceCollection(Protocol):
 
     def async_update_item(
         self, item_id: str, payload: Mapping[str, Any]
-    ) -> Awaitable[None] | None: ...
-
-
-class LovelaceResourcesInfo(Protocol):
-    def async_get_info(self) -> object: ...
-
-    def async_create_item(
-        self, payload: Mapping[str, Any]
     ) -> Awaitable[None] | None: ...
 
 
@@ -339,94 +321,11 @@ def _preview_image_url() -> str:
 def _register_static_asset(
     hass: HomeAssistant, url_path: str, file_path: Path
 ) -> None:
-    if hasattr(hass.http, "register_static_path"):
-        hass.http.register_static_path(
-            url_path,
-            str(file_path),
-            cache_headers=True,
+    hass.async_create_task(
+        hass.http.async_register_static_paths(
+            [StaticPathConfig(url_path, str(file_path), True)]
         )
-        return
-    if hasattr(hass.http, "async_register_static_paths"):
-        configs = _build_static_path_configs(url_path, file_path)
-        result = hass.http.async_register_static_paths(configs)
-        if hasattr(result, "__await__"):
-            hass.async_create_task(result)
-        return
-    LOGGER.warning(
-        "init static_asset_failed url=%s reason=api_missing", url_path
     )
-
-
-def _build_static_path_configs(url_path: str, file_path: Path) -> list[object]:
-    try:
-        from homeassistant.components.http import StaticPathConfig
-    except (
-        ImportError,
-        AttributeError,
-    ):  # pragma: no cover - fallback for older HA
-        StaticPathConfig = None
-
-    if StaticPathConfig is not None:
-        config = _make_static_path_config(
-            StaticPathConfig, url_path, file_path
-        )
-        if config is not None:
-            return [config]
-    return [
-        {
-            "path": url_path,
-            "file_path": str(file_path),
-            "cache_headers": True,
-        }
-    ]
-
-
-def _make_static_path_config(
-    static_path_config: Callable[..., object], url_path: str, file_path: Path
-) -> object | None:
-    file_path_str = str(file_path)
-    strategies: list[Callable[[], object | None]] = [
-        lambda: static_path_config(
-            url_path=url_path, file_path=file_path_str, cache_headers=True
-        ),
-        lambda: static_path_config(
-            url_path=url_path, path=file_path_str, cache_headers=True
-        ),
-        lambda: static_path_config(url_path, file_path_str, True),
-        lambda: static_path_config(url_path, file_path_str),
-        lambda: _make_config_from_signature(
-            static_path_config, url_path, file_path_str
-        ),
-    ]
-    for strategy in strategies:
-        try:
-            result = strategy()
-            if result is not None:
-                return result
-        except TypeError:
-            continue
-    return None
-
-
-def _make_config_from_signature(
-    static_path_config: Callable[..., object], url_path: str, file_path: str
-) -> object | None:
-    try:
-        signature = inspect.signature(static_path_config)
-    except (TypeError, ValueError):
-        return None
-    param_map = {
-        frozenset({"url_path", "url"}): url_path,
-        frozenset({"file_path", "path", "filepath"}): file_path,
-        frozenset({"cache_headers", "cache", "cache_control"}): True,
-    }
-    kwargs: dict[str, object] = {}
-    for name in signature.parameters:
-        for keys, value in param_map.items():
-            if name in keys:
-                kwargs[name] = value
-                break
-    return static_path_config(**kwargs) if kwargs else None
 
 
 async def _ensure_lovelace_resource(hass: HomeAssistant) -> None:
@@ -443,14 +342,7 @@ async def _ensure_lovelace_resource(hass: HomeAssistant) -> None:
             _log_lovelace_registration_failure(hass, attempts)
             return
 
-        resources = _load_lovelace_resources()
-        if resources is None:
-            LOGGER.debug("lovelace retry reason=module_unavailable")
-            _schedule_lovelace_resource_retry(hass)
-            return
-
-        LOGGER.debug("lovelace module_loaded")
-        items = await _fetch_lovelace_items(hass, resources)
+        items = await _fetch_lovelace_items(hass)
         if items is None:
             LOGGER.debug("lovelace retry reason=items_unavailable")
             _schedule_lovelace_resource_retry(hass)
@@ -483,9 +375,7 @@ async def _ensure_lovelace_resource(hass: HomeAssistant) -> None:
             return
 
         LOGGER.debug("lovelace creating_resource url=%s", resource_url)
-        created = await _create_lovelace_resource(
-            hass, resources, resource_url
-        )
+        created = await _create_lovelace_resource(hass, resource_url)
         if created:
             _mark_lovelace_resource_registered(hass)
         else:
@@ -608,65 +498,7 @@ def _get_lovelace_resource_lock(hass: HomeAssistant) -> asyncio.Lock:
     return lock
 
 
-def _load_lovelace_resources() -> ModuleType | LovelaceResourcesModule | None:
-    try:
-        from homeassistant.components.lovelace import (
-            resources,  # type: ignore[no-redef]
-        )
-
-        return resources
-    except (
-        ImportError,
-        AttributeError,
-        ModuleNotFoundError,
-    ):  # pragma: no cover - optional in tests
-        pass
-    try:
-        return importlib.import_module(
-            "homeassistant.components.lovelace.resources"
-        )
-    except (
-        ImportError,
-        ModuleNotFoundError,
-    ):  # pragma: no cover - optional in tests
-        return None
-
-
 async def _fetch_lovelace_items(
-    hass: HomeAssistant, resources: ModuleType | LovelaceResourcesModule
-) -> list[ResourceItem] | None:
-    # Try accessing the resource collection
-    # from hass.data["lovelace"].resources
-    try:
-        items = await _fetch_lovelace_items_from_collection(hass)
-        if items is not None:
-            return items
-    except Exception as err:
-        LOGGER.warning(
-            "lovelace collection_access_failed error=%s", err, exc_info=True
-        )
-
-    # Fallback to old API
-    try:
-        if not hasattr(resources, "async_get_info"):
-            return None
-        resources_module = cast("LovelaceResourcesModule", resources)
-        info = resources_module.async_get_info(hass)
-    except Exception as err:  # pragma: no cover - defensive
-        LOGGER.debug("lovelace read_failed error=%s", err)
-        return None
-    if hasattr(info, "async_get_info"):
-        try:
-            info_module = cast("LovelaceResourcesInfo", info)
-            result = info_module.async_get_info()
-        except Exception as err:  # pragma: no cover - defensive
-            LOGGER.debug("lovelace info_read_failed error=%s", err)
-            return None
-        return await _maybe_await_list(result)
-    return _as_resource_list(info)
-
-
-async def _fetch_lovelace_items_from_collection(
     hass: HomeAssistant,
 ) -> list[ResourceItem] | None:
     lovelace_data = hass.data.get("lovelace")
@@ -676,7 +508,13 @@ async def _fetch_lovelace_items_from_collection(
     resource_collection = _get_lovelace_resource_collection(lovelace_data)
     if resource_collection is None:
         return None
-    items = await _maybe_await_items(resource_collection.async_items())
+    try:
+        items = await _maybe_await_items(resource_collection.async_items())
+    except Exception as err:
+        LOGGER.warning(
+            "lovelace collection_access_failed error=%s", err, exc_info=True
+        )
+        return None
     return list(items) if items else []
 
 
@@ -697,112 +535,24 @@ def _get_lovelace_resource_collection(
 
 
 async def _create_lovelace_resource(
-    hass: HomeAssistant,
-    resources: ModuleType | LovelaceResourcesModule,
-    resource_url: str,
+    hass: HomeAssistant, resource_url: str
 ) -> bool:
     payload: Mapping[str, Any] = {"url": resource_url, "res_type": "module"}
-
-    # Try accessing the resource collection directly
+    lovelace_data = hass.data.get("lovelace")
+    if not lovelace_data:
+        return False
+    resource_collection = _get_lovelace_resource_collection(lovelace_data)
+    if resource_collection is None:
+        return False
     try:
-        lovelace_data = hass.data.get("lovelace")
-        if lovelace_data:
-            resource_collection = _get_lovelace_resource_collection(
-                lovelace_data
-            )
-            if resource_collection is not None:
-                result = resource_collection.async_create_item(payload)
-                if inspect.iscoroutine(result):
-                    await result
-                LOGGER.debug(
-                    "lovelace resource_registered url=%s method=collection",
-                    resource_url,
-                )
-                return True
+        result = resource_collection.async_create_item(payload)
+        if inspect.iscoroutine(result):
+            await result
     except Exception as err:
         LOGGER.debug("lovelace collection_create_failed error=%s", err)
-
-    # Fallback to old API
-    result = await _create_lovelace_resource_with_module(
-        hass, resources, payload
-    )
-    if result:
-        LOGGER.debug(
-            "lovelace resource_registered url=%s method=module", resource_url
-        )
-        return True
-
-    try:
-        if not hasattr(resources, "async_get_info"):
-            return False
-        resources_module = cast("LovelaceResourcesModule", resources)
-        info = resources_module.async_get_info(hass)
-    except Exception as err:  # pragma: no cover - defensive
-        LOGGER.debug("lovelace info_read_for_create_failed error=%s", err)
         return False
-
-    created = await _create_lovelace_resource_with_collection(info, payload)
-    if created:
-        LOGGER.debug(
-            "lovelace resource_registered url=%s method=info_collection",
-            resource_url,
-        )
-        return True
-    return False
-
-
-async def _create_lovelace_resource_with_module(
-    hass: HomeAssistant,
-    resources: ModuleType | LovelaceResourcesModule,
-    payload: Mapping[str, Any],
-) -> bool:
-    if not hasattr(resources, "async_create_item"):
-        return False
-    try:
-        result = cast(
-            "Callable[[HomeAssistant, Mapping[str, Any]], Awaitable[None] | None]",  # noqa: E501
-            resources.async_create_item,
-        )(hass, payload)
-        if inspect.iscoroutine(result):
-            await result
-        return True
-    except TypeError:
-        try:
-            result = cast(
-                "Callable[[Mapping[str, Any]], Awaitable[None] | None]",
-                resources.async_create_item,
-            )(payload)
-            if inspect.iscoroutine(result):
-                await result
-            return True
-        except Exception as err:  # pragma: no cover - defensive
-            LOGGER.debug("lovelace module_register_failed error=%s", err)
-            return False
-    except Exception as err:  # pragma: no cover - defensive
-        LOGGER.debug("lovelace module_register_failed error=%s", err)
-        return False
-
-
-async def _create_lovelace_resource_with_collection(
-    info: object, payload: Mapping[str, Any]
-) -> bool:
-    if not hasattr(info, "async_create_item"):
-        return False
-    try:
-        collection = cast("LovelaceResourceCollection", info)
-        result = collection.async_create_item(payload)
-        if inspect.iscoroutine(result):
-            await result
-        return True
-    except Exception as err:  # pragma: no cover - defensive
-        LOGGER.debug("lovelace collection_register_failed error=%s", err)
-        return False
-
-
-async def _maybe_await_list(result: object) -> list[ResourceItem] | None:
-    if inspect.iscoroutine(result):
-        return _as_resource_list(await result)
-    return _as_resource_list(result)
+    LOGGER.debug("lovelace resource_registered url=%s", resource_url)
+    return True
 
 
 async def _maybe_await_items(
@@ -811,14 +561,6 @@ async def _maybe_await_items(
     if inspect.iscoroutine(result):
         return await cast("Awaitable[list[ResourceItem]]", result)
     return cast("list[ResourceItem]", result)
-
-
-def _as_resource_list(value: object) -> list[ResourceItem] | None:
-    if isinstance(value, list) and all(
-        isinstance(item, dict) for item in value
-    ):
-        return value
-    return None
 
 
 def _select_coordinators(

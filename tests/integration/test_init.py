@@ -72,12 +72,6 @@ class FakeHass:
 class _FakeHttp:
     def __init__(self) -> None:
         self.registered: list[dict[str, object]] = []
-        self.static_calls: list[tuple[str, str, bool]] = []
-
-    def register_static_path(
-        self, url_path: str, file_path: str, cache_headers: bool
-    ) -> None:
-        self.static_calls.append((url_path, file_path, cache_headers))
 
     def async_register_static_paths(self, paths: list[object]):
         async def _noop() -> None:
@@ -404,34 +398,6 @@ async def test_refresh_handler_calls_matching_coordinator(
     assert called == ["ok"]
 
 
-def test_make_static_path_config_uses_supported_signature() -> None:
-    class StaticPathConfig:
-        def __init__(
-            self, url_path: str, path: str, cache_headers: bool
-        ) -> None:
-            self.url_path = url_path
-            self.path = path
-            self.cache_headers = cache_headers
-
-    make_static_path_config = cast(
-        "Callable[[type[object], str, Path], object]",
-        getattr(init_module, "_make_static_path_config"),
-    )
-    frontend_bundle_path = cast(
-        "Path", getattr(init_module, "_frontend_bundle_path")()
-    )
-    frontend_bundle_url = cast(
-        "str", getattr(init_module, "_frontend_bundle_url")()
-    )
-
-    result = make_static_path_config(
-        StaticPathConfig, frontend_bundle_url, frontend_bundle_path
-    )
-
-    assert result is not None
-    assert result.url_path == frontend_bundle_url
-
-
 def test_register_refresh_service_registers_once() -> None:
     hass = FakeHass()
     register_refresh_service = cast(
@@ -450,38 +416,10 @@ def test_register_refresh_service_registers_once() -> None:
     assert len(hass.services.registered) == 1
 
 
-def test_register_static_asset_uses_sync_http() -> None:
-    hass = FakeHass()
-    register_static_asset = cast(
-        "Callable[[FakeHass, str, Path], None]",
-        getattr(init_module, "_register_static_asset"),
-    )
-    js_path = Path(__file__)
-    test_url = "/test/path.js"
-
-    register_static_asset(hass, test_url, js_path)
-
-    assert hass.http.static_calls
-    url_path, file_path, cache_headers = hass.http.static_calls[0]
-    assert url_path == test_url
-    assert file_path == str(js_path)
-    assert cache_headers is True
-
-
 def test_register_static_asset_schedules_async_paths() -> None:
-    class _AsyncOnlyHttp:
-        def __init__(self) -> None:
-            self.registered: list[dict[str, object]] = []
-
-        def async_register_static_paths(self, paths: list[object]):
-            async def _noop() -> None:
-                return None
-
-            self.registered.append({"paths": paths})
-            return _noop()
+    from homeassistant.components.http import StaticPathConfig
 
     hass = FakeHass()
-    hass.http = _AsyncOnlyHttp()
     register_static_asset = cast(
         "Callable[[FakeHass, str, Path], None]",
         getattr(init_module, "_register_static_asset"),
@@ -491,117 +429,13 @@ def test_register_static_asset_schedules_async_paths() -> None:
 
     register_static_asset(hass, test_url, js_path)
 
-    assert hass.http.registered
     assert hass.created_tasks
-
-
-def test_register_static_asset_warns_when_no_http_api(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    class _NoHttpApi:
-        pass
-
-    hass = FakeHass()
-    hass.http = _NoHttpApi()
-    register_static_asset = cast(
-        "Callable[[FakeHass, str, Path], None]",
-        getattr(init_module, "_register_static_asset"),
-    )
-    test_url = "/test/path.js"
-
-    caplog.set_level("WARNING")
-    register_static_asset(hass, test_url, Path(__file__))
-
-    assert "static_asset_failed" in caplog.text
-
-
-def test_make_config_from_signature_maps_args() -> None:
-    make_config_from_signature = cast(
-        "Callable[[Callable[..., object], str, str], object | None]",
-        getattr(init_module, "_make_config_from_signature"),
-    )
-
-    class StaticPathConfig:
-        def __init__(
-            self, url: str, filepath: str, cache_control: bool
-        ) -> None:
-            self.url_path = url
-            self.path = filepath
-            self.cache_headers = cache_control
-
-    result = make_config_from_signature(StaticPathConfig, "/url", "/file.js")
-
-    assert result is not None
-    assert result.url_path == "/url"
-    assert result.path == "/file.js"
-    assert result.cache_headers is True
-
-
-def test_make_static_path_config_returns_none_when_all_fail() -> None:
-    make_static_path_config = cast(
-        "Callable[[Callable[..., object], str, Path], object | None]",
-        getattr(init_module, "_make_static_path_config"),
-    )
-
-    class StaticPathConfig:
-        def __init__(self) -> None:
-            raise TypeError("no args supported")
-
-    result = make_static_path_config(
-        StaticPathConfig, "/test/url", Path(__file__)
-    )
-
-    assert result is None
-
-
-def test_make_config_from_signature_handles_invalid_callable() -> None:
-    make_config_from_signature = cast(
-        "Callable[[Callable[..., object], str, str], object | None]",
-        getattr(init_module, "_make_config_from_signature"),
-    )
-
-    result = make_config_from_signature(123, "/url", "/file.js")  # type: ignore[arg-type]
-
-    assert result is None
-
-
-def test_as_resource_list_rejects_non_dict() -> None:
-    as_resource_list = cast(
-        "Callable[[object], list[dict[str, object]] | None]",
-        getattr(init_module, "_as_resource_list"),
-    )
-
-    assert as_resource_list([{"ok": True}]) == [{"ok": True}]
-    assert as_resource_list([1, 2]) is None
-
-
-async def test_maybe_await_list_handles_coroutine() -> None:
-    maybe_await_list = cast(
-        "Callable[[object],"
-        " Coroutine[object, object,"
-        " list[dict[str, object]] | None]]",
-        getattr(init_module, "_maybe_await_list"),
-    )
-
-    async def _result() -> list[dict[str, object]]:
-        return [{"url": "demo"}]
-
-    result = await maybe_await_list(_result())
-
-    assert result == [{"url": "demo"}]
-
-
-async def test_maybe_await_list_handles_sync_value() -> None:
-    maybe_await_list = cast(
-        "Callable[[object],"
-        " Coroutine[object, object,"
-        " list[dict[str, object]] | None]]",
-        getattr(init_module, "_maybe_await_list"),
-    )
-
-    result = await maybe_await_list([{"url": "local"}])
-
-    assert result == [{"url": "local"}]
+    assert hass.http.registered
+    paths = cast("list[object]", hass.http.registered[0]["paths"])
+    config = cast("StaticPathConfig", paths[0])
+    assert config.url_path == test_url
+    assert config.path == str(js_path)
+    assert config.cache_headers is True
 
 
 async def test_select_coordinators_without_entry_id(

@@ -17,16 +17,13 @@ class _FakeHttp:
 
     def async_register_static_paths(self, paths) -> None:
         for path in paths:
-            if hasattr(path, "url_path"):
-                self.registered.append(
-                    {
-                        "path": path.url_path,
-                        "file_path": getattr(path, "file_path", path.path),
-                        "cache_headers": path.cache_headers,
-                    }
-                )
-            else:
-                self.registered.append(path)
+            self.registered.append(
+                {
+                    "path": path.url_path,
+                    "file_path": path.path,
+                    "cache_headers": path.cache_headers,
+                }
+            )
 
 
 class _FakeHass:
@@ -96,34 +93,6 @@ def test_register_frontend_assets_warns_when_bundle_missing(
     assert not hass.data.get("unifi_network_map", {}).get(
         "frontend_registered"
     )
-
-
-def test_build_static_path_configs_falls_back_to_dict(tmp_path: Path) -> None:
-    js_path = tmp_path / "card.js"
-    js_path.write_text("test")
-
-    original_make_config = getattr(
-        unifi_network_map, "_make_static_path_config"
-    )
-
-    def _make_config(*_args: object, **_kwargs: object) -> object | None:
-        return None
-
-    setattr(unifi_network_map, "_make_static_path_config", _make_config)
-    try:
-        build_configs = cast(
-            "Callable[[str, Path], list[object]]",
-            getattr(unifi_network_map, "_build_static_path_configs"),
-        )
-        test_url = "/test/path.js"
-        configs = build_configs(test_url, js_path)
-    finally:
-        setattr(
-            unifi_network_map, "_make_static_path_config", original_make_config
-        )
-
-    assert isinstance(configs[0], dict)
-    assert configs[0]["path"] == test_url
 
 
 def test_register_frontend_assets_skips_when_already_registered() -> None:
