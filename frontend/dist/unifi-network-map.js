@@ -1848,48 +1848,6 @@ function channelBand(channel, localize) {
   return null;
 }
 
-// src/card/data/annotation-cache.ts
-function createAnnotationCache() {
-  return {
-    lastKey: null,
-    isAnnotated: false
-  };
-}
-function hashString(str) {
-  let hash = 0;
-  if (str.length === 0) return String(hash);
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash;
-  }
-  return String(hash);
-}
-function buildCacheKey(svgContent, nodeTypes, edges) {
-  const nodeTypesStr = nodeTypes ? JSON.stringify(Object.keys(nodeTypes).sort()) : "";
-  const edgesStr = edges ? JSON.stringify(edges.map((e) => `${e.left}-${e.right}`).sort()) : "";
-  return {
-    svgHash: hashString(svgContent),
-    nodeTypesHash: hashString(nodeTypesStr),
-    edgesHash: hashString(edgesStr)
-  };
-}
-function cacheKeysEqual(a, b) {
-  if (a === null || b === null) return false;
-  return a.svgHash === b.svgHash && a.nodeTypesHash === b.nodeTypesHash && a.edgesHash === b.edgesHash;
-}
-function shouldSkipAnnotations(cache, currentKey) {
-  return cache.isAnnotated && cacheKeysEqual(cache.lastKey, currentKey);
-}
-function markAnnotationsComplete(cache, key) {
-  cache.lastKey = key;
-  cache.isAnnotated = true;
-}
-function invalidateAnnotationCache(cache) {
-  cache.lastKey = null;
-  cache.isAnnotated = false;
-}
-
 // src/card/interaction/node.ts
 function resolveNodeId(event) {
   const path = event.composedPath().filter((item) => item instanceof Element);
@@ -1962,49 +1920,8 @@ function markNodeSelected(element) {
     element.classList.add("node--selected");
   }
 }
-function annotateNodeIds(svg3, nodeNames) {
-  if (!nodeNames.length) {
-    return;
-  }
-  const textMap = buildTextMap(svg3, "text");
-  const titleMap = buildTextMap(svg3, "title");
-  for (const name of nodeNames) {
-    const holder = findNodeHolder(svg3, name, textMap, titleMap);
-    if (!holder) {
-      continue;
-    }
-    holder.setAttribute("data-node-id", name);
-  }
-}
 function removeSvgTitles(svg3) {
   svg3.querySelectorAll("title").forEach((el) => el.remove());
-}
-function buildTextMap(svg3, selector) {
-  const map = /* @__PURE__ */ new Map();
-  for (const el of svg3.querySelectorAll(selector)) {
-    const text2 = el.textContent?.trim();
-    if (!text2) continue;
-    const list = map.get(text2) ?? [];
-    list.push(el);
-    map.set(text2, list);
-  }
-  return map;
-}
-function findNodeHolder(svg3, name, textMap, titleMap) {
-  if (!name) {
-    return null;
-  }
-  if (svg3.querySelector(`[data-node-id="${CSS.escape(name)}"]`)) {
-    return null;
-  }
-  const target = findNodeTarget(svg3, name, textMap, titleMap);
-  if (!target) {
-    return null;
-  }
-  return target.closest("g") ?? target;
-}
-function findNodeTarget(svg3, name, textMap, titleMap) {
-  return svg3.querySelector(`[aria-label="${CSS.escape(name)}"]`) ?? textMap.get(name)?.[0] ?? titleMap.get(name)?.[0] ?? null;
 }
 function findByDataNodeId(svg3, nodeName) {
   const el = svg3.querySelector(`[data-node-id="${CSS.escape(nodeName)}"]`);
@@ -2791,9 +2708,8 @@ function renderPortModal(state, payload, theme, getNodeTypeIcon, localize) {
     </div>
   `;
 }
-function resolveConnectedDeviceName(port, payload) {
-  if (!port.connectedDevice) return "Empty";
-  return payload?.node_names?.[port.connectedDevice] ?? port.connectedDevice;
+function resolveConnectedDeviceName(device, payload) {
+  return payload?.node_names?.[device] ?? device;
 }
 function renderPoeBadge(port, localize) {
   if (port.poeActive && port.poePower !== null && port.poePower > 0) {
@@ -2806,8 +2722,8 @@ function renderPoeBadge(port, localize) {
 }
 function renderPortRow(port, payload, getNodeTypeIcon, localize) {
   const deviceIcon = port.connectedDeviceType ? getNodeTypeIcon(port.connectedDeviceType) : "";
-  const deviceName = resolveConnectedDeviceName(port, payload);
   const isConnected = port.connectedDevice !== null;
+  const deviceName = isConnected ? resolveConnectedDeviceName(port.connectedDevice, payload) : "";
   const poeBadge = renderPoeBadge(port, localize);
   return `
     <div class="port-row ${isConnected ? "port-row--connected" : "port-row--empty"}">
@@ -3947,6 +3863,12 @@ var da = {
   "panel.tabs.stats": "Statistik",
   "panel.vlan": "VLAN",
   "panel.vlan_id": "VLAN-ID",
+  "panel.vpn.interface": "Gr\xE6nseflade",
+  "panel.vpn.remote_subnets": "Eksterne subnet",
+  "panel.vpn.status_down": "Inaktiv",
+  "panel.vpn.status_up": "Aktiv",
+  "panel.vpn.type": "Type",
+  "panel.vpn_tunnels": "VPN-tunneler",
   "port_modal.empty": "Tom",
   "port_modal.no_ports": "Ingen portoplysninger tilg\xE6ngelige",
   "port_modal.port": "Port {port}",
@@ -4074,6 +3996,12 @@ var de = {
   "panel.tabs.stats": "Statistiken",
   "panel.vlan": "VLAN",
   "panel.vlan_id": "VLAN-ID",
+  "panel.vpn.interface": "Schnittstelle",
+  "panel.vpn.remote_subnets": "Entfernte Subnetze",
+  "panel.vpn.status_down": "Inaktiv",
+  "panel.vpn.status_up": "Aktiv",
+  "panel.vpn.type": "Typ",
+  "panel.vpn_tunnels": "VPN-Tunnel",
   "port_modal.empty": "Leer",
   "port_modal.no_ports": "Keine Portinformationen verf\xFCgbar",
   "port_modal.port": "Port {port}",
@@ -4202,9 +4130,7 @@ var en = {
   "panel.vlan": "VLAN",
   "panel.vlan_id": "VLAN ID",
   "panel.vpn_tunnels": "VPN Tunnels",
-  "panel.vpn.name": "Name",
   "panel.vpn.type": "Type",
-  "panel.vpn.status": "Status",
   "panel.vpn.status_up": "Up",
   "panel.vpn.status_down": "Down",
   "panel.vpn.remote_subnets": "Remote Subnets",
@@ -4336,6 +4262,12 @@ var es = {
   "panel.tabs.stats": "Estad\xEDsticas",
   "panel.vlan": "VLAN",
   "panel.vlan_id": "ID de VLAN",
+  "panel.vpn.interface": "Interfaz",
+  "panel.vpn.remote_subnets": "Subredes remotas",
+  "panel.vpn.status_down": "Inactivo",
+  "panel.vpn.status_up": "Activo",
+  "panel.vpn.type": "Tipo",
+  "panel.vpn_tunnels": "T\xFAneles VPN",
   "port_modal.empty": "Vac\xEDo",
   "port_modal.no_ports": "No hay informaci\xF3n de puertos disponible",
   "port_modal.port": "Puerto {port}",
@@ -4463,6 +4395,12 @@ var fi = {
   "panel.tabs.stats": "Tilastot",
   "panel.vlan": "VLAN",
   "panel.vlan_id": "VLAN ID",
+  "panel.vpn.interface": "Liit\xE4nt\xE4",
+  "panel.vpn.remote_subnets": "Et\xE4aliverkot",
+  "panel.vpn.status_down": "Ei toiminnassa",
+  "panel.vpn.status_up": "Toiminnassa",
+  "panel.vpn.type": "Tyyppi",
+  "panel.vpn_tunnels": "VPN-tunnelit",
   "port_modal.empty": "Tyhj\xE4",
   "port_modal.no_ports": "Porttitietoja ei saatavilla",
   "port_modal.port": "Portti {port}",
@@ -4590,6 +4528,12 @@ var fr = {
   "panel.tabs.stats": "Statistiques",
   "panel.vlan": "VLAN",
   "panel.vlan_id": "ID VLAN",
+  "panel.vpn.interface": "Interface",
+  "panel.vpn.remote_subnets": "Sous-r\xE9seaux distants",
+  "panel.vpn.status_down": "Inactif",
+  "panel.vpn.status_up": "Actif",
+  "panel.vpn.type": "Type",
+  "panel.vpn_tunnels": "Tunnels VPN",
   "port_modal.empty": "Vide",
   "port_modal.no_ports": "Aucune information de port disponible",
   "port_modal.port": "Port {port}",
@@ -4717,6 +4661,12 @@ var is = {
   "panel.tabs.stats": "T\xF6lfr\xE6\xF0i",
   "panel.vlan": "VLAN",
   "panel.vlan_id": "VLAN-au\xF0kenni",
+  "panel.vpn.interface": "Vi\xF0m\xF3t",
+  "panel.vpn.remote_subnets": "Fjarl\xE6g undirnet",
+  "panel.vpn.status_down": "\xD3virk",
+  "panel.vpn.status_up": "Virk",
+  "panel.vpn.type": "Tegund",
+  "panel.vpn_tunnels": "VPN-g\xF6ng",
   "port_modal.empty": "T\xF3m",
   "port_modal.no_ports": "Engar g\xE1ttauppl\xFDsingar tilt\xE6kar",
   "port_modal.port": "G\xE1tt {port}",
@@ -4844,6 +4794,12 @@ var nb = {
   "panel.tabs.stats": "Statistikk",
   "panel.vlan": "VLAN",
   "panel.vlan_id": "VLAN-ID",
+  "panel.vpn.interface": "Grensesnitt",
+  "panel.vpn.remote_subnets": "Eksterne subnett",
+  "panel.vpn.status_down": "Inaktiv",
+  "panel.vpn.status_up": "Aktiv",
+  "panel.vpn.type": "Type",
+  "panel.vpn_tunnels": "VPN-tunneler",
   "port_modal.empty": "Tom",
   "port_modal.no_ports": "Ingen portinformasjon tilgjengelig",
   "port_modal.port": "Port {port}",
@@ -4971,6 +4927,12 @@ var nl = {
   "panel.tabs.stats": "Statistieken",
   "panel.vlan": "VLAN",
   "panel.vlan_id": "VLAN-ID",
+  "panel.vpn.interface": "Interface",
+  "panel.vpn.remote_subnets": "Externe subnetten",
+  "panel.vpn.status_down": "Inactief",
+  "panel.vpn.status_up": "Actief",
+  "panel.vpn.type": "Type",
+  "panel.vpn_tunnels": "VPN-tunnels",
   "port_modal.empty": "Leeg",
   "port_modal.no_ports": "Geen poortinformatie beschikbaar",
   "port_modal.port": "Poort {port}",
@@ -5098,6 +5060,12 @@ var sv = {
   "panel.tabs.stats": "Statistik",
   "panel.vlan": "VLAN",
   "panel.vlan_id": "VLAN-ID",
+  "panel.vpn.interface": "Gr\xE4nssnitt",
+  "panel.vpn.remote_subnets": "Fj\xE4rrsubn\xE4t",
+  "panel.vpn.status_down": "Inaktiv",
+  "panel.vpn.status_up": "Aktiv",
+  "panel.vpn.type": "Typ",
+  "panel.vpn_tunnels": "VPN-tunnlar",
   "port_modal.empty": "Tom",
   "port_modal.no_ports": "Ingen portinformation tillg\xE4nglig",
   "port_modal.port": "Port {port}",
@@ -5245,20 +5213,6 @@ function setHoveredNode(state, nodeName) {
 }
 function setHoveredEdge(state, edge) {
   state.hoveredEdge = edge ?? void 0;
-}
-function handleMapClick(params) {
-  if (params.isControlTarget(params.event.target)) {
-    return null;
-  }
-  if (params.panMoved) {
-    return null;
-  }
-  const label = params.resolveNodeId(params.event) ?? params.state.hoveredNode;
-  if (!label) {
-    return null;
-  }
-  params.state.selectedNode = label;
-  return label;
 }
 
 // src/card/ui/filter-bar.ts
@@ -7116,7 +7070,6 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._wsSubscriptionVersion = 0;
     this._svgRequestId = 0;
     this._payloadRequestId = 0;
-    this._annotationCache = createAnnotationCache();
   }
   static getLayoutOptions() {
     return { grid_columns: 4, grid_rows: 3, grid_min_columns: 2, grid_min_rows: 2 };
@@ -7222,48 +7175,6 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._lastDataUrl = void 0;
     this._loadPayload();
   }
-  get _viewTransform() {
-    return this._viewportState.viewTransform;
-  }
-  set _viewTransform(value) {
-    this._viewportState.viewTransform = value;
-  }
-  get _isPanning() {
-    return this._viewportState.isPanning;
-  }
-  set _isPanning(value) {
-    this._viewportState.isPanning = value;
-  }
-  get _panStart() {
-    return this._viewportState.panStart;
-  }
-  set _panStart(value) {
-    this._viewportState.panStart = value;
-  }
-  get _panMoved() {
-    return this._viewportState.panMoved;
-  }
-  set _panMoved(value) {
-    this._viewportState.panMoved = value;
-  }
-  get _activePointers() {
-    return this._viewportState.activePointers;
-  }
-  set _activePointers(value) {
-    this._viewportState.activePointers = value;
-  }
-  get _pinchStartDistance() {
-    return this._viewportState.pinchStartDistance;
-  }
-  set _pinchStartDistance(value) {
-    this._viewportState.pinchStartDistance = value;
-  }
-  get _pinchStartScale() {
-    return this._viewportState.pinchStartScale;
-  }
-  set _pinchStartScale(value) {
-    this._viewportState.pinchStartScale = value;
-  }
   _getAuthToken() {
     return this._hass?.auth?.data?.access_token;
   }
@@ -7296,7 +7207,6 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     this._applyCardHeight(card);
     card.innerHTML = sanitizeHtml(body);
     this.replaceChildren(card);
-    invalidateAnnotationCache(this._annotationCache);
   }
   _renderMissingConfig(theme, svgTheme) {
     this._setCardBody(
@@ -7647,17 +7557,6 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       this._panelHelpers()
     );
   }
-  _renderTabContent(name) {
-    return renderTabContent(
-      {
-        payload: this._payload,
-        selectedNode: this._selection.selectedNode,
-        activeTab: this._activeTab
-      },
-      name,
-      this._panelHelpers()
-    );
-  }
   _panelHelpers() {
     const theme = this._config?.theme ?? "dark";
     return {
@@ -7810,7 +7709,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
     }
     this._ensureStyles();
     applyTransform(svg3, this._viewportState.viewTransform, this._viewportState.isPanning);
-    this._annotateIfNeeded(svg3);
+    this._annotateSvg(svg3);
     this._highlightSelectedNode(svg3);
     this._wireControls(svg3);
     this._bindViewport(viewport, svg3, tooltip);
@@ -7821,19 +7720,9 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       panel.onclick = (event) => this._onPanelClick(event);
     }
   }
-  _annotateIfNeeded(svg3) {
-    const cacheKey = buildCacheKey(
-      this._svgContent ?? "",
-      this._payload?.node_types,
-      this._payload?.edges
-    );
-    if (shouldSkipAnnotations(this._annotationCache, cacheKey)) {
-      return;
-    }
-    annotateNodeIds(svg3, Object.keys(this._payload?.node_types ?? {}));
+  _annotateSvg(svg3) {
     removeSvgTitles(svg3);
     this._annotateEdges(svg3);
-    markAnnotationsComplete(this._annotationCache, cacheKey);
   }
   _bindViewport(viewport, svg3, tooltip) {
     const options = this._viewportOptions();
@@ -8206,82 +8095,12 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       }
     };
   }
-  _applyTransform(svg3) {
-    applyTransform(svg3, this._viewportState.viewTransform, this._viewportState.isPanning);
-  }
-  _applyZoom(delta, svg3) {
-    applyZoom(svg3, delta, this._viewportState, this._viewportOptions(), this._viewportCallbacks());
-  }
-  _onWheel(event, svg3) {
-    onWheel(event, svg3, this._viewportState, this._viewportOptions(), this._viewportCallbacks());
-  }
-  _onPointerDown(event) {
-    const controls = this.querySelector(".unifi-network-map__controls");
-    onPointerDown(event, this._viewportState, controls);
-  }
-  _onPointerMove(event, svg3, tooltip) {
-    onPointerMove(
-      event,
-      svg3,
-      this._viewportState,
-      this._viewportOptions(),
-      createDefaultViewportHandlers(
-        this._payload?.edges,
-        (name) => this._getIcon(name),
-        this._localize
-      ),
-      this._viewportCallbacks(),
-      tooltip
-    );
-  }
-  _onPointerUp(event) {
-    onPointerUp(event, this._viewportState);
-  }
-  _hideTooltip(tooltip) {
-    tooltip.hidden = true;
-    tooltip.classList.remove("unifi-network-map__tooltip--edge");
-  }
-  _onClick(event, tooltip) {
-    const selected = handleMapClick({
-      event,
-      state: this._selection,
-      panMoved: this._viewportState.panMoved,
-      isControlTarget: (target) => this._isControlTarget(target),
-      resolveNodeId: (evt) => resolveNodeId(evt)
-    });
-    if (!selected) {
-      return;
-    }
-    this._hideTooltip(tooltip);
-    this._render();
-  }
-  _resolveNodeId(event) {
-    return resolveNodeId(event);
-  }
-  _inferNodeName(target) {
-    return inferNodeName(target);
-  }
-  _findNodeElement(svg3, nodeId) {
-    return findNodeElement(svg3, nodeId);
-  }
   _highlightSelectedNode(svg3) {
     highlightSelectedNode(svg3, this._selection.selectedNode);
-  }
-  _clearNodeSelection(svg3) {
-    clearNodeSelection(svg3);
-  }
-  _markNodeSelected(element) {
-    markNodeSelected(element);
   }
   _annotateEdges(svg3) {
     if (!this._payload?.edges) return;
     annotateEdges(svg3, this._payload.edges);
-  }
-  _renderEdgeTooltip(edge) {
-    return renderEdgeTooltip(edge, (name) => this._getIcon(name), this._localize);
-  }
-  _isControlTarget(target) {
-    return Boolean(target?.closest(".unifi-network-map__controls"));
   }
 };
 

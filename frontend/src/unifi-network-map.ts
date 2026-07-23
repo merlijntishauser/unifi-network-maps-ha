@@ -1,4 +1,5 @@
 import { getEntitySuggestion, INTEGRATION_DOMAIN } from "./card/core/entity-suggestion";
+import type { CardSuggestion } from "./card/core/entity-suggestion";
 import { UnifiNetworkMapCard } from "./card/core/unifi-network-map-card";
 import { UnifiNetworkMapEditor } from "./card/core/unifi-network-map-editor";
 
@@ -13,10 +14,6 @@ customElements.define("unifi-network-map-editor", UnifiNetworkMapEditor);
 // `getEntitySuggestion` opts in to HA 2026.6+ Community suggestions:
 // when the user picks any entity belonging to our integration in the
 // card picker, this card appears under the Community section.
-interface CardSuggestion {
-  config: Record<string, unknown>;
-  label?: string;
-}
 interface CustomCardInfo {
   type: string;
   name: string;

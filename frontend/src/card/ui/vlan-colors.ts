@@ -105,23 +105,3 @@ export function generateVlanStyles(
 
   return rules.join("\n");
 }
-
-/**
- * Get VLAN info for a specific node.
- */
-export function getNodeVlanInfo(
-  nodeName: string,
-  nodeVlans: Record<string, number | null> | undefined,
-  vlanInfo: Record<number, VlanInfo> | undefined,
-): VlanInfo | null {
-  if (!nodeVlans || !vlanInfo) {
-    return null;
-  }
-
-  const vlanId = nodeVlans[nodeName];
-  if (vlanId === null || vlanId === undefined) {
-    return null;
-  }
-
-  return vlanInfo[vlanId] ?? null;
-}

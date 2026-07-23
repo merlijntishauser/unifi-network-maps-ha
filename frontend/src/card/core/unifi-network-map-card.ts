@@ -6,25 +6,8 @@ import {
   ZOOM_INCREMENT,
 } from "../shared/constants";
 import { escapeHtml, sanitizeHtml, sanitizeSvg } from "../data/sanitize";
-import { annotateEdges, renderEdgeTooltip } from "../data/svg";
-import {
-  buildCacheKey,
-  createAnnotationCache,
-  invalidateAnnotationCache,
-  markAnnotationsComplete,
-  shouldSkipAnnotations,
-} from "../data/annotation-cache";
-import type { AnnotationCache } from "../data/annotation-cache";
-import {
-  annotateNodeIds,
-  clearNodeSelection,
-  findNodeElement,
-  highlightSelectedNode,
-  inferNodeName,
-  markNodeSelected,
-  removeSvgTitles,
-  resolveNodeId,
-} from "../interaction/node";
+import { annotateEdges } from "../data/svg";
+import { findNodeElement, highlightSelectedNode, removeSvgTitles } from "../interaction/node";
 import {
   closeEntityModal,
   createEntityModalController,
@@ -33,7 +16,7 @@ import {
 import { closePortModal, createPortModalController, openPortModal } from "../ui/port-modal";
 import { domainIcon, iconMarkup, nodeTypeIcon } from "../ui/icons";
 import type { IconTheme } from "../ui/icons";
-import { renderPanelContent, renderTabContent } from "../ui/panel";
+import { renderPanelContent } from "../ui/panel";
 import { renderContextMenu } from "../ui/context-menu";
 import { fetchWithAuth } from "../data/auth";
 import type { AuthFetchResult } from "../data/auth";
@@ -50,7 +33,6 @@ import {
 import {
   clearSelectedNode,
   createSelectionState,
-  handleMapClick,
   selectNode,
   setHoveredEdge,
   setHoveredNode,
@@ -68,10 +50,6 @@ import {
   bindViewportInteractions,
   createDefaultViewportHandlers,
   createDefaultViewportState,
-  onPointerDown,
-  onPointerMove,
-  onPointerUp,
-  onWheel,
   resetPan,
 } from "../interaction/viewport";
 import { CARD_STYLES, GLOBAL_STYLES } from "../ui/styles";
@@ -266,62 +244,6 @@ export class UnifiNetworkMapCard extends HTMLElement {
   private _wsSubscriptionVersion = 0;
   private _svgRequestId = 0;
   private _payloadRequestId = 0;
-  private _annotationCache: AnnotationCache = createAnnotationCache();
-  get _viewTransform() {
-    return this._viewportState.viewTransform;
-  }
-
-  set _viewTransform(value: { x: number; y: number; scale: number }) {
-    this._viewportState.viewTransform = value;
-  }
-
-  get _isPanning() {
-    return this._viewportState.isPanning;
-  }
-
-  set _isPanning(value: boolean) {
-    this._viewportState.isPanning = value;
-  }
-
-  get _panStart() {
-    return this._viewportState.panStart;
-  }
-
-  set _panStart(value: { x: number; y: number } | null) {
-    this._viewportState.panStart = value;
-  }
-
-  get _panMoved() {
-    return this._viewportState.panMoved;
-  }
-
-  set _panMoved(value: boolean) {
-    this._viewportState.panMoved = value;
-  }
-
-  get _activePointers() {
-    return this._viewportState.activePointers;
-  }
-
-  set _activePointers(value: Map<number, { x: number; y: number }>) {
-    this._viewportState.activePointers = value;
-  }
-
-  get _pinchStartDistance() {
-    return this._viewportState.pinchStartDistance;
-  }
-
-  set _pinchStartDistance(value: number | null) {
-    this._viewportState.pinchStartDistance = value;
-  }
-
-  get _pinchStartScale() {
-    return this._viewportState.pinchStartScale;
-  }
-
-  set _pinchStartScale(value: number | null) {
-    this._viewportState.pinchStartScale = value;
-  }
 
   private _getAuthToken(): string | undefined {
     return this._hass?.auth?.data?.access_token;
@@ -364,8 +286,6 @@ export class UnifiNetworkMapCard extends HTMLElement {
     this._applyCardHeight(card);
     card.innerHTML = sanitizeHtml(body);
     this.replaceChildren(card);
-    // DOM was rebuilt -- annotations from the previous tree are gone
-    invalidateAnnotationCache(this._annotationCache);
   }
 
   private _renderMissingConfig(theme: string, svgTheme: string): void {
@@ -776,18 +696,6 @@ export class UnifiNetworkMapCard extends HTMLElement {
     );
   }
 
-  private _renderTabContent(name: string): string {
-    return renderTabContent(
-      {
-        payload: this._payload,
-        selectedNode: this._selection.selectedNode,
-        activeTab: this._activeTab,
-      },
-      name,
-      this._panelHelpers(),
-    );
-  }
-
   private _panelHelpers() {
     const theme = this._config?.theme ?? "dark";
     return {
@@ -965,7 +873,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
     }
     this._ensureStyles();
     applyTransform(svg, this._viewportState.viewTransform, this._viewportState.isPanning);
-    this._annotateIfNeeded(svg);
+    this._annotateSvg(svg);
     this._highlightSelectedNode(svg);
     this._wireControls(svg);
     this._bindViewport(viewport, svg, tooltip);
@@ -978,19 +886,9 @@ export class UnifiNetworkMapCard extends HTMLElement {
     }
   }
 
-  private _annotateIfNeeded(svg: SVGElement): void {
-    const cacheKey = buildCacheKey(
-      this._svgContent ?? "",
-      this._payload?.node_types,
-      this._payload?.edges,
-    );
-    if (shouldSkipAnnotations(this._annotationCache, cacheKey)) {
-      return;
-    }
-    annotateNodeIds(svg, Object.keys(this._payload?.node_types ?? {}));
+  private _annotateSvg(svg: SVGElement): void {
     removeSvgTitles(svg);
     this._annotateEdges(svg);
-    markAnnotationsComplete(this._annotationCache, cacheKey);
   }
 
   private _bindViewport(viewport: HTMLElement, svg: SVGElement, tooltip: HTMLElement): void {
@@ -1429,97 +1327,12 @@ export class UnifiNetworkMapCard extends HTMLElement {
     };
   }
 
-  private _applyTransform(svg: SVGElement) {
-    applyTransform(svg, this._viewportState.viewTransform, this._viewportState.isPanning);
-  }
-
-  private _applyZoom(delta: number, svg: SVGElement) {
-    applyZoom(svg, delta, this._viewportState, this._viewportOptions(), this._viewportCallbacks());
-  }
-
-  private _onWheel(event: WheelEvent, svg: SVGElement) {
-    onWheel(event, svg, this._viewportState, this._viewportOptions(), this._viewportCallbacks());
-  }
-
-  private _onPointerDown(event: PointerEvent) {
-    const controls = this.querySelector(".unifi-network-map__controls") as HTMLElement | null;
-    onPointerDown(event, this._viewportState, controls);
-  }
-
-  private _onPointerMove(event: PointerEvent, svg: SVGElement, tooltip: HTMLElement) {
-    onPointerMove(
-      event,
-      svg,
-      this._viewportState,
-      this._viewportOptions(),
-      createDefaultViewportHandlers(
-        this._payload?.edges,
-        (name) => this._getIcon(name),
-        this._localize,
-      ),
-      this._viewportCallbacks(),
-      tooltip,
-    );
-  }
-
-  private _onPointerUp(event: PointerEvent) {
-    onPointerUp(event, this._viewportState);
-  }
-
-  private _hideTooltip(tooltip: HTMLElement) {
-    tooltip.hidden = true;
-    tooltip.classList.remove("unifi-network-map__tooltip--edge");
-  }
-
-  private _onClick(event: MouseEvent, tooltip: HTMLElement) {
-    const selected = handleMapClick({
-      event,
-      state: this._selection,
-      panMoved: this._viewportState.panMoved,
-      isControlTarget: (target) => this._isControlTarget(target),
-      resolveNodeId: (evt) => resolveNodeId(evt),
-    });
-    if (!selected) {
-      return;
-    }
-    this._hideTooltip(tooltip);
-    this._render();
-  }
-
-  private _resolveNodeId(event: MouseEvent | PointerEvent): string | null {
-    return resolveNodeId(event);
-  }
-
-  private _inferNodeName(target: Element | null): string | null {
-    return inferNodeName(target);
-  }
-
-  private _findNodeElement(svg: SVGElement, nodeId: string): Element | null {
-    return findNodeElement(svg, nodeId);
-  }
-
   private _highlightSelectedNode(svg: SVGElement) {
     highlightSelectedNode(svg, this._selection.selectedNode);
-  }
-
-  private _clearNodeSelection(svg: SVGElement) {
-    clearNodeSelection(svg);
-  }
-
-  private _markNodeSelected(element: Element) {
-    markNodeSelected(element);
   }
 
   private _annotateEdges(svg: SVGElement): void {
     if (!this._payload?.edges) return;
     annotateEdges(svg, this._payload.edges);
-  }
-
-  private _renderEdgeTooltip(edge: Edge): string {
-    return renderEdgeTooltip(edge, (name) => this._getIcon(name), this._localize);
-  }
-
-  private _isControlTarget(target: Element | null): boolean {
-    return Boolean(target?.closest(".unifi-network-map__controls"));
   }
 }

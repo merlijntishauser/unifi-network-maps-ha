@@ -1,6 +1,53 @@
-import { resolveNodeId } from "../card/interaction/node";
+import {
+  clearNodeSelection,
+  findNodeElement,
+  highlightSelectedNode,
+  inferNodeName,
+  markNodeSelected,
+  resolveNodeId,
+} from "../card/interaction/node";
+import {
+  applyTransform,
+  applyZoom,
+  createDefaultViewportState,
+  onClick,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
+  onWheel,
+} from "../card/interaction/viewport";
+import type { ViewportCallbacks, ViewportHandlers } from "../card/interaction/viewport";
+import {
+  MAX_ZOOM_SCALE,
+  MIN_PAN_MOVEMENT_THRESHOLD,
+  MIN_ZOOM_SCALE,
+  TOOLTIP_OFFSET_PX,
+  ZOOM_INCREMENT,
+} from "../card/shared/constants";
 import type { ConfigurableCard } from "./test-helpers";
 import { makeSvg, resetTestDom } from "./test-helpers";
+
+const viewportOptions = () => ({
+  minPanMovementThreshold: MIN_PAN_MOVEMENT_THRESHOLD,
+  zoomIncrement: ZOOM_INCREMENT,
+  minZoomScale: MIN_ZOOM_SCALE,
+  maxZoomScale: MAX_ZOOM_SCALE,
+  tooltipOffsetPx: TOOLTIP_OFFSET_PX,
+});
+
+const spyCallbacks = (): ViewportCallbacks => ({
+  onNodeSelected: jest.fn(),
+  onHoverEdge: jest.fn(),
+  onHoverNode: jest.fn(),
+  onOpenContextMenu: jest.fn(),
+  onUpdateTransform: jest.fn(),
+});
+
+const nodeHandlers = (): ViewportHandlers => ({
+  resolveNodeId: (event) => resolveNodeId(event),
+  findEdge: () => null,
+  renderEdgeTooltip: () => "",
+});
 
 describe("unifi-network-map card interaction", () => {
   afterEach(resetTestDom);
@@ -73,8 +120,6 @@ describe("unifi-network-map card interaction", () => {
   });
 
   it("resolves node name from text element in event path", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as { _resolveNodeId: (event: MouseEvent) => string | null };
     const text = document.createElement("text");
     text.textContent = "Path Text";
     const event = {
@@ -82,110 +127,80 @@ describe("unifi-network-map card interaction", () => {
       clientX: 0,
       clientY: 0,
     } as unknown as MouseEvent;
-    expect(card._resolveNodeId(event)).toBe("Path Text");
+    expect(resolveNodeId(event)).toBe("Path Text");
   });
 
   it("infers node name from group text", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as {
-      _inferNodeName: (target: Element | null) => string | null;
-    };
     const group = document.createElement("g");
     const text = document.createElement("text");
     text.textContent = "Group Text";
     group.appendChild(text);
-    expect(card._inferNodeName(group)).toBe("Group Text");
-  });
-
-  it("adds a hitbox path for edge hover", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as {
-      _payload?: unknown;
-      _annotateEdges: (svg: SVGElement) => void;
-    };
-    card._payload = { edges: [{ left: "A", right: "B" }], node_types: {} };
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("stroke", "#000");
-    path.setAttribute("d", "M0 0 L10 10");
-    path.setAttribute("data-edge-left", "A");
-    path.setAttribute("data-edge-right", "B");
-    svg.appendChild(path);
-    card._annotateEdges(svg);
-
-    const hitbox = svg.querySelector('path[data-edge-hitbox="true"]');
-    expect(hitbox).not.toBeNull();
-    expect(hitbox?.getAttribute("data-edge-left")).toBe("A");
-    expect(hitbox?.getAttribute("data-edge-right")).toBe("B");
+    expect(inferNodeName(group)).toBe("Group Text");
   });
 
   it("ignores clicks while panning or on controls", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as {
-      _onClick: (event: MouseEvent, tooltip: HTMLElement) => void;
-      _panMoved: boolean;
-      _selection?: { selectedNode?: string };
-    };
+    const state = createDefaultViewportState();
+    const callbacks = spyCallbacks();
     const tooltip = document.createElement("div");
     const controls = document.createElement("div");
     controls.classList.add("unifi-network-map__controls");
-    card._panMoved = true;
-    card._onClick(
+    state.panMoved = true;
+    onClick(
       { target: document.createElement("div"), composedPath: () => [] } as unknown as MouseEvent,
+      state,
+      nodeHandlers(),
+      callbacks,
       tooltip,
     );
-    card._panMoved = false;
-    card._onClick({ target: controls, composedPath: () => [] } as unknown as MouseEvent, tooltip);
-    expect(card._selection?.selectedNode).toBeUndefined();
+    state.panMoved = false;
+    onClick(
+      { target: controls, composedPath: () => [] } as unknown as MouseEvent,
+      state,
+      nodeHandlers(),
+      callbacks,
+      tooltip,
+    );
+    expect(callbacks.onNodeSelected).not.toHaveBeenCalled();
   });
 
   it("infers node name from id fallback", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as {
-      _inferNodeName: (target: Element | null) => string | null;
-    };
     const node = document.createElement("div");
     node.setAttribute("id", "switch-1");
-    expect(card._inferNodeName(node)).toBe("switch-1");
+    expect(inferNodeName(node)).toBe("switch-1");
   });
 });
 
-describe("unifi-network-map editor", () => {
+describe("unifi-network-map viewport and node helpers", () => {
   afterEach(() => {
     document.body.innerHTML = "";
   });
 
   it("marks selected elements on highlight", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as {
-      _highlightSelectedNode: (svg: SVGElement) => void;
-      _selection?: { selectedNode?: string };
-    };
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     const node = document.createElementNS("http://www.w3.org/2000/svg", "g");
     node.setAttribute("data-node-id", "aa:bb:cc:dd:ee:ff");
     svg.appendChild(node);
-    card._selection = { selectedNode: "aa:bb:cc:dd:ee:ff" };
-    card._highlightSelectedNode(svg);
+    highlightSelectedNode(svg, "aa:bb:cc:dd:ee:ff");
     expect(node.getAttribute("data-selected")).toBe("true");
   });
 
   it("shows tooltip on hover when not panning", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as {
-      _onPointerMove: (event: PointerEvent, svg: SVGElement, tooltip: HTMLElement) => void;
-    };
+    const state = createDefaultViewportState();
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     const tooltip = document.createElement("div");
     const node = document.createElement("div");
     node.setAttribute("data-node-id", "aa:bb:cc:dd:ee:ff");
-    card._onPointerMove(
+    onPointerMove(
       {
         composedPath: () => [node],
         clientX: 10,
         clientY: 20,
       } as unknown as PointerEvent,
       svg,
+      state,
+      viewportOptions(),
+      nodeHandlers(),
+      spyCallbacks(),
       tooltip,
     );
     expect(tooltip.hidden).toBe(false);
@@ -193,18 +208,19 @@ describe("unifi-network-map editor", () => {
   });
 
   it("keeps tooltip hidden when hover target has no label", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as {
-      _onPointerMove: (event: PointerEvent, svg: SVGElement, tooltip: HTMLElement) => void;
-    };
+    const state = createDefaultViewportState();
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     const tooltip = document.createElement("div");
     tooltip.hidden = false;
     const originalElementFromPoint = document.elementFromPoint;
     document.elementFromPoint = () => null;
-    card._onPointerMove(
+    onPointerMove(
       { composedPath: () => [], clientX: 0, clientY: 0 } as unknown as PointerEvent,
       svg,
+      state,
+      viewportOptions(),
+      nodeHandlers(),
+      spyCallbacks(),
       tooltip,
     );
     document.elementFromPoint = originalElementFromPoint;
@@ -212,8 +228,6 @@ describe("unifi-network-map editor", () => {
   });
 
   it("falls back to inferNodeName when resolve path has no match", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as { _resolveNodeId: (event: MouseEvent) => string | null };
     const target = document.createElement("div");
     target.setAttribute("data-node-id", "aa:bb:cc:dd:ee:ff");
     const originalElementFromPoint = document.elementFromPoint;
@@ -223,99 +237,85 @@ describe("unifi-network-map editor", () => {
       clientX: 0,
       clientY: 0,
     } as unknown as MouseEvent;
-    expect(card._resolveNodeId(event)).toBe("aa:bb:cc:dd:ee:ff");
+    expect(resolveNodeId(event)).toBe("aa:bb:cc:dd:ee:ff");
     document.elementFromPoint = originalElementFromPoint;
   });
 
   it("returns null when findNodeElement has no matches", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as {
-      _findNodeElement: (svg: SVGElement, name: string) => Element | null;
-    };
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    expect(card._findNodeElement(svg, "Missing")).toBeNull();
+    expect(findNodeElement(svg, "Missing")).toBeNull();
   });
 
   it("marks selected elements for non-g tags", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as { _markNodeSelected: (el: Element) => void };
     const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    card._markNodeSelected(rect);
+    markNodeSelected(rect);
     expect(rect.classList.contains("node--selected")).toBe(true);
   });
 
   it("infers node name from text element", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as {
-      _inferNodeName: (target: Element | null) => string | null;
-    };
     const text = document.createElement("text");
     text.textContent = "Text Node";
-    expect(card._inferNodeName(text)).toBe("Text Node");
+    expect(inferNodeName(text)).toBe("Text Node");
   });
 
   it("updates zoom based on wheel direction", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as {
-      _onWheel: (event: WheelEvent, svg: SVGElement) => void;
-      _viewTransform: { scale: number };
-    };
+    const state = createDefaultViewportState();
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    card._onWheel({ deltaY: 1, preventDefault: () => undefined } as unknown as WheelEvent, svg);
-    expect(card._viewTransform.scale).toBeLessThan(1);
-    card._onWheel({ deltaY: -1, preventDefault: () => undefined } as unknown as WheelEvent, svg);
-    expect(card._viewTransform.scale).toBeGreaterThan(0.5);
+    const options = viewportOptions();
+    const callbacks = spyCallbacks();
+    onWheel(
+      { deltaY: 1, preventDefault: () => undefined } as unknown as WheelEvent,
+      svg,
+      state,
+      options,
+      callbacks,
+    );
+    expect(state.viewTransform.scale).toBeLessThan(1);
+    onWheel(
+      { deltaY: -1, preventDefault: () => undefined } as unknown as WheelEvent,
+      svg,
+      state,
+      options,
+      callbacks,
+    );
+    expect(state.viewTransform.scale).toBeGreaterThan(0.5);
   });
 
   it("infers node names from aria labels", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as {
-      _inferNodeName: (target: Element | null) => string | null;
-    };
     const node = document.createElement("div");
     node.setAttribute("aria-label", "Switch A");
-    expect(card._inferNodeName(node)).toBe("Switch A");
+    expect(inferNodeName(node)).toBe("Switch A");
   });
 
   it("handles pointer up reset state", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as {
-      _onPointerUp: (event: { pointerId: number }) => void;
-      _isPanning: boolean;
-      _panStart: object | null;
-      _activePointers: Map<number, { x: number; y: number }>;
-    };
-    card._isPanning = true;
-    card._panStart = { x: 1, y: 1 };
-    card._activePointers = new Map([[1, { x: 10, y: 20 }]]);
-    card._onPointerUp({ pointerId: 1 });
-    expect(card._isPanning).toBe(false);
-    expect(card._panStart).toBeNull();
-    expect(card._activePointers.size).toBe(0);
+    const state = createDefaultViewportState();
+    state.isPanning = true;
+    state.panStart = { x: 1, y: 1 };
+    state.activePointers = new Map([[1, { x: 10, y: 20 }]]);
+    onPointerUp({ pointerId: 1 } as PointerEvent, state);
+    expect(state.isPanning).toBe(false);
+    expect(state.panStart).toBeNull();
+    expect(state.activePointers.size).toBe(0);
   });
 
   it("returns early when clicking with no resolved node", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as {
-      _onClick: (event: MouseEvent, tooltip: HTMLElement) => void;
-      _selection?: { selectedNode?: string };
-    };
+    const state = createDefaultViewportState();
+    const callbacks = spyCallbacks();
     const tooltip = document.createElement("div");
     const originalElementFromPoint = document.elementFromPoint;
     document.elementFromPoint = () => null;
-    card._onClick(
+    onClick(
       { composedPath: () => [], clientX: 0, clientY: 0 } as unknown as MouseEvent,
+      state,
+      nodeHandlers(),
+      callbacks,
       tooltip,
     );
     document.elementFromPoint = originalElementFromPoint;
-    expect(card._selection?.selectedNode).toBeUndefined();
+    expect(callbacks.onNodeSelected).not.toHaveBeenCalled();
   });
 
   it("finds node element by aria label and title", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as {
-      _findNodeElement: (svg: SVGElement, name: string) => Element | null;
-    };
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     const ariaGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
     ariaGroup.setAttribute("aria-label", "Node B");
@@ -325,47 +325,19 @@ describe("unifi-network-map editor", () => {
     title.textContent = "Node C";
     titleGroup.appendChild(title);
     svg.appendChild(titleGroup);
-    expect(card._findNodeElement(svg, "Node B")).toBe(ariaGroup);
-    expect(card._findNodeElement(svg, "Node C")).toBe(titleGroup);
+    expect(findNodeElement(svg, "Node B")).toBe(ariaGroup);
+    expect(findNodeElement(svg, "Node C")).toBe(titleGroup);
   });
 
   it("ignores pointer down on control targets", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as {
-      _onPointerDown: (event: PointerEvent) => void;
-      _isPanning: boolean;
-    };
+    const state = createDefaultViewportState();
     const controls = document.createElement("div");
     controls.classList.add("unifi-network-map__controls");
-    card._onPointerDown({ target: controls } as unknown as PointerEvent);
-    expect(card._isPanning).toBe(false);
-  });
-
-  it("formats edge tooltip with speed and channel", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as {
-      _renderEdgeTooltip: (edge: {
-        left: string;
-        right: string;
-        wireless?: boolean | null;
-        speed?: number | null;
-        channel?: number | null;
-      }) => string;
-    };
-    const html = card._renderEdgeTooltip({
-      left: "AP",
-      right: "Switch",
-      wireless: true,
-      speed: 1000,
-      channel: 36,
-    });
-    expect(html).toContain("1 Gbps");
-    expect(html).toContain("Channel 36 (5GHz)");
+    onPointerDown({ target: controls } as unknown as PointerEvent, state, null);
+    expect(state.isPanning).toBe(false);
   });
 
   it("resolves node name from title element in event path", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as { _resolveNodeId: (event: MouseEvent) => string | null };
     const title = document.createElement("title");
     title.textContent = "Title Path";
     const event = {
@@ -373,94 +345,93 @@ describe("unifi-network-map editor", () => {
       clientX: 0,
       clientY: 0,
     } as unknown as MouseEvent;
-    expect(card._resolveNodeId(event)).toBe("Title Path");
+    expect(resolveNodeId(event)).toBe("Title Path");
   });
 
   it("returns null when infer node name has no matches", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as {
-      _inferNodeName: (target: Element | null) => string | null;
-    };
-    expect(card._inferNodeName(null)).toBeNull();
+    expect(inferNodeName(null)).toBeNull();
     const empty = document.createElement("div");
-    expect(card._inferNodeName(empty)).toBeNull();
+    expect(inferNodeName(empty)).toBeNull();
   });
 
   it("finds node element by text content", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as {
-      _findNodeElement: (svg: SVGElement, name: string) => Element | null;
-    };
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
     text.textContent = "Node D";
     svg.appendChild(text);
-    expect(card._findNodeElement(svg, "Node D")).toBe(text);
+    expect(findNodeElement(svg, "Node D")).toBe(text);
   });
 
   it("removes selection markers when clearing selection", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as { _clearNodeSelection: (svg: SVGElement) => void };
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
     group.setAttribute("data-selected", "true");
     group.classList.add("node--selected");
     svg.appendChild(group);
-    card._clearNodeSelection(svg);
+    clearNodeSelection(svg);
     expect(group.hasAttribute("data-selected")).toBe(false);
     expect(group.classList.contains("node--selected")).toBe(false);
   });
 
   it("handles pinch-to-zoom gesture", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as {
-      _onPointerDown: (event: {
-        pointerId: number;
-        clientX: number;
-        clientY: number;
-        target: Element;
-        currentTarget: HTMLElement;
-      }) => void;
-      _onPointerMove: (
-        event: { pointerId: number; clientX: number; clientY: number; target: Element },
-        svg: SVGElement,
-        tooltip: HTMLElement,
-      ) => void;
-      _viewTransform: { x: number; y: number; scale: number };
-      _activePointers: Map<number, { x: number; y: number }>;
-      _pinchStartDistance: number | null;
-      _pinchStartScale: number | null;
-    };
+    const state = createDefaultViewportState();
+    const options = viewportOptions();
+    const callbacks = spyCallbacks();
+    const handlers = nodeHandlers();
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     const tooltip = document.createElement("div");
     const viewport = document.createElement("div");
     viewport.setPointerCapture = jest.fn();
 
     // Start with two fingers at distance 100
-    card._onPointerDown({
-      pointerId: 1,
-      clientX: 0,
-      clientY: 0,
-      target: viewport,
-      currentTarget: viewport,
-    });
-    card._onPointerDown({
-      pointerId: 2,
-      clientX: 100,
-      clientY: 0,
-      target: viewport,
-      currentTarget: viewport,
-    });
+    onPointerDown(
+      {
+        pointerId: 1,
+        clientX: 0,
+        clientY: 0,
+        target: viewport,
+        currentTarget: viewport,
+      } as unknown as PointerEvent,
+      state,
+      null,
+    );
+    onPointerDown(
+      {
+        pointerId: 2,
+        clientX: 100,
+        clientY: 0,
+        target: viewport,
+        currentTarget: viewport,
+      } as unknown as PointerEvent,
+      state,
+      null,
+    );
 
-    expect(card._activePointers.size).toBe(2);
-    expect(card._pinchStartDistance).toBe(100);
-    expect(card._pinchStartScale).toBe(1);
+    expect(state.activePointers.size).toBe(2);
+    expect(state.pinchStartDistance).toBe(100);
+    expect(state.pinchStartScale).toBe(1);
 
     // Move fingers apart to distance 200 (2x zoom)
-    card._onPointerMove({ pointerId: 1, clientX: 0, clientY: 0, target: viewport }, svg, tooltip);
-    card._onPointerMove({ pointerId: 2, clientX: 200, clientY: 0, target: viewport }, svg, tooltip);
+    onPointerMove(
+      { pointerId: 1, clientX: 0, clientY: 0, target: viewport } as unknown as PointerEvent,
+      svg,
+      state,
+      options,
+      handlers,
+      callbacks,
+      tooltip,
+    );
+    onPointerMove(
+      { pointerId: 2, clientX: 200, clientY: 0, target: viewport } as unknown as PointerEvent,
+      svg,
+      state,
+      options,
+      handlers,
+      callbacks,
+      tooltip,
+    );
 
-    expect(card._viewTransform.scale).toBe(2);
+    expect(state.viewTransform.scale).toBe(2);
   });
 
   it("handles missing panel while wiring interactions", () => {
@@ -477,15 +448,11 @@ describe("unifi-network-map editor", () => {
   });
 
   it("infers node name from group title", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as {
-      _inferNodeName: (target: Element | null) => string | null;
-    };
     const group = document.createElement("g");
     const title = document.createElement("title");
     title.textContent = "Title Node";
     group.appendChild(title);
-    expect(card._inferNodeName(group)).toBe("Title Node");
+    expect(inferNodeName(group)).toBe("Title Node");
   });
 
   it("wires zoom and reset controls", () => {
@@ -510,61 +477,56 @@ describe("unifi-network-map editor", () => {
   });
 
   it("updates pan state on pointer move", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as {
-      _onPointerDown: (event: PointerEvent) => void;
-      _onPointerMove: (event: PointerEvent, svg: SVGElement, tooltip: HTMLElement) => void;
-      _viewTransform: { x: number; y: number; scale: number };
-      _panMoved: boolean;
-    };
+    const state = createDefaultViewportState();
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     const tooltip = document.createElement("div");
     const viewport = document.createElement("div");
     viewport.setPointerCapture = jest.fn();
-    card._onPointerDown({
-      clientX: 10,
-      clientY: 20,
-      pointerId: 1,
-      target: viewport,
-      currentTarget: viewport,
-    } as unknown as PointerEvent);
-    card._onPointerMove({ clientX: 30, clientY: 50 } as unknown as PointerEvent, svg, tooltip);
-    expect(card._viewTransform.x).toBe(20);
-    expect(card._viewTransform.y).toBe(30);
-    expect(card._panMoved).toBe(true);
+    onPointerDown(
+      {
+        clientX: 10,
+        clientY: 20,
+        pointerId: 1,
+        target: viewport,
+        currentTarget: viewport,
+      } as unknown as PointerEvent,
+      state,
+      null,
+    );
+    onPointerMove(
+      { clientX: 30, clientY: 50 } as unknown as PointerEvent,
+      svg,
+      state,
+      viewportOptions(),
+      nodeHandlers(),
+      spyCallbacks(),
+      tooltip,
+    );
+    expect(state.viewTransform.x).toBe(20);
+    expect(state.viewTransform.y).toBe(30);
+    expect(state.panMoved).toBe(true);
   });
 
   it("applies cursor styles based on pan state", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as {
-      _applyTransform: (svg: SVGElement) => void;
-      _isPanning: boolean;
-    };
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    card._isPanning = true;
-    card._applyTransform(svg);
+    applyTransform(svg, { x: 0, y: 0, scale: 1 }, true);
     expect(svg.style.cursor).toBe("grabbing");
-    card._isPanning = false;
-    card._applyTransform(svg);
+    applyTransform(svg, { x: 0, y: 0, scale: 1 }, false);
     expect(svg.style.cursor).toBe("grab");
   });
 
   it("clamps zoom levels within bounds", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as {
-      _applyZoom: (delta: number, svg: SVGElement) => void;
-      _viewTransform: { scale: number };
-    };
+    const state = createDefaultViewportState();
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    card._applyZoom(10, svg);
-    expect(card._viewTransform.scale).toBe(5);
-    card._applyZoom(-10, svg);
-    expect(card._viewTransform.scale).toBe(0.5);
+    const options = viewportOptions();
+    const callbacks = spyCallbacks();
+    applyZoom(svg, 10, state, options, callbacks);
+    expect(state.viewTransform.scale).toBe(5);
+    applyZoom(svg, -10, state, options, callbacks);
+    expect(state.viewTransform.scale).toBe(0.5);
   });
 
   it("resolves node name from title element in svg", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as { _resolveNodeId: (event: MouseEvent) => string | null };
     const title = document.createElement("title");
     title.textContent = "Core Switch";
     const group = document.createElement("g");
@@ -574,45 +536,12 @@ describe("unifi-network-map editor", () => {
       clientX: 0,
       clientY: 0,
     } as unknown as MouseEvent;
-    expect(card._resolveNodeId(event)).toBe("Core Switch");
+    expect(resolveNodeId(event)).toBe("Core Switch");
   });
 });
 
 describe("filter bar", () => {
   afterEach(resetTestDom);
-
-  it("renders filter bar with icons and counts", () => {
-    const { renderFilterBar, countDeviceTypes } = require("../card/ui/filter-bar");
-    const { nodeTypeIcon } = require("../card/ui/icons");
-
-    const nodeTypes = {
-      Gateway: "gateway",
-      "Switch 1": "switch",
-      "Switch 2": "switch",
-      "AP 1": "ap",
-      "Client 1": "client",
-      "Client 2": "client",
-      "Client 3": "client",
-    };
-
-    const counts = countDeviceTypes(nodeTypes);
-    const filters = { gateway: true, switch: true, ap: true, client: true, other: true };
-    const html = renderFilterBar({
-      filters,
-      counts,
-      getNodeTypeIcon: (type: string) => nodeTypeIcon(type, "dark"),
-    });
-
-    expect(html).toContain('data-filter-type="gateway"');
-    expect(html).toContain('data-filter-type="switch"');
-    expect(html).toContain('data-filter-type="ap"');
-    expect(html).toContain('data-filter-type="client"');
-    expect(html).not.toContain('data-filter-type="other"'); // hidden when count=0
-    expect(html).toContain("unifi-icon");
-    expect(html).toContain(">1<"); // gateway count
-    expect(html).toContain(">2<"); // switch count
-    expect(html).toContain(">3<"); // client count
-  });
 
   it("counts device types correctly", () => {
     const { countDeviceTypes } = require("../card/ui/filter-bar");
@@ -660,25 +589,6 @@ describe("filter bar", () => {
     expect(normalizeDeviceType("client")).toBe("client");
     expect(normalizeDeviceType("unknown")).toBe("other");
     expect(normalizeDeviceType("random_type")).toBe("other");
-  });
-
-  it("renders inactive button style when filter is off", () => {
-    const { renderFilterBar, countDeviceTypes } = require("../card/ui/filter-bar");
-    const { nodeTypeIcon } = require("../card/ui/icons");
-
-    const nodeTypes = { Gateway: "gateway" };
-    const counts = countDeviceTypes(nodeTypes);
-    const filters = { gateway: false, switch: true, ap: true, client: true, other: true };
-
-    const html = renderFilterBar({
-      filters,
-      counts,
-      getNodeTypeIcon: (type: string) => nodeTypeIcon(type, "dark"),
-    });
-
-    expect(html).toContain('data-filter-type="gateway"');
-    expect(html).toContain("filter-button--inactive");
-    expect(html).toContain('aria-pressed="false"');
   });
 
   it("uses emoji icons for dark theme", () => {

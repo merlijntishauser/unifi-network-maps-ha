@@ -184,9 +184,8 @@ function renderPortModal(
   `;
 }
 
-function resolveConnectedDeviceName(port: PortInfo, payload: MapPayload | undefined): string {
-  if (!port.connectedDevice) return "Empty";
-  return payload?.node_names?.[port.connectedDevice] ?? port.connectedDevice;
+function resolveConnectedDeviceName(device: string, payload: MapPayload | undefined): string {
+  return payload?.node_names?.[device] ?? device;
 }
 
 function renderPoeBadge(port: PortInfo, localize: (key: string) => string): string {
@@ -206,8 +205,8 @@ function renderPortRow(
   localize: (key: string, replacements?: Record<string, string | number>) => string,
 ): string {
   const deviceIcon = port.connectedDeviceType ? getNodeTypeIcon(port.connectedDeviceType) : "";
-  const deviceName = resolveConnectedDeviceName(port, payload);
   const isConnected = port.connectedDevice !== null;
+  const deviceName = isConnected ? resolveConnectedDeviceName(port.connectedDevice!, payload) : "";
   const poeBadge = renderPoeBadge(port, localize);
 
   return `

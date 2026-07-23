@@ -25,26 +25,3 @@ export function setHoveredNode(state: SelectionState, nodeName: string | null): 
 export function setHoveredEdge(state: SelectionState, edge: Edge | null): void {
   state.hoveredEdge = edge ?? undefined;
 }
-
-export function handleMapClick(params: {
-  event: MouseEvent;
-  state: SelectionState;
-  panMoved: boolean;
-  isControlTarget: (target: Element | null) => boolean;
-  resolveNodeId: (event: MouseEvent) => string | null;
-}): string | null {
-  if (params.isControlTarget(params.event.target as Element | null)) {
-    return null;
-  }
-  if (params.panMoved) {
-    return null;
-  }
-
-  const label = params.resolveNodeId(params.event) ?? params.state.hoveredNode;
-  if (!label) {
-    return null;
-  }
-
-  params.state.selectedNode = label;
-  return label;
-}

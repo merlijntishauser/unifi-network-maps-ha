@@ -1,4 +1,4 @@
-import { assignVlanColors, generateVlanStyles, getNodeVlanInfo } from "../card/ui/vlan-colors";
+import { assignVlanColors, generateVlanStyles } from "../card/ui/vlan-colors";
 import type { VlanInfo } from "../card/core/types";
 
 // Polyfill CSS.escape for JSDOM
@@ -130,57 +130,6 @@ describe("vlan-colors", () => {
       const result = generateVlanStyles(nodeVlans, colorMap);
       // CSS.escape should handle the dot
       expect(result).toContain("stroke: #60a5fa");
-    });
-  });
-
-  describe("getNodeVlanInfo", () => {
-    it("returns null for undefined nodeVlans", () => {
-      const vlanInfo: Record<number, VlanInfo> = {
-        10: { id: 10, name: "Default" },
-      };
-      const result = getNodeVlanInfo("Client1", undefined, vlanInfo);
-      expect(result).toBeNull();
-    });
-
-    it("returns null for undefined vlanInfo", () => {
-      const nodeVlans: Record<string, number | null> = { Client1: 10 };
-      const result = getNodeVlanInfo("Client1", nodeVlans, undefined);
-      expect(result).toBeNull();
-    });
-
-    it("returns null for node with null VLAN", () => {
-      const nodeVlans: Record<string, number | null> = { Client1: null };
-      const vlanInfo: Record<number, VlanInfo> = {
-        10: { id: 10, name: "Default" },
-      };
-      const result = getNodeVlanInfo("Client1", nodeVlans, vlanInfo);
-      expect(result).toBeNull();
-    });
-
-    it("returns null for node not in nodeVlans", () => {
-      const nodeVlans: Record<string, number | null> = { Client1: 10 };
-      const vlanInfo: Record<number, VlanInfo> = {
-        10: { id: 10, name: "Default" },
-      };
-      const result = getNodeVlanInfo("Client2", nodeVlans, vlanInfo);
-      expect(result).toBeNull();
-    });
-
-    it("returns null for VLAN not in vlanInfo", () => {
-      const nodeVlans: Record<string, number | null> = { Client1: 99 };
-      const vlanInfo: Record<number, VlanInfo> = {
-        10: { id: 10, name: "Default" },
-      };
-      const result = getNodeVlanInfo("Client1", nodeVlans, vlanInfo);
-      expect(result).toBeNull();
-    });
-
-    it("returns VlanInfo for valid node", () => {
-      const nodeVlans: Record<string, number | null> = { Client1: 10 };
-      const expectedInfo: VlanInfo = { id: 10, name: "Default" };
-      const vlanInfo: Record<number, VlanInfo> = { 10: expectedInfo };
-      const result = getNodeVlanInfo("Client1", nodeVlans, vlanInfo);
-      expect(result).toEqual(expectedInfo);
     });
   });
 });

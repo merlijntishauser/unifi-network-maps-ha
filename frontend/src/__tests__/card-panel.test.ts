@@ -1,3 +1,5 @@
+import { renderTabContent } from "../card/ui/panel";
+import type { PanelContext, PanelHelpers } from "../card/ui/panel";
 import type { ConfigurableCard } from "./test-helpers";
 import { flushPromises, makeSvg, resetTestDom, samplePayload } from "./test-helpers";
 
@@ -269,13 +271,12 @@ describe("unifi-network-map card panel", () => {
   });
 
   it("returns default tab content for unknown tab", () => {
-    const element = document.createElement("unifi-network-map") as ConfigurableCard;
-    const card = element as unknown as {
-      _renderTabContent: (name: string) => string;
-      _activeTab: "overview" | "stats" | "actions" | "other";
-    };
-    card._activeTab = "other";
-    expect(card._renderTabContent("aa:bb:cc:dd:ee:ff")).toBe("");
+    const context = {
+      payload: undefined,
+      selectedNode: "aa:bb:cc:dd:ee:ff",
+      activeTab: "other",
+    } as unknown as PanelContext;
+    expect(renderTabContent(context, "aa:bb:cc:dd:ee:ff", {} as PanelHelpers)).toBe("");
   });
 
   it("renders node panel fallback when payload is missing", () => {
@@ -351,20 +352,9 @@ describe("unifi-network-map card panel", () => {
     (element as unknown as { _svgContent?: string })._svgContent = makeSvg("aa:bb:cc:dd:ee:01");
     (element as unknown as { _payload?: unknown })._payload = samplePayload();
     element.setConfig({ svg_url: "/map.svg" });
-    const tooltip = element.querySelector(".unifi-network-map__tooltip") as HTMLElement;
     const svg = element.querySelector("svg") as SVGElement;
-    const handler = element as unknown as {
-      _onClick: (event: MouseEvent, tooltip: HTMLElement) => void;
-    };
     const target = svg.querySelector("[data-node-id]") as Element;
-    handler._onClick(
-      {
-        composedPath: () => [target],
-        clientX: 0,
-        clientY: 0,
-      } as unknown as MouseEvent,
-      tooltip,
-    );
+    target.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(element.innerHTML).toContain("Gateway");
   });
 

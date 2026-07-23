@@ -82,71 +82,10 @@ export function markNodeSelected(element: Element): void {
   }
 }
 
-export function annotateNodeIds(svg: SVGElement, nodeNames: string[]): void {
-  if (!nodeNames.length) {
-    return;
-  }
-  const textMap = buildTextMap(svg, "text");
-  const titleMap = buildTextMap(svg, "title");
-
-  for (const name of nodeNames) {
-    const holder = findNodeHolder(svg, name, textMap, titleMap);
-    if (!holder) {
-      continue;
-    }
-    holder.setAttribute("data-node-id", name);
-  }
-}
-
 export function removeSvgTitles(svg: SVGElement): void {
   // Remove <title> elements to prevent native browser tooltips
   // (we show custom tooltips instead)
   svg.querySelectorAll("title").forEach((el) => el.remove());
-}
-
-function buildTextMap(svg: SVGElement, selector: "text" | "title"): Map<string, Element[]> {
-  const map = new Map<string, Element[]>();
-  for (const el of svg.querySelectorAll(selector)) {
-    const text = el.textContent?.trim();
-    if (!text) continue;
-    const list = map.get(text) ?? [];
-    list.push(el);
-    map.set(text, list);
-  }
-  return map;
-}
-
-function findNodeHolder(
-  svg: SVGElement,
-  name: string,
-  textMap: Map<string, Element[]>,
-  titleMap: Map<string, Element[]>,
-): Element | null {
-  if (!name) {
-    return null;
-  }
-  if (svg.querySelector(`[data-node-id="${CSS.escape(name)}"]`)) {
-    return null;
-  }
-  const target = findNodeTarget(svg, name, textMap, titleMap);
-  if (!target) {
-    return null;
-  }
-  return target.closest("g") ?? target;
-}
-
-function findNodeTarget(
-  svg: SVGElement,
-  name: string,
-  textMap: Map<string, Element[]>,
-  titleMap: Map<string, Element[]>,
-): Element | null {
-  return (
-    svg.querySelector(`[aria-label="${CSS.escape(name)}"]`) ??
-    textMap.get(name)?.[0] ??
-    titleMap.get(name)?.[0] ??
-    null
-  );
 }
 
 function findByDataNodeId(svg: SVGElement, nodeName: string): Element | null {
