@@ -64,8 +64,8 @@ from .const import (
 )
 from .errors import (
     CannotConnect,
-    EmptyCredential,
     InvalidAuth,
+    InvalidCredentialCombination,
     InvalidPort,
     InvalidUrl,
     RequestRejected,
@@ -95,7 +95,7 @@ class UniFiNetworkMapConfigFlow(  # type: ignore[reportUntypedBaseClass,reportGe
             try:
                 _validate_credentials(data)
                 await self._async_validate_auth(data)
-            except EmptyCredential:
+            except InvalidCredentialCombination:
                 errors["base"] = "empty_credential"
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
@@ -202,7 +202,7 @@ class UniFiNetworkMapConfigFlow(  # type: ignore[reportUntypedBaseClass,reportGe
             return user_input, "url_has_credentials"
         except InvalidPort:
             return user_input, "invalid_port"
-        except EmptyCredential:
+        except InvalidCredentialCombination:
             return user_input, "empty_credential"
         except InvalidAuth:
             return user_input, "invalid_auth"
@@ -515,11 +515,11 @@ def _validate_credentials(user_input: dict[str, Any]) -> None:
     """
     site = user_input.get(CONF_SITE, "")
     if not isinstance(site, str) or not site.strip():
-        raise EmptyCredential
+        raise InvalidCredentialCombination
     has_password_auth = _has_password_auth(user_input)
     has_api_key = _has_api_key(user_input)
     if has_password_auth == has_api_key:
-        raise EmptyCredential
+        raise InvalidCredentialCombination
 
 
 def _has_password_auth(user_input: dict[str, Any]) -> bool:
@@ -545,7 +545,7 @@ def _validate_credentials_call(data: dict[str, Any]) -> None:
         username=data.get(CONF_USERNAME) or None,
         password=data.get(CONF_PASSWORD) or None,
         site=data[CONF_SITE],
-        verify_ssl=data[CONF_VERIFY_SSL],
+        verify_ssl=data.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL),
         api_key=data.get(CONF_API_KEY) or None,
     )
 

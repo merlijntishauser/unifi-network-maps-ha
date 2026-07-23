@@ -37,8 +37,10 @@ class RequestRejected(UniFiNetworkMapError):
     """
 
 
-class EmptyCredential(UniFiNetworkMapError):
-    """Raised when username, password, or site is empty."""
+class InvalidCredentialCombination(UniFiNetworkMapError):
+    """Raised when the site is empty, or when the auth methods are not
+    exactly one of (username + password) or api_key -- both supplied and
+    neither supplied are equally invalid."""
 
 
 class InvalidPort(UniFiNetworkMapError):

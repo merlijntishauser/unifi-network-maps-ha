@@ -113,7 +113,7 @@ def _subscribe_to_registry_events(
     def _on_entity_registry_updated(event: Event[dict[str, str]]) -> None:
         action = event.data.get("action", "")
         entity_id = event.data.get("entity_id", "")
-        if _is_unifi_relevant_event(hass, entity_id):
+        if _entity_event_may_affect_index(hass, entity_id):
             cache.invalidate()
             invalidate_payload_cache(hass)
             LOGGER.debug(
@@ -128,7 +128,7 @@ def _subscribe_to_registry_events(
     def _on_device_registry_updated(event: Event[dict[str, str]]) -> None:
         action = event.data.get("action", "")
         device_id = event.data.get("device_id", "")
-        if _is_unifi_relevant_device(hass, device_id):
+        if _device_event_may_affect_index(hass, device_id):
             cache.invalidate()
             invalidate_payload_cache(hass)
             LOGGER.debug(
@@ -172,8 +172,14 @@ def _get_device_registry_event() -> str:
     return "device_registry_updated"
 
 
-def _is_unifi_relevant_event(hass: HomeAssistant, entity_id: str) -> bool:
-    """Check if the entity change is relevant to UniFi entities."""
+def _entity_event_may_affect_index(
+    hass: HomeAssistant, entity_id: str
+) -> bool:
+    """Return False only when the change provably cannot affect the index.
+
+    Unknown or removed entities resolve to True on purpose: the index
+    may have contained them, so a rebuild is the safe answer.
+    """
     if not entity_id:
         return True
     entity_registry = er.async_get(hass)
@@ -189,8 +195,10 @@ def _is_unifi_relevant_event(hass: HomeAssistant, entity_id: str) -> bool:
     return False
 
 
-def _is_unifi_relevant_device(hass: HomeAssistant, device_id: str) -> bool:
-    """Check if the device change is relevant to UniFi devices."""
+def _device_event_may_affect_index(
+    hass: HomeAssistant, device_id: str
+) -> bool:
+    """Return False only when the change provably cannot affect the index."""
     if not device_id:
         return True
     device_registry = dr.async_get(hass)

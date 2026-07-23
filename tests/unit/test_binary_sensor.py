@@ -7,8 +7,8 @@ from homeassistant.core import HomeAssistant
 from custom_components.unifi_network_map.binary_sensor import (
     UniFiClientPresenceSensor,
     UniFiDevicePresenceSensor,
-    _normalize_mac,
     _normalize_name,
+    _parse_mac,
     _parse_tracked_clients,
 )
 from custom_components.unifi_network_map.coordinator import (
@@ -449,28 +449,28 @@ async def test_device_uses_current_details_from_coordinator(
 # --- Client Presence Sensor Tests ---
 
 
-def test_normalize_mac_colon_separated() -> None:
-    assert _normalize_mac("aa:bb:cc:dd:ee:ff") == "aa:bb:cc:dd:ee:ff"
+def test_parse_mac_colon_separated() -> None:
+    assert _parse_mac("aa:bb:cc:dd:ee:ff") == "aa:bb:cc:dd:ee:ff"
 
 
-def test_normalize_mac_dash_separated() -> None:
-    assert _normalize_mac("AA-BB-CC-DD-EE-FF") == "aa:bb:cc:dd:ee:ff"
+def test_parse_mac_dash_separated() -> None:
+    assert _parse_mac("AA-BB-CC-DD-EE-FF") == "aa:bb:cc:dd:ee:ff"
 
 
-def test_normalize_mac_no_separator() -> None:
-    assert _normalize_mac("aabbccddeeff") == "aa:bb:cc:dd:ee:ff"
+def test_parse_mac_no_separator() -> None:
+    assert _parse_mac("aabbccddeeff") == "aa:bb:cc:dd:ee:ff"
 
 
-def test_normalize_mac_invalid_length() -> None:
-    assert _normalize_mac("aa:bb:cc") is None
+def test_parse_mac_invalid_length() -> None:
+    assert _parse_mac("aa:bb:cc") is None
 
 
-def test_normalize_mac_invalid_chars() -> None:
-    assert _normalize_mac("gg:hh:ii:jj:kk:ll") is None
+def test_parse_mac_invalid_chars() -> None:
+    assert _parse_mac("gg:hh:ii:jj:kk:ll") is None
 
 
-def test_normalize_mac_empty() -> None:
-    assert _normalize_mac("") is None
+def test_parse_mac_empty() -> None:
+    assert _parse_mac("") is None
 
 
 def test_parse_tracked_clients_empty() -> None:

@@ -45,6 +45,7 @@ from .const import (
     DEFAULT_SVG_ISOMETRIC,
     DEFAULT_SVG_THEME,
     DEFAULT_USE_CACHE,
+    DEFAULT_VERIFY_SSL,
     DEFAULT_WAN2_DISABLED,
     DEFAULT_WAN2_LABEL,
     DEFAULT_WAN2_SPEED,
@@ -220,7 +221,7 @@ def _build_client(
         password=data.get(CONF_PASSWORD),
         api_key=data.get(CONF_API_KEY),
         site=data[CONF_SITE],
-        verify_ssl=data.get(CONF_VERIFY_SSL, True),
+        verify_ssl=data.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL),
         settings=_build_settings(entry),
         request_timeout_seconds=entry.options.get(
             CONF_REQUEST_TIMEOUT_SECONDS, DEFAULT_REQUEST_TIMEOUT_SECONDS

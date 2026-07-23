@@ -301,13 +301,13 @@ def _parse_tracked_clients(entry: ConfigEntry) -> list[str]:
 
     macs: list[str] = []
     for line in raw_value.strip().split("\n"):
-        mac = _normalize_mac(line.strip())
+        mac = _parse_mac(line.strip())
         if mac:
             macs.append(mac)
     return macs
 
 
-def _normalize_mac(mac: str) -> str | None:
+def _parse_mac(mac: str) -> str | None:
     """Normalize and validate a MAC address."""
     if not mac:
         return None

@@ -268,27 +268,33 @@ def test_device_registry_event_ignores_non_unifi_device() -> None:
     assert cache.mac_to_entity == {"test": "value"}
 
 
-def test_is_unifi_relevant_event_returns_true_for_empty_entity_id() -> None:
+def test_entity_event_may_affect_index_returns_true_for_empty_entity_id() -> (
+    None
+):
     hass = FakeHass()
 
-    result = entity_cache._is_unifi_relevant_event(hass, "")
+    result = entity_cache._entity_event_may_affect_index(hass, "")
 
     assert result is True
 
 
-def test_is_unifi_relevant_event_returns_true_for_missing_entity() -> None:
+def test_entity_event_may_affect_index_returns_true_for_missing_entity() -> (
+    None
+):
     hass = FakeHass()
     entity_registry = FakeEntityRegistry({})
 
     with patch.object(
         entity_cache.er, "async_get", return_value=entity_registry
     ):
-        result = entity_cache._is_unifi_relevant_event(hass, "missing.entity")
+        result = entity_cache._entity_event_may_affect_index(
+            hass, "missing.entity"
+        )
 
     assert result is True
 
 
-def test_is_unifi_relevant_event_returns_true_for_unifi_config_entry() -> None:
+def test_entity_event_affects_index_for_unifi_config_entry() -> None:
     hass = FakeHass()
     hass.config_entries = FakeConfigEntries(
         [FakeConfigEntry("entry1", "unifi")]
@@ -304,22 +310,24 @@ def test_is_unifi_relevant_event_returns_true_for_unifi_config_entry() -> None:
     with patch.object(
         entity_cache.er, "async_get", return_value=entity_registry
     ):
-        result = entity_cache._is_unifi_relevant_event(hass, "sensor.test")
+        result = entity_cache._entity_event_may_affect_index(
+            hass, "sensor.test"
+        )
 
     assert result is True
 
 
-def test_is_unifi_relevant_device_returns_true_for_empty_device_id() -> None:
-    hass = FakeHass()
-
-    result = entity_cache._is_unifi_relevant_device(hass, "")
-
-    assert result is True
-
-
-def test_is_unifi_relevant_device_returns_true_for_unifi_config_entry() -> (
+def test_device_event_may_affect_index_returns_true_for_empty_device_id() -> (
     None
 ):
+    hass = FakeHass()
+
+    result = entity_cache._device_event_may_affect_index(hass, "")
+
+    assert result is True
+
+
+def test_device_event_affects_index_for_unifi_config_entry() -> None:
     hass = FakeHass()
     hass.config_entries = FakeConfigEntries(
         [FakeConfigEntry("entry1", "unifi")]
@@ -335,7 +343,7 @@ def test_is_unifi_relevant_device_returns_true_for_unifi_config_entry() -> (
     with patch.object(
         entity_cache.dr, "async_get", return_value=device_registry
     ):
-        result = entity_cache._is_unifi_relevant_device(hass, "dev1")
+        result = entity_cache._device_event_may_affect_index(hass, "dev1")
 
     assert result is True
 
