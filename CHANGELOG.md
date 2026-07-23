@@ -21,6 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - VPN tunnels now render in the card. The SVG endpoint's themed re-render path (taken on every card load, since the card always sends theme parameters) was a diverged copy of the renderer pipeline that never passed `vpn_tunnels`; the duplicate has been removed and both paths now share one renderer entry point (`render_themed_svg`), which also forwards WAN info consistently
 - The render cache TTL now follows the configured scan interval instead of a fixed 10 minutes, so short scan intervals actually poll the controller (previously a 1-minute interval served cached data for 9 of every 10 polls). The `unifi_network_map.refresh` service now bypasses the cache entirely; before, a manual refresh within the cache window never contacted the controller
 - WebSocket subscribers now share the HTTP payload view's enrichment cache. Previously every subscriber deep-copied and re-enriched the full payload on every coordinator update, synchronously on the event loop -- N open dashboards meant N times the work per poll
+- The "card installed" notification actually appears again: it was created via `hass.components`, which Home Assistant removed, so it had been silently skipped ever since
+- The client list is fetched from the controller once per refresh instead of twice (the client-edges path and the stats path issued the identical request back to back)
+- The VPN panel section is now localized in all 10 languages (the 6 VPN keys were missing from every non-English locale and silently fell back to English)
+
+### Removed
+- Roughly 1100 lines of dead code found by a full-codebase review: legacy Home Assistant compatibility fallbacks that could never execute on supported versions (the pre-2025.7 static path API, the old lovelace resources module API, and a five-strategy `StaticPathConfig` construction dance), the frontend annotation cache (invalidated before every possible hit, so it never cached anything), ~25 test-only methods on the card class with their tests retargeted at the real modules, a divergent third copy of click resolution that only tests executed, and assorted unused constants, type aliases, and parameters
 
 ### Changed
 - Bumped DOMPurify from 3.4.7 to 3.4.10 (maintenance releases: Trusted Types policy handling, node-iterator template-scrubbing, and IN_PLACE sanitization fixes) and rebuilt the frontend bundle (#229, #234, #239)
