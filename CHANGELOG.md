@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.5.5] - 2026-07-25
 
 ### Fixed
 - Setup, reauth, and reconfigure flows now show a clear "Unexpected error" message (hinting to check the logs and try API key auth) instead of Home Assistant's generic "Unknown error occurred" when validation hits an unmapped exception. The underlying exception is now logged with a full traceback so these failures can be diagnosed (#231)
@@ -351,7 +351,8 @@ The upcoming 0.2 release will have some major new features.
 ## [0.1.0] - 2026-01-17
 - Initial public release.
 
-[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.5.5...HEAD
+[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.5.6...HEAD
+[0.5.6]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.6
 [0.5.5]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.5
 [0.5.4]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.4
 [0.5.3]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.3
