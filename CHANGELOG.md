@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.7] - 2026-07-25
+
 ### Fixed
 - Hovering a node now shows its friendly device name in the tooltip instead of the raw MAC address. The tooltip rendered the MAC-keyed node id without mapping it back through `node_names` (the detail panel and port modal already did); it now resolves the name, falling back to the id for unnamed nodes
 
@@ -356,7 +358,8 @@ The upcoming 0.2 release will have some major new features.
 ## [0.1.0] - 2026-01-17
 - Initial public release.
 
-[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.5.6...HEAD
+[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.5.7...HEAD
+[0.5.7]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.7
 [0.5.6]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.6
 [0.5.5]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.5
 [0.5.4]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.4
