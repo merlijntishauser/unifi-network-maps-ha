@@ -43,8 +43,9 @@ const spyCallbacks = (): ViewportCallbacks => ({
   onUpdateTransform: jest.fn(),
 });
 
-const nodeHandlers = (): ViewportHandlers => ({
+const nodeHandlers = (names: Record<string, string> = {}): ViewportHandlers => ({
   resolveNodeId: (event) => resolveNodeId(event),
+  resolveNodeName: (id) => names[id] ?? id,
   findEdge: () => null,
   renderEdgeTooltip: () => "",
 });
@@ -184,7 +185,34 @@ describe("unifi-network-map viewport and node helpers", () => {
     expect(node.getAttribute("data-selected")).toBe("true");
   });
 
-  it("shows tooltip on hover when not panning", () => {
+  it("shows the friendly node name in the tooltip on hover", () => {
+    const state = createDefaultViewportState();
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    const tooltip = document.createElement("div");
+    const node = document.createElement("div");
+    node.setAttribute("data-node-id", "aa:bb:cc:dd:ee:ff");
+    const callbacks = spyCallbacks();
+    onPointerMove(
+      {
+        composedPath: () => [node],
+        clientX: 10,
+        clientY: 20,
+      } as unknown as PointerEvent,
+      svg,
+      state,
+      viewportOptions(),
+      nodeHandlers({ "aa:bb:cc:dd:ee:ff": "Office AP" }),
+      callbacks,
+      tooltip,
+    );
+    expect(tooltip.hidden).toBe(false);
+    // The tooltip shows the display name, not the MAC-keyed node id.
+    expect(tooltip.textContent).toBe("Office AP");
+    // Hover state stays keyed by node id for highlighting/lookup.
+    expect(callbacks.onHoverNode).toHaveBeenCalledWith("aa:bb:cc:dd:ee:ff");
+  });
+
+  it("falls back to the node id in the tooltip when the node is unnamed", () => {
     const state = createDefaultViewportState();
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     const tooltip = document.createElement("div");
@@ -203,7 +231,6 @@ describe("unifi-network-map viewport and node helpers", () => {
       spyCallbacks(),
       tooltip,
     );
-    expect(tooltip.hidden).toBe(false);
     expect(tooltip.textContent).toBe("aa:bb:cc:dd:ee:ff");
   });
 

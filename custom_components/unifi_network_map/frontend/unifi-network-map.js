@@ -5308,7 +5308,7 @@ function handleHover(event, options, handlers, callbacks, tooltip) {
     hideTooltip(tooltip);
     return;
   }
-  showNodeTooltip(label, event, options, callbacks, tooltip);
+  showNodeTooltip(label, event, options, handlers, callbacks, tooltip);
 }
 function showEdgeTooltip(edge, event, options, handlers, callbacks, tooltip) {
   callbacks.onHoverEdge(edge);
@@ -5319,11 +5319,11 @@ function showEdgeTooltip(edge, event, options, handlers, callbacks, tooltip) {
   tooltip.style.transform = "none";
   positionTooltip(tooltip, event, options.tooltipOffsetPx);
 }
-function showNodeTooltip(label, event, options, callbacks, tooltip) {
-  callbacks.onHoverNode(label);
+function showNodeTooltip(nodeId, event, options, handlers, callbacks, tooltip) {
+  callbacks.onHoverNode(nodeId);
   tooltip.hidden = false;
   tooltip.classList.remove("unifi-network-map__tooltip--edge");
-  tooltip.textContent = label;
+  tooltip.textContent = handlers.resolveNodeName(nodeId);
   tooltip.style.transform = "none";
   positionTooltip(tooltip, event, options.tooltipOffsetPx);
 }
@@ -5509,9 +5509,10 @@ function createDefaultViewportState() {
     pinchStartScale: null
   };
 }
-function createDefaultViewportHandlers(edges, getIcon, localize) {
+function createDefaultViewportHandlers(edges, getIcon, localize, nodeNames) {
   return {
     resolveNodeId: (event) => resolveNodeId(event),
+    resolveNodeName: (id) => nodeNames?.[id] ?? id,
     findEdge: (target) => edges ? findEdgeFromTarget(target, edges) : null,
     renderEdgeTooltip: (edge) => renderEdgeTooltip(edge, getIcon, localize)
   };
@@ -7338,7 +7339,8 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       handlers: createDefaultViewportHandlers(
         this._payload?.edges,
         (name) => this._getIcon(name),
-        this._localize
+        this._localize,
+        this._payload?.node_names
       ),
       callbacks,
       bindings: {

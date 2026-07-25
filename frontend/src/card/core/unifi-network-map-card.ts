@@ -924,6 +924,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
         this._payload?.edges,
         (name) => this._getIcon(name),
         this._localize,
+        this._payload?.node_names,
       ),
       callbacks,
       bindings: {

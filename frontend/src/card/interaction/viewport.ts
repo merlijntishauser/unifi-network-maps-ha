@@ -24,6 +24,7 @@ export type ViewportOptions = {
 
 export type ViewportHandlers = {
   resolveNodeId: (event: MouseEvent | PointerEvent) => string | null;
+  resolveNodeName: (id: string) => string;
   findEdge: (target: Element | null) => Edge | null;
   renderEdgeTooltip: (edge: Edge) => string;
 };
@@ -249,7 +250,7 @@ function handleHover(
     hideTooltip(tooltip);
     return;
   }
-  showNodeTooltip(label, event, options, callbacks, tooltip);
+  showNodeTooltip(label, event, options, handlers, callbacks, tooltip);
 }
 
 function showEdgeTooltip(
@@ -270,16 +271,19 @@ function showEdgeTooltip(
 }
 
 function showNodeTooltip(
-  label: string,
+  nodeId: string,
   event: PointerEvent,
   options: ViewportOptions,
+  handlers: ViewportHandlers,
   callbacks: ViewportCallbacks,
   tooltip: HTMLElement,
 ): void {
-  callbacks.onHoverNode(label);
+  // Hover state stays keyed by node id (used for highlighting/lookup);
+  // the tooltip shows the friendly name, falling back to the id.
+  callbacks.onHoverNode(nodeId);
   tooltip.hidden = false;
   tooltip.classList.remove("unifi-network-map__tooltip--edge");
-  tooltip.textContent = label;
+  tooltip.textContent = handlers.resolveNodeName(nodeId);
   tooltip.style.transform = "none";
   positionTooltip(tooltip, event, options.tooltipOffsetPx);
 }
@@ -542,9 +546,11 @@ export function createDefaultViewportHandlers(
   edges: Edge[] | undefined,
   getIcon: (name: IconName) => string,
   localize: LocalizeFunc,
+  nodeNames?: Record<string, string>,
 ): ViewportHandlers {
   return {
     resolveNodeId: (event) => resolveNodeId(event),
+    resolveNodeName: (id) => nodeNames?.[id] ?? id,
     findEdge: (target) => (edges ? findEdgeFromTarget(target, edges) : null),
     renderEdgeTooltip: (edge) => renderEdgeTooltip(edge, getIcon, localize),
   };
