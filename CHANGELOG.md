@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Bumped `unifi-topology` from 3.0.1 to 3.0.2. Restores model-name resolution for devices whose store SKU only survives as an entry's `name` after the bundled model database's store-to-firmware re-keying (e.g. `USW-Enterprise-24-PoE`), so their model names show correctly again in the map and sensors. (3.0.2 also fixes `render_device_port_overview`, which is in a markdown path this integration does not use.)
+
 ### Removed
 - The "card installed" persistent notification. Its only guard against re-firing lived in memory, so it reappeared on every Home Assistant restart rather than once at install; the card auto-registers as a Lovelace resource regardless (#266)
 
