@@ -38,20 +38,14 @@ class _FakeHass:
         return None
 
 
-def test_register_frontend_assets_with_async_static_paths(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_register_frontend_assets_with_async_static_paths() -> None:
     hass = _FakeHass()
     hass.data["unifi_network_map"] = {}
-    notifications: list[object] = []
-    monkeypatch.setattr(
-        unifi_network_map.persistent_notification,
-        "async_create",
-        lambda *args, **kwargs: notifications.append((args, kwargs)),
-    )
     register = getattr(unifi_network_map, "_register_frontend_assets")
     register(hass)
-    assert notifications, "Expected the install notification to be created"
+    # The install notification was removed: it could only ever fire on
+    # every restart (in-memory guard), which was pure noise.
+    assert not hasattr(unifi_network_map, "_create_install_notification")
     assert hass.http.registered, (
         "Expected static path registration to be called"
     )

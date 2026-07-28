@@ -10,7 +10,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import custom_components.unifi_network_map as init_module
 from custom_components.unifi_network_map import (
     _async_options_updated,
-    _create_install_notification,
     _frontend_bundle_url,
     _suppress_unifi_api_info_logs,
     _UnifiApiInfoFilter,
@@ -105,29 +104,6 @@ def test_suppress_unifi_api_info_logs_skips_when_already_added(
     _suppress_unifi_api_info_logs(hass)
     # Already added, so nothing should change.
     assert init_module._unifi_api_info_filter_added is True
-
-
-# -- _create_install_notification --
-
-
-def test_create_install_notification_creates_notification() -> None:
-    """The notification uses the real persistent_notification API.
-
-    hass.components was removed from HomeAssistant, so the old
-    getattr(hass, "components", ...) path silently never notified.
-    """
-    hass = MagicMock()
-    with patch.object(
-        init_module.persistent_notification, "async_create"
-    ) as mock_create:
-        _create_install_notification(hass)
-
-    mock_create.assert_called_once()
-    assert mock_create.call_args[0][0] is hass
-    assert (
-        mock_create.call_args[1]["notification_id"]
-        == "unifi_network_map_install"
-    )
 
 
 # -- _frontend_bundle_url fallback (line 318) --

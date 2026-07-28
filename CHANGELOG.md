@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- The "card installed" persistent notification. Its only guard against re-firing lived in memory, so it reappeared on every Home Assistant restart rather than once at install; the card auto-registers as a Lovelace resource regardless (#266)
+
 ## [0.5.7] - 2026-07-25
 
 ### Fixed
