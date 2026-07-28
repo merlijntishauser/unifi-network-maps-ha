@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.8] - 2026-07-28
+
 ### Changed
 - Bumped `unifi-topology` from 3.0.1 to 3.0.2. Restores model-name resolution for devices whose store SKU only survives as an entry's `name` after the bundled model database's store-to-firmware re-keying (e.g. `USW-Enterprise-24-PoE`), so their model names show correctly again in the map and sensors. (3.0.2 also fixes `render_device_port_overview`, which is in a markdown path this integration does not use.)
 
@@ -364,7 +366,8 @@ The upcoming 0.2 release will have some major new features.
 ## [0.1.0] - 2026-01-17
 - Initial public release.
 
-[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.5.7...HEAD
+[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.5.8...HEAD
+[0.5.8]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.8
 [0.5.7]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.7
 [0.5.6]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.6
 [0.5.5]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.5
