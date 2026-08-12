@@ -208,8 +208,20 @@ def _device_event_may_affect_index(
     for identifier in device.identifiers:
         if len(identifier) >= 2 and identifier[0] == "unifi":
             return True
-    for config_entry_id in device.config_entries:
+    for config_entry_id in _device_config_entry_ids(device):
         entry = hass.config_entries.async_get_entry(config_entry_id)
         if entry is not None and entry.domain == "unifi":
             return True
     return False
+
+
+def _device_config_entry_ids(device: dr.DeviceEntry) -> tuple[str, ...]:
+    """Return the device's config entry ids across HA versions.
+
+    HA 2026.8 replaced DeviceEntry.config_entries (deprecated,
+    removed in 2027.8) with a single config_entry_id.
+    """
+    entry_id = getattr(device, "config_entry_id", None)
+    if entry_id is not None:
+        return (entry_id,)
+    return tuple(getattr(device, "config_entries", None) or ())

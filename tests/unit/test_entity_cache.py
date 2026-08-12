@@ -25,6 +25,7 @@ class FakeDevice:
     identifiers: set[tuple[str, str]]
     connections: set[tuple[str, str]]
     config_entries: set[str]
+    config_entry_id: str | None = None
 
 
 class FakeEntityRegistry:
@@ -336,6 +337,32 @@ def test_device_event_affects_index_for_unifi_config_entry() -> None:
         {
             "dev1": FakeDevice(
                 identifiers=set(), connections=set(), config_entries={"entry1"}
+            )
+        }
+    )
+
+    with patch.object(
+        entity_cache.dr, "async_get", return_value=device_registry
+    ):
+        result = entity_cache._device_event_may_affect_index(hass, "dev1")
+
+    assert result is True
+
+
+def test_device_event_affects_index_via_config_entry_id() -> None:
+    """HA 2026.8+ devices expose config_entry_id instead of the
+    deprecated config_entries set."""
+    hass = FakeHass()
+    hass.config_entries = FakeConfigEntries(
+        [FakeConfigEntry("entry1", "unifi")]
+    )
+    device_registry = FakeDeviceRegistry(
+        {
+            "dev1": FakeDevice(
+                identifiers=set(),
+                connections=set(),
+                config_entries=set(),
+                config_entry_id="entry1",
             )
         }
     )
