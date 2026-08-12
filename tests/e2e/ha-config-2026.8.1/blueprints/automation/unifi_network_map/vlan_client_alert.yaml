@@ -1,0 +1,46 @@
+blueprint:
+  name: UniFi VLAN Client Alert
+  description: Alert when too many devices connect to a network segment.
+  domain: automation
+  author: UniFi Network Map
+  source_url: https://github.com/merlijntishauser/unifi-network-maps-ha/blob/main/custom_components/unifi_network_map/blueprints/automation/vlan_client_alert.yaml
+  input:
+    vlan_sensor:
+      name: VLAN Sensor
+      description: The VLAN client count sensor to monitor.
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+              integration: unifi_network_map
+    max_clients:
+      name: Maximum Clients
+      description: Alert when client count exceeds this number.
+      default: 50
+      selector:
+        number:
+          min: 1
+          max: 500
+    notify_service:
+      name: Notification Service
+      description: The notification service to call (e.g., notify.mobile_app).
+      selector:
+        text:
+
+triggers:
+  - trigger: numeric_state
+    entity_id: !input vlan_sensor
+    above: !input max_clients
+
+variables:
+  notify_service: !input notify_service
+  max_clients: !input max_clients
+
+actions:
+  - action: "{{ notify_service }}"
+    metadata: {}
+    data:
+      title: "VLAN Client Alert"
+      message: >
+        {{ state_attr(trigger.entity_id, 'vlan_name') }} has
+        {{ states(trigger.entity_id) }} clients (max: {{ max_clients }}).

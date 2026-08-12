@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import contextlib
 import json
 import os
 import shutil
@@ -763,6 +764,32 @@ def browser_context_args(
     }
 
 
+_http_dialog_handled = False
+
+
+def _confirm_http_config_dialog(page: Page) -> None:
+    """Confirm the HTTP server configuration dialog (HA 2026.8+).
+
+    HA 2026.8 shows a modal after starting with unconfirmed http
+    settings (trusted_proxies); it blocks all pointer events and
+    reverts the settings after five minutes unless confirmed. The
+    confirmation persists, so one click covers the whole session.
+    """
+    global _http_dialog_handled
+    if _http_dialog_handled:
+        return
+    from playwright.sync_api import (
+        TimeoutError as PlaywrightTimeoutError,
+    )
+
+    # Older HA versions never show the dialog; the click times out
+    with contextlib.suppress(PlaywrightTimeoutError):
+        page.get_by_role("button", name="Confirm", exact=True).click(
+            timeout=5000
+        )
+    _http_dialog_handled = True
+
+
 @typed_fixture
 def authenticated_page(
     page: Page,
@@ -809,6 +836,7 @@ def authenticated_page(
 
     page.goto(HA_URL, wait_until="domcontentloaded")
     page.wait_for_timeout(1500)
+    _confirm_http_config_dialog(page)
     page.goto(f"{HA_URL}/config", wait_until="networkidle")
 
     # Verify auth by making API request with explicit Authorization header

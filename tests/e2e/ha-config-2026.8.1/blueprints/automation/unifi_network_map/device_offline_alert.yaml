@@ -1,0 +1,48 @@
+blueprint:
+  name: UniFi Device Offline Alert
+  description: Send a notification when a UniFi network device goes offline.
+  domain: automation
+  author: UniFi Network Map
+  source_url: https://github.com/merlijntishauser/unifi-network-maps-ha/blob/main/custom_components/unifi_network_map/blueprints/automation/device_offline_alert.yaml
+  input:
+    device_entity:
+      name: Device to Monitor
+      description: The UniFi device presence sensor to monitor.
+      selector:
+        entity:
+          filter:
+            - domain: binary_sensor
+              device_class: connectivity
+              integration: unifi_network_map
+    notify_service:
+      name: Notification Service
+      description: The notification service to call (e.g., notify.mobile_app).
+      selector:
+        text:
+    offline_delay:
+      name: Offline Delay
+      description: Time to wait before sending notification (avoids false alarms).
+      default: 60
+      selector:
+        number:
+          min: 0
+          max: 600
+          unit_of_measurement: seconds
+
+triggers:
+  - trigger: state
+    entity_id: !input device_entity
+    from: "on"
+    to: "off"
+    for:
+      seconds: !input offline_delay
+
+actions:
+  - action: "{{ notify_service }}"
+    metadata: {}
+    data:
+      title: "Network Device Offline"
+      message: "{{ state_attr(trigger.entity_id, 'friendly_name') }} is offline."
+
+variables:
+  notify_service: !input notify_service
