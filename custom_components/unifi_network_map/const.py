@@ -38,9 +38,27 @@ CONF_ICON_SET = "icon_set"
 CONF_SHOW_WAN = "show_wan"
 CONF_USE_CACHE = "use_cache"
 
+CONF_ISO_LIGHTING = "iso_lighting"
+CONF_ISO_ROUTE_AROUND_NODES = "iso_route_around_nodes"
+CONF_ISO_SHOW_GRID = "iso_show_grid"
+
 DEFAULT_SVG_THEME = "unifi"
 DEFAULT_ICON_SET = "modern"
+DEFAULT_ISO_LIGHTING = False
+DEFAULT_ISO_ROUTE_AROUND_NODES = False
+DEFAULT_ISO_SHOW_GRID = True
 DEFAULT_SHOW_WAN = True
+
+SVG_THEMES = (
+    "unifi",
+    "unifi-dark",
+    "minimal",
+    "minimal-dark",
+    "classic",
+    "classic-dark",
+    "blueprint",
+)
+ICON_SETS = ("modern", "isometric", "unifi")
 CONF_SCAN_INTERVAL = "scan_interval"
 CONF_REQUEST_TIMEOUT_SECONDS = "request_timeout_seconds"
 CONF_PAYLOAD_CACHE_TTL = "payload_cache_ttl"

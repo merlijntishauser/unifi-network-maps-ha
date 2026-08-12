@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- The map options flow now exposes the SVG theme (including the new `blueprint` theme) and icon set (including the new UniFi-specific set) -- both existed as config keys but were never shown in the UI (#263)
+- Three new isometric render options from `unifi-topology` 3.2.0, all preserving current output by default: lighting and contact shadows (`iso_lighting`, off), routing links around intervening nodes (`iso_route_around_nodes`, off), and the floor grid (`iso_show_grid`, on -- previously not switchable) (#263)
+
 ## [0.5.8] - 2026-07-28
 
 ### Changed

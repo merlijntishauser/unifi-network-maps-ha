@@ -112,6 +112,31 @@ def test_renderer_contract_isometric(monkeypatch: MonkeyPatch) -> None:
     _assert_payload_schema(result.payload)
 
 
+def test_renderer_contract_iso_render_style_options(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """unifi-topology 3.2.0: iso flags, blueprint theme, unifi icons."""
+    _patch_unifi_fetchers(monkeypatch, _mock_payload())
+    settings = RenderSettings(
+        include_ports=True,
+        include_clients=True,
+        client_scope="all",
+        only_unifi=False,
+        svg_isometric=True,
+        svg_width=None,
+        svg_height=None,
+        use_cache=False,
+        svg_theme="blueprint",
+        icon_set="unifi",
+        iso_lighting=True,
+        iso_route_around_nodes=True,
+        iso_show_grid=False,
+    )
+    result = UniFiNetworkMapRenderer().render(_build_config(), settings)
+    assert result.svg.startswith("<svg")
+    _assert_payload_schema(result.payload)
+
+
 # --- Payload field contracts ---
 
 

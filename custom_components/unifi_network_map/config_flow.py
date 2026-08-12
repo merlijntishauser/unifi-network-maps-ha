@@ -16,8 +16,12 @@ from .api import validate_unifi_credentials
 from .const import (
     CONF_API_KEY,
     CONF_CLIENT_SCOPE,
+    CONF_ICON_SET,
     CONF_INCLUDE_CLIENTS,
     CONF_INCLUDE_PORTS,
+    CONF_ISO_LIGHTING,
+    CONF_ISO_ROUTE_AROUND_NODES,
+    CONF_ISO_SHOW_GRID,
     CONF_ONLY_UNIFI,
     CONF_PAYLOAD_CACHE_TTL,
     CONF_REQUEST_TIMEOUT_SECONDS,
@@ -27,6 +31,7 @@ from .const import (
     CONF_SITE,
     CONF_SVG_HEIGHT,
     CONF_SVG_ISOMETRIC,
+    CONF_SVG_THEME,
     CONF_SVG_WIDTH,
     CONF_TRACKED_CLIENTS,
     CONF_USE_CACHE,
@@ -37,8 +42,12 @@ from .const import (
     CONF_WAN_LABEL,
     CONF_WAN_SPEED,
     DEFAULT_CLIENT_SCOPE,
+    DEFAULT_ICON_SET,
     DEFAULT_INCLUDE_CLIENTS,
     DEFAULT_INCLUDE_PORTS,
+    DEFAULT_ISO_LIGHTING,
+    DEFAULT_ISO_ROUTE_AROUND_NODES,
+    DEFAULT_ISO_SHOW_GRID,
     DEFAULT_ONLY_UNIFI,
     DEFAULT_PAYLOAD_CACHE_TTL_SECONDS,
     DEFAULT_REQUEST_TIMEOUT_SECONDS,
@@ -47,6 +56,7 @@ from .const import (
     DEFAULT_SHOW_WAN,
     DEFAULT_SITE,
     DEFAULT_SVG_ISOMETRIC,
+    DEFAULT_SVG_THEME,
     DEFAULT_TRACKED_CLIENTS,
     DEFAULT_USE_CACHE,
     DEFAULT_VERIFY_SSL,
@@ -56,11 +66,13 @@ from .const import (
     DEFAULT_WAN_LABEL,
     DEFAULT_WAN_SPEED,
     DOMAIN,
+    ICON_SETS,
     LOGGER,
     MAX_PAYLOAD_CACHE_TTL_SECONDS,
     MAX_SCAN_INTERVAL_MINUTES,
     MIN_PAYLOAD_CACHE_TTL_SECONDS,
     MIN_SCAN_INTERVAL_MINUTES,
+    SVG_THEMES,
 )
 from .errors import (
     CannotConnect,
@@ -328,6 +340,13 @@ def _options_schema_fields(
         opt(CONF_CLIENT_SCOPE, DEFAULT_CLIENT_SCOPE): _client_scope_selector(),
         opt(CONF_ONLY_UNIFI, DEFAULT_ONLY_UNIFI): _boolean_selector(),
         opt(CONF_SVG_ISOMETRIC, DEFAULT_SVG_ISOMETRIC): _boolean_selector(),
+        opt(CONF_SVG_THEME, DEFAULT_SVG_THEME): _svg_theme_selector(),
+        opt(CONF_ICON_SET, DEFAULT_ICON_SET): _icon_set_selector(),
+        opt(CONF_ISO_LIGHTING, DEFAULT_ISO_LIGHTING): _boolean_selector(),
+        opt(
+            CONF_ISO_ROUTE_AROUND_NODES, DEFAULT_ISO_ROUTE_AROUND_NODES
+        ): _boolean_selector(),
+        opt(CONF_ISO_SHOW_GRID, DEFAULT_ISO_SHOW_GRID): _boolean_selector(),
         opt(CONF_USE_CACHE, DEFAULT_USE_CACHE): _boolean_selector(),
         opt(
             CONF_TRACKED_CLIENTS, DEFAULT_TRACKED_CLIENTS
@@ -391,6 +410,53 @@ def _client_scope_selector() -> selector.SelectSelector:
                 selector.SelectOptionDict(value="wired", label="Wired"),
                 selector.SelectOptionDict(value="wireless", label="Wireless"),
                 selector.SelectOptionDict(value="all", label="All"),
+            ],
+            mode=selector.SelectSelectorMode.DROPDOWN,
+        )
+    )
+
+
+_SVG_THEME_LABELS = {
+    "unifi": "UniFi",
+    "unifi-dark": "UniFi Dark",
+    "minimal": "Minimal",
+    "minimal-dark": "Minimal Dark",
+    "classic": "Classic",
+    "classic-dark": "Classic Dark",
+    "blueprint": "Blueprint",
+}
+
+
+def _svg_theme_selector() -> selector.SelectSelector:
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=[
+                selector.SelectOptionDict(
+                    value=theme, label=_SVG_THEME_LABELS.get(theme, theme)
+                )
+                for theme in SVG_THEMES
+            ],
+            mode=selector.SelectSelectorMode.DROPDOWN,
+        )
+    )
+
+
+_ICON_SET_LABELS = {
+    "modern": "Modern",
+    "isometric": "Isometric",
+    "unifi": "UniFi",
+}
+
+
+def _icon_set_selector() -> selector.SelectSelector:
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=[
+                selector.SelectOptionDict(
+                    value=icon_set,
+                    label=_ICON_SET_LABELS.get(icon_set, icon_set),
+                )
+                for icon_set in ICON_SETS
             ],
             mode=selector.SelectSelectorMode.DROPDOWN,
         )

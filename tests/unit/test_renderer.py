@@ -7,6 +7,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+from unifi_topology import SvgOptions
 
 from custom_components.unifi_network_map.errors import UniFiNetworkMapError
 from custom_components.unifi_network_map.renderer import (
@@ -35,6 +36,7 @@ from custom_components.unifi_network_map.renderer import (
     _is_default_vlan_name,
     _network_name,
     _network_vlan_id,
+    _render_svg_variant,
     _resolve_model_name,
     _select_edges,
     _valid_edge_payload,
@@ -715,6 +717,50 @@ class TestBuildClientDetails:
             result["aa:bb:cc:dd:ee:01"]["connected_to_mac"]
             == "11:22:33:44:55:66"
         )
+
+
+class TestIsoRenderOptions:
+    """Tests for isometric render option plumbing."""
+
+    def _captured_options(self, settings: RenderSettings) -> Any:
+        captured: dict[str, Any] = {}
+
+        def fake_render(*_args: Any, **kwargs: Any) -> str:
+            captured["options"] = kwargs["options"]
+            return "<svg />"
+
+        render_name = (
+            "render_svg_isometric" if settings.svg_isometric else "render_svg"
+        )
+        with patch(
+            f"custom_components.unifi_network_map.renderer.{render_name}",
+            side_effect=fake_render,
+        ):
+            _render_svg_variant(
+                [], {}, None, settings, MagicMock(), None, None
+            )
+        return captured["options"]
+
+    def test_iso_flags_reach_svg_options(self) -> None:
+        settings = build_settings(
+            svg_isometric=True,
+            iso_lighting=True,
+            iso_route_around_nodes=True,
+            iso_show_grid=False,
+        )
+        options = self._captured_options(settings)
+        assert options.iso_lighting is True
+        assert options.iso_route_around_nodes is True
+        assert options.iso_show_grid is False
+
+    def test_default_settings_keep_upstream_svg_options(self) -> None:
+        options = self._captured_options(build_settings(svg_isometric=True))
+        assert options == SvgOptions(width=None, height=None)
+
+    def test_orthogonal_render_passes_flags_unchanged(self) -> None:
+        settings = build_settings(svg_isometric=False, iso_lighting=True)
+        options = self._captured_options(settings)
+        assert options.iso_lighting is True
 
 
 class TestRendererErrorHandling:

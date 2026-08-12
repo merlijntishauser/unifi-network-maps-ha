@@ -336,6 +336,29 @@ def test_prepare_entry_data_strips_trailing_slash() -> None:
     assert data[CONF_URL] == "https://unifi.local"
 
 
+def test_options_schema_exposes_render_style_fields() -> None:
+    options_schema_fields = cast(
+        "Callable[[dict[str, object]], dict[str, object]]",
+        getattr(config_flow_module, "_options_schema_fields"),
+    )
+    fields = options_schema_fields({})
+
+    defaults = {
+        getattr(marker, "schema", None): (
+            marker.default() if callable(marker.default) else marker.default
+        )
+        for marker in fields
+    }
+
+    assert defaults["svg_theme"] == "unifi"
+    assert defaults["icon_set"] == "modern"
+    assert defaults["iso_lighting"] is False
+    assert defaults["iso_route_around_nodes"] is False
+    assert defaults["iso_show_grid"] is True
+    # Deliberately unexposed until the upstream layout matures
+    assert "iso_compact_layout" not in defaults
+
+
 def test_build_options_schema_returns_schema(monkeypatch) -> None:
     def _fields(_options: dict[str, object]) -> dict[str, object]:
         return {}

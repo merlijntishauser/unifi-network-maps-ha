@@ -16,6 +16,9 @@ from .const import (
     CONF_ICON_SET,
     CONF_INCLUDE_CLIENTS,
     CONF_INCLUDE_PORTS,
+    CONF_ISO_LIGHTING,
+    CONF_ISO_ROUTE_AROUND_NODES,
+    CONF_ISO_SHOW_GRID,
     CONF_ONLY_UNIFI,
     CONF_REQUEST_TIMEOUT_SECONDS,
     CONF_SCAN_INTERVAL,
@@ -37,6 +40,9 @@ from .const import (
     DEFAULT_ICON_SET,
     DEFAULT_INCLUDE_CLIENTS,
     DEFAULT_INCLUDE_PORTS,
+    DEFAULT_ISO_LIGHTING,
+    DEFAULT_ISO_ROUTE_AROUND_NODES,
+    DEFAULT_ISO_SHOW_GRID,
     DEFAULT_ONLY_UNIFI,
     DEFAULT_REQUEST_TIMEOUT_SECONDS,
     DEFAULT_SCAN_INTERVAL_MINUTES,
@@ -272,6 +278,11 @@ def _build_settings(entry: ConfigEntry) -> RenderSettings:
         wan2_speed=options.get(CONF_WAN2_SPEED, DEFAULT_WAN2_SPEED),
         wan2_disabled=options.get(CONF_WAN2_DISABLED, DEFAULT_WAN2_DISABLED),
         show_vpn=options.get(CONF_SHOW_VPN, DEFAULT_SHOW_VPN),
+        iso_lighting=options.get(CONF_ISO_LIGHTING, DEFAULT_ISO_LIGHTING),
+        iso_route_around_nodes=options.get(
+            CONF_ISO_ROUTE_AROUND_NODES, DEFAULT_ISO_ROUTE_AROUND_NODES
+        ),
+        iso_show_grid=options.get(CONF_ISO_SHOW_GRID, DEFAULT_ISO_SHOW_GRID),
     )
 
 

@@ -72,6 +72,9 @@ def build_settings(
     svg_width: int | None = None,
     svg_height: int | None = None,
     use_cache: bool = False,
+    iso_lighting: bool = False,
+    iso_route_around_nodes: bool = False,
+    iso_show_grid: bool = True,
 ) -> RenderSettings:
     return RenderSettings(
         include_ports=include_ports,
@@ -82,6 +85,9 @@ def build_settings(
         svg_width=svg_width,
         svg_height=svg_height,
         use_cache=use_cache,
+        iso_lighting=iso_lighting,
+        iso_route_around_nodes=iso_route_around_nodes,
+        iso_show_grid=iso_show_grid,
     )
 
 

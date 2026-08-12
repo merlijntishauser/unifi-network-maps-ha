@@ -54,6 +54,9 @@ class RenderSettings:
     wan2_speed: str = ""
     wan2_disabled: str = "auto"
     show_vpn: bool = True
+    iso_lighting: bool = False
+    iso_route_around_nodes: bool = False
+    iso_show_grid: bool = True
 
 
 class ClientLike(Protocol):
@@ -263,7 +266,13 @@ def _render_svg_variant(
     wan_info: WanInfo | None,
     vpn_tunnels: list[VpnTunnel] | None,
 ) -> str:
-    options = SvgOptions(width=settings.svg_width, height=settings.svg_height)
+    options = SvgOptions(
+        width=settings.svg_width,
+        height=settings.svg_height,
+        iso_lighting=settings.iso_lighting,
+        iso_route_around_nodes=settings.iso_route_around_nodes,
+        iso_show_grid=settings.iso_show_grid,
+    )
     render = render_svg_isometric if settings.svg_isometric else render_svg
     return render(
         edges,
