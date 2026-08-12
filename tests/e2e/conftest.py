@@ -204,7 +204,7 @@ def _ensure_auth_provider_credentials(storage_dir: Path) -> None:
 
     users = payload.get("data", {}).get("users", [])
     if not isinstance(users, list):
-        raise RuntimeError("Invalid auth provider storage format")
+        raise TypeError("Invalid auth provider storage format")
 
     password_hash = bcrypt.hashpw(
         HA_PASSWORD.encode(), bcrypt.gensalt(rounds=12)
@@ -462,6 +462,7 @@ def _debug_container_state() -> None:
         ],
         capture_output=True,
         text=True,
+        check=False,
     )
     print(f"custom_components dir:\n{result.stdout}\n{result.stderr}")
 
@@ -481,6 +482,7 @@ def _debug_container_state() -> None:
         ],
         capture_output=True,
         text=True,
+        check=False,
     )
     print(f"unifi_network_map dir:\n{result.stdout}\n{result.stderr}")
 
@@ -497,6 +499,7 @@ def _debug_container_state() -> None:
         ],
         capture_output=True,
         text=True,
+        check=False,
     )
     # Filter for relevant logs
     relevant_lines = [
@@ -573,7 +576,7 @@ def ha_auth_token(ha_tokens: dict[str, object]) -> str:
     """Get an access token from Home Assistant."""
     access_token = ha_tokens.get("access_token")
     if not isinstance(access_token, str):
-        raise RuntimeError(f"Invalid token response: {ha_tokens}")
+        raise TypeError(f"Invalid token response: {ha_tokens}")
     return access_token
 
 

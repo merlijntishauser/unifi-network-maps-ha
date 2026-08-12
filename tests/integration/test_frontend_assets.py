@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
-import custom_components.unifi_network_map as unifi_network_map
+from custom_components import unifi_network_map
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -35,7 +35,6 @@ class _FakeHass:
     def async_create_task(self, _coro) -> None:
         if hasattr(_coro, "close"):
             _coro.close()
-        return None
 
 
 def test_register_frontend_assets_with_async_static_paths() -> None:

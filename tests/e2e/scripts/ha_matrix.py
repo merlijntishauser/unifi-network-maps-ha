@@ -11,7 +11,7 @@ import yaml
 def load_config(path: Path) -> dict[str, Any]:
     data = yaml.safe_load(path.read_text())
     if not isinstance(data, dict):
-        raise ValueError("Matrix config must be a mapping")
+        raise TypeError("Matrix config must be a mapping")
     return data
 
 
@@ -24,7 +24,7 @@ def build_matrix(data: dict[str, Any]) -> dict[str, Any]:
     matrix: list[dict[str, str]] = []
     for item in versions:
         if not isinstance(item, dict):
-            raise ValueError("Each version entry must be a mapping")
+            raise TypeError("Each version entry must be a mapping")
         name = str(item.get("name", ""))
         image_tag = str(item.get("image_tag", ""))
         config_dir = str(item.get("config_dir", ""))

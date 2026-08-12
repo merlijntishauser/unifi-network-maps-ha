@@ -397,7 +397,7 @@ async def _update_lovelace_resource(
             await result
         LOGGER.debug("lovelace resource_updated url=%s", new_url)
         return True
-    except Exception as err:
+    except Exception as err:  # noqa: BLE001 - defensive against HA internals
         LOGGER.debug("lovelace update_failed error=%s", err)
         return False
 
@@ -493,7 +493,7 @@ async def _fetch_lovelace_items(
         return None
     try:
         items = await _maybe_await_items(resource_collection.async_items())
-    except Exception as err:
+    except Exception as err:  # noqa: BLE001 - defensive against HA internals
         LOGGER.warning(
             "lovelace collection_access_failed error=%s", err, exc_info=True
         )
@@ -531,7 +531,7 @@ async def _create_lovelace_resource(
         result = resource_collection.async_create_item(payload)
         if inspect.iscoroutine(result):
             await result
-    except Exception as err:
+    except Exception as err:  # noqa: BLE001 - defensive against HA internals
         LOGGER.debug("lovelace collection_create_failed error=%s", err)
         return False
     LOGGER.debug("lovelace resource_registered url=%s", resource_url)

@@ -18,7 +18,6 @@ class FakeEntry:
 
     def async_on_unload(self, callback: object) -> None:
         """Mock async_on_unload - does nothing in tests."""
-        pass
 
 
 def build_entry(options: dict[str, object] | None = None) -> FakeEntry:

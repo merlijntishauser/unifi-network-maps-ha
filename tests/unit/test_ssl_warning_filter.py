@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-import custom_components.unifi_network_map.api as api
+from custom_components.unifi_network_map import api
 
 
 class _ListHandler(logging.Handler):

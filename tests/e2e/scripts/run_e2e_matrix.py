@@ -42,7 +42,7 @@ def main() -> None:
             f" {config_path} ({make_target})",
             flush=True,
         )
-        result = subprocess.run(["make", make_target], env=env)
+        result = subprocess.run(["make", make_target], env=env, check=False)
         ha_version = "unknown"
         if version_file.exists():
             try:
