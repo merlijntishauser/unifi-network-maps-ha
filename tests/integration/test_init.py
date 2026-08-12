@@ -32,7 +32,6 @@ class FakeEntry:
 
     def async_on_unload(self, _func: Callable[[], None]) -> None:
         """Mock async_on_unload that does nothing."""
-        pass
 
 
 class FakeServices:

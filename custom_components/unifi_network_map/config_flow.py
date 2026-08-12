@@ -103,7 +103,7 @@ class UniFiNetworkMapConfigFlow(  # type: ignore[reportUntypedBaseClass,reportGe
                 errors["base"] = "request_rejected"
             except CannotConnect:
                 errors["base"] = "cannot_connect"
-            except Exception:
+            except Exception:  # noqa: BLE001 - surface as "unknown" error
                 LOGGER.exception("config_flow reauth unexpected error")
                 errors["base"] = "unknown"
             else:
@@ -210,7 +210,7 @@ class UniFiNetworkMapConfigFlow(  # type: ignore[reportUntypedBaseClass,reportGe
             return user_input, "request_rejected"
         except CannotConnect:
             return user_input, "cannot_connect"
-        except Exception:
+        except Exception:  # noqa: BLE001 - surface as "unknown" error
             LOGGER.exception("config_flow unexpected validation error")
             return user_input, "unknown"
         return data, None

@@ -31,7 +31,8 @@ class TestFormatTimestamp:
         assert result == "2024-01-15T10:30:45+00:00"
 
     def test_handles_naive_datetime(self) -> None:
-        dt = datetime(2024, 1, 15, 10, 30, 45)
+        # Naive datetime is the point of this test
+        dt = datetime(2024, 1, 15, 10, 30, 45)  # noqa: DTZ001
         result = _format_timestamp(dt)
         assert result == "2024-01-15T10:30:45"
 

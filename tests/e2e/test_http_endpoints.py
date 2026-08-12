@@ -28,7 +28,7 @@ class TestSvgEndpoint:
         assert "image/svg+xml" in response.headers.get("content-type", "")
 
         content = response.text
-        assert content.startswith("<?xml") or content.startswith("<svg"), (
+        assert content.startswith(("<?xml", "<svg")), (
             "Response doesn't appear to be SVG"
         )
         assert "</svg>" in content, "SVG not properly closed"

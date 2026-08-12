@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
-import custom_components.unifi_network_map as unifi_network_map
+from custom_components import unifi_network_map
 
 if TYPE_CHECKING:
     from collections.abc import Callable
