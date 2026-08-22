@@ -15,5 +15,5 @@
   "requirements": [
     "unifi-topology==3.2.0"
   ],
-  "version": "0.5.8"
+  "version": "0.5.9"
 }
