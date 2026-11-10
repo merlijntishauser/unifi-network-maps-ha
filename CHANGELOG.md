@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- In a narrow dashboard column on a desktop browser (such as the masonry view), the side panel squeezed the map down to a strip about 55 px wide. The card now switches to the stacked layout based on its own width instead of the window width (#315)
+- `card_mod` and other keys the card does not use itself were dropped from the card config, so card-mod styles set directly on the card had no effect. They are now kept (#315)
 - Home Assistant 2026.9+ logged a deprecation warning about `device_registry.devices` being used as a mapping (and the lookup would stop working in HA 2027.9). UniFi devices are now looked up per UniFi config entry through the public registry helper (#310, #308)
 
 ### Security

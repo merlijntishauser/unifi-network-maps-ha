@@ -365,7 +365,7 @@ const OVERLAY_STYLES = `
 
 export const CARD_STYLES = `
   unifi-network-map { display: block; }
-  unifi-network-map ha-card { display: flex; flex-direction: column; box-sizing: border-box; }
+  unifi-network-map ha-card { display: flex; flex-direction: column; box-sizing: border-box; container-type: inline-size; }
   .unifi-network-map__layout { display: grid; grid-template-columns: minmax(0, 2.5fr) minmax(280px, 1fr); gap: 12px; padding: 12px; flex: 1; min-height: 0; height: 100%; }
   .unifi-network-map__viewport { position: relative; overflow: hidden; min-height: 300px; background: linear-gradient(135deg, #0b1016 0%, #111827 100%); border-radius: 12px; touch-action: none; contain: strict; isolation: isolate; height: 100%; }
   .unifi-network-map__viewport > svg { width: 100%; height: 100%; display: block; position: absolute; top: 0; left: 0; z-index: 0; }
@@ -714,7 +714,9 @@ export const CARD_STYLES = `
   ha-card[data-theme="light"] .status-badge--offline { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
   ha-card[data-theme="light"] .status-badge--unknown { background: rgba(107, 114, 128, 0.15); color: #6b7280; }
 
-  @media (max-width: 800px) {
+  /* Measured against the card, not the window: a desktop dashboard column is
+     far narrower than the viewport (#315). */
+  @container (max-width: 800px) {
     .unifi-network-map__layout { grid-template-columns: 1fr; }
   }
 

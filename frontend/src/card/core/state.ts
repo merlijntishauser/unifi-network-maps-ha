@@ -7,7 +7,9 @@ export function normalizeConfig(config: CardConfig): CardConfig {
     const svgTheme = config.svg_theme ?? "unifi";
     const iconSet = config.icon_set ?? "modern";
     const queryParams = `?theme=${theme}&svg_theme=${svgTheme}&icon_set=${iconSet}`;
+    // Keep keys this card does not own (e.g. card_mod) for other tools.
     return {
+      ...config,
       entry_id: config.entry_id,
       theme,
       svg_theme: svgTheme,
