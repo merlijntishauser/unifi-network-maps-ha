@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Home Assistant 2026.9+ logged a deprecation warning about `device_registry.devices` being used as a mapping (and the lookup would stop working in HA 2027.9). UniFi devices are now looked up per UniFi config entry through the public registry helper (#310, #308)
+
 ### Security
 - Bumped the bundled DOMPurify from 3.4.15 to 3.4.17, fixing several sanitizer bypass advisories (including one rated critical and one high)
 - Forced `minimatch` to 11.x in the frontend dev toolchain (eslint, jest) to resolve a glob-pattern denial-of-service advisory; this does not affect the shipped card

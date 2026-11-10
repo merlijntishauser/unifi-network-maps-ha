@@ -195,7 +195,7 @@ def _build_mac_to_all_entities_index(
     LOGGER.debug("http mac_index unifi_entries=%d", len(entries))
 
     # First, build a comprehensive device_id -> MAC map from device registry
-    device_to_mac = _build_device_mac_map_from_registry(device_registry)
+    device_to_mac = _build_device_mac_map_from_registry(hass, device_registry)
     LOGGER.debug(
         "http mac_index device_to_mac_registry=%d", len(device_to_mac)
     )
@@ -245,32 +245,40 @@ def _build_mac_to_all_entities_index(
 
 
 def _build_device_mac_map_from_registry(
+    hass: HomeAssistant,
     device_registry: dr.DeviceRegistry | None,
 ) -> dict[str, str]:
-    """Build device_id -> MAC map directly from device registry.
+    """Build device_id -> MAC map from the UniFi devices in the registry.
 
-    Looks at all devices with UniFi identifiers and extracts MACs from
-    their identifiers and connections.
+    Looks up devices per UniFi config entry (the public registry helper;
+    mapping access on ``device_registry.devices`` is deprecated) and
+    extracts MACs from their identifiers and connections.
     """
     device_to_mac: dict[str, str] = {}
     if device_registry is None:
         return device_to_mac
-    devices = getattr(device_registry, "devices", None)
-    if devices is None:
-        return device_to_mac
-    for device in devices.values():
-        # Check if this is a UniFi device
-        is_unifi = any(
-            len(ident) >= 2 and ident[0] == "unifi"
-            for ident in device.identifiers
-        )
-        if not is_unifi:
-            continue
-        # Try to extract MAC from identifiers
+    for device in _iter_unifi_devices(hass, device_registry):
         mac = _mac_from_device_entry(device)
         if mac:
             device_to_mac[device.id] = mac
     return device_to_mac
+
+
+def _iter_unifi_devices(
+    hass: HomeAssistant, device_registry: dr.DeviceRegistry
+):
+    for config_entry in hass.config_entries.async_entries("unifi"):
+        for device in dr.async_entries_for_config_entry(
+            device_registry, config_entry.entry_id
+        ):
+            if _has_unifi_identifier(device):
+                yield device
+
+
+def _has_unifi_identifier(device: dr.DeviceEntry) -> bool:
+    return any(
+        len(ident) >= 2 and ident[0] == "unifi" for ident in device.identifiers
+    )
 
 
 def _mac_from_device_entry(device: dr.DeviceEntry) -> str | None:

@@ -15,6 +15,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.unifi_network_map.enrichment import (
     _add_entities_from_registry,
     _add_entities_from_states,
+    _build_device_mac_map_from_registry,
     _build_mac_entity_index,
     _build_mac_to_all_entities_index,
     _iter_unifi_entity_entries,
@@ -320,3 +321,63 @@ async def test_build_mac_entity_index_with_real_registry(
     assert MAC_AP in index
     # setdefault keeps the first entity encountered.
     assert index[MAC_AP] == first_entity.entity_id
+
+
+# ------------------------------------------------------------------
+# Device registry lookup without the deprecated mapping API (#310)
+# ------------------------------------------------------------------
+
+
+class _DeprecatedDevicesMapping:
+    """Stands in for registry.devices; fails on the deprecated access."""
+
+    def values(self) -> None:
+        raise AssertionError("device_registry.devices.values() is deprecated")
+
+
+async def test_device_mac_map_finds_unifi_devices_via_config_entry(
+    hass: HomeAssistant,
+) -> None:
+    """UniFi devices are mapped to their MAC from the device registry."""
+    unifi_entry = _add_unifi_config_entry(hass)
+    device = _create_unifi_device(hass, unifi_entry, MAC_AP, "Test AP")
+
+    device_to_mac = _build_device_mac_map_from_registry(
+        hass, dr.async_get(hass)
+    )
+
+    assert device_to_mac == {device.id: MAC_AP}
+
+
+async def test_device_mac_map_avoids_deprecated_devices_mapping(
+    hass: HomeAssistant,
+) -> None:
+    """The deprecated devices.values() mapping access is not used."""
+    unifi_entry = _add_unifi_config_entry(hass)
+    _create_unifi_device(hass, unifi_entry, MAC_AP, "Test AP")
+    device_reg = dr.async_get(hass)
+    device_reg.devices.values = (  # type: ignore[method-assign]
+        _DeprecatedDevicesMapping().values
+    )
+
+    device_to_mac = _build_device_mac_map_from_registry(hass, device_reg)
+
+    assert MAC_AP in device_to_mac.values()
+
+
+async def test_device_mac_map_ignores_devices_without_unifi_entry(
+    hass: HomeAssistant,
+) -> None:
+    """Devices from other integrations are not mapped."""
+    other_entry = MockConfigEntry(domain="other", data={})
+    other_entry.add_to_hass(hass)
+    dr.async_get(hass).async_get_or_create(
+        config_entry_id=other_entry.entry_id,
+        connections={(dr.CONNECTION_NETWORK_MAC, MAC_CLIENT)},
+    )
+
+    device_to_mac = _build_device_mac_map_from_registry(
+        hass, dr.async_get(hass)
+    )
+
+    assert device_to_mac == {}
