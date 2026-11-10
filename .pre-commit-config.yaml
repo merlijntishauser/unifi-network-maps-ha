@@ -45,7 +45,7 @@ repos:
       - id: pylint-similarities
         name: pylint similarities
         entry: >-
-          bash -c 'PYLINTHOME=.pylint_cache .venv/bin/pylint --rcfile=.pylintrc --load-plugins=pylint.extensions.similarities custom_components tests'
+          bash -c 'PYLINTHOME=.pylint_cache .venv/bin/pylint --rcfile=.pylintrc custom_components tests'
         language: system
         pass_filenames: false
       - id: radon-cc
