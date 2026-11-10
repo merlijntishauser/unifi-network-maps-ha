@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pytest
 from homeassistant.helpers import (
     device_registry as dr,
 )
@@ -356,11 +357,14 @@ async def test_device_mac_map_avoids_deprecated_devices_mapping(
     unifi_entry = _add_unifi_config_entry(hass)
     _create_unifi_device(hass, unifi_entry, MAC_AP, "Test AP")
     device_reg = dr.async_get(hass)
-    device_reg.devices.values = (  # type: ignore[method-assign]
-        _DeprecatedDevicesMapping().values
-    )
 
-    device_to_mac = _build_device_mac_map_from_registry(hass, device_reg)
+    # Restore values() before returning: HA's own registry save at
+    # shutdown still calls it.
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(
+            device_reg.devices, "values", _DeprecatedDevicesMapping().values
+        )
+        device_to_mac = _build_device_mac_map_from_registry(hass, device_reg)
 
     assert MAC_AP in device_to_mac.values()
 
