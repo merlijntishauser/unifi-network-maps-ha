@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.12] - 2026-11-10
+
 ### Changed
 - Node outlines on the rendered map now follow the SVG theme's own colours (from `unifi-topology` 3.3.0), so maps with a theme other than `blueprint` look slightly different
 
@@ -394,7 +396,8 @@ The upcoming 0.2 release will have some major new features.
 ## [0.1.0] - 2026-01-17
 - Initial public release.
 
-[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.5.11...HEAD
+[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.5.12...HEAD
+[0.5.12]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.12
 [0.5.11]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.11
 [0.5.10]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.10
 [0.5.8]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.8
