@@ -134,6 +134,15 @@ describe("context-menu", () => {
       expect(result).toContain("disabled");
     });
 
+    it.each(["camera", "phone", "tv", "nas"])("does not render restart for %s clients", (type) => {
+      const payload: MapPayload = {
+        edges: [],
+        node_types: { "aa:bb:cc:dd:ee:ff": type },
+      };
+      const result = renderContextMenu({ ...defaultOptions, payload });
+      expect(result).not.toContain('data-context-action="restart"');
+    });
+
     it("does not render restart for clients", () => {
       const payload: MapPayload = {
         edges: [],

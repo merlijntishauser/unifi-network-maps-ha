@@ -130,6 +130,23 @@ class TestSummarizeClients:
         result = _summarize_clients(node_types, [])
         assert result["total_count"] == 2
 
+    def test_counts_client_subtypes_as_clients(self) -> None:
+        node_types = {
+            "gw": "gateway",
+            "ap": "ap",
+            "cam": "camera",
+            "phone": "phone",
+            "laptop": "client",
+        }
+        edges = [
+            {"left": "gw", "right": "cam", "wireless": False},
+            {"left": "ap", "right": "phone", "wireless": True},
+        ]
+        result = _summarize_clients(node_types, edges)
+        assert result["total_count"] == 3
+        assert result["wired_count"] == 1
+        assert result["wireless_count"] == 1
+
     def test_counts_wired_clients(self) -> None:
         node_types = {
             "gw": "gateway",

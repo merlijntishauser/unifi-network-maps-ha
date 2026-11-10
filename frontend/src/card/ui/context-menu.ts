@@ -1,4 +1,5 @@
 import { escapeHtml } from "../data/sanitize";
+import { normalizeDeviceType } from "../interaction/filter-state";
 import type { MapPayload } from "../core/types";
 import { getNodeIpFromPayload } from "../shared/node-utils";
 
@@ -91,7 +92,7 @@ function buildContextMenuData(options: ContextMenuRenderOptions): ContextMenuDat
     ip,
     model,
     entityId,
-    isDevice: nodeType !== "client",
+    isDevice: normalizeDeviceType(nodeType) !== "client",
     hasPortInfo: nodeType === "switch" || nodeType === "gateway",
   };
 }

@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
+from unifi_topology.model.classify import is_client_node_type
 
 from .const import CONF_API_KEY, CONF_TRACKED_CLIENTS
 from .enrichment import (
@@ -149,7 +150,7 @@ def _summarize_clients(
 ) -> dict[str, Any]:
     """Summarize client information with anonymized sample MACs."""
     client_macs = {
-        mac for mac, ntype in node_types.items() if ntype == "client"
+        mac for mac, ntype in node_types.items() if is_client_node_type(ntype)
     }
 
     wired_clients: list[str] = []

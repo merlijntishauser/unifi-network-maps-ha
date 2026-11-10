@@ -4037,7 +4037,7 @@ function buildContextMenuData(options) {
     ip,
     model,
     entityId,
-    isDevice: nodeType !== "client",
+    isDevice: normalizeDeviceType(nodeType) !== "client",
     hasPortInfo: nodeType === "switch" || nodeType === "gateway"
   };
 }

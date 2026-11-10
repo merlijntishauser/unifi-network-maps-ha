@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Node outlines on the rendered map now follow the SVG theme's own colours (from `unifi-topology` 3.3.0), so maps with a theme other than `blueprint` look slightly different
 
 ### Fixed
+- Right-clicking a camera, phone, TV or other client subtype offered the device-only "Restart" action, and diagnostics counted only clients typed exactly `client`. Both now treat every client subtype as a client
 - Protect cameras whose controller record repeats the model in the root `name` (reported for the G6 Pro Bullet) were still labelled with the model instead of their Protect alias. Bumped `unifi-topology` from 3.2.1 to 3.3.0, which ignores a root name equal to the model and uses the Protect name (#303). The same release fixes PoE links being drawn for every port on a PoE switch, un-named switches detaching their downstream devices, trunk ports in `auto` mode showing no tagged VLANs, uplinks missing the VLANs of downstream clients, and client types matched on name fragments (for example "Cameron's iPhone" shown as a camera)
 - In a narrow dashboard column on a desktop browser (such as the masonry view), the side panel squeezed the map down to a strip about 55 px wide. The card now switches to the stacked layout based on its own width instead of the window width (#315)
 - `card_mod` and other keys the card does not use itself were dropped from the card config, so card-mod styles set directly on the card had no effect. They are now kept (#315)
