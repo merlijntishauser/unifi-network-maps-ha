@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- Bumped the bundled DOMPurify from 3.4.15 to 3.4.17, fixing several sanitizer bypass advisories (including one rated critical and one high)
+- Forced `minimatch` to 11.x in the frontend dev toolchain (eslint, jest) to resolve a glob-pattern denial-of-service advisory; this does not affect the shipped card
+
 ## [0.5.11] - 2026-09-27
 
 ### Fixed
