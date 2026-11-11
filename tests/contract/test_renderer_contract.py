@@ -421,3 +421,22 @@ def _assert_optional_types(
     for key, types in expected.items():
         if key in data:
             assert isinstance(data[key], types)
+
+
+def test_wireless_client_edges_carry_connection_quality(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """unifi-topology fills Edge.connection for wireless clients (#33)."""
+    result = _render(monkeypatch)
+    edges = result.payload["edges"]
+    wireless = [e for e in edges if e["wireless"] and e["connection"]]
+    assert wireless, "mock topology has no wireless edge with connection data"
+    assert set(wireless[0]["connection"]) == {
+        "signal_dbm",
+        "noise_dbm",
+        "tx_rate_mbps",
+        "rx_rate_mbps",
+        "satisfaction",
+        "quality",
+    }
+    assert all(e["connection"] is None for e in edges if not e["wireless"])

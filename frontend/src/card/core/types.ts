@@ -41,6 +41,18 @@ export type NodeStatus = {
   last_changed?: string | null;
 };
 
+export type SignalQuality = "excellent" | "good" | "fair" | "poor";
+
+/** Wireless link metrics from unifi-topology; null on wired edges. */
+export type EdgeConnection = {
+  signal_dbm: number | null;
+  noise_dbm: number | null;
+  tx_rate_mbps: number | null;
+  rx_rate_mbps: number | null;
+  satisfaction: number | null;
+  quality: string | null;
+};
+
 export type Edge = {
   left: string;
   right: string;
@@ -49,6 +61,7 @@ export type Edge = {
   wireless?: boolean | null;
   speed?: number | null;
   channel?: number | null;
+  connection?: EdgeConnection | null;
 };
 
 export type Point = {

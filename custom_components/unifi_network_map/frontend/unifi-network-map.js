@@ -3695,6 +3695,7 @@ function renderStatsTab(context, name, helpers) {
   return `
     ${renderStatsLiveStatus(data.status, helpers)}
     ${renderStatsConnectionSection(data.nodeEdges, data.nodeType, data.apWirelessClients, helpers)}
+    ${renderStatsWirelessSection(data.wirelessConnection, helpers)}
     ${renderStatsNetworkInfo(data.vlanInfo, helpers)}
     ${renderStatsDeviceInfo(data.mac, data.ip, data.model, helpers)}
   `;
@@ -3742,6 +3743,55 @@ function renderStatsConnectionSection(nodeEdges, nodeType, apWirelessClients, he
       </div>
     </div>
   `;
+}
+var SIGNAL_QUALITIES = ["excellent", "good", "fair", "poor"];
+function renderStatsWirelessSection(connection, helpers) {
+  if (!connection) {
+    return "";
+  }
+  const rows = [
+    renderStatsRow("panel.stats.signal", formatSignal(connection, helpers), helpers),
+    renderStatsRow("panel.stats.noise", withUnit(connection.noise_dbm, " dBm"), helpers),
+    renderStatsRow("panel.stats.tx_rate", withUnit(connection.tx_rate_mbps, " Mbps"), helpers),
+    renderStatsRow("panel.stats.rx_rate", withUnit(connection.rx_rate_mbps, " Mbps"), helpers),
+    renderStatsRow("panel.stats.satisfaction", withUnit(connection.satisfaction, "%"), helpers)
+  ].join("");
+  if (!rows) {
+    return "";
+  }
+  return `
+    <div class="panel-section">
+      <div class="panel-section__title">${helpers.localize("panel.stats.wireless_signal")}</div>
+      <div class="stats-list">${rows}</div>
+    </div>
+  `;
+}
+function renderStatsRow(labelKey, valueHtml, helpers) {
+  if (valueHtml === null) {
+    return "";
+  }
+  return `<div class="stats-row"><span class="stats-row__label">${helpers.localize(labelKey)}</span><span class="stats-row__value">${valueHtml}</span></div>`;
+}
+function withUnit(value, unit) {
+  return value === null || value === void 0 ? null : `${value}${unit}`;
+}
+function formatSignal(connection, helpers) {
+  const signal = withUnit(connection.signal_dbm, " dBm");
+  if (signal === null) {
+    return null;
+  }
+  const quality = SIGNAL_QUALITIES.find((value) => value === connection.quality);
+  if (!quality) {
+    return signal;
+  }
+  const label = helpers.escapeHtml(helpers.localize(`panel.stats.signal_quality.${quality}`));
+  return `${signal} <span class="signal-quality signal-quality--${quality}">${label}</span>`;
+}
+function findWirelessConnection(nodeEdges, nodeType) {
+  if (!nodeType || !isClientType(nodeType)) {
+    return void 0;
+  }
+  return nodeEdges.find((edge) => edge.wireless && edge.connection)?.connection ?? void 0;
 }
 function renderStatsNetworkInfo(vlanInfo, helpers) {
   if (!vlanInfo) {
@@ -3809,15 +3859,18 @@ function renderActionsTab(context, name, helpers) {
 }
 function getStatsTabData(context, name) {
   const edges = context.payload?.edges ?? [];
+  const nodeEdges = edges.filter((edge) => edge.left === name || edge.right === name);
+  const nodeType = getNodeType(context.payload, name);
   return {
-    nodeEdges: edges.filter((edge) => edge.left === name || edge.right === name),
+    nodeEdges,
+    wirelessConnection: findWirelessConnection(nodeEdges, nodeType),
     mac: nodeMacFromId(context.payload, name),
     // node ids are MACs
     ip: getNodeIpFromPayload(context.payload, name),
     model: getNodeModel(context.payload, name),
     status: context.payload?.node_status?.[name],
     vlanInfo: getNodeVlanInfo(name, context.payload),
-    nodeType: getNodeType(context.payload, name),
+    nodeType,
     apWirelessClients: context.payload?.ap_client_counts?.[name]
   };
 }
@@ -4346,10 +4399,20 @@ var da = {
   "panel.stats.ip": "IP-adresse",
   "panel.stats.mac": "MAC-adresse",
   "panel.stats.model": "Model",
+  "panel.stats.noise": "St\xF8j",
+  "panel.stats.rx_rate": "Modtagehastighed",
+  "panel.stats.satisfaction": "Tilfredshed",
+  "panel.stats.signal": "Signal",
+  "panel.stats.signal_quality.excellent": "Fremragende",
+  "panel.stats.signal_quality.fair": "Rimelig",
+  "panel.stats.signal_quality.good": "God",
+  "panel.stats.signal_quality.poor": "D\xE5rlig",
   "panel.stats.total_connections": "Forbindelser i alt",
+  "panel.stats.tx_rate": "Sendehastighed",
   "panel.stats.wired": "Kablet",
   "panel.stats.wireless": "Tr\xE5dl\xF8s",
   "panel.stats.wireless_clients": "Tr\xE5dl\xF8se klienter",
+  "panel.stats.wireless_signal": "Tr\xE5dl\xF8st signal",
   "panel.status.last_changed": "Sidst \xE6ndret",
   "panel.status.live": "Live status",
   "panel.status.offline": "Offline",
@@ -4479,10 +4542,20 @@ var de = {
   "panel.stats.ip": "IP-Adresse",
   "panel.stats.mac": "MAC-Adresse",
   "panel.stats.model": "Modell",
+  "panel.stats.noise": "Rauschen",
+  "panel.stats.rx_rate": "Empfangsrate",
+  "panel.stats.satisfaction": "Zufriedenheit",
+  "panel.stats.signal": "Signal",
+  "panel.stats.signal_quality.excellent": "Ausgezeichnet",
+  "panel.stats.signal_quality.fair": "M\xE4\xDFig",
+  "panel.stats.signal_quality.good": "Gut",
+  "panel.stats.signal_quality.poor": "Schlecht",
   "panel.stats.total_connections": "Gesamtverbindungen",
+  "panel.stats.tx_rate": "Senderate",
   "panel.stats.wired": "Kabelgebunden",
   "panel.stats.wireless": "Drahtlos",
   "panel.stats.wireless_clients": "WLAN-Clients",
+  "panel.stats.wireless_signal": "WLAN-Signal",
   "panel.status.last_changed": "Zuletzt ge\xE4ndert",
   "panel.status.live": "Live-Status",
   "panel.status.offline": "Offline",
@@ -4612,10 +4685,20 @@ var en = {
   "panel.stats.ip": "IP Address",
   "panel.stats.mac": "MAC Address",
   "panel.stats.model": "Model",
+  "panel.stats.noise": "Noise",
+  "panel.stats.rx_rate": "RX Rate",
+  "panel.stats.satisfaction": "Satisfaction",
+  "panel.stats.signal": "Signal",
+  "panel.stats.signal_quality.excellent": "Excellent",
+  "panel.stats.signal_quality.fair": "Fair",
+  "panel.stats.signal_quality.good": "Good",
+  "panel.stats.signal_quality.poor": "Poor",
   "panel.stats.total_connections": "Total Connections",
+  "panel.stats.tx_rate": "TX Rate",
   "panel.stats.wired": "Wired",
   "panel.stats.wireless": "Wireless",
   "panel.stats.wireless_clients": "Wireless Clients",
+  "panel.stats.wireless_signal": "Wireless Signal",
   "panel.status.last_changed": "Last Changed",
   "panel.status.live": "Live Status",
   "panel.status.offline": "Offline",
@@ -4745,10 +4828,20 @@ var es = {
   "panel.stats.ip": "Direcci\xF3n IP",
   "panel.stats.mac": "Direcci\xF3n MAC",
   "panel.stats.model": "Modelo",
+  "panel.stats.noise": "Ruido",
+  "panel.stats.rx_rate": "Velocidad RX",
+  "panel.stats.satisfaction": "Satisfacci\xF3n",
+  "panel.stats.signal": "Se\xF1al",
+  "panel.stats.signal_quality.excellent": "Excelente",
+  "panel.stats.signal_quality.fair": "Regular",
+  "panel.stats.signal_quality.good": "Buena",
+  "panel.stats.signal_quality.poor": "Mala",
   "panel.stats.total_connections": "Conexiones totales",
+  "panel.stats.tx_rate": "Velocidad TX",
   "panel.stats.wired": "Cableado",
   "panel.stats.wireless": "Inal\xE1mbrico",
   "panel.stats.wireless_clients": "Clientes inal\xE1mbricos",
+  "panel.stats.wireless_signal": "Se\xF1al inal\xE1mbrica",
   "panel.status.last_changed": "\xDAltimo cambio",
   "panel.status.live": "Estado en tiempo real",
   "panel.status.offline": "Desconectado",
@@ -4878,10 +4971,20 @@ var fi = {
   "panel.stats.ip": "IP-osoite",
   "panel.stats.mac": "MAC-osoite",
   "panel.stats.model": "Malli",
+  "panel.stats.noise": "Kohina",
+  "panel.stats.rx_rate": "Vastaanottonopeus",
+  "panel.stats.satisfaction": "Tyytyv\xE4isyys",
+  "panel.stats.signal": "Signaali",
+  "panel.stats.signal_quality.excellent": "Erinomainen",
+  "panel.stats.signal_quality.fair": "Kohtalainen",
+  "panel.stats.signal_quality.good": "Hyv\xE4",
+  "panel.stats.signal_quality.poor": "Heikko",
   "panel.stats.total_connections": "Yhteyksi\xE4 yhteens\xE4",
+  "panel.stats.tx_rate": "L\xE4hetysnopeus",
   "panel.stats.wired": "Langallinen",
   "panel.stats.wireless": "Langaton",
   "panel.stats.wireless_clients": "Langattomat asiakkaat",
+  "panel.stats.wireless_signal": "Langaton signaali",
   "panel.status.last_changed": "Viimeksi muuttunut",
   "panel.status.live": "Reaaliaikainen tila",
   "panel.status.offline": "Offline",
@@ -5011,10 +5114,20 @@ var fr = {
   "panel.stats.ip": "Adresse IP",
   "panel.stats.mac": "Adresse MAC",
   "panel.stats.model": "Mod\xE8le",
+  "panel.stats.noise": "Bruit",
+  "panel.stats.rx_rate": "D\xE9bit RX",
+  "panel.stats.satisfaction": "Satisfaction",
+  "panel.stats.signal": "Signal",
+  "panel.stats.signal_quality.excellent": "Excellent",
+  "panel.stats.signal_quality.fair": "Moyen",
+  "panel.stats.signal_quality.good": "Bon",
+  "panel.stats.signal_quality.poor": "Faible",
   "panel.stats.total_connections": "Connexions totales",
+  "panel.stats.tx_rate": "D\xE9bit TX",
   "panel.stats.wired": "Filaire",
   "panel.stats.wireless": "Sans fil",
   "panel.stats.wireless_clients": "Clients sans fil",
+  "panel.stats.wireless_signal": "Signal sans fil",
   "panel.status.last_changed": "Dernier changement",
   "panel.status.live": "\xC9tat en direct",
   "panel.status.offline": "Hors ligne",
@@ -5144,10 +5257,20 @@ var is = {
   "panel.stats.ip": "IP-tala",
   "panel.stats.mac": "MAC-vistfang",
   "panel.stats.model": "Ger\xF0",
+  "panel.stats.noise": "Su\xF0",
+  "panel.stats.rx_rate": "M\xF3tt\xF6kuhra\xF0i",
+  "panel.stats.satisfaction": "\xC1n\xE6gja",
+  "panel.stats.signal": "Merki",
+  "panel.stats.signal_quality.excellent": "Fr\xE1b\xE6rt",
+  "panel.stats.signal_quality.fair": "S\xE6milegt",
+  "panel.stats.signal_quality.good": "Gott",
+  "panel.stats.signal_quality.poor": "L\xE9legt",
   "panel.stats.total_connections": "Heildarfj\xF6ldi tenginga",
+  "panel.stats.tx_rate": "Sendingarhra\xF0i",
   "panel.stats.wired": "Sn\xFArutengt",
   "panel.stats.wireless": "\xDEr\xE1\xF0laust",
   "panel.stats.wireless_clients": "\xDEr\xE1\xF0lausir bi\xF0larar",
+  "panel.stats.wireless_signal": "\xDEr\xE1\xF0laust merki",
   "panel.status.last_changed": "S\xED\xF0ast breytt",
   "panel.status.live": "Raunt\xEDmasta\xF0a",
   "panel.status.offline": "\xD3tengt",
@@ -5277,10 +5400,20 @@ var nb = {
   "panel.stats.ip": "IP-adresse",
   "panel.stats.mac": "MAC-adresse",
   "panel.stats.model": "Modell",
+  "panel.stats.noise": "St\xF8y",
+  "panel.stats.rx_rate": "Mottakshastighet",
+  "panel.stats.satisfaction": "Tilfredshet",
+  "panel.stats.signal": "Signal",
+  "panel.stats.signal_quality.excellent": "Utmerket",
+  "panel.stats.signal_quality.fair": "Middels",
+  "panel.stats.signal_quality.good": "God",
+  "panel.stats.signal_quality.poor": "D\xE5rlig",
   "panel.stats.total_connections": "Totalt antall tilkoblinger",
+  "panel.stats.tx_rate": "Sendehastighet",
   "panel.stats.wired": "Kablet",
   "panel.stats.wireless": "Tradlost",
   "panel.stats.wireless_clients": "Tradlose klienter",
+  "panel.stats.wireless_signal": "Tr\xE5dl\xF8st signal",
   "panel.status.last_changed": "Sist endret",
   "panel.status.live": "Sanntidsstatus",
   "panel.status.offline": "Frakoblet",
@@ -5410,10 +5543,20 @@ var nl = {
   "panel.stats.ip": "IP-adres",
   "panel.stats.mac": "MAC-adres",
   "panel.stats.model": "Model",
+  "panel.stats.noise": "Ruis",
+  "panel.stats.rx_rate": "Ontvangstsnelheid",
+  "panel.stats.satisfaction": "Tevredenheid",
+  "panel.stats.signal": "Signaal",
+  "panel.stats.signal_quality.excellent": "Uitstekend",
+  "panel.stats.signal_quality.fair": "Redelijk",
+  "panel.stats.signal_quality.good": "Goed",
+  "panel.stats.signal_quality.poor": "Slecht",
   "panel.stats.total_connections": "Totaal verbindingen",
+  "panel.stats.tx_rate": "Verzendsnelheid",
   "panel.stats.wired": "Bekabeld",
   "panel.stats.wireless": "Draadloos",
   "panel.stats.wireless_clients": "Draadloze clients",
+  "panel.stats.wireless_signal": "Draadloos signaal",
   "panel.status.last_changed": "Laatst gewijzigd",
   "panel.status.live": "Live status",
   "panel.status.offline": "Offline",
@@ -5543,10 +5686,20 @@ var sv = {
   "panel.stats.ip": "IP-adress",
   "panel.stats.mac": "MAC-adress",
   "panel.stats.model": "Modell",
+  "panel.stats.noise": "Brus",
+  "panel.stats.rx_rate": "Mottagningshastighet",
+  "panel.stats.satisfaction": "N\xF6jdhet",
+  "panel.stats.signal": "Signal",
+  "panel.stats.signal_quality.excellent": "Utm\xE4rkt",
+  "panel.stats.signal_quality.fair": "Godtagbar",
+  "panel.stats.signal_quality.good": "Bra",
+  "panel.stats.signal_quality.poor": "D\xE5lig",
   "panel.stats.total_connections": "Totalt antal anslutningar",
+  "panel.stats.tx_rate": "S\xE4ndningshastighet",
   "panel.stats.wired": "Tr\xE5dbunden",
   "panel.stats.wireless": "Tr\xE5dl\xF6s",
   "panel.stats.wireless_clients": "Tr\xE5dl\xF6sa klienter",
+  "panel.stats.wireless_signal": "Tr\xE5dl\xF6s signal",
   "panel.status.last_changed": "Senast \xE4ndrad",
   "panel.status.live": "Livestatus",
   "panel.status.offline": "Offline",
@@ -6605,6 +6758,15 @@ var CARD_STYLES = `
   .status-badge--online { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
   .status-badge--offline { background: rgba(239, 68, 68, 0.2); color: #f87171; }
   .status-badge--unknown { background: rgba(107, 114, 128, 0.2); color: #9ca3af; }
+  .signal-quality { display: inline-flex; margin-left: 6px; padding: 1px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+  .signal-quality--excellent { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+  .signal-quality--good { background: rgba(132, 204, 22, 0.2); color: #a3e635; }
+  .signal-quality--fair { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+  .signal-quality--poor { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+  ha-card:is([data-theme="light"], [data-theme="unifi"]) .signal-quality--excellent { background: rgba(34, 197, 94, 0.15); color: #16a34a; }
+  ha-card:is([data-theme="light"], [data-theme="unifi"]) .signal-quality--good { background: rgba(132, 204, 22, 0.15); color: #4d7c0f; }
+  ha-card:is([data-theme="light"], [data-theme="unifi"]) .signal-quality--fair { background: rgba(245, 158, 11, 0.15); color: #b45309; }
+  ha-card:is([data-theme="light"], [data-theme="unifi"]) .signal-quality--poor { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
 
   /* Status Layer */
   .unifi-network-map__status-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }

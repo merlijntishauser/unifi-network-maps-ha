@@ -1,9 +1,11 @@
 import type {
   DeviceCounts,
+  EdgeConnection,
   MapPayload,
   Neighbor,
   NodeStatus,
   StatusCounts,
+  SignalQuality,
   VlanInfo,
   VpnTunnel,
 } from "../core/types";
@@ -373,6 +375,7 @@ function renderStatsTab(context: PanelContext, name: string, helpers: PanelHelpe
   return `
     ${renderStatsLiveStatus(data.status, helpers)}
     ${renderStatsConnectionSection(data.nodeEdges, data.nodeType, data.apWirelessClients, helpers)}
+    ${renderStatsWirelessSection(data.wirelessConnection, helpers)}
     ${renderStatsNetworkInfo(data.vlanInfo, helpers)}
     ${renderStatsDeviceInfo(data.mac, data.ip, data.model, helpers)}
   `;
@@ -436,6 +439,68 @@ function renderStatsConnectionSection(
       </div>
     </div>
   `;
+}
+
+const SIGNAL_QUALITIES: readonly SignalQuality[] = ["excellent", "good", "fair", "poor"];
+
+function renderStatsWirelessSection(
+  connection: EdgeConnection | undefined,
+  helpers: PanelHelpers,
+): string {
+  if (!connection) {
+    return "";
+  }
+  const rows = [
+    renderStatsRow("panel.stats.signal", formatSignal(connection, helpers), helpers),
+    renderStatsRow("panel.stats.noise", withUnit(connection.noise_dbm, " dBm"), helpers),
+    renderStatsRow("panel.stats.tx_rate", withUnit(connection.tx_rate_mbps, " Mbps"), helpers),
+    renderStatsRow("panel.stats.rx_rate", withUnit(connection.rx_rate_mbps, " Mbps"), helpers),
+    renderStatsRow("panel.stats.satisfaction", withUnit(connection.satisfaction, "%"), helpers),
+  ].join("");
+  if (!rows) {
+    return "";
+  }
+  return `
+    <div class="panel-section">
+      <div class="panel-section__title">${helpers.localize("panel.stats.wireless_signal")}</div>
+      <div class="stats-list">${rows}</div>
+    </div>
+  `;
+}
+
+function renderStatsRow(labelKey: string, valueHtml: string | null, helpers: PanelHelpers): string {
+  if (valueHtml === null) {
+    return "";
+  }
+  return `<div class="stats-row"><span class="stats-row__label">${helpers.localize(labelKey)}</span><span class="stats-row__value">${valueHtml}</span></div>`;
+}
+
+function withUnit(value: number | null, unit: string): string | null {
+  return value === null || value === undefined ? null : `${value}${unit}`;
+}
+
+function formatSignal(connection: EdgeConnection, helpers: PanelHelpers): string | null {
+  const signal = withUnit(connection.signal_dbm, " dBm");
+  if (signal === null) {
+    return null;
+  }
+  const quality = SIGNAL_QUALITIES.find((value) => value === connection.quality);
+  if (!quality) {
+    return signal;
+  }
+  const label = helpers.escapeHtml(helpers.localize(`panel.stats.signal_quality.${quality}`));
+  return `${signal} <span class="signal-quality signal-quality--${quality}">${label}</span>`;
+}
+
+/** Signal of the selected client's own wireless uplink; never an AP's clients. */
+function findWirelessConnection(
+  nodeEdges: Array<{ wireless?: boolean | null; connection?: EdgeConnection | null }>,
+  nodeType: string | undefined,
+): EdgeConnection | undefined {
+  if (!nodeType || !isClientType(nodeType)) {
+    return undefined;
+  }
+  return nodeEdges.find((edge) => edge.wireless && edge.connection)?.connection ?? undefined;
 }
 
 function renderStatsNetworkInfo(vlanInfo: VlanInfo | null, helpers: PanelHelpers): string {
@@ -518,6 +583,7 @@ function renderActionsTab(context: PanelContext, name: string, helpers: PanelHel
 
 type StatsTabData = {
   nodeEdges: Array<{ wireless?: boolean | null; poe?: boolean | null }>;
+  wirelessConnection: EdgeConnection | undefined;
   mac: string | null;
   ip: string | null;
   model: string | null;
@@ -529,14 +595,17 @@ type StatsTabData = {
 
 function getStatsTabData(context: PanelContext, name: string): StatsTabData {
   const edges = context.payload?.edges ?? [];
+  const nodeEdges = edges.filter((edge) => edge.left === name || edge.right === name);
+  const nodeType = getNodeType(context.payload, name);
   return {
-    nodeEdges: edges.filter((edge) => edge.left === name || edge.right === name),
+    nodeEdges,
+    wirelessConnection: findWirelessConnection(nodeEdges, nodeType),
     mac: nodeMacFromId(context.payload, name), // node ids are MACs
     ip: getNodeIpFromPayload(context.payload, name),
     model: getNodeModel(context.payload, name),
     status: context.payload?.node_status?.[name],
     vlanInfo: getNodeVlanInfo(name, context.payload),
-    nodeType: getNodeType(context.payload, name),
+    nodeType,
     apWirelessClients: context.payload?.ap_client_counts?.[name],
   };
 }

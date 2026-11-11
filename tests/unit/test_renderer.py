@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from unifi_topology import SvgOptions
+from unifi_topology.model.connection import ConnectionInfo
 
 from custom_components.unifi_network_map.errors import UniFiNetworkMapError
 from custom_components.unifi_network_map.renderer import (
@@ -79,6 +80,7 @@ class MockEdge:
     wireless: bool | None = None
     speed: int | None = None
     channel: int | None = None
+    connection: ConnectionInfo | None = None
 
 
 @dataclass
@@ -401,6 +403,32 @@ class TestEdgeToDict:
             "wireless": False,
             "speed": 1000,
             "channel": None,
+            "connection": None,
+        }
+
+    def test_includes_wireless_connection_quality(self) -> None:
+        edge = MockEdge(
+            left="ap1",
+            right="aa:bb:cc:dd:ee:01",
+            wireless=True,
+            channel=36,
+            connection=ConnectionInfo(
+                signal_dbm=-65,
+                noise_dbm=-95,
+                tx_rate_mbps=866,
+                rx_rate_mbps=650,
+                satisfaction=98,
+                quality="good",
+            ),
+        )
+        result = _edge_to_dict(edge)
+        assert result["connection"] == {
+            "signal_dbm": -65,
+            "noise_dbm": -95,
+            "tx_rate_mbps": 866,
+            "rx_rate_mbps": 650,
+            "satisfaction": 98,
+            "quality": "good",
         }
 
 

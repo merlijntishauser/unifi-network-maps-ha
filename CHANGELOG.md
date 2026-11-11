@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Wireless signal details in the card: selecting a wireless client shows its signal strength with a quality grade (excellent, good, fair, poor), noise, TX and RX rate, and UniFi's satisfaction score on the Stats tab. Values the controller does not report are left out. The data comes from `unifi-topology` and is now included in the payload's edges as `connection` (`null` for wired links) (#33)
+
 ### Fixed
 - Client connectivity sensors and the VLAN client lists named clients with their own name lookup (root name, then hostname), not the one the map uses. A Protect camera whose controller record repeats the model in the root name kept an entity named "G6 Pro Bullet", and other cameras were named by hostname instead of their Protect alias. Both now use `unifi-topology`'s `client_display_name`, so they match the map labels (#303)
 

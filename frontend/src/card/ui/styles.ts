@@ -541,6 +541,15 @@ export const CARD_STYLES = `
   .status-badge--online { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
   .status-badge--offline { background: rgba(239, 68, 68, 0.2); color: #f87171; }
   .status-badge--unknown { background: rgba(107, 114, 128, 0.2); color: #9ca3af; }
+  .signal-quality { display: inline-flex; margin-left: 6px; padding: 1px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+  .signal-quality--excellent { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+  .signal-quality--good { background: rgba(132, 204, 22, 0.2); color: #a3e635; }
+  .signal-quality--fair { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+  .signal-quality--poor { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+  ha-card:is([data-theme="light"], [data-theme="unifi"]) .signal-quality--excellent { background: rgba(34, 197, 94, 0.15); color: #16a34a; }
+  ha-card:is([data-theme="light"], [data-theme="unifi"]) .signal-quality--good { background: rgba(132, 204, 22, 0.15); color: #4d7c0f; }
+  ha-card:is([data-theme="light"], [data-theme="unifi"]) .signal-quality--fair { background: rgba(245, 158, 11, 0.15); color: #b45309; }
+  ha-card:is([data-theme="light"], [data-theme="unifi"]) .signal-quality--poor { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
 
   /* Status Layer */
   .unifi-network-map__status-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }

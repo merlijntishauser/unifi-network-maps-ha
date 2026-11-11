@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Protocol, cast
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 from unifi_topology import (
     Config,
@@ -34,6 +34,9 @@ from unifi_topology.model.classify import client_display_name
 from .const import LOGGER, PAYLOAD_SCHEMA_VERSION, UNIFI_MODEL_NAMES
 from .data import UniFiNetworkMapData
 from .errors import UniFiNetworkMapError
+
+if TYPE_CHECKING:
+    from unifi_topology.model.connection import ConnectionInfo
 
 
 @dataclass(frozen=True)
@@ -522,6 +525,23 @@ def _edge_to_dict(edge: Edge) -> dict[str, Any]:
         "wireless": edge.wireless,
         "speed": edge.speed,
         "channel": edge.channel,
+        "connection": _connection_to_dict(getattr(edge, "connection", None)),
+    }
+
+
+def _connection_to_dict(
+    connection: ConnectionInfo | None,
+) -> dict[str, Any] | None:
+    """Serialize wireless connection quality; None for wired edges."""
+    if connection is None:
+        return None
+    return {
+        "signal_dbm": connection.signal_dbm,
+        "noise_dbm": connection.noise_dbm,
+        "tx_rate_mbps": connection.tx_rate_mbps,
+        "rx_rate_mbps": connection.rx_rate_mbps,
+        "satisfaction": connection.satisfaction,
+        "quality": connection.quality,
     }
 
 
