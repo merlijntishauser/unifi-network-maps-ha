@@ -46,7 +46,8 @@
         "data_description": {
           "url": "Sisällytä protokolla (http tai https) ja portti tarvittaessa.",
           "api_key": "Sivustokohtainen API-avain UniFi OS:stä (Asetukset -> Control Plane -> Integraatiot). Käytä käyttäjänimen ja salasanan sijaan.",
-          "site": "Sivuston sisäinen tunnus, yleensä 'default'. Monisivustoasennuksessa käytä Network-sovelluksen URL-osoitteessa näkyvää sivustokoodia (osa /manage/ tai /network/ jälkeen), älä sivuston näyttönimeä."
+          "site": "Sivuston sisäinen tunnus, yleensä 'default'. Monisivustoasennuksessa käytä Network-sovelluksen URL-osoitteessa näkyvää sivustokoodia (osa /manage/ tai /network/ jälkeen), älä sivuston näyttönimeä.",
+          "verify_ssl": "UniFi-ohjaimet käyttävät oletuksena itse allekirjoitettuja varmenteita, joiden tarkistus epäonnistuu. Ota käyttöön vain, jos olet asentanut luotetun varmenteen."
         }
       },
       "init": {

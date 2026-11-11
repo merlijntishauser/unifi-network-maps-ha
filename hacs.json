@@ -3,5 +3,6 @@
   "content_in_root": false,
   "render_readme": true,
   "zip_release": true,
-  "filename": "unifi-network-maps-ha-0.5.12.zip"
+  "filename": "unifi-network-maps-ha-0.5.12.zip",
+  "homeassistant": "2026.1.0"
 }

@@ -4,6 +4,10 @@
   "after_dependencies": [
     "lovelace"
   ],
+  "categories": [
+    "computers_network.routers_network",
+    "computers_network.monitoring"
+  ],
   "codeowners": [
     "@merlijntishauser"
   ],

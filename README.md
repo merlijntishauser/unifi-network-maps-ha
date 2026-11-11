@@ -1,6 +1,6 @@
 # UniFi Network Map for Home Assistant
 
-[![HACS](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/integration)
+[![Home Assistant Marketplace](https://img.shields.io/badge/Home_Assistant-Marketplace-41BDF5.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=merlijntishauser&repository=unifi-network-maps-ha&category=integration)
 [![CI](https://github.com/merlijntishauser/unifi-network-maps-ha/actions/workflows/ci.yml/badge.svg)](https://github.com/merlijntishauser/unifi-network-maps-ha/actions/workflows/ci.yml)
 [![E2E](https://github.com/merlijntishauser/unifi-network-maps-ha/actions/workflows/e2e.yml/badge.svg)](https://github.com/merlijntishauser/unifi-network-maps-ha/actions/workflows/e2e.yml)
 [![CodeQL](https://github.com/merlijntishauser/unifi-network-maps-ha/actions/workflows/codeql.yml/badge.svg)](https://github.com/merlijntishauser/unifi-network-maps-ha/actions/workflows/codeql.yml)
@@ -56,26 +56,28 @@ You need Home Assistant 2024.12 or newer and a UniFi Network controller — eith
 
 ## Installation
 
-### Via HACS (recommended)
+### Via the Marketplace (Home Assistant 2026.11 and later)
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=merlijntishauser&repository=unifi-network-maps-ha)
+[![Open your Home Assistant instance and open a repository in the Marketplace.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=merlijntishauser&repository=unifi-network-maps-ha&category=integration)
 
-1. Click the badge above, or open HACS, go to **Integrations**, and search for **UniFi Network Map**.
+1. Click the badge above, or open the Marketplace in Home Assistant and search for **UniFi Network Map**.
 2. Click **Download** and confirm.
 3. **Restart Home Assistant.**
 
-### Via HACS (custom repository)
+### Via HACS (Home Assistant 2026.1 to 2026.10)
 
-If the integration is not yet listed in HACS:
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=merlijntishauser&repository=unifi-network-maps-ha&category=integration)
 
-1. In HACS, open the three-dot menu (top right) and select **Custom repositories**.
-2. Add `https://github.com/merlijntishauser/unifi-network-maps-ha` with category **Integration**.
-3. Search for **UniFi Network Map**, install it, and restart Home Assistant.
+1. Click the badge above, or open HACS and search for **UniFi Network Map**.
+2. Click **Download** and confirm.
+3. **Restart Home Assistant.**
+
+The minimum supported version is Home Assistant 2026.1. On older versions, HACS offers an earlier release instead.
 
 ### Manual installation
 
-1. Download the [latest release](https://github.com/merlijntishauser/unifi-network-maps-ha/releases/latest) from GitHub.
-2. Copy the `custom_components/unifi_network_map` folder into your HA configuration directory at `<config>/custom_components/unifi_network_map/`.
+1. Download `unifi-network-maps-ha-<version>.zip` from the [latest release](https://github.com/merlijntishauser/unifi-network-maps-ha/releases/latest).
+2. Create the folder `<config>/custom_components/unifi_network_map/` and unzip the archive into it, so that `manifest.json` ends up directly in that folder.
 3. **Restart Home Assistant.**
 
 ---

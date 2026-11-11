@@ -46,7 +46,8 @@
         "data_description": {
           "url": "Angiv skemaet (http eller https) og port, hvis nødvendigt.",
           "api_key": "Site-API-nøgle fra UniFi OS (Indstillinger -> Control Plane -> Integrationer). Brug i stedet for brugernavn og adgangskode.",
-          "site": "Det interne site-ID, normalt 'default'. Ved en multisite-installation skal du bruge site-koden fra Network-appens URL (segmentet efter /manage/ eller /network/), ikke sitets visningsnavn."
+          "site": "Det interne site-ID, normalt 'default'. Ved en multisite-installation skal du bruge site-koden fra Network-appens URL (segmentet efter /manage/ eller /network/), ikke sitets visningsnavn.",
+          "verify_ssl": "UniFi-controllere bruger som standard selvsignerede certifikater, som ikke består verificeringen. Aktivér kun, hvis du har installeret et betroet certifikat."
         }
       },
       "init": {
