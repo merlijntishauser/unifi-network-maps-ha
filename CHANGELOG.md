@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.13] - 2026-11-11
+
 ### Added
 - Wireless signal details in the card: selecting a wireless client shows its signal strength with a quality grade (excellent, good, fair, poor), noise, TX and RX rate, and UniFi's satisfaction score on the Stats tab. Values the controller does not report are left out. The data comes from `unifi-topology` and is now included in the payload's edges as `connection` (`null` for wired links) (#33)
 
@@ -406,7 +408,8 @@ The upcoming 0.2 release will have some major new features.
 ## [0.1.0] - 2026-01-17
 - Initial public release.
 
-[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.5.12...HEAD
+[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.5.13...HEAD
+[0.5.13]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.13
 [0.5.12]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.12
 [0.5.11]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.11
 [0.5.10]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.10
