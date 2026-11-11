@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Client connectivity sensors and the VLAN client lists named clients with their own name lookup (root name, then hostname), not the one the map uses. A Protect camera whose controller record repeats the model in the root name kept an entity named "G6 Pro Bullet", and other cameras were named by hostname instead of their Protect alias. Both now use `unifi-topology`'s `client_display_name`, so they match the map labels (#303)
+
 ## [0.5.12] - 2026-11-10
 
 ### Changed

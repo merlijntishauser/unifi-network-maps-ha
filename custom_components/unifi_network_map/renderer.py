@@ -29,6 +29,7 @@ from unifi_topology import (
     render_svg,
     render_svg_isometric,
 )
+from unifi_topology.model.classify import client_display_name
 
 from .const import LOGGER, PAYLOAD_SCHEMA_VERSION, UNIFI_MODEL_NAMES
 from .data import UniFiNetworkMapData
@@ -545,14 +546,6 @@ def _build_device_ip_index(devices: list[Device]) -> dict[str, str]:
     return device_ips
 
 
-def _client_display_name(client: ClientData) -> str | None:
-    for key in ("name", "hostname", "mac"):
-        value = _client_field(client, key)
-        if isinstance(value, str) and value.strip():
-            return value.strip()
-    return None
-
-
 def _client_mac(client: ClientData) -> str | None:
     value = _client_field(client, "mac")
     if isinstance(value, str) and value.strip():
@@ -649,7 +642,7 @@ def _build_vlan_info_from_clients(
             vlan = _client_vlan_from_network_name(client, network_name_map)
         if vlan is None:
             continue
-        client_name = _client_display_name(client)
+        client_name = client_display_name(client)
         if client_name:
             vlan_clients.setdefault(vlan, []).append(client_name)
         if vlan in vlan_info:
@@ -870,7 +863,7 @@ def _build_client_details(
         if isinstance(connected_to_mac, str) and connected_to_mac.strip():
             connected_to_mac_str = connected_to_mac.strip().lower()
         details[mac_normalized] = {
-            "name": _client_display_name(client),
+            "name": client_display_name(client),
             "mac": mac_normalized,
             "ip": _client_ip(client),
             "vlan": _client_vlan(client),

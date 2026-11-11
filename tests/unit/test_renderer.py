@@ -23,7 +23,6 @@ from custom_components.unifi_network_map.renderer import (
     _build_node_vlan_index,
     _build_svg_edges,
     _build_vlan_info,
-    _client_display_name,
     _client_field,
     _client_ip,
     _client_mac,
@@ -131,40 +130,42 @@ class TestClientField:
         assert _client_field(client, "nonexistent") is None
 
 
-class TestClientDisplayName:
-    """Tests for _client_display_name function."""
+# A Protect camera as the controller reports it in unifi-network-maps-ha#303:
+# the root name repeats the model and the alias lives in the ucore block.
+PROTECT_CAMERA: dict[str, Any] = {
+    "mac": "AA:BB:CC:DD:01:23",
+    "hostname": "kamerakapu",
+    "name": "G6 Pro Bullet",
+    "vlan": 10,
+    "network": "Cameras",
+    "unifi_device_info_from_ucore": {
+        "name": "Kamera_Kapu",
+        "computed_model": "G6 Pro Bullet",
+        "product_model": "G6 Pro Bullet",
+        "product_line": "PROTECT",
+    },
+}
 
-    def test_returns_name_if_present(self) -> None:
-        client: dict[str, Any] = {
-            "name": "My Device",
-            "hostname": "device.local",
-            "mac": "aa:bb",
+
+class TestClientNamesMatchTheMap:
+    """Client names in the payload use the same rules as the map labels."""
+
+    def test_client_details_use_protect_alias(self) -> None:
+        details = _build_client_details([PROTECT_CAMERA])
+        assert details["aa:bb:cc:dd:01:23"]["name"] == "Kamera_Kapu"
+
+    def test_vlan_client_list_uses_protect_alias(self) -> None:
+        vlan_info = _build_vlan_info([PROTECT_CAMERA], [])
+        assert vlan_info[10]["clients"] == ["Kamera_Kapu"]
+
+    def test_client_details_use_ucore_name_without_root_name(self) -> None:
+        camera = {
+            "mac": "aa:bb:cc:dd:00:12",
+            "hostname": "kamera-udvar",
+            "unifi_device_info_from_ucore": {"name": "Kamera_Udvar"},
         }
-        assert _client_display_name(client) == "My Device"
-
-    def test_returns_hostname_if_no_name(self) -> None:
-        client: dict[str, Any] = {"hostname": "device.local", "mac": "aa:bb"}
-        assert _client_display_name(client) == "device.local"
-
-    def test_returns_mac_if_no_name_or_hostname(self) -> None:
-        client: dict[str, Any] = {"mac": "aa:bb:cc:dd:ee:ff"}
-        assert _client_display_name(client) == "aa:bb:cc:dd:ee:ff"
-
-    def test_returns_none_if_all_empty(self) -> None:
-        client: dict[str, Any] = {"name": "", "hostname": "", "mac": ""}
-        assert _client_display_name(client) is None
-
-    def test_returns_none_if_all_missing(self) -> None:
-        client: dict[str, Any] = {}
-        assert _client_display_name(client) is None
-
-    def test_strips_whitespace(self) -> None:
-        client: dict[str, Any] = {"name": "  My Device  "}
-        assert _client_display_name(client) == "My Device"
-
-    def test_skips_whitespace_only_values(self) -> None:
-        client: dict[str, Any] = {"name": "   ", "hostname": "device.local"}
-        assert _client_display_name(client) == "device.local"
+        details = _build_client_details([camera])
+        assert details["aa:bb:cc:dd:00:12"]["name"] == "Kamera_Udvar"
 
 
 class TestClientMac:
