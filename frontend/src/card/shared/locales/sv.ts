@@ -34,6 +34,12 @@ export const sv = {
   "editor.theme.light": "Ljust",
   "editor.theme.unifi": "UniFi (standard)",
   "editor.theme.unifi_dark": "UniFi Mörkt",
+  "editor.ssid_filter": "Visa bara Wi-Fi-nätverk (valfritt)",
+  "editor.ssid_filter.helper":
+    "SSID-namn separerade med kommatecken, t.ex. MittIoTWiFi. Visar trådlösa klienter i dessa nätverk. Lämna tomt för att visa hela platsen.",
+  "editor.vlan_filter": "Visa bara VLAN (valfritt)",
+  "editor.vlan_filter.helper":
+    "VLAN-ID:n separerade med kommatecken, t.ex. 20, 30. Visar trådbundna och trådlösa klienter i dessa VLAN. Lämna tomt för att visa hela platsen.",
   "editor.svg_theme": "Kartfärger",
   "editor.svg_theme.unifi": "UniFi (standard)",
   "editor.svg_theme.unifi_dark": "UniFi Mörkt",

@@ -34,6 +34,12 @@ export const fi = {
   "editor.theme.light": "Vaalea",
   "editor.theme.unifi": "UniFi (oletus)",
   "editor.theme.unifi_dark": "UniFi tumma",
+  "editor.ssid_filter": "Näytä vain Wi-Fi-verkot (valinnainen)",
+  "editor.ssid_filter.helper":
+    "SSID-nimet pilkuilla erotettuina, esim. OmaIoTWiFi. Näyttää näiden verkkojen langattomat asiakkaat. Jätä tyhjäksi näyttääksesi koko sijainnin.",
+  "editor.vlan_filter": "Näytä vain VLANit (valinnainen)",
+  "editor.vlan_filter.helper":
+    "VLAN-tunnukset pilkuilla erotettuina, esim. 20, 30. Näyttää näiden VLANien langalliset ja langattomat asiakkaat. Jätä tyhjäksi näyttääksesi koko sijainnin.",
   "editor.svg_theme": "Kartan värit",
   "editor.svg_theme.unifi": "UniFi (oletus)",
   "editor.svg_theme.unifi_dark": "UniFi tumma",

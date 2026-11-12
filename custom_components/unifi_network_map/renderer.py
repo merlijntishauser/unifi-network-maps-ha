@@ -507,6 +507,7 @@ def _build_payload(
         "client_ips": _build_client_ip_index(clients),
         "device_ips": _build_device_ip_index(devices),
         "node_vlans": _build_node_vlan_index(clients, networks),
+        "node_ssids": _build_node_ssid_index(clients),
         "vlan_info": _build_vlan_info(clients, networks),
         "ap_client_counts": _build_ap_client_counts(all_clients, devices),
         "device_details": _build_device_details(devices),
@@ -610,6 +611,28 @@ def _client_network_name(client: ClientData) -> str | None:
         value = _client_field(client, key)
         if isinstance(value, str) and value.strip():
             return value.strip()
+    return None
+
+
+def _build_node_ssid_index(
+    clients: list[ClientData] | None,
+) -> dict[str, str]:
+    """Map wireless client MACs to the SSID they are connected to."""
+    node_ssids: dict[str, str] = {}
+    for client in clients or []:
+        mac = _client_mac(client)
+        ssid = _client_ssid(client)
+        if mac and ssid:
+            node_ssids[mac.strip().lower()] = ssid
+    return node_ssids
+
+
+def _client_ssid(client: ClientData) -> str | None:
+    if _client_field(client, "is_wired") is True:
+        return None
+    essid = _client_field(client, "essid")
+    if isinstance(essid, str) and essid.strip():
+        return essid.strip()
     return None
 
 

@@ -440,3 +440,13 @@ def test_wireless_client_edges_carry_connection_quality(
         "quality",
     }
     assert all(e["connection"] is None for e in edges if not e["wireless"])
+
+
+def test_payload_carries_client_ssids_for_wireless_clients(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """node_ssids feeds the card's ssid_filter (#321)."""
+    payload = _render(monkeypatch).payload
+    node_ssids = payload["node_ssids"]
+    assert isinstance(node_ssids, dict)
+    assert all(isinstance(v, str) and v for v in node_ssids.values())

@@ -35,6 +35,12 @@ export const es = {
   "editor.theme.light": "Claro",
   "editor.theme.unifi": "UniFi (predeterminado)",
   "editor.theme.unifi_dark": "UniFi oscuro",
+  "editor.ssid_filter": "Mostrar solo redes Wi-Fi (opcional)",
+  "editor.ssid_filter.helper":
+    "Nombres de SSID separados por comas, p. ej. MiWiFiIoT. Muestra los clientes inalámbricos de estas redes. Déjalo vacío para mostrar todo el sitio.",
+  "editor.vlan_filter": "Mostrar solo VLAN (opcional)",
+  "editor.vlan_filter.helper":
+    "ID de VLAN separados por comas, p. ej. 20, 30. Muestra los clientes cableados e inalámbricos de estas VLAN. Déjalo vacío para mostrar todo el sitio.",
   "editor.svg_theme": "Colores del mapa",
   "editor.svg_theme.unifi": "UniFi (predeterminado)",
   "editor.svg_theme.unifi_dark": "UniFi oscuro",

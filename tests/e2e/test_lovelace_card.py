@@ -60,10 +60,15 @@ def _navigate_and_load_card_resource(page: Page) -> None:
     )
 
 
-def _create_test_card(page: Page, entry_id: str, auth_token: str) -> None:
+def _create_test_card(
+    page: Page,
+    entry_id: str,
+    auth_token: str,
+    extra_config: dict[str, object] | None = None,
+) -> None:
     """Create a test card programmatically and wait for it to load."""
     page.evaluate(
-        """([entryId, token, haUrl]) => {
+        """([entryId, token, haUrl, extraConfig]) => {
         const card = document.createElement("unifi-network-map");
         card.id = "test-card";
         card.style.cssText = `
@@ -77,16 +82,16 @@ def _create_test_card(page: Page, entry_id: str, auth_token: str) -> None:
         `;
         document.body.appendChild(card);
 
-        card.setConfig({
+        card.setConfig(Object.assign({
             svg_url: `/api/unifi_network_map/${entryId}/svg`,
             data_url: `/api/unifi_network_map/${entryId}/payload`,
             theme: "dark"
-        });
+        }, extraConfig));
         card.hass = {
             auth: { data: { access_token: token } }
         };
     }""",
-        [entry_id, auth_token, HA_URL],
+        [entry_id, auth_token, HA_URL, extra_config or {}],
     )
     # Wait for SVG to load and nodes to be annotated
     page.wait_for_selector("#test-card svg", timeout=10000)
@@ -832,3 +837,102 @@ def test_filter_state_persists_across_selection(
     assert result["selectedNodeId"] == _MAC_OFFICE_SWITCH, (
         "Office Switch should be selected"
     )
+
+
+def test_ssid_filter_shows_only_that_networks_clients(
+    authenticated_page: Page,
+    entry_id: str,
+    ha_auth_token: str,
+) -> None:
+    """ssid_filter keeps Wi-Fi clients on that SSID, hides the rest (#321).
+
+    The mock controller puts the MacBook and the iPhone on HomeNetwork; the
+    desktop PC is wired, so it has no SSID and must be hidden.
+    """
+    page = authenticated_page
+    _navigate_and_load_card_resource(page)
+    _create_test_card(
+        page, entry_id, ha_auth_token, {"ssid_filter": ["HomeNetwork"]}
+    )
+    page.wait_for_function(
+        """(mac) => {
+            const node = document.querySelector(
+                `#test-card [data-node-id="${mac}"]`
+            );
+            return node && node.classList.contains("node--filtered");
+        }""",
+        arg=_MAC_DESKTOP_PC,
+        timeout=10000,
+    )
+    filtered = page.evaluate(
+        """(macs) => macs.map((mac) => {
+            const node = document.querySelector(
+                `#test-card [data-node-id="${mac}"]`
+            );
+            return node ? node.classList.contains("node--filtered") : null;
+        })""",
+        [_MAC_MACBOOK_PRO, _MAC_IPHONE, _MAC_DESKTOP_PC],
+    )
+    assert filtered == [False, False, True]
+
+
+def test_card_editor_network_filter_fields_in_real_ha(
+    authenticated_page: Page,
+    entry_id: str,
+) -> None:
+    """The VLAN/SSID editor fields render in HA's own ha-form and save lists.
+
+    Unit tests use a stub ha-form; this checks the real one renders the text
+    fields with their label and helper, and that typing produces a list in
+    the card config (#321).
+    """
+    page = authenticated_page
+    _navigate_and_load_card_resource(page)
+    page.evaluate("""async () => {
+        if (!customElements.get("ha-form")) {
+            const helpers = await window.loadCardHelpers();
+            const card = await helpers.createCardElement(
+                { type: "entities", entities: [] }
+            );
+            await card.constructor.getConfigElement();
+        }
+        await customElements.whenDefined("ha-form");
+    }""")
+    page.evaluate(
+        """(entryId) => {
+            const editor = document.createElement("unifi-network-map-editor");
+            editor.id = "test-editor";
+            editor.style.cssText =
+                "display:block;position:fixed;top:20px;left:20px;" +
+                "width:520px;z-index:9999;background:white";
+            document.body.appendChild(editor);
+            window.__editorConfigs = [];
+            editor.addEventListener("config-changed", (event) => {
+                window.__editorConfigs.push(event.detail.config);
+                editor.setConfig(event.detail.config);
+            });
+            editor.setConfig({
+                type: "custom:unifi-network-map", entry_id: entryId
+            });
+            editor.hass = document.querySelector("home-assistant").hass;
+        }""",
+        entry_id,
+    )
+    # HA's ha-input does not expose its label to get_by_label, so find the
+    # text selector by the label HA was given and type into its input.
+    selectors = page.locator("#test-editor ha-selector-text")
+    labels = selectors.evaluate_all("(els) => els.map((el) => el.label)")
+    vlan_index = labels.index("Only show VLANs (optional)")
+    vlan_selector = selectors.nth(vlan_index)
+    vlan_input = vlan_selector.locator("input")
+    vlan_input.fill("20, 30")
+    page.wait_for_function(
+        """() => (window.__editorConfigs || []).some(
+            (config) => JSON.stringify(config.vlan_filter) === "[20,30]"
+        )""",
+        timeout=10000,
+    )
+    assert vlan_input.input_value() == "20, 30"
+    helper = vlan_selector.evaluate("(el) => el.helper")
+    assert "Comma-separated VLAN IDs" in helper
+    assert "Only show Wi-Fi networks (optional)" in labels

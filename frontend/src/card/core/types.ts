@@ -27,6 +27,10 @@ export type CardConfig = {
   svg_theme?: "unifi" | "unifi-dark" | "minimal" | "minimal-dark" | "classic" | "classic-dark";
   icon_set?: "isometric" | "modern";
   card_height?: string | number;
+  /** Show only clients on these VLAN IDs, plus the infrastructure they connect through. */
+  vlan_filter?: number | string | Array<number | string>;
+  /** Show only wireless clients on these SSIDs, plus the infrastructure they connect through. */
+  ssid_filter?: string | string[];
 };
 
 export type ConfigEntry = {
@@ -198,6 +202,7 @@ export type MapPayload = {
   device_ips?: Record<string, string>;
   related_entities?: Record<string, RelatedEntity[]>;
   node_vlans?: Record<string, number | null>;
+  node_ssids?: Record<string, string>;
   vlan_info?: Record<number, VlanInfo>;
   ap_client_counts?: Record<string, number>;
   device_details?: Record<string, DeviceDetails>;

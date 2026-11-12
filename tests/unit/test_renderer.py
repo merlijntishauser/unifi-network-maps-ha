@@ -21,6 +21,7 @@ from custom_components.unifi_network_map.renderer import (
     _build_device_ip_index,
     _build_device_ports,
     _build_network_name_map,
+    _build_node_ssid_index,
     _build_node_vlan_index,
     _build_svg_edges,
     _build_vlan_info,
@@ -492,6 +493,37 @@ class TestBuildDeviceIpIndex:
             "aa:bb:cc:dd:ee:01": "192.168.1.1",
             "aa:bb:cc:dd:ee:02": "192.168.1.2",
         }
+
+
+class TestBuildNodeSsidIndex:
+    """Wireless clients map to their SSID, for the card's ssid_filter."""
+
+    def test_maps_wireless_clients_to_their_ssid(self) -> None:
+        clients: list[dict[str, Any]] = [
+            {
+                "mac": "AA:BB:CC:DD:EE:01",
+                "is_wired": False,
+                "essid": "MyIoTWiFi",
+            },
+            {"mac": "AA:BB:CC:DD:EE:02", "is_wired": False, "essid": " Home "},
+        ]
+        result = _build_node_ssid_index(clients)
+        assert result == {
+            "aa:bb:cc:dd:ee:01": "MyIoTWiFi",
+            "aa:bb:cc:dd:ee:02": "Home",
+        }
+
+    def test_skips_wired_clients_and_missing_ssids(self) -> None:
+        clients: list[dict[str, Any]] = [
+            {"mac": "AA:BB:CC:DD:EE:01", "is_wired": True, "essid": "Stale"},
+            {"mac": "AA:BB:CC:DD:EE:02", "is_wired": False},
+            {"mac": "AA:BB:CC:DD:EE:03", "is_wired": False, "essid": "  "},
+            {"is_wired": False, "essid": "NoMac"},
+        ]
+        assert _build_node_ssid_index(clients) == {}
+
+    def test_returns_empty_without_clients(self) -> None:
+        assert _build_node_ssid_index(None) == {}
 
 
 class TestBuildNodeVlanIndex:

@@ -35,6 +35,12 @@ export const fr = {
   "editor.theme.light": "Clair",
   "editor.theme.unifi": "UniFi (par défaut)",
   "editor.theme.unifi_dark": "UniFi sombre",
+  "editor.ssid_filter": "Afficher seulement ces réseaux Wi-Fi (facultatif)",
+  "editor.ssid_filter.helper":
+    "Noms de SSID séparés par des virgules, p. ex. MonWiFiIoT. Affiche les clients sans fil de ces réseaux. Laissez vide pour afficher tout le site.",
+  "editor.vlan_filter": "Afficher seulement ces VLAN (facultatif)",
+  "editor.vlan_filter.helper":
+    "ID de VLAN séparés par des virgules, p. ex. 20, 30. Affiche les clients filaires et sans fil de ces VLAN. Laissez vide pour afficher tout le site.",
   "editor.svg_theme": "Couleurs de la carte",
   "editor.svg_theme.unifi": "UniFi (par défaut)",
   "editor.svg_theme.unifi_dark": "UniFi sombre",

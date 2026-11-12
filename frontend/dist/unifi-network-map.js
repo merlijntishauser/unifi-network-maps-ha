@@ -3446,9 +3446,9 @@ function renderMapOverview(context, helpers) {
       </div>
     `;
   }
-  const nodes = Object.keys(context.payload.node_types ?? {});
   const nodeTypes = context.payload.node_types ?? {};
-  const nodeStatus = context.payload.node_status ?? {};
+  const nodes = onlyVisible(Object.keys(nodeTypes), context.visibleNodes);
+  const nodeStatus = visibleStatus(context.payload.node_status ?? {}, context.visibleNodes);
   const deviceCounts = countDevicesByType(nodes, nodeTypes);
   const statusCounts = countNodeStatus(nodeStatus);
   return `
@@ -4012,6 +4012,15 @@ function renderOverviewDeviceBreakdown(counts, helpers) {
 function isClientType(type) {
   return CLIENT_SUBTYPES.includes(type);
 }
+function onlyVisible(nodes, visibleNodes) {
+  return visibleNodes ? nodes.filter((node) => visibleNodes.has(node)) : nodes;
+}
+function visibleStatus(nodeStatus, visibleNodes) {
+  if (!visibleNodes) {
+    return nodeStatus;
+  }
+  return Object.fromEntries(Object.entries(nodeStatus).filter(([node]) => visibleNodes.has(node)));
+}
 function countDevicesByType(nodes, nodeTypes) {
   return {
     gateways: nodes.filter((n) => nodeTypes[n] === "gateway").length,
@@ -4335,6 +4344,10 @@ var da = {
   "editor.theme.light": "Lys",
   "editor.theme.unifi": "UniFi (standard)",
   "editor.theme.unifi_dark": "UniFi M\xF8rk",
+  "editor.ssid_filter": "Vis kun Wi-Fi-netv\xE6rk (valgfrit)",
+  "editor.ssid_filter.helper": "SSID-navne adskilt af kommaer, f.eks. MitIoTWiFi. Viser tr\xE5dl\xF8se klienter p\xE5 disse netv\xE6rk. Lad feltet v\xE6re tomt for at vise hele sitet.",
+  "editor.vlan_filter": "Vis kun VLAN'er (valgfrit)",
+  "editor.vlan_filter.helper": "VLAN-id'er adskilt af kommaer, f.eks. 20, 30. Viser kablede og tr\xE5dl\xF8se klienter p\xE5 disse VLAN'er. Lad feltet v\xE6re tomt for at vise hele sitet.",
   "editor.svg_theme": "Kortfarver",
   "editor.svg_theme.unifi": "UniFi (standard)",
   "editor.svg_theme.unifi_dark": "UniFi M\xF8rk",
@@ -4478,6 +4491,10 @@ var de = {
   "editor.theme.light": "Hell",
   "editor.theme.unifi": "UniFi (Standard)",
   "editor.theme.unifi_dark": "UniFi Dunkel",
+  "editor.ssid_filter": "Nur WLAN-Netze anzeigen (optional)",
+  "editor.ssid_filter.helper": "SSID-Namen durch Kommas getrennt, z. B. MeinIoTWLAN. Zeigt WLAN-Clients in diesen Netzen. Leer lassen, um den ganzen Standort anzuzeigen.",
+  "editor.vlan_filter": "Nur VLANs anzeigen (optional)",
+  "editor.vlan_filter.helper": "VLAN-IDs durch Kommas getrennt, z. B. 20, 30. Zeigt kabelgebundene und WLAN-Clients in diesen VLANs. Leer lassen, um den ganzen Standort anzuzeigen.",
   "editor.svg_theme": "Kartenfarben",
   "editor.svg_theme.unifi": "UniFi (Standard)",
   "editor.svg_theme.unifi_dark": "UniFi Dunkel",
@@ -4615,22 +4632,26 @@ var en = {
   "context_menu.view_ports": "View Ports",
   "editor.card_height": "Card height (optional)",
   "editor.entry_id": "UniFi Network Map Instance",
+  "editor.icon_set": "Icon Style",
+  "editor.icon_set.isometric": "Isometric",
+  "editor.icon_set.modern": "Modern (default)",
   "editor.no_entries": "No UniFi Network Map integrations found. Please add one first.",
+  "editor.ssid_filter": "Only show Wi-Fi networks (optional)",
+  "editor.ssid_filter.helper": "Comma-separated SSID names, e.g. MyIoTWiFi. Shows wireless clients on these networks. Leave empty to show the whole site.",
+  "editor.svg_theme": "Map Colors",
+  "editor.svg_theme.classic": "Classic",
+  "editor.svg_theme.classic_dark": "Classic Dark",
+  "editor.svg_theme.minimal": "Minimal",
+  "editor.svg_theme.minimal_dark": "Minimal Dark",
+  "editor.svg_theme.unifi": "UniFi (default)",
+  "editor.svg_theme.unifi_dark": "UniFi Dark",
   "editor.theme": "Theme",
   "editor.theme.dark": "Dark",
   "editor.theme.light": "Light",
   "editor.theme.unifi": "UniFi (default)",
   "editor.theme.unifi_dark": "UniFi Dark",
-  "editor.svg_theme": "Map Colors",
-  "editor.svg_theme.unifi": "UniFi (default)",
-  "editor.svg_theme.unifi_dark": "UniFi Dark",
-  "editor.svg_theme.minimal": "Minimal",
-  "editor.svg_theme.minimal_dark": "Minimal Dark",
-  "editor.svg_theme.classic": "Classic",
-  "editor.svg_theme.classic_dark": "Classic Dark",
-  "editor.icon_set": "Icon Style",
-  "editor.icon_set.modern": "Modern (default)",
-  "editor.icon_set.isometric": "Isometric",
+  "editor.vlan_filter": "Only show VLANs (optional)",
+  "editor.vlan_filter.helper": "Comma-separated VLAN IDs, e.g. 20, 30. Shows wired and wireless clients on these VLANs. Leave empty to show the whole site.",
   "edge_tooltip.band_24": "2.4GHz",
   "edge_tooltip.band_5": "5GHz",
   "edge_tooltip.band_6": "6GHz",
@@ -4764,6 +4785,10 @@ var es = {
   "editor.theme.light": "Claro",
   "editor.theme.unifi": "UniFi (predeterminado)",
   "editor.theme.unifi_dark": "UniFi oscuro",
+  "editor.ssid_filter": "Mostrar solo redes Wi-Fi (opcional)",
+  "editor.ssid_filter.helper": "Nombres de SSID separados por comas, p. ej. MiWiFiIoT. Muestra los clientes inal\xE1mbricos de estas redes. D\xE9jalo vac\xEDo para mostrar todo el sitio.",
+  "editor.vlan_filter": "Mostrar solo VLAN (opcional)",
+  "editor.vlan_filter.helper": "ID de VLAN separados por comas, p. ej. 20, 30. Muestra los clientes cableados e inal\xE1mbricos de estas VLAN. D\xE9jalo vac\xEDo para mostrar todo el sitio.",
   "editor.svg_theme": "Colores del mapa",
   "editor.svg_theme.unifi": "UniFi (predeterminado)",
   "editor.svg_theme.unifi_dark": "UniFi oscuro",
@@ -4907,6 +4932,10 @@ var fi = {
   "editor.theme.light": "Vaalea",
   "editor.theme.unifi": "UniFi (oletus)",
   "editor.theme.unifi_dark": "UniFi tumma",
+  "editor.ssid_filter": "N\xE4yt\xE4 vain Wi-Fi-verkot (valinnainen)",
+  "editor.ssid_filter.helper": "SSID-nimet pilkuilla erotettuina, esim. OmaIoTWiFi. N\xE4ytt\xE4\xE4 n\xE4iden verkkojen langattomat asiakkaat. J\xE4t\xE4 tyhj\xE4ksi n\xE4ytt\xE4\xE4ksesi koko sijainnin.",
+  "editor.vlan_filter": "N\xE4yt\xE4 vain VLANit (valinnainen)",
+  "editor.vlan_filter.helper": "VLAN-tunnukset pilkuilla erotettuina, esim. 20, 30. N\xE4ytt\xE4\xE4 n\xE4iden VLANien langalliset ja langattomat asiakkaat. J\xE4t\xE4 tyhj\xE4ksi n\xE4ytt\xE4\xE4ksesi koko sijainnin.",
   "editor.svg_theme": "Kartan v\xE4rit",
   "editor.svg_theme.unifi": "UniFi (oletus)",
   "editor.svg_theme.unifi_dark": "UniFi tumma",
@@ -5050,6 +5079,10 @@ var fr = {
   "editor.theme.light": "Clair",
   "editor.theme.unifi": "UniFi (par d\xE9faut)",
   "editor.theme.unifi_dark": "UniFi sombre",
+  "editor.ssid_filter": "Afficher seulement ces r\xE9seaux Wi-Fi (facultatif)",
+  "editor.ssid_filter.helper": "Noms de SSID s\xE9par\xE9s par des virgules, p. ex. MonWiFiIoT. Affiche les clients sans fil de ces r\xE9seaux. Laissez vide pour afficher tout le site.",
+  "editor.vlan_filter": "Afficher seulement ces VLAN (facultatif)",
+  "editor.vlan_filter.helper": "ID de VLAN s\xE9par\xE9s par des virgules, p. ex. 20, 30. Affiche les clients filaires et sans fil de ces VLAN. Laissez vide pour afficher tout le site.",
   "editor.svg_theme": "Couleurs de la carte",
   "editor.svg_theme.unifi": "UniFi (par d\xE9faut)",
   "editor.svg_theme.unifi_dark": "UniFi sombre",
@@ -5193,6 +5226,10 @@ var is = {
   "editor.theme.light": "Lj\xF3st",
   "editor.theme.unifi": "UniFi (sj\xE1lfgefi\xF0)",
   "editor.theme.unifi_dark": "UniFi D\xF6kkt",
+  "editor.ssid_filter": "S\xFDna a\xF0eins Wi-Fi-net (valfrj\xE1lst)",
+  "editor.ssid_filter.helper": "SSID-heiti a\xF0skilin me\xF0 kommum, t.d. MittIoTWiFi. S\xFDnir \xFEr\xE1\xF0lausa bi\xF0lara \xE1 \xFEessum netum. Skildu eftir autt til a\xF0 s\xFDna allan sta\xF0inn.",
+  "editor.vlan_filter": "S\xFDna a\xF0eins VLAN (valfrj\xE1lst)",
+  "editor.vlan_filter.helper": "VLAN-au\xF0kenni a\xF0skilin me\xF0 kommum, t.d. 20, 30. S\xFDnir tengda og \xFEr\xE1\xF0lausa bi\xF0lara \xE1 \xFEessum VLAN. Skildu eftir autt til a\xF0 s\xFDna allan sta\xF0inn.",
   "editor.svg_theme": "Kortalitiur",
   "editor.svg_theme.unifi": "UniFi (sj\xE1lfgefi\xF0)",
   "editor.svg_theme.unifi_dark": "UniFi D\xF6kkt",
@@ -5336,6 +5373,10 @@ var nb = {
   "editor.theme.light": "Lys",
   "editor.theme.unifi": "UniFi (standard)",
   "editor.theme.unifi_dark": "UniFi Mork",
+  "editor.ssid_filter": "Vis bare Wi-Fi-nettverk (valgfritt)",
+  "editor.ssid_filter.helper": "SSID-navn skilt med komma, f.eks. MittIoTWiFi. Viser tr\xE5dl\xF8se klienter p\xE5 disse nettverkene. La feltet st\xE5 tomt for \xE5 vise hele omr\xE5det.",
+  "editor.vlan_filter": "Vis bare VLAN (valgfritt)",
+  "editor.vlan_filter.helper": "VLAN-ID-er skilt med komma, f.eks. 20, 30. Viser kablede og tr\xE5dl\xF8se klienter p\xE5 disse VLAN-ene. La feltet st\xE5 tomt for \xE5 vise hele omr\xE5det.",
   "editor.svg_theme": "Kartfarger",
   "editor.svg_theme.unifi": "UniFi (standard)",
   "editor.svg_theme.unifi_dark": "UniFi Mork",
@@ -5473,22 +5514,26 @@ var nl = {
   "context_menu.view_ports": "Poorten bekijken",
   "editor.card_height": "Kaarthoogte (optioneel)",
   "editor.entry_id": "UniFi Network Map-instantie",
+  "editor.icon_set": "Pictogramstijl",
+  "editor.icon_set.isometric": "Isometrisch",
+  "editor.icon_set.modern": "Modern (standaard)",
   "editor.no_entries": "Geen UniFi Network Map-integraties gevonden. Voeg er eerst \xE9\xE9n toe.",
+  "editor.ssid_filter": "Alleen wifi-netwerken tonen (optioneel)",
+  "editor.ssid_filter.helper": "SSID-namen gescheiden door komma's, bijv. MijnIoTWiFi. Toont draadloze clients op deze netwerken. Laat leeg om de hele site te tonen.",
+  "editor.svg_theme": "Kaartkleuren",
+  "editor.svg_theme.classic": "Klassiek",
+  "editor.svg_theme.classic_dark": "Klassiek Donker",
+  "editor.svg_theme.minimal": "Minimaal",
+  "editor.svg_theme.minimal_dark": "Minimaal Donker",
+  "editor.svg_theme.unifi": "UniFi (standaard)",
+  "editor.svg_theme.unifi_dark": "UniFi Donker",
   "editor.theme": "Thema",
   "editor.theme.dark": "Donker",
   "editor.theme.light": "Licht",
   "editor.theme.unifi": "UniFi (standaard)",
   "editor.theme.unifi_dark": "UniFi Donker",
-  "editor.svg_theme": "Kaartkleuren",
-  "editor.svg_theme.unifi": "UniFi (standaard)",
-  "editor.svg_theme.unifi_dark": "UniFi Donker",
-  "editor.svg_theme.minimal": "Minimaal",
-  "editor.svg_theme.minimal_dark": "Minimaal Donker",
-  "editor.svg_theme.classic": "Klassiek",
-  "editor.svg_theme.classic_dark": "Klassiek Donker",
-  "editor.icon_set": "Pictogramstijl",
-  "editor.icon_set.modern": "Modern (standaard)",
-  "editor.icon_set.isometric": "Isometrisch",
+  "editor.vlan_filter": "Alleen VLAN's tonen (optioneel)",
+  "editor.vlan_filter.helper": "VLAN-ID's gescheiden door komma's, bijv. 20, 30. Toont bekabelde en draadloze clients op deze VLAN's. Laat leeg om de hele site te tonen.",
   "edge_tooltip.band_24": "2.4GHz",
   "edge_tooltip.band_5": "5GHz",
   "edge_tooltip.band_6": "6GHz",
@@ -5622,6 +5667,10 @@ var sv = {
   "editor.theme.light": "Ljust",
   "editor.theme.unifi": "UniFi (standard)",
   "editor.theme.unifi_dark": "UniFi M\xF6rkt",
+  "editor.ssid_filter": "Visa bara Wi-Fi-n\xE4tverk (valfritt)",
+  "editor.ssid_filter.helper": "SSID-namn separerade med kommatecken, t.ex. MittIoTWiFi. Visar tr\xE5dl\xF6sa klienter i dessa n\xE4tverk. L\xE4mna tomt f\xF6r att visa hela platsen.",
+  "editor.vlan_filter": "Visa bara VLAN (valfritt)",
+  "editor.vlan_filter.helper": "VLAN-ID:n separerade med kommatecken, t.ex. 20, 30. Visar tr\xE5dbundna och tr\xE5dl\xF6sa klienter i dessa VLAN. L\xE4mna tomt f\xF6r att visa hela platsen.",
   "editor.svg_theme": "Kartf\xE4rger",
   "editor.svg_theme.unifi": "UniFi (standard)",
   "editor.svg_theme.unifi_dark": "UniFi M\xF6rkt",
@@ -5880,6 +5929,105 @@ function countDeviceTypes(nodeTypes) {
     }
   }
   return counts;
+}
+
+// src/card/interaction/network-filter.ts
+function parseNetworkFilter(config) {
+  const vlans = new Set(parseVlanIds(config.vlan_filter));
+  const ssids = new Set(parseSsids(config.ssid_filter));
+  return vlans.size > 0 || ssids.size > 0 ? { vlans, ssids } : null;
+}
+function parseVlanIds(value) {
+  return toList(value).map(toVlanId).filter((id) => id !== null);
+}
+function parseSsids(value) {
+  return toList(value).filter((item) => typeof item === "string" && item.trim() !== "").map((item) => item.trim());
+}
+function networkVisibleNodes(payload, filter) {
+  const nodeTypes = payload.node_types ?? {};
+  const gateways = Object.keys(nodeTypes).filter((id) => nodeTypes[id] === "gateway");
+  const matches = matchingClients(payload, filter);
+  if (gateways.length === 0) {
+    return /* @__PURE__ */ new Set([...infrastructureNodes(nodeTypes), ...matches]);
+  }
+  const parents = parentsTowardGateways(payload.edges ?? [], nodeTypes, gateways);
+  const visible = new Set(gateways);
+  for (const client of matches) {
+    addPathToGateway(client, parents, visible);
+  }
+  return visible;
+}
+function toList(value) {
+  if (value === void 0 || value === null) {
+    return [];
+  }
+  return Array.isArray(value) ? value : [value];
+}
+function toVlanId(value) {
+  const id = typeof value === "string" && value.trim() !== "" ? Number(value) : value;
+  return typeof id === "number" && Number.isInteger(id) && id >= 1 && id <= 4094 ? id : null;
+}
+function isClient(type) {
+  return type !== void 0 && normalizeDeviceType(type) === "client";
+}
+function infrastructureNodes(nodeTypes) {
+  return Object.keys(nodeTypes).filter((id) => !isClient(nodeTypes[id]));
+}
+function matchingClients(payload, filter) {
+  const nodeTypes = payload.node_types ?? {};
+  const vlans = payload.node_vlans ?? {};
+  const ssids = payload.node_ssids ?? {};
+  return Object.keys(nodeTypes).filter((id) => {
+    if (!isClient(nodeTypes[id])) {
+      return false;
+    }
+    const vlan = vlans[id];
+    const ssid = ssids[id];
+    return vlan != null && filter.vlans.has(vlan) || ssid != null && filter.ssids.has(ssid);
+  });
+}
+function parentsTowardGateways(edges, nodeTypes, gateways) {
+  const neighbors = buildNeighbors(edges);
+  const parents = /* @__PURE__ */ new Map();
+  const seen = new Set(gateways);
+  const queue = [...gateways];
+  while (queue.length > 0) {
+    const node = queue.shift();
+    if (isClient(nodeTypes[node])) {
+      continue;
+    }
+    for (const next of neighbors.get(node) ?? []) {
+      if (!seen.has(next)) {
+        seen.add(next);
+        parents.set(next, node);
+        queue.push(next);
+      }
+    }
+  }
+  return parents;
+}
+function buildNeighbors(edges) {
+  const neighbors = /* @__PURE__ */ new Map();
+  const link = (from, to) => {
+    const list = neighbors.get(from);
+    if (list) {
+      list.push(to);
+    } else {
+      neighbors.set(from, [to]);
+    }
+  };
+  for (const edge of edges) {
+    link(edge.left, edge.right);
+    link(edge.right, edge.left);
+  }
+  return neighbors;
+}
+function addPathToGateway(node, parents, visible) {
+  let current = node;
+  while (current !== void 0 && !visible.has(current)) {
+    visible.add(current);
+    current = parents.get(current);
+  }
 }
 
 // src/card/interaction/viewport.ts
@@ -7797,8 +7945,7 @@ var UnifiNetworkMapCard = class extends HTMLElement {
   _injectFilterBar(viewport) {
     const container = viewport.querySelector(".filter-bar-container");
     if (!container) return;
-    const nodeTypes = this._payload?.node_types ?? {};
-    const counts = countDeviceTypes(nodeTypes);
+    const counts = countDeviceTypes(this._networkFilteredNodeTypes());
     const theme = this._config?.theme ?? "dark";
     const labels = this._getFilterLabels();
     const filterBar = this._getFilterBar(container);
@@ -7869,7 +8016,8 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       {
         payload: this._payload,
         selectedNode: this._selection.selectedNode,
-        activeTab: this._activeTab
+        activeTab: this._activeTab,
+        visibleNodes: this._networkVisibleNodes() ?? void 0
       },
       this._panelHelpers()
     );
@@ -8072,12 +8220,26 @@ var UnifiNetworkMapCard = class extends HTMLElement {
       this._injectFilterBar(viewport);
     }
   }
+  /** Nodes left by the card's vlan_filter / ssid_filter; null when none is set. */
+  _networkVisibleNodes() {
+    const filter = this._config ? parseNetworkFilter(this._config) : null;
+    return filter && this._payload ? networkVisibleNodes(this._payload, filter) : null;
+  }
+  _networkFilteredNodeTypes() {
+    const nodeTypes = this._payload?.node_types ?? {};
+    const visible = this._networkVisibleNodes();
+    if (!visible) {
+      return nodeTypes;
+    }
+    return Object.fromEntries(Object.entries(nodeTypes).filter(([id]) => visible.has(id)));
+  }
   _applyFilters(svg3) {
     const nodeTypes = this._payload?.node_types ?? {};
+    const networkVisible = this._networkVisibleNodes();
     const hiddenNodes = /* @__PURE__ */ new Set();
     for (const [nodeId, nodeType] of Object.entries(nodeTypes)) {
       const normalized = normalizeDeviceType(nodeType);
-      const visible = this._filterState[normalized];
+      const visible = this._filterState[normalized] && (networkVisible === null || networkVisible.has(nodeId));
       const element = findNodeElement(svg3, nodeId);
       if (element) {
         element.classList.toggle("node--filtered", !visible);
@@ -8486,8 +8648,30 @@ function buildFormSchema(entries2, localize) {
         }
       },
       label: localize("editor.card_height")
+    },
+    {
+      name: "vlan_filter",
+      selector: { text: { type: "text" } },
+      label: localize("editor.vlan_filter")
+    },
+    {
+      name: "ssid_filter",
+      selector: { text: { type: "text" } },
+      label: localize("editor.ssid_filter")
     }
   ];
+}
+var NETWORK_FILTER_FIELDS = ["vlan_filter", "ssid_filter"];
+function parseFilterText(field, text2) {
+  const items = typeof text2 === "string" ? text2.split(",") : [];
+  return field === "vlan_filter" ? parseVlanIds(items) : parseSsids(items);
+}
+function formatFilterText(field, value) {
+  const items = field === "vlan_filter" ? parseVlanIds(value) : parseSsids(value);
+  return items.join(", ");
+}
+function sameFilterList(left, right) {
+  return left.length === right.length && left.every((item, index) => item === right[index]);
 }
 function normalizeTheme(value) {
   if (value === "dark" || value === "light" || value === "unifi-dark") return value;
@@ -8508,6 +8692,8 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
     this._entries = [];
     this._entriesRequested = false;
     this._localize = createLocalize();
+    /** Raw text typed into the filter fields, kept so a trailing comma survives re-render. */
+    this._filterInput = {};
     this._boundOnChange = (event) => this._onChange(event);
   }
   set hass(hass) {
@@ -8561,6 +8747,7 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
     }
     this._form.hass = this._hass;
     this._form.computeLabel = (schema) => schema.label ?? this._localize(`editor.${schema.name}`) ?? schema.name;
+    this._form.computeHelper = (schema) => isFilterField(schema.name) ? this._localize(`editor.${schema.name}.helper`) : void 0;
     this._form.schema = this._buildFormSchema();
     this._form.data = this._buildFormData();
   }
@@ -8576,7 +8763,9 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
       theme: "unifi",
       svg_theme: "unifi",
       icon_set: "modern",
-      card_height: ""
+      card_height: "",
+      vlan_filter: "",
+      ssid_filter: ""
     };
   }
   _getConfigFormValues() {
@@ -8590,7 +8779,22 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
     if (cfg.svg_theme !== void 0) result.svg_theme = cfg.svg_theme;
     if (cfg.icon_set !== void 0) result.icon_set = cfg.icon_set;
     if (cfg.card_height !== void 0) result.card_height = cfg.card_height;
+    for (const field of NETWORK_FILTER_FIELDS) {
+      result[field] = this._filterFormText(field);
+    }
     return result;
+  }
+  /** What was typed, while it still means the stored list; otherwise the stored list as text. */
+  _filterFormText(field) {
+    const typed = this._filterInput[field];
+    const stored = this._storedFilter(field);
+    if (typed !== void 0 && sameFilterList(parseFilterText(field, typed), stored)) {
+      return typed;
+    }
+    return formatFilterText(field, this._config?.[field]);
+  }
+  _storedFilter(field) {
+    return parseFilterText(field, formatFilterText(field, this._config?.[field]));
   }
   _renderNoEntries() {
     this.innerHTML = `
@@ -8630,7 +8834,9 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
       entry_id: entryId,
       theme: this._config?.theme ?? "unifi",
       svg_theme: this._config?.svg_theme ?? "unifi",
-      icon_set: this._config?.icon_set ?? "modern"
+      icon_set: this._config?.icon_set ?? "modern",
+      vlan_filter: this._storedFilter("vlan_filter"),
+      ssid_filter: this._storedFilter("ssid_filter")
     });
   }
   _updateConfig(update) {
@@ -8643,6 +8849,9 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
       icon_set: update.icon_set,
       card_height: update.card_height
     };
+    for (const field of NETWORK_FILTER_FIELDS) {
+      this._setFilter(field, update[field]);
+    }
     this.dispatchEvent(
       new CustomEvent("config-changed", {
         detail: { config: this._config },
@@ -8650,6 +8859,26 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
         composed: true
       })
     );
+  }
+  /** Lists go into the card config; an empty list removes the key. */
+  _setFilter(field, list) {
+    if (!this._config) {
+      return;
+    }
+    if (list.length > 0) {
+      this._config = { ...this._config, [field]: list };
+    } else {
+      const { [field]: _removed, ...rest } = this._config;
+      this._config = rest;
+    }
+  }
+  _resolveFilter(field, value) {
+    const text2 = value?.[field];
+    if (typeof text2 !== "string") {
+      return this._storedFilter(field);
+    }
+    this._filterInput[field] = text2;
+    return parseFilterText(field, text2);
   }
   _getConfigUpdate(e) {
     const detail = e.detail;
@@ -8663,7 +8892,9 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
       theme: normalizeTheme(themeValue),
       svg_theme: normalizeSvgTheme(svgThemeValue),
       icon_set: normalizeIconSet(iconSetValue),
-      card_height: cardHeight
+      card_height: cardHeight,
+      vlan_filter: this._resolveFilter("vlan_filter", detail.value),
+      ssid_filter: this._resolveFilter("ssid_filter", detail.value)
     };
   }
   _resolveEntryId(value) {
@@ -8676,9 +8907,20 @@ var UnifiNetworkMapEditor = class extends HTMLElement {
     return value?.card_height ?? this._config?.card_height;
   }
   _isConfigUnchanged(update) {
+    return this._sameBaseConfig(update) && this._sameFilters(update);
+  }
+  _sameBaseConfig(update) {
     return this._config?.entry_id === update.entry_id && this._config?.theme === update.theme && this._config?.svg_theme === update.svg_theme && this._config?.icon_set === update.icon_set && this._config?.card_height === update.card_height;
   }
+  _sameFilters(update) {
+    return NETWORK_FILTER_FIELDS.every(
+      (field) => sameFilterList(this._storedFilter(field), update[field])
+    );
+  }
 };
+function isFilterField(name) {
+  return NETWORK_FILTER_FIELDS.includes(name);
+}
 
 // src/unifi-network-map.ts
 var CARD_VERSION = "0.5.13";

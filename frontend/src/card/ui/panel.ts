@@ -25,6 +25,8 @@ export type PanelContext = {
   payload?: MapPayload;
   selectedNode?: string;
   activeTab: "overview" | "stats" | "actions";
+  /** Nodes left by the card's network filter; the overview counts only these. */
+  visibleNodes?: Set<string>;
 };
 
 export type PanelHelpers = {
@@ -53,9 +55,9 @@ function renderMapOverview(context: PanelContext, helpers: PanelHelpers): string
       </div>
     `;
   }
-  const nodes = Object.keys(context.payload.node_types ?? {});
   const nodeTypes = context.payload.node_types ?? {};
-  const nodeStatus = context.payload.node_status ?? {};
+  const nodes = onlyVisible(Object.keys(nodeTypes), context.visibleNodes);
+  const nodeStatus = visibleStatus(context.payload.node_status ?? {}, context.visibleNodes);
 
   const deviceCounts = countDevicesByType(nodes, nodeTypes);
   const statusCounts = countNodeStatus(nodeStatus);
@@ -778,6 +780,20 @@ function renderOverviewDeviceBreakdown(counts: DeviceCounts, helpers: PanelHelpe
 
 function isClientType(type: string): boolean {
   return (CLIENT_SUBTYPES as readonly string[]).includes(type);
+}
+
+function onlyVisible(nodes: string[], visibleNodes?: Set<string>): string[] {
+  return visibleNodes ? nodes.filter((node) => visibleNodes.has(node)) : nodes;
+}
+
+function visibleStatus(
+  nodeStatus: Record<string, NodeStatus>,
+  visibleNodes?: Set<string>,
+): Record<string, NodeStatus> {
+  if (!visibleNodes) {
+    return nodeStatus;
+  }
+  return Object.fromEntries(Object.entries(nodeStatus).filter(([node]) => visibleNodes.has(node)));
 }
 
 function countDevicesByType(nodes: string[], nodeTypes: Record<string, string>): DeviceCounts {

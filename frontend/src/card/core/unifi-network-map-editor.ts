@@ -1,12 +1,29 @@
 import { DOMAIN } from "../shared/constants";
 import {
   buildFormSchema,
+  formatFilterText,
+  NETWORK_FILTER_FIELDS,
+  type NetworkFilterField,
   normalizeIconSet,
   normalizeSvgTheme,
   normalizeTheme,
+  parseFilterText,
+  sameFilterList,
 } from "../shared/editor-helpers";
 import { createLocalize } from "../shared/localize";
 import type { CardConfig, ConfigEntry, FormSchemaEntry, Hass } from "./types";
+
+type FilterList = Array<number | string>;
+
+type EditorUpdate = {
+  entry_id: string;
+  theme: NonNullable<CardConfig["theme"]>;
+  svg_theme: NonNullable<CardConfig["svg_theme"]>;
+  icon_set: NonNullable<CardConfig["icon_set"]>;
+  card_height?: string | number;
+  vlan_filter: FilterList;
+  ssid_filter: FilterList;
+};
 
 export class UnifiNetworkMapEditor extends HTMLElement {
   private _config?: CardConfig;
@@ -19,7 +36,10 @@ export class UnifiNetworkMapEditor extends HTMLElement {
     data: Record<string, unknown>;
     hass?: Hass;
     computeLabel?: (schema: FormSchemaEntry) => string;
+    computeHelper?: (schema: { name: string }) => string | undefined;
   };
+  /** Raw text typed into the filter fields, kept so a trailing comma survives re-render. */
+  private _filterInput: Partial<Record<NetworkFilterField, string>> = {};
   private _boundOnChange = (event: Event) => this._onChange(event);
 
   set hass(hass: Hass) {
@@ -80,6 +100,8 @@ export class UnifiNetworkMapEditor extends HTMLElement {
     this._form.hass = this._hass;
     this._form.computeLabel = (schema: FormSchemaEntry) =>
       schema.label ?? this._localize(`editor.${schema.name}`) ?? schema.name;
+    this._form.computeHelper = (schema: { name: string }) =>
+      isFilterField(schema.name) ? this._localize(`editor.${schema.name}.helper`) : undefined;
     this._form.schema = this._buildFormSchema();
     this._form.data = this._buildFormData();
   }
@@ -98,6 +120,8 @@ export class UnifiNetworkMapEditor extends HTMLElement {
       svg_theme: "unifi",
       icon_set: "modern",
       card_height: "",
+      vlan_filter: "",
+      ssid_filter: "",
     };
   }
 
@@ -112,7 +136,24 @@ export class UnifiNetworkMapEditor extends HTMLElement {
     if (cfg.svg_theme !== undefined) result.svg_theme = cfg.svg_theme;
     if (cfg.icon_set !== undefined) result.icon_set = cfg.icon_set;
     if (cfg.card_height !== undefined) result.card_height = cfg.card_height;
+    for (const field of NETWORK_FILTER_FIELDS) {
+      result[field] = this._filterFormText(field);
+    }
     return result;
+  }
+
+  /** What was typed, while it still means the stored list; otherwise the stored list as text. */
+  private _filterFormText(field: NetworkFilterField): string {
+    const typed = this._filterInput[field];
+    const stored = this._storedFilter(field);
+    if (typed !== undefined && sameFilterList(parseFilterText(field, typed), stored)) {
+      return typed;
+    }
+    return formatFilterText(field, this._config?.[field]);
+  }
+
+  private _storedFilter(field: NetworkFilterField): FilterList {
+    return parseFilterText(field, formatFilterText(field, this._config?.[field]));
   }
 
   private _renderNoEntries() {
@@ -159,16 +200,12 @@ export class UnifiNetworkMapEditor extends HTMLElement {
       theme: this._config?.theme ?? "unifi",
       svg_theme: this._config?.svg_theme ?? "unifi",
       icon_set: this._config?.icon_set ?? "modern",
+      vlan_filter: this._storedFilter("vlan_filter"),
+      ssid_filter: this._storedFilter("ssid_filter"),
     });
   }
 
-  private _updateConfig(update: {
-    entry_id: string;
-    theme: NonNullable<CardConfig["theme"]>;
-    svg_theme: NonNullable<CardConfig["svg_theme"]>;
-    icon_set: NonNullable<CardConfig["icon_set"]>;
-    card_height?: string | number;
-  }) {
+  private _updateConfig(update: EditorUpdate) {
     this._config = {
       ...this._config,
       type: "custom:unifi-network-map",
@@ -178,6 +215,9 @@ export class UnifiNetworkMapEditor extends HTMLElement {
       icon_set: update.icon_set,
       card_height: update.card_height,
     };
+    for (const field of NETWORK_FILTER_FIELDS) {
+      this._setFilter(field, update[field]);
+    }
     this.dispatchEvent(
       new CustomEvent("config-changed", {
         detail: { config: this._config },
@@ -187,13 +227,29 @@ export class UnifiNetworkMapEditor extends HTMLElement {
     );
   }
 
-  private _getConfigUpdate(e: Event): {
-    entry_id: string;
-    theme: NonNullable<CardConfig["theme"]>;
-    svg_theme: NonNullable<CardConfig["svg_theme"]>;
-    icon_set: NonNullable<CardConfig["icon_set"]>;
-    card_height?: string | number;
-  } | null {
+  /** Lists go into the card config; an empty list removes the key. */
+  private _setFilter(field: NetworkFilterField, list: FilterList): void {
+    if (!this._config) {
+      return;
+    }
+    if (list.length > 0) {
+      this._config = { ...this._config, [field]: list };
+    } else {
+      const { [field]: _removed, ...rest } = this._config;
+      this._config = rest;
+    }
+  }
+
+  private _resolveFilter(field: NetworkFilterField, value?: Record<string, unknown>): FilterList {
+    const text = value?.[field];
+    if (typeof text !== "string") {
+      return this._storedFilter(field);
+    }
+    this._filterInput[field] = text;
+    return parseFilterText(field, text);
+  }
+
+  private _getConfigUpdate(e: Event): EditorUpdate | null {
     const detail = (
       e as CustomEvent<{
         value?: {
@@ -202,6 +258,8 @@ export class UnifiNetworkMapEditor extends HTMLElement {
           svg_theme?: string;
           icon_set?: string;
           card_height?: string | number;
+          vlan_filter?: string;
+          ssid_filter?: string;
         };
       }>
     ).detail;
@@ -216,6 +274,8 @@ export class UnifiNetworkMapEditor extends HTMLElement {
       svg_theme: normalizeSvgTheme(svgThemeValue),
       icon_set: normalizeIconSet(iconSetValue),
       card_height: cardHeight,
+      vlan_filter: this._resolveFilter("vlan_filter", detail.value),
+      ssid_filter: this._resolveFilter("ssid_filter", detail.value),
     };
   }
 
@@ -243,13 +303,11 @@ export class UnifiNetworkMapEditor extends HTMLElement {
     return value?.card_height ?? this._config?.card_height;
   }
 
-  private _isConfigUnchanged(update: {
-    entry_id: string;
-    theme: NonNullable<CardConfig["theme"]>;
-    svg_theme: NonNullable<CardConfig["svg_theme"]>;
-    icon_set: NonNullable<CardConfig["icon_set"]>;
-    card_height?: string | number;
-  }): boolean {
+  private _isConfigUnchanged(update: EditorUpdate): boolean {
+    return this._sameBaseConfig(update) && this._sameFilters(update);
+  }
+
+  private _sameBaseConfig(update: EditorUpdate): boolean {
     return (
       this._config?.entry_id === update.entry_id &&
       this._config?.theme === update.theme &&
@@ -258,4 +316,14 @@ export class UnifiNetworkMapEditor extends HTMLElement {
       this._config?.card_height === update.card_height
     );
   }
+
+  private _sameFilters(update: EditorUpdate): boolean {
+    return NETWORK_FILTER_FIELDS.every((field) =>
+      sameFilterList(this._storedFilter(field), update[field]),
+    );
+  }
+}
+
+function isFilterField(name: string): name is NetworkFilterField {
+  return (NETWORK_FILTER_FIELDS as readonly string[]).includes(name);
 }

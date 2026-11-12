@@ -36,6 +36,12 @@ export const de = {
   "editor.theme.light": "Hell",
   "editor.theme.unifi": "UniFi (Standard)",
   "editor.theme.unifi_dark": "UniFi Dunkel",
+  "editor.ssid_filter": "Nur WLAN-Netze anzeigen (optional)",
+  "editor.ssid_filter.helper":
+    "SSID-Namen durch Kommas getrennt, z. B. MeinIoTWLAN. Zeigt WLAN-Clients in diesen Netzen. Leer lassen, um den ganzen Standort anzuzeigen.",
+  "editor.vlan_filter": "Nur VLANs anzeigen (optional)",
+  "editor.vlan_filter.helper":
+    "VLAN-IDs durch Kommas getrennt, z. B. 20, 30. Zeigt kabelgebundene und WLAN-Clients in diesen VLANs. Leer lassen, um den ganzen Standort anzuzeigen.",
   "editor.svg_theme": "Kartenfarben",
   "editor.svg_theme.unifi": "UniFi (Standard)",
   "editor.svg_theme.unifi_dark": "UniFi Dunkel",

@@ -44,6 +44,7 @@ import {
   toggleFilter,
 } from "../interaction/filter-state";
 import { countDeviceTypes } from "../ui/filter-bar";
+import { networkVisibleNodes, parseNetworkFilter } from "../interaction/network-filter";
 import {
   applyTransform,
   applyZoom,
@@ -629,8 +630,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
     const container = viewport.querySelector(".filter-bar-container");
     if (!container) return;
 
-    const nodeTypes = this._payload?.node_types ?? {};
-    const counts = countDeviceTypes(nodeTypes);
+    const counts = countDeviceTypes(this._networkFilteredNodeTypes());
     const theme = this._config?.theme ?? "dark";
 
     const labels = this._getFilterLabels();
@@ -712,6 +712,7 @@ export class UnifiNetworkMapCard extends HTMLElement {
         payload: this._payload,
         selectedNode: this._selection.selectedNode,
         activeTab: this._activeTab,
+        visibleNodes: this._networkVisibleNodes() ?? undefined,
       },
       this._panelHelpers(),
     );
@@ -947,13 +948,30 @@ export class UnifiNetworkMapCard extends HTMLElement {
     }
   }
 
+  /** Nodes left by the card's vlan_filter / ssid_filter; null when none is set. */
+  private _networkVisibleNodes(): Set<string> | null {
+    const filter = this._config ? parseNetworkFilter(this._config) : null;
+    return filter && this._payload ? networkVisibleNodes(this._payload, filter) : null;
+  }
+
+  private _networkFilteredNodeTypes(): Record<string, string> {
+    const nodeTypes = this._payload?.node_types ?? {};
+    const visible = this._networkVisibleNodes();
+    if (!visible) {
+      return nodeTypes;
+    }
+    return Object.fromEntries(Object.entries(nodeTypes).filter(([id]) => visible.has(id)));
+  }
+
   private _applyFilters(svg: SVGElement): void {
     const nodeTypes = this._payload?.node_types ?? {};
+    const networkVisible = this._networkVisibleNodes();
     const hiddenNodes = new Set<string>();
 
     for (const [nodeId, nodeType] of Object.entries(nodeTypes)) {
       const normalized = normalizeDeviceType(nodeType);
-      const visible = this._filterState[normalized];
+      const visible =
+        this._filterState[normalized] && (networkVisible === null || networkVisible.has(nodeId));
       const element = findNodeElement(svg, nodeId);
 
       if (element) {

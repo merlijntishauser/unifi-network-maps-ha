@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Per-card network filter: `vlan_filter` (VLAN IDs) and `ssid_filter` (Wi-Fi network names) limit a map card to the clients on those networks, keeping the gateway and every switch and access point on their path so the map stays connected. The filter bar and the side panel's overview count only what the filter leaves visible. Lets you put one card per network on a dashboard. The payload now includes `node_ssids` (wireless client MAC to SSID) for this. Both can be set in the card editor as comma-separated lists, or in YAML (#321)
+
 ## [0.5.13] - 2026-11-11
 
 ### Added

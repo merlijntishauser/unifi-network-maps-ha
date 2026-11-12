@@ -34,6 +34,12 @@ export const is = {
   "editor.theme.light": "Ljóst",
   "editor.theme.unifi": "UniFi (sjálfgefið)",
   "editor.theme.unifi_dark": "UniFi Dökkt",
+  "editor.ssid_filter": "Sýna aðeins Wi-Fi-net (valfrjálst)",
+  "editor.ssid_filter.helper":
+    "SSID-heiti aðskilin með kommum, t.d. MittIoTWiFi. Sýnir þráðlausa biðlara á þessum netum. Skildu eftir autt til að sýna allan staðinn.",
+  "editor.vlan_filter": "Sýna aðeins VLAN (valfrjálst)",
+  "editor.vlan_filter.helper":
+    "VLAN-auðkenni aðskilin með kommum, t.d. 20, 30. Sýnir tengda og þráðlausa biðlara á þessum VLAN. Skildu eftir autt til að sýna allan staðinn.",
   "editor.svg_theme": "Kortalitiur",
   "editor.svg_theme.unifi": "UniFi (sjálfgefið)",
   "editor.svg_theme.unifi_dark": "UniFi Dökkt",

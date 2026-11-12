@@ -112,6 +112,17 @@ card_height: 600
 
 The `card_height` option accepts a number (interpreted as pixels) or any valid CSS length value. Adjust this to fit your dashboard layout.
 
+**Showing one network per card**: to give each network its own map, limit a card to clients on certain VLANs or Wi-Fi networks:
+
+```yaml
+type: custom:unifi-network-map
+entry_id: your_entry_id_here
+vlan_filter: [20]          # VLAN IDs: wired and wireless clients on these VLANs
+ssid_filter: [MyIoTWiFi]   # Wi-Fi network names: wireless clients on these SSIDs
+```
+
+Use either option or both; a client is shown when it matches any of them. Each takes a single value or a list. The gateway, and every switch and access point between the gateway and a shown client, stay on the map so it stays connected; other switches and access points are hidden. Grouped client nodes are hidden while a filter is set, because they have no single network. In the card editor, enter them as comma-separated lists under **Only show VLANs** and **Only show Wi-Fi networks**.
+
 ---
 
 ## Using the Map

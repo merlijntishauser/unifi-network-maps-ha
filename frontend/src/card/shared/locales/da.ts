@@ -34,6 +34,12 @@ export const da = {
   "editor.theme.light": "Lys",
   "editor.theme.unifi": "UniFi (standard)",
   "editor.theme.unifi_dark": "UniFi Mørk",
+  "editor.ssid_filter": "Vis kun Wi-Fi-netværk (valgfrit)",
+  "editor.ssid_filter.helper":
+    "SSID-navne adskilt af kommaer, f.eks. MitIoTWiFi. Viser trådløse klienter på disse netværk. Lad feltet være tomt for at vise hele sitet.",
+  "editor.vlan_filter": "Vis kun VLAN'er (valgfrit)",
+  "editor.vlan_filter.helper":
+    "VLAN-id'er adskilt af kommaer, f.eks. 20, 30. Viser kablede og trådløse klienter på disse VLAN'er. Lad feltet være tomt for at vise hele sitet.",
   "editor.svg_theme": "Kortfarver",
   "editor.svg_theme.unifi": "UniFi (standard)",
   "editor.svg_theme.unifi_dark": "UniFi Mørk",
