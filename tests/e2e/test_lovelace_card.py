@@ -876,6 +876,19 @@ def test_ssid_filter_shows_only_that_networks_clients(
     assert filtered == [False, False, True]
 
 
+def _wait_for_selector_labels(
+    page: Page, selectors: Locator, label: str, timeout_ms: int = 15000
+) -> list[str]:
+    """Poll text selectors until one has ``label``; return all labels."""
+    labels: list[str] = []
+    for _ in range(timeout_ms // 250):
+        labels = selectors.evaluate_all("(els) => els.map((el) => el.label)")
+        if label in labels:
+            return labels
+        page.wait_for_timeout(250)
+    raise AssertionError(f"No text selector labelled {label!r}; saw {labels}")
+
+
 def test_card_editor_network_filter_fields_in_real_ha(
     authenticated_page: Page,
     entry_id: str,
@@ -920,9 +933,11 @@ def test_card_editor_network_filter_fields_in_real_ha(
     )
     # HA's ha-input does not expose its label to get_by_label, so find the
     # text selector by the label HA was given and type into its input.
+    # ha-form renders asynchronously, so poll until the field has its label.
     selectors = page.locator("#test-editor ha-selector-text")
-    labels = selectors.evaluate_all("(els) => els.map((el) => el.label)")
-    vlan_index = labels.index("Only show VLANs (optional)")
+    vlan_label = "Only show VLANs (optional)"
+    labels = _wait_for_selector_labels(page, selectors, vlan_label)
+    vlan_index = labels.index(vlan_label)
     vlan_selector = selectors.nth(vlan_index)
     vlan_input = vlan_selector.locator("input")
     vlan_input.fill("20, 30")
