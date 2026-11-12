@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.14] - 2026-11-12
+
 ### Added
 - Per-card network filter: `vlan_filter` (VLAN IDs) and `ssid_filter` (Wi-Fi network names) limit a map card to the clients on those networks, keeping the gateway and every switch and access point on their path so the map stays connected. The filter bar and the side panel's overview count only what the filter leaves visible. Lets you put one card per network on a dashboard. The payload now includes `node_ssids` (wireless client MAC to SSID) for this. Both can be set in the card editor as comma-separated lists, or in YAML (#321)
 
@@ -411,7 +413,8 @@ The upcoming 0.2 release will have some major new features.
 ## [0.1.0] - 2026-01-17
 - Initial public release.
 
-[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.5.13...HEAD
+[Unreleased]: https://github.com/merlijntishauser/unifi-network-maps-ha/compare/v0.5.14...HEAD
+[0.5.14]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.14
 [0.5.13]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.13
 [0.5.12]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.12
 [0.5.11]: https://github.com/merlijntishauser/unifi-network-maps-ha/releases/tag/v0.5.11
